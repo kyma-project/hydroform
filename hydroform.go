@@ -2,13 +2,14 @@ package hydroform
 
 import (
 	gcp "github.com/kyma-incubator/hydroform/internal/gcp"
+	"github.com/kyma-incubator/hydroform/types"
 )
 
 type Provider interface {
-	Provision() error
-	Status() error
-	Credentials() error
-	Deprovision() error
+	Provision(cluster *types.Cluster, platform *types.Platform) error
+	Status(clusterName string, platform *types.Platform) (*types.ClusterInfo, error)
+	Credentials(clusterName string, platform *types.Platform) ([]byte, error)
+	Deprovision(clusterName string, platform *types.Platform) error
 }
 
 func NewGoogleProvider() Provider {
