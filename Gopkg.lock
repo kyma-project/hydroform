@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:1079383dbda45190edd56a1d2386a93b76afb4314465ffe212ffd3b47fff37dd"
+  digest = "1:c862f2090341c4c893527fb33e53f93ce668521ea8159eabb2573c17232eccb1"
   name = "cloud.google.com/go"
   packages = [
     ".",
@@ -19,8 +19,8 @@
     "storage",
   ]
   pruneopts = "UT"
-  revision = "ceeb313ad77b789a7fa5287b36a1d127b69b7093"
-  version = "v0.44.3"
+  revision = "d1af076dc3f6a314e9dd6610fe83b0f7afaff6d6"
+  version = "v0.45.1"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -63,7 +63,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:36d110874db5c9be3c32edcdf4bbf34dbd5004494b707ffae9b92ea7b74c8424"
+  digest = "1:9a96a46f8e13437b541ecffbee62aa994b2feb6169ed5630302739e19e46392f"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -105,8 +105,8 @@
     "service/sts/stsiface",
   ]
   pruneopts = "UT"
-  revision = "038baef27d86865da72603d700d55d8d0c212ce8"
-  version = "v1.23.14"
+  revision = "4651c2a344e90782ae06c956a5b0edcae3ae21d0"
+  version = "v1.23.16"
 
 [[projects]]
   branch = "master"
@@ -163,6 +163,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "0ed5e40ec55ef92598868a91818ebef436f4dcd0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:b7cb6054d3dff43b38ad2e92492f220f57ae6087ee797dca298139776749ace8"
+  name = "github.com/golang/groupcache"
+  packages = ["lru"]
+  pruneopts = "UT"
+  revision = "869f871628b6baa9cfbc11732cdf6546b17c1298"
 
 [[projects]]
   digest = "1:4f5daff46de3f64b36881f69168f18b20c4f841c76e10546f5031a1a5517d102"
@@ -274,14 +282,6 @@
   pruneopts = "UT"
   revision = "ac23dc3fea5d1a983c43f6a0f6e2c13f0195d8bd"
   version = "v1.2.0"
-
-[[projects]]
-  digest = "1:7fae9ec96d10b2afce0da23c378c8b3389319b7f92fa092f2621bba3078cfb4b"
-  name = "github.com/hashicorp/golang-lru"
-  packages = ["simplelru"]
-  pruneopts = "UT"
-  revision = "7f827b33c0f158ec5dfbba01bb0b14a4541fd81d"
-  version = "v0.5.3"
 
 [[projects]]
   digest = "1:ea40c24cdbacd054a6ae9de03e62c5f252479b96c716375aace5c120d68647c8"
@@ -522,6 +522,14 @@
   version = "v2.2.7"
 
 [[projects]]
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
+
+[[projects]]
   digest = "1:57e168c6dfcc02c1c53bdf1589afbef59694d819cac65bfd3a855de2256d4950"
   name = "github.com/posener/complete"
   packages = [
@@ -543,15 +551,15 @@
   version = "v1.0.2"
 
 [[projects]]
-  digest = "1:91ed894bbacc81c4a7e23184b5aa9f35a3d215594dc320e609dc4d3e4f66954c"
+  digest = "1:b1296b82f2021ca5bb70f4a3fd387216b17774a50165cd57ea196b58575875dc"
   name = "github.com/terraform-providers/terraform-provider-google"
   packages = [
     "google",
     "version",
   ]
   pruneopts = "UT"
-  revision = "66de1a898c4cb08383f8f50ed96429f5dce618c4"
-  version = "v2.14.0"
+  revision = "f9a9636be7cd4c04c336a68e85767f28ce1b1236"
+  version = "v2.4.1"
 
 [[projects]]
   digest = "1:d61dbbdedc26065cac935c1e93da98cd760139bd4c0c9a7582df58756fe57870"
@@ -591,7 +599,7 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:bf33f7cd985e8e62eeef3b1985ec48f0f274e4083fa811596aafaf3af2947e83"
+  digest = "1:07ca513e3b295b9aeb1f0f6fbefb8102139a2764ce0f28d02040c0eb2dc276dd"
   name = "go.opencensus.io"
   packages = [
     ".",
@@ -613,8 +621,8 @@
     "trace/tracestate",
   ]
   pruneopts = "UT"
-  revision = "9c377598961b706d1542bd2d84d538b5094d596e"
-  version = "v0.22.0"
+  revision = "59d1ce35d30f3c25ba762169da2a37eab6ffa041"
+  version = "v0.22.1"
 
 [[projects]]
   branch = "master"
@@ -695,7 +703,7 @@
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "43c01164e93111c754a278ab423ba01063c44917"
+  revision = "749cb33beabd9aa6d3178e3de05bcc914f70b2bf"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -724,7 +732,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:757bd261b78937c0aeed0b7c12265e0ed79880a7e62f319ea9f1c5777d431d38"
+  digest = "1:24eb2f26f12459066dbea0170fbf0d3b5f6a03909b02e543bdbe10019e8e4808"
   name = "golang.org/x/tools"
   packages = [
     "cmd/goimports",
@@ -746,15 +754,14 @@
     "internal/semver",
   ]
   pruneopts = "UT"
-  revision = "be0da057c5e3c2df569a2c25cd280149b7d7e7d0"
+  revision = "93dcc2f048f5c4d0369b73a355ba598c8e61e48d"
 
 [[projects]]
-  digest = "1:efa3b1d979c4ffd3d64b2b38b3ecaa3aa3ec37d3aa858c37da88c63f599e9fbc"
+  digest = "1:a46ed5778da5818fe359ec98de0bf33cadca06754beedf096370ed09cf58b5d6"
   name = "google.golang.org/api"
   packages = [
     "appengine/v1",
     "bigquery/v2",
-    "bigtableadmin/v2",
     "cloudbilling/v1",
     "cloudbuild/v1",
     "cloudfunctions/v1",
@@ -769,7 +776,6 @@
     "container/v1beta1",
     "dataflow/v1b3",
     "dataproc/v1",
-    "dataproc/v1beta2",
     "dns/v1",
     "dns/v1beta2",
     "file/v1beta1",
@@ -786,7 +792,6 @@
     "pubsub/v1",
     "runtimeconfig/v1beta1",
     "servicemanagement/v1",
-    "servicenetworking/v1",
     "serviceusage/v1",
     "sourcerepo/v1",
     "spanner/v1",
@@ -799,8 +804,8 @@
     "transport/http/internal/propagation",
   ]
   pruneopts = "UT"
-  revision = "feb0267beb8644f5088a03be4d5ec3f8c7020152"
-  version = "v0.9.0"
+  revision = "09a9d0a772eb18da65a7917760cf4ca9ae943c83"
+  version = "v0.10.0"
 
 [[projects]]
   digest = "1:2c26b1c47556c0e5e73cdb05d8361c463737eee4baac35d38b40c728c3074a94"
@@ -825,7 +830,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2957ffcbb72e57df51882f98ebd3d78f1c91e0f5b3abb40336c61cf1ad1b1821"
+  digest = "1:b89155ed64531b7056bc11c0618b33d3335382e4f2bfac1b993fb16247e7b95d"
   name = "google.golang.org/genproto"
   packages = [
     "googleapis/api/annotations",
@@ -839,7 +844,7 @@
     "protobuf/field_mask",
   ]
   pruneopts = "UT"
-  revision = "24fa4b261c55da65468f2abfdae2b024eef27dfb"
+  revision = "92dd089d5514cecde7a465f807541f83dfd486d5"
 
 [[projects]]
   digest = "1:b6a61a85856e30b151ad9e958ac8ae3d1f719426bcefbd33289182a8219d299d"
@@ -895,7 +900,7 @@
   version = "v1.23.0"
 
 [[projects]]
-  digest = "1:9e593df1695ea6942188dd19c1d0f21c635fcf9f5f03611fc623c696cd2847a9"
+  digest = "1:131158a88aad1f94854d0aa21a64af2802d0a470fb0f01cb33c04fafd2047111"
   name = "honnef.co/go/tools"
   packages = [
     "arg",
@@ -925,8 +930,8 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "72554cb117ad340748b3093e7108983fd984c9f2"
-  version = "2019.2.2"
+  revision = "afd67930eec2a9ed3e9b19f684d17a062285f16a"
+  version = "2019.2.3"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -934,6 +939,7 @@
   input-imports = [
     "github.com/hashicorp/terraform/config/module",
     "github.com/hashicorp/terraform/terraform",
+    "github.com/pkg/errors",
     "github.com/terraform-providers/terraform-provider-google/google",
     "github.com/terraform-providers/terraform-provider-null/null",
   ]

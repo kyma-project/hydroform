@@ -12,14 +12,14 @@ type Provider interface {
 	Deprovision(clusterName string, platform *types.Platform) error
 }
 
-func NewGoogleProvider() Provider {
-	return gcp.New()
+func NewGoogleProvider(provisionOperator string) Provider {
+	return gcp.New(provisionOperator)
 }
 
-func NewAWSProvider() Provider {
+func NewAWSProvider(provisionOperator string) Provider {
 	return nil
 }
 
-func NewAzureProvider() Provider {
+func NewAzureProvider(provisionOperator string) Provider {
 	return nil
 }
