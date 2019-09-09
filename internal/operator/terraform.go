@@ -20,6 +20,7 @@ const googleClusterTemplate string = `
   variable "location"      		{}
   variable "machine_type"  		{}
   variable "kubernetes_version"   	{}
+  variable "disk_size" 			{}
 
   provider "google" {
     	credentials   = "${file("${var.credentials_file_path}")}"
@@ -35,6 +36,7 @@ const googleClusterTemplate string = `
     
     node_config {
       	machine_type = "${var.machine_type}"
+	disk_size_gb = "${var.disk_size}"
     }
 
     maintenance_policy {

@@ -33,6 +33,7 @@ func (g *GoogleProvider) Provision(cluster *types.Cluster, platform *types.Platf
 	config["cluster_name"] = cluster.Name
 	config["node_count"] = platform.NodesCount
 	config["machine_type"] = platform.MachineType
+	config["disk_size"] = cluster.DiskSizeGB
 	config["kubernetes_version"] = cluster.KubernetesVersion
 	config["location"] = platform.Location
 	config["project"] = platform.ProjectName

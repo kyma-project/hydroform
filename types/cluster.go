@@ -4,7 +4,7 @@ type Cluster struct {
 	Name              string
 	KubernetesVersion string
 	CPU               string
-	Memory            string
+	DiskSizeGB        uint32
 }
 
 type ClusterInfo struct {

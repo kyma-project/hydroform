@@ -24,6 +24,7 @@ func main() {
 		CPU:               "1",
 		KubernetesVersion: "1.12",
 		Name:              "test-cluster",
+		DiskSizeGB:        30,
 	}
 	platformConfig := &types.Platform{
 		NodesCount: 2,
