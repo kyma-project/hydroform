@@ -1,9 +1,13 @@
 package gcp
 
 import (
-	"errors"
+	"context"
 	"strings"
 
+	"github.com/pkg/errors"
+	"google.golang.org/api/option"
+
+	"cloud.google.com/go/container"
 	"github.com/kyma-incubator/hydroform/internal/operator"
 	"github.com/kyma-incubator/hydroform/types"
 )
@@ -25,9 +29,10 @@ func (g *GoogleProvider) validatePlatform(p *types.Platform) bool {
 	return true
 }
 
-func (g *GoogleProvider) Provision(cluster *types.Cluster, platform *types.Platform) error {
+func (g *GoogleProvider) Provision(cluster *types.Cluster,
+	platform *types.Platform) (*types.ClusterInfo, error) {
 	if !g.validatePlatform(platform) {
-		return errors.New("incomplete platform information")
+		return nil, errors.New("incomplete platform information")
 	}
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
@@ -39,11 +44,31 @@ func (g *GoogleProvider) Provision(cluster *types.Cluster, platform *types.Platf
 	config["project"] = platform.ProjectName
 	config["credentials_file_path"] = platform.Configuration["credentials_file_path"]
 
-	return g.provisionOperator.Create("google", config)
+	err := g.provisionOperator.Create("google", config)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to provision gcp cluster")
+	}
+
+	return g.Status(cluster.Name, platform)
 }
 
 func (g *GoogleProvider) Status(clusterName string, platform *types.Platform) (*types.ClusterInfo, error) {
-	return nil, nil
+	containerClient, err := container.NewClient(context.Background(),
+		platform.ProjectName,
+		option.WithCredentialsFile(platform.Configuration["credentials_file_path"].(string)))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create GCP client")
+	}
+	cl, err := containerClient.Cluster(context.Background(), platform.Location, clusterName)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get cluster info")
+	}
+	info := &types.ClusterInfo{
+		Status: string(cl.Status),
+		IP:     cl.Endpoint,
+	}
+
+	return info, nil
 }
 
 func (g *GoogleProvider) Credentials(clusterName string, platform *types.Platform) ([]byte, error) {

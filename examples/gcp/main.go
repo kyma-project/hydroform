@@ -36,10 +36,11 @@ func main() {
 		MachineType: *machineType,
 	}
 
-	err := provider.Provision(clusterConfig, platformConfig)
+	clusterInfo, err := provider.Provision(clusterConfig, platformConfig)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
 	}
 	fmt.Println("Provisioned successfully")
+	fmt.Printf("Cluster status: %s, IP: %s\r\n", clusterInfo.Status, clusterInfo.IP)
 }

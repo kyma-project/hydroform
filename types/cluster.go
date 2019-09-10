@@ -8,5 +8,7 @@ type Cluster struct {
 }
 
 type ClusterInfo struct {
-	Status string
+	Status        string
+	IP            string
+	CloudPlatform string
 }

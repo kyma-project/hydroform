@@ -6,7 +6,7 @@ import (
 )
 
 type Provider interface {
-	Provision(cluster *types.Cluster, platform *types.Platform) error
+	Provision(cluster *types.Cluster, platform *types.Platform) (*types.ClusterInfo, error)
 	Status(clusterName string, platform *types.Platform) (*types.ClusterInfo, error)
 	Credentials(clusterName string, platform *types.Platform) ([]byte, error)
 	Deprovision(clusterName string, platform *types.Platform) error
