@@ -1,10 +1,12 @@
 package operator
 
-type Cluster interface {
-	Create(provider string, configuration map[string]interface{}) error
-	Delete(provider string, configuration map[string]interface{}) error
+import "github.com/kyma-incubator/hydroform/types"
+
+type Operator interface {
+	Create(providerType types.ProviderType, configuration map[string]interface{}) error
+	Delete(providerType types.ProviderType, configuration map[string]interface{}) error
 }
 
-func NewTerraform() Cluster {
+func NewTerraform() Operator {
 	return &Terraform{}
 }

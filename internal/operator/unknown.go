@@ -1,14 +1,17 @@
 package operator
 
-import "errors"
+import (
+	"errors"
+	"github.com/kyma-incubator/hydroform/types"
+)
 
 type Unknown struct {
 }
 
-func (u *Unknown) Create(provider string, configuration map[string]interface{}) error {
+func (u *Unknown) Create(providerType types.ProviderType, configuration map[string]interface{}) error {
 	return errors.New("unknown operator")
 }
 
-func (u *Unknown) Delete(provider string, configuration map[string]interface{}) error {
+func (u *Unknown) Delete(providerType types.ProviderType, configuration map[string]interface{}) error {
 	return errors.New("unknown operator")
 }

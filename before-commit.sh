@@ -64,7 +64,7 @@ fi
 ##
 # GO VET
 ##
-packagesToVet=("./api/..." "./internal/..." "./action/..." "./types/...")
+packagesToVet=("./internal/..." "./action/..." "./types/..." "./examples/...")
 
 for vPackage in "${packagesToVet[@]}"; do
 	vetResult=$(go vet ${vPackage})

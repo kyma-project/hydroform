@@ -10,7 +10,3 @@ ci-master: build
 
 .PHONY: ci-release
 ci-release: build
-
-.PHONY: clean
-clean:
-	rm -rf bin

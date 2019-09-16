@@ -4,11 +4,17 @@ type Cluster struct {
 	Name              string
 	KubernetesVersion string
 	CPU               string
-	DiskSizeGB        uint32
+	DiskSizeGB        int
+	NodeCount         int
+	MachineType       string
+	Location          string
 }
 
 type ClusterInfo struct {
-	Status        string
-	IP            string
-	CloudPlatform string
+	Status ClusterStatus
+	IP     string
+}
+
+type ClusterStatus struct {
+	Phase string
 }

@@ -1,12 +1,11 @@
 package operator
 
 import (
-	"strings"
-
+	"github.com/kyma-incubator/hydroform/types"
 	"github.com/pkg/errors"
 
 	"github.com/hashicorp/terraform/terraform"
-	tApi "github.com/kyma-incubator/hydroform/api/terraform"
+	terraformClient "github.com/kyma-incubator/hydroform/internal/terraform"
 	"github.com/terraform-providers/terraform-provider-google/google"
 )
 
@@ -50,21 +49,20 @@ const googleClusterTemplate string = `
 type Terraform struct {
 }
 
-func (t *Terraform) Create(provider string,
-	configuration map[string]interface{}) error {
+func (t *Terraform) Create(providerType types.ProviderType, configuration map[string]interface{}) error {
 
 	var resourceProvider terraform.ResourceProvider
 	var clusterTemplate string
-	pr := strings.ToLower(provider)
-	switch pr {
-	case "google":
+
+	switch providerType {
+	case types.GCP:
 		resourceProvider = google.Provider()
 		clusterTemplate = googleClusterTemplate
-	case "aws":
+	case types.AWS:
 		//resourceProvider = aws.Provider()
 		//clusterTemplate = awsClusterTemplate
 		return errors.New("aws not supported yet")
-	case "azure":
+	case types.Azure:
 		//resourceProvider = azure.Provider()
 		//clusterTemplate = azureClusterTemplate
 		return errors.New("azure not supported yet")
@@ -72,8 +70,8 @@ func (t *Terraform) Create(provider string,
 		return errors.New("unknown provider")
 	}
 
-	platform := tApi.NewPlatform(clusterTemplate)
-	platform.AddProvider(pr, resourceProvider)
+	platform := terraformClient.NewPlatform(clusterTemplate)
+	platform.AddProvider(string(providerType), resourceProvider)
 	for k, v := range configuration {
 		platform.Var(k, v)
 	}
@@ -81,6 +79,6 @@ func (t *Terraform) Create(provider string,
 	return errors.Wrap(err, "unable to provision cluster")
 }
 
-func (t *Terraform) Delete(provider string, configuration map[string]interface{}) error {
+func (t *Terraform) Delete(providerType types.ProviderType, configuration map[string]interface{}) error {
 	return nil
 }

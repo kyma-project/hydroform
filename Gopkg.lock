@@ -2,14 +2,13 @@
 
 
 [[projects]]
-  digest = "1:5ebfc5a2ca58db38dac51621ff992c87f27a52856e98f5132d326c0dc859b13d"
+  digest = "1:c862f2090341c4c893527fb33e53f93ce668521ea8159eabb2573c17232eccb1"
   name = "cloud.google.com/go"
   packages = [
     ".",
     "bigtable",
     "bigtable/internal/option",
     "compute/metadata",
-    "container",
     "iam",
     "internal",
     "internal/optional",
@@ -938,13 +937,11 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "cloud.google.com/go/container",
     "github.com/hashicorp/terraform/config/module",
     "github.com/hashicorp/terraform/terraform",
     "github.com/pkg/errors",
     "github.com/terraform-providers/terraform-provider-google/google",
     "github.com/terraform-providers/terraform-provider-null/null",
-    "google.golang.org/api/option",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
