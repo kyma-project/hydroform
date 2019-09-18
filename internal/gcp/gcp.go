@@ -3,7 +3,6 @@ package gcp
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 
 	"cloud.google.com/go/container"
 	"github.com/kyma-incubator/hydroform/internal/operator"
@@ -16,11 +15,11 @@ import (
 
 var mandatoryConfigFields = []string{}
 
-type googleProvider struct {
+type gcpProvider struct {
 	provisionOperator operator.Operator
 }
 
-func (g *googleProvider) validateProvider(provider *types.Provider) bool {
+func (g *gcpProvider) validateProvider(provider *types.Provider) bool {
 	for _, field := range mandatoryConfigFields {
 		if _, ok := provider.CustomConfigurations[field]; !ok {
 			return false
@@ -29,7 +28,7 @@ func (g *googleProvider) validateProvider(provider *types.Provider) bool {
 	return true
 }
 
-func (g *googleProvider) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
+func (g *gcpProvider) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	if !g.validateProvider(provider) {
 		return nil, errors.New("incomplete provider information")
 	}
@@ -41,11 +40,11 @@ func (g *googleProvider) Provision(cluster *types.Cluster, provider *types.Provi
 		return cluster, errors.Wrap(err, "unable to provision gcp cluster")
 	}
 
-	cluster.ClusterInfo = *clusterInfo
+	cluster.ClusterInfo = clusterInfo
 	return cluster, nil
 }
 
-func (g *googleProvider) Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
+func (g *gcpProvider) Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
 	containerClient, err := container.NewClient(context.Background(),
 		provider.ProjectName,
 		option.WithCredentialsFile(provider.CredentialsFilePath))
@@ -62,7 +61,7 @@ func (g *googleProvider) Status(cluster *types.Cluster, provider *types.Provider
 	}, nil
 }
 
-func (g *googleProvider) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
+func (g *gcpProvider) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
 	userName := "cluster-user"
 	config := api.NewConfig()
 
@@ -84,12 +83,7 @@ func (g *googleProvider) Credentials(cluster *types.Cluster, provider *types.Pro
 		},
 	}
 
-	err := clientcmd.WriteToFile(*config, "kubeconfig.yaml")
-	if err != nil {
-		return nil, err
-	}
-
-	content, err := ioutil.ReadFile("kubeconfig.yaml")
+	content, err := clientcmd.Write(*config)
 	if err != nil {
 		return nil, err
 	}
@@ -97,14 +91,14 @@ func (g *googleProvider) Credentials(cluster *types.Cluster, provider *types.Pro
 	return content, nil
 }
 
-func (g *googleProvider) Deprovision(cluster *types.Cluster, provider *types.Provider) error {
+func (g *gcpProvider) Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	if !g.validateProvider(provider) {
 		return errors.New("incomplete provider information")
 	}
 
 	config := loadConfigurations(cluster, provider)
 
-	err := g.provisionOperator.Delete(&cluster.ClusterInfo.OperatorState, provider.Type, config)
+	err := g.provisionOperator.Delete(cluster.ClusterInfo.InternalState, provider.Type, config)
 	if err != nil {
 		return errors.Wrap(err, "unable to deprovision gcp cluster")
 	}
@@ -112,17 +106,17 @@ func (g *googleProvider) Deprovision(cluster *types.Cluster, provider *types.Pro
 	return nil
 }
 
-func New(operatorType types.OperatorType) *googleProvider {
+func New(operatorType operator.OperatorType) *gcpProvider {
 	var op operator.Operator
 
 	switch operatorType {
-	case types.Terraform:
+	case operator.TerraformOperator:
 		op = &operator.Terraform{}
 	default:
 		op = &operator.Unknown{}
 	}
 
-	return &googleProvider{
+	return &gcpProvider{
 		provisionOperator: op,
 	}
 }

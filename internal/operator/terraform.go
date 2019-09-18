@@ -15,7 +15,7 @@ import (
 
 const awsClusterTemplate string = ``
 const azureClusterTemplate string = ``
-const googleClusterTemplate string = `
+const gcpClusterTemplate string = `
   variable "node_count"    		{}
   variable "cluster_name"  		{}
   variable "credentials_file_path" 	{}
@@ -27,7 +27,7 @@ const googleClusterTemplate string = `
 
   provider "google" {
     	credentials   = "${file("${var.credentials_file_path}")}"
-	project       = "${var.project}"
+		project       = "${var.project}"
   }
 
   resource "google_container_cluster" "gke_cluster" {
@@ -70,8 +70,8 @@ func (t *Terraform) Create(providerType types.ProviderType, configuration map[st
 	state, err := platform.Apply(terraformClient.NewState(), false)
 	if err != nil {
 		return &types.ClusterInfo{
-			OperatorState: *state,
-			Status:        types.ClusterStatus{Phase: types.Errored},
+			InternalState: &types.InternalState{TerraformState: state},
+			Status:        &types.ClusterStatus{Phase: types.Errored},
 		}, errors.Wrap(err, "unable to provision cluster")
 	}
 
@@ -92,18 +92,18 @@ func (t *Terraform) Create(providerType types.ProviderType, configuration map[st
 	return &types.ClusterInfo{
 		Endpoint:                 endpoint,
 		CertificateAuthorityData: certificateData,
-		OperatorState:            *state,
-		Status:                   types.ClusterStatus{Phase: types.Provisioned},
+		InternalState:            &types.InternalState{TerraformState: state},
+		Status:                   &types.ClusterStatus{Phase: types.Provisioned},
 	}, nil
 }
 
-func (t *Terraform) Delete(state *types.OperatorState, providerType types.ProviderType, configuration map[string]interface{}) error {
+func (t *Terraform) Delete(state *types.InternalState, providerType types.ProviderType, configuration map[string]interface{}) error {
 	platform, err := t.newPlatform(providerType, configuration)
 	if err != nil {
 		return err
 	}
 
-	_, err = platform.Apply(state, true)
+	_, err = platform.Apply(state.TerraformState, true)
 	return errors.Wrap(err, "unable to deprovision cluster")
 }
 
@@ -114,7 +114,7 @@ func (t *Terraform) newPlatform(providerType types.ProviderType, configuration m
 	switch providerType {
 	case types.GCP:
 		resourceProvider = google.Provider()
-		clusterTemplate = googleClusterTemplate
+		clusterTemplate = gcpClusterTemplate
 	case types.AWS:
 		//resourceProvider = aws.Provider()
 		//clusterTemplate = awsClusterTemplate

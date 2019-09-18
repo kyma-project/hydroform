@@ -4,10 +4,11 @@ import (
 	"errors"
 
 	"github.com/kyma-incubator/hydroform/internal/gcp"
+	"github.com/kyma-incubator/hydroform/internal/operator"
 	"github.com/kyma-incubator/hydroform/types"
 )
 
-const operator = types.Terraform
+const provisionOperator = operator.TerraformOperator
 
 type Provisioner interface {
 	Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error)
@@ -19,7 +20,7 @@ type Provisioner interface {
 func Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	switch provider.Type {
 	case types.GCP:
-		return newGoogleProvisioner(operator).Provision(cluster, provider)
+		return newGCPProvisioner(provisionOperator).Provision(cluster, provider)
 	case types.AWS:
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
@@ -32,7 +33,7 @@ func Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster
 func Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
 	switch provider.Type {
 	case types.GCP:
-		return newGoogleProvisioner(operator).Status(cluster, provider)
+		return newGCPProvisioner(provisionOperator).Status(cluster, provider)
 	case types.AWS:
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
@@ -45,7 +46,7 @@ func Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterSta
 func Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
 	switch provider.Type {
 	case types.GCP:
-		return newGoogleProvisioner(operator).Credentials(cluster, provider)
+		return newGCPProvisioner(provisionOperator).Credentials(cluster, provider)
 	case types.AWS:
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
@@ -58,7 +59,7 @@ func Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, erro
 func Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	switch provider.Type {
 	case types.GCP:
-		return newGoogleProvisioner(operator).Deprovision(cluster, provider)
+		return newGCPProvisioner(provisionOperator).Deprovision(cluster, provider)
 	case types.AWS:
 		return errors.New("aws not supported yet")
 	case types.Azure:
@@ -68,14 +69,14 @@ func Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	}
 }
 
-func newGoogleProvisioner(operatorType types.OperatorType) Provisioner {
+func newGCPProvisioner(operatorType operator.OperatorType) Provisioner {
 	return gcp.New(operatorType)
 }
 
-func newAWSProvisioner(operatorType types.OperatorType) Provisioner {
+func newAWSProvisioner(operatorType operator.OperatorType) Provisioner {
 	return nil
 }
 
-func newAzureProvisioner(operatorType types.OperatorType) Provisioner {
+func newAzureProvisioner(operatorType operator.OperatorType) Provisioner {
 	return nil
 }

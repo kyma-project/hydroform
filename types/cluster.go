@@ -1,5 +1,7 @@
 package types
 
+import "github.com/kyma-incubator/hydroform/internal/terraform"
+
 type Cluster struct {
 	Name              string
 	KubernetesVersion string
@@ -8,14 +10,14 @@ type Cluster struct {
 	NodeCount         int
 	MachineType       string
 	Location          string
-	ClusterInfo       ClusterInfo
+	ClusterInfo       *ClusterInfo
 }
 
 type ClusterInfo struct {
 	Endpoint                 string
 	CertificateAuthorityData []byte
-	OperatorState            OperatorState
-	Status                   ClusterStatus
+	InternalState            *InternalState
+	Status                   *ClusterStatus
 }
 
 type ClusterStatus struct {
@@ -32,3 +34,7 @@ const (
 	Stopping     Phase = "Stopping"
 	Unknown      Phase = "Unknown"
 )
+
+type InternalState struct {
+	TerraformState *terraform.State
+}
