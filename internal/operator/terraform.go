@@ -3,6 +3,7 @@ package operator
 import (
 	"encoding/base64"
 	"fmt"
+	"log"
 
 	"github.com/kyma-incubator/hydroform/types"
 	"github.com/pkg/errors"
@@ -68,7 +69,10 @@ func (t *Terraform) Create(providerType types.ProviderType, configuration map[st
 
 	state, err := platform.Apply(terraformClient.NewState(), false)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to provision cluster")
+		return &types.ClusterInfo{
+			OperatorState: *state,
+			Status:        types.ClusterStatus{Phase: types.Errored},
+		}, errors.Wrap(err, "unable to provision cluster")
 	}
 
 	var certificateData []byte
@@ -77,7 +81,7 @@ func (t *Terraform) Create(providerType types.ProviderType, configuration map[st
 		if val, ok := state.Modules[0].Outputs["cluster_ca_certificate"]; ok {
 			certificateData, err = base64.StdEncoding.DecodeString(fmt.Sprintf("%v", val.Value))
 			if err != nil {
-				return nil, err
+				log.Printf("[ERROR] unable to decode certificate data: %v", err)
 			}
 		}
 		if val, ok := state.Modules[0].Outputs["endpoint"]; ok {
@@ -89,6 +93,7 @@ func (t *Terraform) Create(providerType types.ProviderType, configuration map[st
 		Endpoint:                 endpoint,
 		CertificateAuthorityData: certificateData,
 		OperatorState:            *state,
+		Status:                   types.ClusterStatus{Phase: types.Provisioned},
 	}, nil
 }
 

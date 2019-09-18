@@ -155,19 +155,19 @@ func loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[st
 // More details can be found in the `statusMessage` field.
 func convertGCPStatus(status container.Status) types.Phase {
 	switch status {
-	case "RECONCILING":
-		return types.Pending
+	default:
+		return types.Unknown
+	case "PROVISIONING":
+		return types.Provisioning
 	case "RUNNING":
 		return types.Provisioned
+	case "RECONCILING":
+		return types.Pending
+	case "STOPPING":
+		return types.Stopping
 	case "ERROR":
 		return types.Errored
 	case "DEGRADED":
 		return types.Errored
-	case "PROVISIONING":
-		return types.Provisioning
-	case "STOPPING":
-		return types.Stopping
-	default:
-		return types.Unknown
 	}
 }
