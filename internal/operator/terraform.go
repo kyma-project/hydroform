@@ -27,7 +27,7 @@ const gcpClusterTemplate string = `
 
   provider "google" {
     	credentials   = "${file("${var.credentials_file_path}")}"
-		project       = "${var.project}"
+			project       = "${var.project}"
   }
 
   resource "google_container_cluster" "gke_cluster" {
@@ -110,25 +110,30 @@ func (t *Terraform) Delete(state *types.InternalState, providerType types.Provid
 func (t *Terraform) newPlatform(providerType types.ProviderType, configuration map[string]interface{}) (*terraformClient.Platform, error) {
 	var resourceProvider terraform.ResourceProvider
 	var clusterTemplate string
+	//providerName must match the name of the provider on the templates
+	var providerName string
 
 	switch providerType {
 	case types.GCP:
 		resourceProvider = google.Provider()
 		clusterTemplate = gcpClusterTemplate
+		providerName = "google"
 	case types.AWS:
 		//resourceProvider = aws.Provider()
 		//clusterTemplate = awsClusterTemplate
+		//providerName = "aws"
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
 		//resourceProvider = azure.Provider()
 		//clusterTemplate = azureClusterTemplate
+		//providerName = "azure"
 		return nil, errors.New("azure not supported yet")
 	default:
 		return nil, errors.New("unknown provider")
 	}
 
 	platform := terraformClient.NewPlatform(clusterTemplate)
-	platform.AddProvider(string(providerType), resourceProvider)
+	platform.AddProvider(providerName, resourceProvider)
 	for k, v := range configuration {
 		platform.Var(k, v)
 	}

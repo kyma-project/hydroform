@@ -83,12 +83,7 @@ func (g *gcpProvider) Credentials(cluster *types.Cluster, provider *types.Provid
 		},
 	}
 
-	content, err := clientcmd.Write(*config)
-	if err != nil {
-		return nil, err
-	}
-
-	return content, nil
+	return clientcmd.Write(*config)
 }
 
 func (g *gcpProvider) Deprovision(cluster *types.Cluster, provider *types.Provider) error {
