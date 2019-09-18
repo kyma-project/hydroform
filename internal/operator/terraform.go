@@ -27,7 +27,7 @@ const gcpClusterTemplate string = `
 
   provider "google" {
     	credentials   = "${file("${var.credentials_file_path}")}"
-		project       = "${var.project}"
+	project       = "${var.project}"
   }
 
   resource "google_container_cluster" "gke_cluster" {
