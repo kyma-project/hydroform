@@ -19,21 +19,23 @@ type Platform struct {
 	Providers    map[string]terraform.ResourceProvider
 	Provisioners map[string]terraform.ResourceProvisioner
 	Vars         map[string]interface{}
-	State        *State
 }
 
 // State is an alias for terraform.State
 type State = terraform.State
 
-// NewPlatform return an instance of Platform with default values
+// NewState returns a new Terraform state
+func NewState() *State {
+	return terraform.NewState()
+}
+
+// NewPlatform returns an instance of Platform with default values
 func NewPlatform(code string) *Platform {
 	platform := &Platform{
 		Code: code,
 	}
 	platform.Providers = defaultProviders()
 	platform.Provisioners = defaultProvisioners()
-
-	platform.State = terraform.NewState()
 
 	return platform
 }
@@ -62,32 +64,30 @@ func (p *Platform) AddProvisioner(name string, provisioner terraform.ResourcePro
 
 // Apply brings the platform to the desired state. It'll destroy the platform
 // when `destroy` is `true`.
-func (p *Platform) Apply(destroy bool) error {
-	ctx, err := p.newContext(destroy)
+func (p *Platform) Apply(state *State, destroy bool) (*State, error) {
+	ctx, err := p.newContext(state, destroy)
 	if err != nil {
-		return err
+		return state, err
 	}
 
-	// state := ctx.State()
-
 	if _, err := ctx.Refresh(); err != nil {
-		return err
+		return state, err
 	}
 
 	if _, err := ctx.Plan(); err != nil {
-		return err
+		return state, err
 	}
 
 	_, err = ctx.Apply()
-	p.State = ctx.State()
+	state = ctx.State()
 
-	return err
+	return state, err
 }
 
 // Plan returns execution plan for an existing configuration to apply to the
 // platform.
-func (p *Platform) Plan(destroy bool) (*terraform.Plan, error) {
-	ctx, err := p.newContext(destroy)
+func (p *Platform) Plan(state *State, destroy bool) (*terraform.Plan, error) {
+	ctx, err := p.newContext(state, destroy)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (p *Platform) Plan(destroy bool) (*terraform.Plan, error) {
 }
 
 // newContext creates the Terraform context or configuration
-func (p *Platform) newContext(destroy bool) (*terraform.Context, error) {
+func (p *Platform) newContext(state *State, destroy bool) (*terraform.Context, error) {
 	module, err := p.module()
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func (p *Platform) newContext(destroy bool) (*terraform.Context, error) {
 	// Create ContextOpts with the current state and variables to apply
 	ctxOpts := &terraform.ContextOpts{
 		Destroy:          destroy,
-		State:            p.State,
+		State:            state,
 		Variables:        p.Vars,
 		Module:           module,
 		ProviderResolver: providerResolver,
@@ -140,7 +140,7 @@ func (p *Platform) module() (*module.Tree, error) {
 	}
 
 	// Get a temporal directory to save the infrastructure code
-	cfgPath, err := ioutil.TempDir("", ".terranova")
+	cfgPath, err := ioutil.TempDir("", ".hydroform")
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (p *Platform) module() (*module.Tree, error) {
 		return nil, err
 	}
 
-	mod, err := module.NewTreeModule("", cfgPath)
+	mod, err := module.NewTreeModule("testModule", cfgPath)
 	if err != nil {
 		return nil, err
 	}

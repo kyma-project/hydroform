@@ -1,6 +1,9 @@
 package operator
 
 import (
+	"encoding/base64"
+	"fmt"
+
 	"github.com/kyma-incubator/hydroform/types"
 	"github.com/pkg/errors"
 
@@ -44,13 +47,62 @@ const googleClusterTemplate string = `
       		}
     	}
   }
+
+  output "endpoint" {
+    value = "${google_container_cluster.gke_cluster.endpoint}"
+  }
+
+  output "cluster_ca_certificate" {
+    value = "${google_container_cluster.gke_cluster.master_auth.0.cluster_ca_certificate}"
+  }
 `
 
 type Terraform struct {
 }
 
-func (t *Terraform) Create(providerType types.ProviderType, configuration map[string]interface{}) error {
+func (t *Terraform) Create(providerType types.ProviderType, configuration map[string]interface{}) (*types.ClusterInfo, error) {
+	platform, err := t.newPlatform(providerType, configuration)
+	if err != nil {
+		return nil, err
+	}
 
+	state, err := platform.Apply(terraformClient.NewState(), false)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to provision cluster")
+	}
+
+	var certificateData []byte
+	var endpoint string
+	if len(state.Modules) > 0 {
+		if val, ok := state.Modules[0].Outputs["cluster_ca_certificate"]; ok {
+			certificateData, err = base64.StdEncoding.DecodeString(fmt.Sprintf("%v", val.Value))
+			if err != nil {
+				return nil, err
+			}
+		}
+		if val, ok := state.Modules[0].Outputs["endpoint"]; ok {
+			endpoint = fmt.Sprintf("%v", val.Value)
+		}
+	}
+
+	return &types.ClusterInfo{
+		Endpoint:                 endpoint,
+		CertificateAuthorityData: certificateData,
+		OperatorState:            *state,
+	}, nil
+}
+
+func (t *Terraform) Delete(state *types.OperatorState, providerType types.ProviderType, configuration map[string]interface{}) error {
+	platform, err := t.newPlatform(providerType, configuration)
+	if err != nil {
+		return err
+	}
+
+	_, err = platform.Apply(state, true)
+	return errors.Wrap(err, "unable to deprovision cluster")
+}
+
+func (t *Terraform) newPlatform(providerType types.ProviderType, configuration map[string]interface{}) (*terraformClient.Platform, error) {
 	var resourceProvider terraform.ResourceProvider
 	var clusterTemplate string
 
@@ -61,13 +113,13 @@ func (t *Terraform) Create(providerType types.ProviderType, configuration map[st
 	case types.AWS:
 		//resourceProvider = aws.Provider()
 		//clusterTemplate = awsClusterTemplate
-		return errors.New("aws not supported yet")
+		return nil, errors.New("aws not supported yet")
 	case types.Azure:
 		//resourceProvider = azure.Provider()
 		//clusterTemplate = azureClusterTemplate
-		return errors.New("azure not supported yet")
+		return nil, errors.New("azure not supported yet")
 	default:
-		return errors.New("unknown provider")
+		return nil, errors.New("unknown provider")
 	}
 
 	platform := terraformClient.NewPlatform(clusterTemplate)
@@ -75,10 +127,6 @@ func (t *Terraform) Create(providerType types.ProviderType, configuration map[st
 	for k, v := range configuration {
 		platform.Var(k, v)
 	}
-	err := platform.Apply(false)
-	return errors.Wrap(err, "unable to provision cluster")
-}
 
-func (t *Terraform) Delete(providerType types.ProviderType, configuration map[string]interface{}) error {
-	return nil
+	return platform, nil
 }

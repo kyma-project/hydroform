@@ -8,13 +8,27 @@ type Cluster struct {
 	NodeCount         int
 	MachineType       string
 	Location          string
+	ClusterInfo       ClusterInfo
 }
 
 type ClusterInfo struct {
-	Status ClusterStatus
-	IP     string
+	Endpoint                 string
+	CertificateAuthorityData []byte
+	OperatorState            OperatorState
+	Status                   ClusterStatus
 }
 
 type ClusterStatus struct {
-	Phase string
+	Phase Phase
 }
+
+type Phase string
+
+const (
+	Pending      Phase = "Pending"
+	Provisioning Phase = "Provisioning"
+	Provisioned  Phase = "Provisioned"
+	Errored      Phase = "Errored"
+	Stopping     Phase = "Stopping"
+	Unknown      Phase = "Unknown"
+)
