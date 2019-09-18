@@ -10,7 +10,7 @@ type Provider struct {
 type ProviderType string
 
 const (
-	GCP   ProviderType = "google"
+	GCP   ProviderType = "gcp"
 	Azure ProviderType = "azure"
 	AWS   ProviderType = "aws"
 )

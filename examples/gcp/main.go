@@ -22,10 +22,10 @@ func main() {
 
 	cluster := &types.Cluster{
 		CPU:               "1",
-		KubernetesVersion: "1.12",
+		KubernetesVersion: "1.13",
 		Name:              "test-cluster",
 		DiskSizeGB:        30,
-		NodeCount:         2,
+		NodeCount:         1,
 		Location:          "europe-west3-a",
 		MachineType:       *machineType,
 	}
@@ -37,12 +37,48 @@ func main() {
 		},
 	}
 
-	_, err := hydroform.Provision(cluster, provider)
+	cluster, err := hydroform.Provision(cluster, provider)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
 	}
 
 	fmt.Println("Provisioned successfully")
+
+	fmt.Println("Getting the status")
+
+	status, err := hydroform.Status(cluster, provider)
+	if err != nil {
+		fmt.Println("Error", err.Error())
+		return
+	}
+
+	fmt.Println("Status:", *status)
+
+	fmt.Println("Downloading the kubeconfig")
+
+	content, err := hydroform.Credentials(cluster, provider)
+	if err != nil {
+		fmt.Println("Error", err.Error())
+		return
+	}
+
+	err = ioutil.WriteFile("kubeconfig.yaml", content, 0600)
+	if err != nil {
+		fmt.Println("Error", err.Error())
+		return
+	}
+
+	fmt.Println("Kubeconfig downloaded")
+
+	//fmt.Println("Deprovisioning...")
+	//
+	//err = hydroform.Deprovision(cluster, provider)
+	//if err != nil {
+	//	fmt.Println("Error", err.Error())
+	//	return
+	//}
+	//
+	//fmt.Println("Deprovisioned successfully")
 	//fmt.Printf("Cluster status: %s, IP: %s\r\n", clusterInfo.Status, clusterInfo.IP)
 }
