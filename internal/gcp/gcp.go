@@ -3,6 +3,7 @@ package gcp
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"cloud.google.com/go/container"
 	"github.com/kyma-incubator/hydroform/internal/operator"
@@ -13,24 +14,17 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-var mandatoryConfigFields = []string{}
+const errCannotBeEmpty = "\n - %s cannot be empty"
+const errCannotBeLess = "\n - %s cannot be less than %v"
+const errCustom = "\n - %v"
 
 type gcpProvider struct {
 	provisionOperator operator.Operator
 }
 
-func (g *gcpProvider) validateProvider(provider *types.Provider) bool {
-	for _, field := range mandatoryConfigFields {
-		if _, ok := provider.CustomConfigurations[field]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
 func (g *gcpProvider) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
-	if !g.validateProvider(provider) {
-		return nil, errors.New("incomplete provider information")
+	if err := g.validateInputs(cluster, provider); err != nil {
+		return nil, err
 	}
 
 	config := loadConfigurations(cluster, provider)
@@ -45,6 +39,10 @@ func (g *gcpProvider) Provision(cluster *types.Cluster, provider *types.Provider
 }
 
 func (g *gcpProvider) Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
+	if err := g.validateInputs(cluster, provider); err != nil {
+		return nil, err
+	}
+
 	containerClient, err := container.NewClient(context.Background(),
 		provider.ProjectName,
 		option.WithCredentialsFile(provider.CredentialsFilePath))
@@ -62,6 +60,10 @@ func (g *gcpProvider) Status(cluster *types.Cluster, provider *types.Provider) (
 }
 
 func (g *gcpProvider) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
+	if err := g.validateInputs(cluster, provider); err != nil {
+		return nil, err
+	}
+
 	userName := "cluster-user"
 	config := api.NewConfig()
 
@@ -87,8 +89,8 @@ func (g *gcpProvider) Credentials(cluster *types.Cluster, provider *types.Provid
 }
 
 func (g *gcpProvider) Deprovision(cluster *types.Cluster, provider *types.Provider) error {
-	if !g.validateProvider(provider) {
-		return errors.New("incomplete provider information")
+	if err := g.validateInputs(cluster, provider); err != nil {
+		return err
 	}
 
 	config := loadConfigurations(cluster, provider)
@@ -114,6 +116,43 @@ func New(operatorType operator.OperatorType) *gcpProvider {
 	return &gcpProvider{
 		provisionOperator: op,
 	}
+}
+
+func (g *gcpProvider) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
+	var errMessage string
+	if cluster.NodeCount < 1 {
+		errMessage += fmt.Sprintf(errCannotBeLess, "Cluster.NodeCount", 1)
+	}
+	// Matches the regex for a GCP cluster name.
+	if match, _ := regexp.MatchString(`^(?:[a-z](?:[-a-z0-9]{0,37}[a-z0-9])?)$`, cluster.Name); !match {
+		errMessage += fmt.Sprintf(errCustom, "Cluster.Name must start with a lowercase letter followed by up to 39 lowercase letters, "+
+			"numbers, or hyphens, and cannot end with a hyphen")
+	}
+	if cluster.Location == "" {
+		errMessage += fmt.Sprintf(errCannotBeEmpty, "Cluster.Location")
+	}
+	if cluster.MachineType == "" {
+		errMessage += fmt.Sprintf(errCannotBeEmpty, "Cluster.MachineType")
+	}
+	if cluster.KubernetesVersion == "" {
+		errMessage += fmt.Sprintf(errCannotBeEmpty, "Cluster.KubernetesVersion")
+	}
+	if cluster.DiskSizeGB < 0 {
+		errMessage += fmt.Sprintf(errCannotBeLess, "Cluster.DiskSizeGB", 0)
+	}
+
+	if provider.CredentialsFilePath == "" {
+		errMessage += fmt.Sprintf(errCannotBeEmpty, "Provider.CredentialsFilePath")
+	}
+	if provider.ProjectName == "" {
+		errMessage += fmt.Sprintf(errCannotBeEmpty, "Provider.ProjectName")
+	}
+
+	if errMessage != "" {
+		return errors.New("input validation failed with the following information: " + errMessage)
+	}
+
+	return nil
 }
 
 func loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {

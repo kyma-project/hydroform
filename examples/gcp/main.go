@@ -21,7 +21,6 @@ func main() {
 	fmt.Println("Provisioning...")
 
 	cluster := &types.Cluster{
-		CPU:               "1",
 		KubernetesVersion: "1.13",
 		Name:              "test-cluster",
 		DiskSizeGB:        30,
@@ -30,11 +29,9 @@ func main() {
 		MachineType:       *machineType,
 	}
 	provider := &types.Provider{
-		Type:        types.GCP,
-		ProjectName: *projectName,
-		CustomConfigurations: map[string]interface{}{
-			"credentials_file_path": *credentials,
-		},
+		Type:                types.GCP,
+		ProjectName:         *projectName,
+		CredentialsFilePath: *credentials,
 	}
 
 	cluster, err := hydroform.Provision(cluster, provider)
