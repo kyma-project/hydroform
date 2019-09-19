@@ -3,6 +3,8 @@ package hydroform
 import (
 	"errors"
 
+	"github.com/kyma-incubator/hydroform/internal/gardener"
+
 	"github.com/kyma-incubator/hydroform/internal/gcp"
 	"github.com/kyma-incubator/hydroform/internal/operator"
 	"github.com/kyma-incubator/hydroform/types"
@@ -21,6 +23,8 @@ func Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster
 	switch provider.Type {
 	case types.GCP:
 		return newGCPProvisioner(provisionOperator).Provision(cluster, provider)
+	case types.Gardener:
+		return newGardenerProvisioner(provisionOperator).Provision(cluster, provider)
 	case types.AWS:
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
@@ -34,6 +38,8 @@ func Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterSta
 	switch provider.Type {
 	case types.GCP:
 		return newGCPProvisioner(provisionOperator).Status(cluster, provider)
+	case types.Gardener:
+		return newGardenerProvisioner(provisionOperator).Status(cluster, provider)
 	case types.AWS:
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
@@ -47,6 +53,8 @@ func Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, erro
 	switch provider.Type {
 	case types.GCP:
 		return newGCPProvisioner(provisionOperator).Credentials(cluster, provider)
+	case types.Gardener:
+		return newGardenerProvisioner(provisionOperator).Credentials(cluster, provider)
 	case types.AWS:
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
@@ -60,6 +68,8 @@ func Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	switch provider.Type {
 	case types.GCP:
 		return newGCPProvisioner(provisionOperator).Deprovision(cluster, provider)
+	case types.Gardener:
+		return newGardenerProvisioner(provisionOperator).Deprovision(cluster, provider)
 	case types.AWS:
 		return errors.New("aws not supported yet")
 	case types.Azure:
@@ -71,6 +81,10 @@ func Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 
 func newGCPProvisioner(operatorType operator.OperatorType) Provisioner {
 	return gcp.New(operatorType)
+}
+
+func newGardenerProvisioner(operatorType operator.OperatorType) Provisioner {
+	return gardener.New(operatorType)
 }
 
 func newAWSProvisioner(operatorType operator.OperatorType) Provisioner {
