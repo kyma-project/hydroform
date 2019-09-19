@@ -17,6 +17,7 @@ import (
 const errCannotBeEmpty = "\n - %s cannot be empty"
 const errCannotBeLess = "\n - %s cannot be less than %v"
 const errCustom = "\n - %v"
+const errEmptyClusterInfo = "Cluster.ClusterInfo cannot be empty. Please provide the Cluster object returned from the Provision function."
 
 type gcpProvider struct {
 	provisionOperator operator.Operator
@@ -63,6 +64,9 @@ func (g *gcpProvider) Credentials(cluster *types.Cluster, provider *types.Provid
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return nil, err
 	}
+	if cluster.ClusterInfo == nil || cluster.ClusterInfo.Endpoint == "" || cluster.ClusterInfo.CertificateAuthorityData == nil {
+		return nil, errors.New(errEmptyClusterInfo)
+	}
 
 	userName := "cluster-user"
 	config := api.NewConfig()
@@ -91,6 +95,9 @@ func (g *gcpProvider) Credentials(cluster *types.Cluster, provider *types.Provid
 func (g *gcpProvider) Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return err
+	}
+	if cluster.ClusterInfo == nil || cluster.ClusterInfo.InternalState == nil {
+		return errors.New(errEmptyClusterInfo)
 	}
 
 	config := loadConfigurations(cluster, provider)
