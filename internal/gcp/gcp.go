@@ -16,11 +16,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-type gcpProvider struct {
+type gcpProvisioner struct {
 	provisionOperator operator.Operator
 }
 
-func (g *gcpProvider) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
+func (g *gcpProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (g *gcpProvider) Provision(cluster *types.Cluster, provider *types.Provider
 	return cluster, nil
 }
 
-func (g *gcpProvider) Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
+func (g *gcpProvisioner) Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (g *gcpProvider) Status(cluster *types.Cluster, provider *types.Provider) (
 	}, nil
 }
 
-func (g *gcpProvider) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
+func (g *gcpProvisioner) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (g *gcpProvider) Credentials(cluster *types.Cluster, provider *types.Provid
 	return clientcmd.Write(*config)
 }
 
-func (g *gcpProvider) Deprovision(cluster *types.Cluster, provider *types.Provider) error {
+func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (g *gcpProvider) Deprovision(cluster *types.Cluster, provider *types.Provid
 	return nil
 }
 
-func New(operatorType operator.OperatorType) *gcpProvider {
+func New(operatorType operator.OperatorType) *gcpProvisioner {
 	var op operator.Operator
 
 	switch operatorType {
@@ -117,12 +117,12 @@ func New(operatorType operator.OperatorType) *gcpProvider {
 		op = &operator.Unknown{}
 	}
 
-	return &gcpProvider{
+	return &gcpProvisioner{
 		provisionOperator: op,
 	}
 }
 
-func (g *gcpProvider) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
+func (g *gcpProvisioner) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
 	var errMessage string
 	if cluster.NodeCount < 1 {
 		errMessage += fmt.Sprintf(errs.CannotBeLess, "Cluster.NodeCount", 1)

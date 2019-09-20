@@ -82,5 +82,4 @@ func main() {
 	//}
 	//
 	//fmt.Println("Deprovisioned successfully")
-	//fmt.Printf("Cluster status: %s, IP: %s\r\n", clusterInfo.Status, clusterInfo.IP)
 }
