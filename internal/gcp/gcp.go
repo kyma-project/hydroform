@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/kyma-incubator/hydroform/internal/errs"
+
 	"cloud.google.com/go/container"
 	"github.com/kyma-incubator/hydroform/internal/operator"
 	"github.com/kyma-incubator/hydroform/types"
@@ -13,11 +15,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
-
-const errCannotBeEmpty = "\n - %s cannot be empty"
-const errCannotBeLess = "\n - %s cannot be less than %v"
-const errCustom = "\n - %v"
-const errEmptyClusterInfo = "Cluster.ClusterInfo cannot be empty. Please provide the Cluster object returned from the Provision function."
 
 type gcpProvider struct {
 	provisionOperator operator.Operator
@@ -65,7 +62,7 @@ func (g *gcpProvider) Credentials(cluster *types.Cluster, provider *types.Provid
 		return nil, err
 	}
 	if cluster.ClusterInfo == nil || cluster.ClusterInfo.Endpoint == "" || cluster.ClusterInfo.CertificateAuthorityData == nil {
-		return nil, errors.New(errEmptyClusterInfo)
+		return nil, errors.New(errs.EmptyClusterInfo)
 	}
 
 	userName := "cluster-user"
@@ -97,7 +94,7 @@ func (g *gcpProvider) Deprovision(cluster *types.Cluster, provider *types.Provid
 		return err
 	}
 	if cluster.ClusterInfo == nil || cluster.ClusterInfo.InternalState == nil {
-		return errors.New(errEmptyClusterInfo)
+		return errors.New(errs.EmptyClusterInfo)
 	}
 
 	config := loadConfigurations(cluster, provider)
@@ -128,31 +125,31 @@ func New(operatorType operator.OperatorType) *gcpProvider {
 func (g *gcpProvider) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
 	var errMessage string
 	if cluster.NodeCount < 1 {
-		errMessage += fmt.Sprintf(errCannotBeLess, "Cluster.NodeCount", 1)
+		errMessage += fmt.Sprintf(errs.CannotBeLess, "Cluster.NodeCount", 1)
 	}
 	// Matches the regex for a GCP cluster name.
 	if match, _ := regexp.MatchString(`^(?:[a-z](?:[-a-z0-9]{0,37}[a-z0-9])?)$`, cluster.Name); !match {
-		errMessage += fmt.Sprintf(errCustom, "Cluster.Name must start with a lowercase letter followed by up to 39 lowercase letters, "+
+		errMessage += fmt.Sprintf(errs.Custom, "Cluster.Name must start with a lowercase letter followed by up to 39 lowercase letters, "+
 			"numbers, or hyphens, and cannot end with a hyphen")
 	}
 	if cluster.Location == "" {
-		errMessage += fmt.Sprintf(errCannotBeEmpty, "Cluster.Location")
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Cluster.Location")
 	}
 	if cluster.MachineType == "" {
-		errMessage += fmt.Sprintf(errCannotBeEmpty, "Cluster.MachineType")
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Cluster.MachineType")
 	}
 	if cluster.KubernetesVersion == "" {
-		errMessage += fmt.Sprintf(errCannotBeEmpty, "Cluster.KubernetesVersion")
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Cluster.KubernetesVersion")
 	}
 	if cluster.DiskSizeGB < 0 {
-		errMessage += fmt.Sprintf(errCannotBeLess, "Cluster.DiskSizeGB", 0)
+		errMessage += fmt.Sprintf(errs.CannotBeLess, "Cluster.DiskSizeGB", 0)
 	}
 
 	if provider.CredentialsFilePath == "" {
-		errMessage += fmt.Sprintf(errCannotBeEmpty, "Provider.CredentialsFilePath")
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CredentialsFilePath")
 	}
 	if provider.ProjectName == "" {
-		errMessage += fmt.Sprintf(errCannotBeEmpty, "Provider.ProjectName")
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.ProjectName")
 	}
 
 	if errMessage != "" {

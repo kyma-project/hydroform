@@ -4,8 +4,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"strings"
+	"text/template"
 
 	"github.com/kyma-incubator/hydroform/types"
+	gardener "github.com/kyma-incubator/terraform-provider-gardener/provider"
 	"github.com/pkg/errors"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -13,9 +16,12 @@ import (
 	"github.com/terraform-providers/terraform-provider-google/google"
 )
 
-const awsClusterTemplate string = ``
-const azureClusterTemplate string = ``
-const gcpClusterTemplate string = `
+const (
+	awsClusterTemplate = ``
+
+	azureClusterTemplate = ``
+
+	gcpClusterTemplate = `
   variable "node_count"    		{}
   variable "cluster_name"  		{}
   variable "credentials_file_path" 	{}
@@ -39,7 +45,7 @@ const gcpClusterTemplate string = `
     
     node_config {
       	machine_type = "${var.machine_type}"
-	disk_size_gb = "${var.disk_size}"
+		disk_size_gb = "${var.disk_size}"
     }
 
     maintenance_policy {
@@ -57,6 +63,48 @@ const gcpClusterTemplate string = `
     value = "${google_container_cluster.gke_cluster.master_auth.0.cluster_ca_certificate}"
   }
 `
+
+	gardenerClusterTemplate = `
+variable "target_provider"		{}
+variable "target_secret"		{}
+variable "node_count"    		{}
+variable "cluster_name"  		{}
+variable "credentials_file_path" 	{}
+variable "project"       		{}
+variable "location"      		{}
+variable "zone"      		{}
+variable "machine_type"  		{}
+variable "kubernetes_version"   	{}
+variable "disk_size" 			{}
+variable "disk_type" 			{}
+
+provider "gardener" {
+	profile            = "${var.project}"
+	{{index . "target_provider"}}_secret_binding = "${var.target_secret}"
+	kube_path          = "${var.credentials_file_path}"
+}
+
+resource "gardener_{{index . "target_provider"}}_shoot" "gardener_cluster" {
+	name              = "${var.cluster_name}"
+	region            = "${var.location}"
+	zones             = ["${var.zone}"]
+	workerscidr       = ["10.250.0.0/19"]
+	kubernetesversion = "${var.kubernetes_version}"
+	{{range (seq (index . "node_count"))}}
+	worker {
+		name           = "cpu-worker-{{.}}"
+		machinetype    = "${var.machine_type}"
+		autoscalermin  = 2
+		autoscalermax  = 2
+		maxsurge       = 1
+		maxunavailable = 0
+		volumesize     = "${var.disk_size}Gi"
+		volumetype     = "${var.disk_type}"
+	}
+	{{end}}
+}
+`
+)
 
 type Terraform struct {
 }
@@ -128,6 +176,15 @@ func (t *Terraform) newPlatform(providerType types.ProviderType, configuration m
 		//clusterTemplate = azureClusterTemplate
 		//providerName = "azure"
 		return nil, errors.New("azure not supported yet")
+	case types.Gardener:
+		resourceProvider = gardener.Provider()
+		providerName = "gardener"
+
+		expTemplate, err := expandGardenerClusterTemplate(configuration)
+		if err != nil {
+			return nil, err
+		}
+		clusterTemplate = expTemplate
 	default:
 		return nil, errors.New("unknown provider")
 	}
@@ -139,4 +196,25 @@ func (t *Terraform) newPlatform(providerType types.ProviderType, configuration m
 	}
 
 	return platform, nil
+}
+
+func expandGardenerClusterTemplate(config map[string]interface{}) (string, error) {
+
+	funcs := template.FuncMap{
+		"seq": func(n int) []int {
+			r := make([]int, n)
+
+			for i := 0; i < n; i++ {
+				r[i] = i
+			}
+			return r
+		},
+	}
+
+	t := template.Must(template.New("gardenerCluster").Funcs(funcs).Parse(gardenerClusterTemplate))
+	s := &strings.Builder{}
+	if err := t.Execute(s, config); err != nil {
+		return "", err
+	}
+	return s.String(), nil
 }
