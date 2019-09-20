@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"regexp"
 
+	gardener_core "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
+	gardener_types "github.com/gardener/gardener/pkg/apis/garden/v1beta1"
+	gardener_api "github.com/gardener/gardener/pkg/client/garden/clientset/versioned/typed/garden/v1beta1"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kyma-incubator/hydroform/internal/errs"
@@ -53,7 +56,28 @@ func (g *gardenerProvisioner) Provision(cluster *types.Cluster, provider *types.
 }
 
 func (g *gardenerProvisioner) Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
-	return nil, errors.New("Gardener cluster status not implemented")
+	if err := g.validate(cluster, provider); err != nil {
+		return nil, err
+	}
+
+	c, err := clientcmd.BuildConfigFromFlags("", provider.CredentialsFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	gardenerClient, err := gardener_api.NewForConfig(c)
+	if err != nil {
+		return nil, err
+	}
+
+	shoot, err := gardenerClient.Shoots(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(cluster.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.ClusterStatus{
+		Phase: convertGardenertatus(shoot.Status),
+	}, nil
 }
 
 func (g *gardenerProvisioner) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
@@ -163,4 +187,30 @@ func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 		config[k] = v
 	}
 	return config
+}
+
+// Possible values for the Gardener Cluster Status:
+// Processing - indicates the cluster is being created.
+// Succeeded - indicates the cluster has been created and is fully usable.
+// Error  - indicates the cluster may be unusable.
+// Failed - indicates that the creation operation failed.
+// Pending - indicates that the creation has not started yet.
+// Aborted - indicates that an external agent aborted the operation.
+func convertGardenertatus(status gardener_types.ShootStatus) types.Phase {
+	switch status.LastOperation.State {
+	case gardener_core.LastOperationStateProcessing:
+		return types.Provisioning
+	case gardener_core.LastOperationStatePending:
+		return types.Provisioning
+	case gardener_core.LastOperationStateSucceeded:
+		return types.Provisioned
+	case gardener_core.LastOperationStateError:
+		return types.Errored
+	case gardener_core.LastOperationStateFailed:
+		return types.Errored
+	case gardener_core.LastOperationStateAborted:
+		return types.Errored
+	default:
+		return types.Unknown
+	}
 }

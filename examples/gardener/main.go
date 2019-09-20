@@ -19,8 +19,6 @@ func main() {
 
 	log.SetOutput(ioutil.Discard)
 
-	fmt.Println("Provisioning...")
-
 	cluster := &types.Cluster{
 		CPU:               "1",
 		KubernetesVersion: "1.12",
@@ -42,23 +40,22 @@ func main() {
 		},
 	}
 
+	fmt.Println("Provisioning...")
 	cluster, err := hf.Provision(cluster, provider)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
 	}
-
 	fmt.Println("Provisioned successfully")
 
 	// fmt.Println("Getting the status")
+	status, err := hf.Status(cluster, provider)
+	if err != nil {
+		fmt.Println("Error:", err.Error())
+		return
+	}
 
-	// status, err := hf.Status(cluster, provider)
-	// if err != nil {
-	// 	fmt.Println("Error", err.Error())
-	// 	return
-	// }
-
-	// fmt.Println("Status:", *status)
+	fmt.Println("Status:", *status)
 
 	fmt.Println("Downloading the kubeconfig")
 
