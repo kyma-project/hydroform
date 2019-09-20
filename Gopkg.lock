@@ -72,7 +72,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:3215c716348ec39bab9b4d8ce250e2e252dcc54c50e30c21d3fbd71caca0a6f5"
+  digest = "1:2b9da26861b9966da4a0af3ac1a36f375995133b9a273e33cd9a5e925168fb9c"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -114,8 +114,8 @@
     "service/sts/stsiface",
   ]
   pruneopts = "UT"
-  revision = "8cd2c1d3eeab89c2e2f6602ea8cda11f9013947f"
-  version = "v1.24.1"
+  revision = "86666b1e15ce3072f0a5e22d7988d8d195c44611"
+  version = "v1.24.2"
 
 [[projects]]
   branch = "master"
@@ -943,7 +943,7 @@
     "internal/semver",
   ]
   pruneopts = "UT"
-  revision = "7460b8e10b7e52d99c584c90f012aa07828f5d81"
+  revision = "c426260dee6e28dbe8b640bcb57dbf925678cff2"
 
 [[projects]]
   digest = "1:a46ed5778da5818fe359ec98de0bf33cadca06754beedf096370ed09cf58b5d6"
@@ -1292,6 +1292,9 @@
   analyzer-version = 1
   input-imports = [
     "cloud.google.com/go/container",
+    "github.com/gardener/gardener/pkg/apis/core/v1alpha1",
+    "github.com/gardener/gardener/pkg/apis/garden/v1beta1",
+    "github.com/gardener/gardener/pkg/client/garden/clientset/versioned/typed/garden/v1beta1",
     "github.com/hashicorp/terraform/config/module",
     "github.com/hashicorp/terraform/terraform",
     "github.com/kyma-incubator/terraform-provider-gardener/provider",
