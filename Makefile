@@ -10,3 +10,9 @@ ci-master: build
 
 .PHONY: ci-release
 ci-release: build
+
+.PHONY: test
+test:
+	go test -coverprofile=cover.out ./...
+	@echo "Total test coverage: $$(go tool cover -func=cover.out | grep total | awk '{print $$3}')"
+	@rm cover.out

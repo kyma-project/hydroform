@@ -17,12 +17,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-var mandatoryConfigFields = []string{
-	"target_provider",
-	"target_secret",
-	"disk_type",
-}
-
 type gardenerProvisioner struct {
 	operator operator.Operator
 }
@@ -126,8 +120,8 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 		errMessage += fmt.Sprintf(errs.CannotBeLess, "Cluster.NodeCount", 1)
 	}
 	// Matches the regex for a GCP cluster name.
-	if match, _ := regexp.MatchString(`^(?:[a-z](?:[-a-z0-9]{0,37}[a-z0-9])?)$`, cluster.Name); !match {
-		errMessage += fmt.Sprintf(errs.Custom, "Cluster.Name must start with a lowercase letter followed by up to 39 lowercase letters, "+
+	if match, _ := regexp.MatchString(`^(?:[a-z](?:[-a-z0-9]{0,19}[a-z0-9])?)$`, cluster.Name); !match {
+		errMessage += fmt.Sprintf(errs.Custom, "Cluster.Name must start with a lowercase letter followed by up to 19 lowercase letters, "+
 			"numbers, or hyphens, and cannot end with a hyphen")
 	}
 	if cluster.Location == "" {
@@ -201,7 +195,7 @@ func convertGardenertatus(status gardener_types.ShootStatus) types.Phase {
 	case gardener_core.LastOperationStateProcessing:
 		return types.Provisioning
 	case gardener_core.LastOperationStatePending:
-		return types.Provisioning
+		return types.Pending
 	case gardener_core.LastOperationStateSucceeded:
 		return types.Provisioned
 	case gardener_core.LastOperationStateError:
