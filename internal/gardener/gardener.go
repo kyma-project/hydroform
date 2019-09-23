@@ -21,7 +21,7 @@ type gardenerProvisioner struct {
 	operator operator.Operator
 }
 
-func New(operatorType operator.OperatorType) *gardenerProvisioner {
+func New(operatorType operator.Type) *gardenerProvisioner {
 	var op operator.Operator
 	switch operatorType {
 	case operator.TerraformOperator:
