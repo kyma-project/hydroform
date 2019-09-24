@@ -3,7 +3,6 @@ package operator
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
 	"strings"
 	"text/template"
 
@@ -65,18 +64,23 @@ const (
 `
 
 	gardenerClusterTemplate = `
-variable "target_provider"		{}
-variable "target_secret"		{}
-variable "node_count"    		{}
-variable "cluster_name"  		{}
+variable "target_provider"			{}
+variable "target_secret"			{}
+variable "node_count"    			{}
+variable "cluster_name"  			{}
 variable "credentials_file_path" 	{}
-variable "project"       		{}
-variable "location"      		{}
-variable "zone"      		{}
-variable "machine_type"  		{}
+variable "project"       			{}
+variable "location"      			{}
+variable "zone"      				{}
+variable "cidr"      				{}
+variable "machine_type"  			{}
 variable "kubernetes_version"   	{}
-variable "disk_size" 			{}
-variable "disk_type" 			{}
+variable "disk_size" 				{}
+variable "disk_type" 				{}
+variable "autoscaler_min" 			{}
+variable "autoscaler_max" 			{}
+variable "max_surge" 				{}
+variable "max_unavailable" 			{}
 
 provider "gardener" {
 	profile            = "${var.project}"
@@ -88,16 +92,16 @@ resource "gardener_{{index . "target_provider"}}_shoot" "gardener_cluster" {
 	name              = "${var.cluster_name}"
 	region            = "${var.location}"
 	zones             = ["${var.zone}"]
-	workerscidr       = ["10.250.0.0/19"]
+	workerscidr       = ["${var.cidr}"]
 	kubernetesversion = "${var.kubernetes_version}"
 	{{range (seq (index . "node_count"))}}
 	worker {
 		name           = "cpu-worker-{{.}}"
 		machinetype    = "${var.machine_type}"
-		autoscalermin  = 2
-		autoscalermax  = 2
-		maxsurge       = 1
-		maxunavailable = 0
+		autoscalermin  = "${var.autoscaler_min}"
+		autoscalermax  = "${var.autoscaler_max}"
+		maxsurge       = "${var.max_surge}"
+		maxunavailable = "${var.max_unavailable}"
 		volumesize     = "${var.disk_size}Gi"
 		volumetype     = "${var.disk_type}"
 	}
@@ -129,7 +133,10 @@ func (t *Terraform) Create(providerType types.ProviderType, configuration map[st
 		if val, ok := state.Modules[0].Outputs["cluster_ca_certificate"]; ok {
 			certificateData, err = base64.StdEncoding.DecodeString(fmt.Sprintf("%v", val.Value))
 			if err != nil {
-				log.Printf("[ERROR] unable to decode certificate data: %v", err)
+				return &types.ClusterInfo{
+					InternalState: &types.InternalState{TerraformState: state},
+					Status:        &types.ClusterStatus{Phase: types.Errored},
+				}, errors.Wrap(err, "Unable to decode certificate data")
 			}
 		}
 		if val, ok := state.Modules[0].Outputs["endpoint"]; ok {
