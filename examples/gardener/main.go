@@ -21,11 +21,11 @@ func main() {
 
 	cluster := &types.Cluster{
 		CPU:               "1",
-		KubernetesVersion: "1.12",
+		KubernetesVersion: "1.15.4",
 		Name:              "hydro-cluster",
 		DiskSizeGB:        30,
 		NodeCount:         2,
-		Location:          "europe-west3",
+		Location:          "europe-west4",
 		MachineType:       *machineType,
 	}
 	provider := &types.Provider{
@@ -36,7 +36,12 @@ func main() {
 			"target_provider": "gcp",
 			"target_secret":   *secret,
 			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
+			"zone":            "europe-west4-b",
+			"cidr":            "10.250.0.0/19",
+			"autoscaler_min":  2,
+			"autoscaler_max":  4,
+			"max_surge":       4,
+			"max_unavailable": 1,
 		},
 	}
 
@@ -48,7 +53,7 @@ func main() {
 	}
 	fmt.Println("Provisioned successfully")
 
-	// fmt.Println("Getting the status")
+	fmt.Println("Getting the status")
 	status, err := hf.Status(cluster, provider)
 	if err != nil {
 		fmt.Println("Error:", err.Error())
