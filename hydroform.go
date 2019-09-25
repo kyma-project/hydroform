@@ -2,6 +2,7 @@ package hydroform
 
 import (
 	"errors"
+	"github.com/hisarbalik/hydroform/internal/aks"
 
 	"github.com/kyma-incubator/hydroform/internal/gardener"
 
@@ -28,7 +29,7 @@ func Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster
 	case types.AWS:
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
-		return nil, errors.New("azure not supported yet")
+		return newAzureProvisioner(provisionOperator).Provision(cluster, provider)
 	default:
 		return nil, errors.New("unknown provider")
 	}
@@ -43,7 +44,7 @@ func Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterSta
 	case types.AWS:
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
-		return nil, errors.New("azure not supported yet")
+		return newAzureProvisioner(provisionOperator).Status(cluster, provider)
 	default:
 		return nil, errors.New("unknown provider")
 	}
@@ -58,7 +59,7 @@ func Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, erro
 	case types.AWS:
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
-		return nil, errors.New("azure not supported yet")
+		return newAzureProvisioner(provisionOperator).Credentials(cluster, provider)
 	default:
 		return nil, errors.New("unknown provider")
 	}
@@ -73,7 +74,7 @@ func Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	case types.AWS:
 		return errors.New("aws not supported yet")
 	case types.Azure:
-		return errors.New("azure not supported yet")
+		return newAzureProvisioner(provisionOperator).Deprovision(cluster, provider)
 	default:
 		return errors.New("unknown provider")
 	}
@@ -92,5 +93,5 @@ func newAWSProvisioner(operatorType operator.OperatorType) Provisioner {
 }
 
 func newAzureProvisioner(operatorType operator.OperatorType) Provisioner {
-	return nil
+	return aks.New(operatorType)
 }

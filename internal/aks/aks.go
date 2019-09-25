@@ -184,7 +184,7 @@ func loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[st
 //   "ERROR" - indicates the cluster may be unusable.
 //   "DEGRADED" - indicates the cluster requires user action to restore full functionality.
 // More details can be found in the `statusMessage` field.
-func convertGCPStatus(status container.Status) types.Phase {
+func convertAKSStatus(status container.Status) types.Phase {
 	switch status {
 	default:
 		return types.Unknown
