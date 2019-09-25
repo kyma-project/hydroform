@@ -549,6 +549,23 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:9fc5ad0affa8ece790f8edb84d438342b4547412557e15ecb38a5d93f96e9800"
+  name = "github.com/kyma-incubator/hydroform"
+  packages = [
+    ".",
+    "internal/errs",
+    "internal/gardener",
+    "internal/gcp",
+    "internal/operator",
+    "internal/operator/mocks",
+    "internal/terraform",
+    "types",
+  ]
+  pruneopts = "UT"
+  revision = "5a6d079f6a0e7f4b09996fee99228e4668be4e8b"
+
+[[projects]]
+  branch = "master"
   digest = "1:97379322a758442663f5963067c2bb7c91ff2111c7d845fbf5cf37e214f7b1de"
   name = "github.com/kyma-incubator/terraform-provider-gardener"
   packages = [
@@ -1325,6 +1342,14 @@
     "github.com/gardener/gardener/pkg/client/garden/clientset/versioned/typed/garden/v1beta1",
     "github.com/hashicorp/terraform/config/module",
     "github.com/hashicorp/terraform/terraform",
+    "github.com/kyma-incubator/hydroform",
+    "github.com/kyma-incubator/hydroform/internal/errs",
+    "github.com/kyma-incubator/hydroform/internal/gardener",
+    "github.com/kyma-incubator/hydroform/internal/gcp",
+    "github.com/kyma-incubator/hydroform/internal/operator",
+    "github.com/kyma-incubator/hydroform/internal/operator/mocks",
+    "github.com/kyma-incubator/hydroform/internal/terraform",
+    "github.com/kyma-incubator/hydroform/types",
     "github.com/kyma-incubator/terraform-provider-gardener/provider",
     "github.com/pkg/errors",
     "github.com/stretchr/testify/mock",
