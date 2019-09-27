@@ -20,7 +20,7 @@ Hydroform is a Go package you can use with any program to:
 
 ### Actions 
 
-The `actions` is a Hydroform subpackage brings even more extensibility to the standard Hydroform functionality. You can run actions before and after each Hydroform operation. You can also combine the actions in a sequence to run them in a specific order.
+The `actions` Hydroform subpackage brings even more extensibility to the standard Hydroform functionality. You can run actions before and after each Hydroform operation. You can also combine the actions in a sequence to run them in a specific order.
 
 ### Examples
 
