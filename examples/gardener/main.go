@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/kyma-incubator/hydroform/action"
+
 	hf "github.com/kyma-incubator/hydroform"
 	"github.com/kyma-incubator/hydroform/types"
 )
@@ -45,25 +47,44 @@ func main() {
 		},
 	}
 
-	fmt.Println("Provisioning...")
+	action.SetArgs(cluster.Name, provider.Type)
+
+	action.SetBefore(action.FuncAction(func(args ...interface{}) (interface{}, error) {
+		fmt.Printf("Provisioning %s on %s...\n", args[0], args[1])
+		return nil, nil
+	}))
+
+	action.SetAfter(action.FuncAction(func(args ...interface{}) (interface{}, error) {
+		fmt.Printf("Provisioned %s successfully\n", args[0])
+		return nil, nil
+	}))
 	cluster, err := hf.Provision(cluster, provider)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
 	}
-	fmt.Println("Provisioned successfully")
 
-	fmt.Println("Getting the status")
+	action.SetBefore(action.FuncAction(func(args ...interface{}) (interface{}, error) {
+		fmt.Printf("Getting the status of %s\n", args[0])
+		return nil, nil
+	}))
 	status, err := hf.Status(cluster, provider)
 	if err != nil {
 		fmt.Println("Error:", err.Error())
 		return
 	}
 
-	fmt.Println("Status:", *status)
+	fmt.Println("Status:", status.Phase)
 
-	fmt.Println("Downloading the kubeconfig")
+	action.SetBefore(action.FuncAction(func(args ...interface{}) (interface{}, error) {
+		fmt.Println("Downloading the kubeconfig")
+		return nil, nil
+	}))
 
+	action.SetAfter(action.FuncAction(func(args ...interface{}) (interface{}, error) {
+		fmt.Println("Kubeconfig downloaded")
+		return nil, nil
+	}))
 	content, err := hf.Credentials(cluster, provider)
 	if err != nil {
 		fmt.Println("Error", err.Error())
@@ -75,8 +96,6 @@ func main() {
 		fmt.Println("Error", err.Error())
 		return
 	}
-
-	fmt.Println("Kubeconfig downloaded")
 
 	//fmt.Println("Deprovisioning...")
 	//
