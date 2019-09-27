@@ -28,4 +28,4 @@ Follow the links to view Hydroform usage examples:
 * [GCP](https://github.com/kyma-incubator/hydroform/tree/master/examples/gcp)
 * [Gardener](https://github.com/kyma-incubator/hydroform/blob/master/examples/gardener/main.go)
 
-For details, see [this](https://godoc.org/github.com/kyma-incubator/hydroform) documentation.
+For detailed information on Hydroform API, see [this](https://godoc.org/github.com/kyma-incubator/hydroform) documentation.
