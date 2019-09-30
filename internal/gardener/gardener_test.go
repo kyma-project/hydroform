@@ -61,6 +61,11 @@ func TestValidate(t *testing.T) {
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
+			"cidr":            "10.250.0.0/19",
+			"autoscaler_min":  2,
+			"autoscaler_max":  4,
+			"max_surge":       4,
+			"max_unavailable": 1,
 		},
 	}
 
@@ -86,7 +91,7 @@ func TestValidate(t *testing.T) {
 
 	cluster.MachineType = ""
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when cluster machine type is empty")
-	cluster.Location = "type1"
+	cluster.MachineType = "type1"
 
 	cluster.KubernetesVersion = ""
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when Kubernetes version is empty")
@@ -102,7 +107,7 @@ func TestValidate(t *testing.T) {
 
 	provider.ProjectName = ""
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when project name is empty")
-	provider.CredentialsFilePath = "/my-project"
+	provider.ProjectName = "my-project"
 
 	delete(provider.CustomConfigurations, "target_provider")
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is empty")
@@ -116,6 +121,31 @@ func TestValidate(t *testing.T) {
 
 	delete(provider.CustomConfigurations, "disk_type")
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when disk type is empty")
+	provider.CustomConfigurations["disk_type"] = "pd-standard"
+
+	delete(provider.CustomConfigurations, "zone")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when zone is empty")
+	provider.CustomConfigurations["zone"] = "europe-west3-b"
+
+	delete(provider.CustomConfigurations, "cidr")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when cidr is empty")
+	provider.CustomConfigurations["cidr"] = "10.250.0.0/19"
+
+	delete(provider.CustomConfigurations, "autoscaler_min")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when autoscaler_min is empty")
+	provider.CustomConfigurations["autoscaler_min"] = 2
+
+	delete(provider.CustomConfigurations, "autoscaler_max")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when autoscaler_max is empty")
+	provider.CustomConfigurations["autoscaler_max"] = 4
+
+	delete(provider.CustomConfigurations, "max_surge")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when max_surge is empty")
+	provider.CustomConfigurations["max_surge"] = 4
+
+	delete(provider.CustomConfigurations, "max_unavailable")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when max_unavailable is empty")
+	provider.CustomConfigurations["max_unavailable"] = 1
 }
 
 func TestLoadConfigurations(t *testing.T) {
@@ -183,6 +213,11 @@ func TestProvision(t *testing.T) {
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
+			"cidr":            "10.250.0.0/19",
+			"autoscaler_min":  2,
+			"autoscaler_max":  4,
+			"max_surge":       4,
+			"max_unavailable": 1,
 		},
 	}
 
@@ -236,6 +271,11 @@ func TestDeProvision(t *testing.T) {
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
+			"cidr":            "10.250.0.0/19",
+			"autoscaler_min":  2,
+			"autoscaler_max":  4,
+			"max_surge":       4,
+			"max_unavailable": 1,
 		},
 	}
 	goodState := &types.InternalState{

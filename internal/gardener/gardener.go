@@ -133,7 +133,7 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if cluster.KubernetesVersion == "" {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Cluster.KubernetesVersion")
 	}
-	if cluster.DiskSizeGB < 0 {
+	if cluster.DiskSizeGB <= 0 {
 		errMessage += fmt.Sprintf(errs.CannotBeLess, "Cluster.DiskSizeGB", 0)
 	}
 
@@ -156,8 +156,26 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["target_secret"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_secret']")
 	}
+	if _, ok := provider.CustomConfigurations["zone"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['zone']")
+	}
 	if _, ok := provider.CustomConfigurations["disk_type"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['disk_type']")
+	}
+	if _, ok := provider.CustomConfigurations["autoscaler_min"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['autoscaler_min']")
+	}
+	if _, ok := provider.CustomConfigurations["autoscaler_max"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['autoscaler_max']")
+	}
+	if _, ok := provider.CustomConfigurations["max_surge"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['max_surge']")
+	}
+	if _, ok := provider.CustomConfigurations["max_unavailable"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['max_unavailable']")
+	}
+	if _, ok := provider.CustomConfigurations["cidr"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['cidr']")
 	}
 
 	if errMessage != "" {

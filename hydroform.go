@@ -3,6 +3,8 @@ package hydroform
 import (
 	"errors"
 
+	"github.com/kyma-incubator/hydroform/action"
+
 	"github.com/kyma-incubator/hydroform/internal/gardener"
 
 	"github.com/kyma-incubator/hydroform/internal/gcp"
@@ -22,66 +24,110 @@ type Provisioner interface {
 
 // Provision requests provisioning of a new cluster with the given configuration on the given provider.
 func Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
+	var err error
+	var cl *types.Cluster
+
+	if err = action.Before(); err != nil {
+		return cl, err
+	}
+
 	switch provider.Type {
 	case types.GCP:
-		return newGCPProvisioner(provisioningOperator).Provision(cluster, provider)
+		cl, err = newGCPProvisioner(provisionOperator).Provision(cluster, provider)
 	case types.Gardener:
-		return newGardenerProvisioner(provisioningOperator).Provision(cluster, provider)
+		cl, err = newGardenerProvisioner(provisionOperator).Provision(cluster, provider)
 	case types.AWS:
-		return nil, errors.New("aws not supported yet")
+		err = errors.New("aws not supported yet")
 	case types.Azure:
-		return nil, errors.New("azure not supported yet")
+		err = errors.New("azure not supported yet")
 	default:
-		return nil, errors.New("unknown provider")
+		err = errors.New("unknown provider")
 	}
+
+	if err != nil {
+		return cl, err
+	}
+	return cl, action.After()
 }
 
 // Status returns the ClusterStatus for the requested cluster.
 func Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
+	var err error
+	var cs *types.ClusterStatus
+
+	if err = action.Before(); err != nil {
+		return cs, err
+	}
+
 	switch provider.Type {
 	case types.GCP:
-		return newGCPProvisioner(provisioningOperator).Status(cluster, provider)
+		cs, err = newGCPProvisioner(provisionOperator).Status(cluster, provider)
 	case types.Gardener:
-		return newGardenerProvisioner(provisioningOperator).Status(cluster, provider)
+		cs, err = newGardenerProvisioner(provisionOperator).Status(cluster, provider)
 	case types.AWS:
-		return nil, errors.New("aws not supported yet")
+		err = errors.New("aws not supported yet")
 	case types.Azure:
-		return nil, errors.New("azure not supported yet")
+		err = errors.New("azure not supported yet")
 	default:
-		return nil, errors.New("unknown provider")
+		err = errors.New("unknown provider")
 	}
+
+	if err != nil {
+		return cs, err
+	}
+	return cs, action.After()
 }
 
 // Credentials returns the Kubeconfig file as a byte array for the requested cluster.
 func Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
+	var err error
+	var cr []byte
+
+	if err = action.Before(); err != nil {
+		return cr, err
+	}
 	switch provider.Type {
 	case types.GCP:
-		return newGCPProvisioner(provisioningOperator).Credentials(cluster, provider)
+		cr, err = newGCPProvisioner(provisionOperator).Credentials(cluster, provider)
 	case types.Gardener:
-		return newGardenerProvisioner(provisioningOperator).Credentials(cluster, provider)
+		cr, err = newGardenerProvisioner(provisionOperator).Credentials(cluster, provider)
 	case types.AWS:
-		return nil, errors.New("aws not supported yet")
+		err = errors.New("aws not supported yet")
 	case types.Azure:
-		return nil, errors.New("azure not supported yet")
+		err = errors.New("azure not supported yet")
 	default:
-		return nil, errors.New("unknown provider")
+		err = errors.New("unknown provider")
 	}
+
+	if err != nil {
+		return cr, err
+	}
+	return cr, action.After()
 }
 
 // Deprovision requests deprovisioning of the given cluster on the given provider.
 func Deprovision(cluster *types.Cluster, provider *types.Provider) error {
+	var err error
+
+	if err = action.Before(); err != nil {
+		return err
+	}
 	switch provider.Type {
 	case types.GCP:
-		return newGCPProvisioner(provisioningOperator).Deprovision(cluster, provider)
+		err = newGCPProvisioner(provisionOperator).Deprovision(cluster, provider)
 	case types.Gardener:
-		return newGardenerProvisioner(provisioningOperator).Deprovision(cluster, provider)
+		err = newGardenerProvisioner(provisionOperator).Deprovision(cluster, provider)
 	case types.AWS:
-		return errors.New("aws not supported yet")
+		err = errors.New("aws not supported yet")
 	case types.Azure:
-		return errors.New("azure not supported yet")
+		err = errors.New("azure not supported yet")
 	default:
-		return errors.New("unknown provider")
+		err = errors.New("unknown provider")
 	}
+	if err != nil {
+		return err
+	}
+	return action.After()
 }
 
 func newGCPProvisioner(operatorType operator.Type) Provisioner {
