@@ -16,16 +16,18 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
+// gcpProvisioner implements Provisioner
 type gcpProvisioner struct {
 	provisionOperator operator.Operator
 }
 
+// Provision requests provisioning of a new Kubernetes cluster on GCP with the given configurations.
 func (g *gcpProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return nil, err
 	}
 
-	config := loadConfigurations(cluster, provider)
+	config := g.loadConfigurations(cluster, provider)
 
 	clusterInfo, err := g.provisionOperator.Create(provider.Type, config)
 	if err != nil {
@@ -36,6 +38,7 @@ func (g *gcpProvisioner) Provision(cluster *types.Cluster, provider *types.Provi
 	return cluster, nil
 }
 
+// Status returns the ClusterStatus for the requested cluster.
 func (g *gcpProvisioner) Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return nil, err
@@ -53,10 +56,11 @@ func (g *gcpProvisioner) Status(cluster *types.Cluster, provider *types.Provider
 	}
 
 	return &types.ClusterStatus{
-		Phase: convertGCPStatus(cl.Status),
+		Phase: g.convertGCPStatus(cl.Status),
 	}, nil
 }
 
+// Credentials returns the Kubeconfig file as a byte array for the requested cluster.
 func (g *gcpProvisioner) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return nil, err
@@ -89,6 +93,7 @@ func (g *gcpProvisioner) Credentials(cluster *types.Cluster, provider *types.Pro
 	return clientcmd.Write(*config)
 }
 
+// Deprovision requests deprovisioning of an existing cluster on GCP with the given configurations.
 func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return err
@@ -97,7 +102,7 @@ func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, provider *types.Pro
 		return errors.New(errs.EmptyClusterInfo)
 	}
 
-	config := loadConfigurations(cluster, provider)
+	config := g.loadConfigurations(cluster, provider)
 
 	err := g.provisionOperator.Delete(cluster.ClusterInfo.InternalState, provider.Type, config)
 	if err != nil {
@@ -107,7 +112,8 @@ func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, provider *types.Pro
 	return nil
 }
 
-func New(operatorType operator.OperatorType) *gcpProvisioner {
+// New creates a new instance of gcpProvisioner.
+func New(operatorType operator.Type) *gcpProvisioner {
 	var op operator.Operator
 
 	switch operatorType {
@@ -159,7 +165,7 @@ func (g *gcpProvisioner) validateInputs(cluster *types.Cluster, provider *types.
 	return nil
 }
 
-func loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
+func (g *gcpProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
 	config["node_count"] = cluster.NodeCount
@@ -185,7 +191,7 @@ func loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[st
 //   "ERROR" - indicates the cluster may be unusable.
 //   "DEGRADED" - indicates the cluster requires user action to restore full functionality.
 // More details can be found in the `statusMessage` field.
-func convertGCPStatus(status container.Status) types.Phase {
+func (g *gcpProvisioner) convertGCPStatus(status container.Status) types.Phase {
 	switch status {
 	default:
 		return types.Unknown

@@ -16,14 +16,15 @@ import (
 const convertError = "Status [%s] should be converted to [%s]"
 
 func TestConvertgcpState(t *testing.T) {
+	g := &gcpProvisioner{}
 
-	require.Equal(t, types.Unknown, convertGCPStatus(""), fmt.Sprintf(convertError, "\"\"", types.Unknown))
-	require.Equal(t, types.Provisioning, convertGCPStatus("PROVISIONING"), fmt.Sprintf(convertError, "PROVISIONING", types.Provisioning))
-	require.Equal(t, types.Pending, convertGCPStatus("RECONCILING"), fmt.Sprintf(convertError, "RECONCILING", types.Pending))
-	require.Equal(t, types.Stopping, convertGCPStatus("STOPPING"), fmt.Sprintf(convertError, "STOPPING", types.Stopping))
-	require.Equal(t, types.Errored, convertGCPStatus("ERROR"), fmt.Sprintf(convertError, "ERROR", types.Errored))
-	require.Equal(t, types.Errored, convertGCPStatus("DEGRADED"), fmt.Sprintf(convertError, "DEGRADED", types.Errored))
-	require.Equal(t, types.Provisioned, convertGCPStatus("RUNNING"), fmt.Sprintf(convertError, "RUNNING", types.Provisioned))
+	require.Equal(t, types.Unknown, g.convertGCPStatus(""), fmt.Sprintf(convertError, "\"\"", types.Unknown))
+	require.Equal(t, types.Provisioning, g.convertGCPStatus("PROVISIONING"), fmt.Sprintf(convertError, "PROVISIONING", types.Provisioning))
+	require.Equal(t, types.Pending, g.convertGCPStatus("RECONCILING"), fmt.Sprintf(convertError, "RECONCILING", types.Pending))
+	require.Equal(t, types.Stopping, g.convertGCPStatus("STOPPING"), fmt.Sprintf(convertError, "STOPPING", types.Stopping))
+	require.Equal(t, types.Errored, g.convertGCPStatus("ERROR"), fmt.Sprintf(convertError, "ERROR", types.Errored))
+	require.Equal(t, types.Errored, g.convertGCPStatus("DEGRADED"), fmt.Sprintf(convertError, "DEGRADED", types.Errored))
+	require.Equal(t, types.Provisioned, g.convertGCPStatus("RUNNING"), fmt.Sprintf(convertError, "RUNNING", types.Provisioned))
 }
 
 func TestValidateInputs(t *testing.T) {
@@ -105,6 +106,8 @@ func TestValidateInputs(t *testing.T) {
 }
 
 func TestLoadConfigurations(t *testing.T) {
+	g := &gcpProvisioner{}
+
 	cluster := &types.Cluster{
 		CPU:               "1",
 		KubernetesVersion: "1.12",
@@ -126,7 +129,7 @@ func TestLoadConfigurations(t *testing.T) {
 		},
 	}
 
-	config := loadConfigurations(cluster, provider)
+	config := g.loadConfigurations(cluster, provider)
 
 	require.Equal(t, cluster.Name, config["cluster_name"])
 	require.Equal(t, provider.CredentialsFilePath, config["credentials_file_path"])
@@ -179,7 +182,7 @@ func TestProvision(t *testing.T) {
 			TerraformState: nil,
 		},
 	}
-	mockOp.On("Create", types.GCP, loadConfigurations(cluster, provider)).Return(result, nil)
+	mockOp.On("Create", types.GCP, g.loadConfigurations(cluster, provider)).Return(result, nil)
 
 	cluster, err := g.Provision(cluster, provider)
 	require.NoError(t, err, "Provision should succeed")
@@ -188,7 +191,7 @@ func TestProvision(t *testing.T) {
 	badCluster := &types.Cluster{
 		CPU: "1",
 	}
-	mockOp.On("Create", types.GCP, loadConfigurations(badCluster, provider)).Return(badCluster, errors.New("Unable to provision cluster"))
+	mockOp.On("Create", types.GCP, g.loadConfigurations(badCluster, provider)).Return(badCluster, errors.New("Unable to provision cluster"))
 
 	_, err = g.Provision(badCluster, provider)
 	require.Error(t, err, "Provision should fail")
@@ -225,7 +228,7 @@ func TestDeprovision(t *testing.T) {
 		TerraformState: terraform.NewState(),
 	}
 	cluster.ClusterInfo.InternalState = goodState
-	mockOp.On("Delete", goodState, types.GCP, loadConfigurations(cluster, provider)).Return(nil)
+	mockOp.On("Delete", goodState, types.GCP, g.loadConfigurations(cluster, provider)).Return(nil)
 
 	err := g.Deprovision(cluster, provider)
 	require.NoError(t, err, "Deprovision should succeed")
@@ -234,7 +237,7 @@ func TestDeprovision(t *testing.T) {
 		TerraformState: nil,
 	}
 	cluster.ClusterInfo.InternalState = badState
-	mockOp.On("Delete", badState, types.GCP, loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
+	mockOp.On("Delete", badState, types.GCP, g.loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
 
 	err = g.Deprovision(cluster, provider)
 	require.Error(t, err, "Deprovision should fail")
