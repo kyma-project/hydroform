@@ -110,11 +110,11 @@ resource "gardener_{{index . "target_provider"}}_shoot" "gardener_cluster" {
 `
 )
 
-// Terraform implements Operator
+// Terraform is an Operator.
 type Terraform struct {
 }
 
-// Create provisions a new cluster.
+// Create creates a new cluster for a specific provider based on configuration details. It returns a ClusterInfo object with provider-related information, or an error if cluster provisioning failed.
 func (t *Terraform) Create(providerType types.ProviderType, configuration map[string]interface{}) (*types.ClusterInfo, error) {
 	platform, err := t.newPlatform(providerType, configuration)
 	if err != nil {
@@ -154,7 +154,7 @@ func (t *Terraform) Create(providerType types.ProviderType, configuration map[st
 	}, nil
 }
 
-// Delete deprovisions an existing cluster.
+// Delete removes an existing cluster or returns an error if removing the cluster is not possible. 
 func (t *Terraform) Delete(state *types.InternalState, providerType types.ProviderType, configuration map[string]interface{}) error {
 	platform, err := t.newPlatform(providerType, configuration)
 	if err != nil {

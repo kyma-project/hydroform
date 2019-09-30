@@ -2,51 +2,60 @@ package types
 
 import "github.com/kyma-incubator/hydroform/internal/terraform"
 
-// Cluster holds the detailed information for the type of the requested cluster.
+// Cluster contains detailed cluster specification and properties.
 type Cluster struct {
+	// Name specifies the unique name used to identify the cluster.
 	Name              string       `json:"name"`
+	// KubernetesVersion specifies the Kubernetes version used. 
 	KubernetesVersion string       `json:"kubernetesVersion"`
+	// CPU specifies the number of CPUs available in the cluster. 
 	CPU               string       `json:"cpu"`
+	// DiskSizeGB indicates the disk size available in the cluster.
 	DiskSizeGB        int          `json:"diskSizeGB"`
+	// NodeCount specifies the number of nodes available in the cluster.
 	NodeCount         int          `json:"nodeCount"`
+	// MachineType specifies the hardware cluster is provisioned on.
 	MachineType       string       `json:"machineType"`
+	// Location specifies the location of the actual cluster.
 	Location          string       `json:"location"`
 	ClusterInfo       *ClusterInfo `json:"clusterInfo"`
 }
 
-// ClusterInfo holds the resulting information after a attempt has been made to provision a cluster.
+// ClusterInfo contains the actual provider-related cluster details retrieved after the cluster was provisioned.
 type ClusterInfo struct {
+	// Endpoint specifies the URL at which you can reach the cluster.
 	Endpoint                 string         `json:"endpoint"`
+	// CertificateAuthorityData contains certificates required to access the cluster.
 	CertificateAuthorityData []byte         `json:"certificateAuthorityData"`
+	// InternalState contains the Hydroform-specific information used to manage the cluster. 
 	InternalState            *InternalState `json:"internalState"`
 	Status                   *ClusterStatus `json:"status"`
 }
 
-// ClusterStatus holds the fields to demonstrate the status of the cluster.
+// ClusterStatus contains possible values used to indicate the current cluster status.
 type ClusterStatus struct {
 	Phase Phase `json:"phase"`
 }
 
-// Phase points out the current status of the cluster.
+// Phase indicates the current status of the cluster.
 type Phase string
 
 const (
-	// Pending is a possible value for Phase, indicating that some work is actively being done on the cluster,
-	// such as upgrading the master or node software
+	// Pending indicates that some work is actively being done on the cluster,
 	Pending Phase = "Pending"
-	// Provisioning is a possible value for Phase, indicating the cluster is being created.
+	// Provisioning indicates that the cluster is being created.
 	Provisioning Phase = "Provisioning"
-	// Provisioned is a possible value for Phase, indicating the cluster has been created and is fully usable.
+	// Provisioned indicates that the cluster has been created and is fully usable.
 	Provisioned Phase = "Provisioned"
-	// Errored is a possible value for Phase, indicating the cluster may be unusable.
+	// Errored indicates that the cluster may be unusable due to errors.
 	Errored Phase = "Errored"
-	// Stopping is a possible value for Phase, indicating the cluster is being deleted.
+	// Stopping indicates that the cluster is being deleted.
 	Stopping Phase = "Stopping"
-	// Unknown is a possible value for Phase, indicating the status is not known.
+	// Unknown indicates that the cluster status is not known.
 	Unknown Phase = "Unknown"
 )
 
-// InternalState holds the state information for the internal operator in use.
+// InternalState holds the state information of the internal operator which is currently in use. Hydroform uses this information for internal purposes only.
 type InternalState struct {
 	TerraformState *terraform.State
 }

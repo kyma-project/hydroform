@@ -1,23 +1,27 @@
 package types
 
-// Provider holds the details for the provider in use.
+// Provider specifies the provider-related information Hydroform needs to perform its tasks. 
 type Provider struct {
+	// Type specifies the cloud provider to use.
 	Type                 ProviderType           `json:"type"`
+	// ProjectName specifies the project the cluster will be created in.
 	ProjectName          string                 `json:"projectName"`
+	// CredentialsFilePath specifies the path to credentials used to access the cloud provider. 
 	CredentialsFilePath  string                 `json:"credentialsFilePath"`
+	// CustomConfigurations is a list of custom properties relevant for the chosen provider.
 	CustomConfigurations map[string]interface{} `json:"customConfigurations"`
 }
 
-// ProviderType shows the provider type.
+// ProviderType lists available cloud providers.
 type ProviderType string
 
 const (
-	// GCP is a possible value for ProviderType, standing for the Google Cloud Platform.
+	// GCP stands for the Google Cloud Platform.
 	GCP ProviderType = "gcp"
-	// Azure is a possible value for ProviderType, standing for the Microsoft Azure Cloud Computing Platform.
+	// Azure stands for the Microsoft Azure Cloud Computing Platform.
 	Azure ProviderType = "azure"
-	// AWS is a possible value for ProviderType, standing for the Amazon Web Services.
+	// AWS stands for Amazon Web Services.
 	AWS ProviderType = "aws"
-	// Gardener is a possible value for ProviderType, standing for the Gardener platform.
+	// Gardener stands for the Gardener platform.
 	Gardener ProviderType = "gardener"
 )

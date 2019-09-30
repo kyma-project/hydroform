@@ -14,7 +14,7 @@ import (
 
 const provisioningOperator = operator.TerraformOperator
 
-// Provisioner is the generic hydroform interface for the provisioners.
+// Provisioner is the Hydroform interface that groups Provision, Status, Credentials, and Deprovision functions used to create and manage a cluster.
 type Provisioner interface {
 	Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error)
 	Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error)
@@ -22,7 +22,7 @@ type Provisioner interface {
 	Deprovision(cluster *types.Cluster, provider *types.Provider) error
 }
 
-// Provision requests provisioning of a new cluster with the given configuration on the given provider.
+// Provision creates a new cluster for a given provider based on specific cluster and provider parameters. It returns a cluster object enriched with information from the provider, such as the IP address or the connection endpoint. This object is necessary for the other operations, such as retrieving the cluster status or deprovisioning the cluster. If the cluster cannot be created, the function returns an error. 
 func Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	var err error
 	var cl *types.Cluster
@@ -50,7 +50,7 @@ func Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster
 	return cl, action.After()
 }
 
-// Status returns the ClusterStatus for the requested cluster.
+// Status returns the cluster status for a given provider, or an error if providing the status is not possible. The possible status values are defined in the ClusterStatus type.
 func Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
 	var err error
 	var cs *types.ClusterStatus
@@ -78,7 +78,7 @@ func Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterSta
 	return cs, action.After()
 }
 
-// Credentials returns the Kubeconfig file as a byte array for the requested cluster.
+// Credentials returns the kubeconfig for a specific cluster as a byte array.
 func Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
 	var err error
 	var cr []byte
@@ -105,7 +105,7 @@ func Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, erro
 	return cr, action.After()
 }
 
-// Deprovision requests deprovisioning of the given cluster on the given provider.
+// Deprovision removes an existing cluster along or returns an error if removing the cluster is not possible.
 func Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	var err error
 
