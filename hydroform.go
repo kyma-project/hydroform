@@ -22,7 +22,7 @@ type Provisioner interface {
 	Deprovision(cluster *types.Cluster, provider *types.Provider) error
 }
 
-// Provision creates a new cluster for a given provider based on specific cluster and provider parameters. It returns a cluster object enriched with information from the provider, such as the IP address or the connection endpoint. This object is necessary for the other operations, such as retrieving the cluster status or deprovisioning the cluster. If the cluster cannot be created, the function returns an error. 
+// Provision creates a new cluster for a given provider based on specific cluster and provider parameters. It returns a cluster object enriched with information from the provider, such as the IP address or the connection endpoint. This object is necessary for the other operations, such as retrieving the cluster status or deprovisioning the cluster. If the cluster cannot be created, the function returns an error.
 func Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	var err error
 	var cl *types.Cluster

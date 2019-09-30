@@ -154,7 +154,7 @@ func (t *Terraform) Create(providerType types.ProviderType, configuration map[st
 	}, nil
 }
 
-// Delete removes an existing cluster or returns an error if removing the cluster is not possible. 
+// Delete removes an existing cluster or returns an error if removing the cluster is not possible.
 func (t *Terraform) Delete(state *types.InternalState, providerType types.ProviderType, configuration map[string]interface{}) error {
 	platform, err := t.newPlatform(providerType, configuration)
 	if err != nil {

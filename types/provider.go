@@ -1,13 +1,13 @@
 package types
 
-// Provider specifies the provider-related information Hydroform needs to perform its tasks. 
+// Provider specifies the provider-related information Hydroform needs to perform its tasks.
 type Provider struct {
 	// Type specifies the cloud provider to use.
-	Type                 ProviderType           `json:"type"`
+	Type ProviderType `json:"type"`
 	// ProjectName specifies the project the cluster will be created in.
-	ProjectName          string                 `json:"projectName"`
-	// CredentialsFilePath specifies the path to credentials used to access the cloud provider. 
-	CredentialsFilePath  string                 `json:"credentialsFilePath"`
+	ProjectName string `json:"projectName"`
+	// CredentialsFilePath specifies the path to credentials used to access the cloud provider.
+	CredentialsFilePath string `json:"credentialsFilePath"`
 	// CustomConfigurations is a list of custom properties relevant for the chosen provider.
 	CustomConfigurations map[string]interface{} `json:"customConfigurations"`
 }
