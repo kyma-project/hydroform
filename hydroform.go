@@ -33,9 +33,9 @@ func Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster
 
 	switch provider.Type {
 	case types.GCP:
-		cl, err = newGCPProvisioner(provisionOperator).Provision(cluster, provider)
+		cl, err = newGCPProvisioner(provisioningOperator).Provision(cluster, provider)
 	case types.Gardener:
-		cl, err = newGardenerProvisioner(provisionOperator).Provision(cluster, provider)
+		cl, err = newGardenerProvisioner(provisioningOperator).Provision(cluster, provider)
 	case types.AWS:
 		err = errors.New("aws not supported yet")
 	case types.Azure:
@@ -61,9 +61,9 @@ func Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterSta
 
 	switch provider.Type {
 	case types.GCP:
-		cs, err = newGCPProvisioner(provisionOperator).Status(cluster, provider)
+		cs, err = newGCPProvisioner(provisioningOperator).Status(cluster, provider)
 	case types.Gardener:
-		cs, err = newGardenerProvisioner(provisionOperator).Status(cluster, provider)
+		cs, err = newGardenerProvisioner(provisioningOperator).Status(cluster, provider)
 	case types.AWS:
 		err = errors.New("aws not supported yet")
 	case types.Azure:
@@ -88,9 +88,9 @@ func Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, erro
 	}
 	switch provider.Type {
 	case types.GCP:
-		cr, err = newGCPProvisioner(provisionOperator).Credentials(cluster, provider)
+		cr, err = newGCPProvisioner(provisioningOperator).Credentials(cluster, provider)
 	case types.Gardener:
-		cr, err = newGardenerProvisioner(provisionOperator).Credentials(cluster, provider)
+		cr, err = newGardenerProvisioner(provisioningOperator).Credentials(cluster, provider)
 	case types.AWS:
 		err = errors.New("aws not supported yet")
 	case types.Azure:
@@ -114,9 +114,9 @@ func Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	}
 	switch provider.Type {
 	case types.GCP:
-		err = newGCPProvisioner(provisionOperator).Deprovision(cluster, provider)
+		err = newGCPProvisioner(provisioningOperator).Deprovision(cluster, provider)
 	case types.Gardener:
-		err = newGardenerProvisioner(provisionOperator).Deprovision(cluster, provider)
+		err = newGardenerProvisioner(provisioningOperator).Deprovision(cluster, provider)
 	case types.AWS:
 		err = errors.New("aws not supported yet")
 	case types.Azure:
