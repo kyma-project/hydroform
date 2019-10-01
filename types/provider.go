@@ -6,6 +6,8 @@ type Provider struct {
 	Type ProviderType `json:"type"`
 	// ProjectName specifies the project the cluster will be created in.
 	ProjectName string `json:"projectName"`
+	// Contents of the credentials file. Takes precedence over CredentialsFilePath
+	Credentials string
 	// CredentialsFilePath specifies the path to credentials used to access the cloud provider.
 	CredentialsFilePath string `json:"credentialsFilePath"`
 	// CustomConfigurations is a list of custom properties relevant for the chosen provider.

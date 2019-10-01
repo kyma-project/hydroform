@@ -9,7 +9,7 @@ type Cluster struct {
 	// KubernetesVersion specifies the Kubernetes version used.
 	KubernetesVersion string `json:"kubernetesVersion"`
 	// CPU specifies the number of CPUs available in the cluster.
-	CPU string `json:"cpu"`
+	CPU int `json:"cpu"`
 	// DiskSizeGB indicates the disk size available in the cluster.
 	DiskSizeGB int `json:"diskSizeGB"`
 	// NodeCount specifies the number of nodes available in the cluster.

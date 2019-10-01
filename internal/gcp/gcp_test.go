@@ -31,7 +31,7 @@ func TestValidateInputs(t *testing.T) {
 	g := &gcpProvisioner{}
 
 	cluster := &types.Cluster{
-		CPU:               "1",
+		CPU:               1,
 		KubernetesVersion: "1.12",
 		Name:              "hydro-cluster",
 		DiskSizeGB:        30,
@@ -109,7 +109,7 @@ func TestLoadConfigurations(t *testing.T) {
 	g := &gcpProvisioner{}
 
 	cluster := &types.Cluster{
-		CPU:               "1",
+		CPU:               1,
 		KubernetesVersion: "1.12",
 		Name:              "hydro-cluster",
 		DiskSizeGB:        30,
@@ -152,7 +152,7 @@ func TestProvision(t *testing.T) {
 	}
 
 	cluster := &types.Cluster{
-		CPU:               "1",
+		CPU:               1,
 		KubernetesVersion: "1.12",
 		Name:              "hydro-cluster",
 		DiskSizeGB:        30,
@@ -189,7 +189,7 @@ func TestProvision(t *testing.T) {
 	require.Equal(t, result, cluster.ClusterInfo, "The cluster info returned from the operator should be in the cluster returned by Provision")
 
 	badCluster := &types.Cluster{
-		CPU: "1",
+		CPU: 1,
 	}
 	mockOp.On("Create", types.GCP, g.loadConfigurations(badCluster, provider)).Return(badCluster, errors.New("Unable to provision cluster"))
 
@@ -204,7 +204,7 @@ func TestDeprovision(t *testing.T) {
 	}
 
 	cluster := &types.Cluster{
-		CPU:               "1",
+		CPU:               1,
 		KubernetesVersion: "1.12",
 		Name:              "hydro-cluster",
 		DiskSizeGB:        30,
