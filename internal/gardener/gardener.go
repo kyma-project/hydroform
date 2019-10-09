@@ -119,7 +119,7 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if cluster.NodeCount < 1 {
 		errMessage += fmt.Sprintf(errs.CannotBeLess, "Cluster.NodeCount", 1)
 	}
-	// Matches the regex for a GCP cluster name.
+	// Matches the regex for a Gardener cluster name.
 	if match, _ := regexp.MatchString(`^(?:[a-z](?:[-a-z0-9]{0,19}[a-z0-9])?)$`, cluster.Name); !match {
 		errMessage += fmt.Sprintf(errs.Custom, "Cluster.Name must start with a lowercase letter followed by up to 19 lowercase letters, "+
 			"numbers, or hyphens, and cannot end with a hyphen")
