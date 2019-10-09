@@ -12,6 +12,7 @@ require (
 	github.com/dustinkirkland/golang-petname v0.0.0-20190613200456-11339a705ed2 // indirect
 	github.com/gardener/gardener v0.0.0-20190906111529-f9ad04069615
 	github.com/gogo/protobuf v1.3.0 // indirect
+	github.com/googleapis/gax-go v2.0.0+incompatible // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/hashicorp/go-getter v1.4.0 // indirect
 	github.com/hashicorp/hcl2 v0.0.0-20190909202536-66c59f909e25 // indirect
@@ -31,6 +32,7 @@ require (
 	github.com/terraform-providers/terraform-provider-google v1.20.0
 	github.com/terraform-providers/terraform-provider-null v1.0.0
 	github.com/terraform-providers/terraform-provider-random v2.0.0+incompatible // indirect
+	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/zclconf/go-cty v1.1.0 // indirect
 	go.opencensus.io v0.22.1 // indirect
 	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7 // indirect
@@ -42,6 +44,7 @@ require (
 	google.golang.org/appengine v1.6.2 // indirect
 	google.golang.org/genproto v0.0.0-20190916214212-f660b8655731 // indirect
 	google.golang.org/grpc v1.23.1 // indirect
+	gopkg.in/ini.v1 v1.44.0 // indirect
 	k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2 // indirect
 	k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
 	k8s.io/client-go v12.0.0+incompatible

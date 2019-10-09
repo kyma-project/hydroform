@@ -9,6 +9,7 @@ import (
 	"github.com/kyma-incubator/hydroform/types"
 	gardener "github.com/kyma-incubator/terraform-provider-gardener/provider"
 	"github.com/pkg/errors"
+	kind "github.com/tehcyx/terraform-provider-kind/kind"
 
 	"github.com/hashicorp/terraform/terraform"
 	terraformClient "github.com/kyma-incubator/hydroform/internal/terraform"
@@ -108,6 +109,15 @@ resource "gardener_{{index . "target_provider"}}_shoot" "gardener_cluster" {
 	{{end}}
 }
 `
+
+	kindClusterTemplate = `
+provider "kind" {
+}
+resource "kind" "kind_cluster" {
+	name       = "${var.cluster_name}"
+	k8sversion = "${var.kubernetes_version}"
+}
+`
 )
 
 // Terraform is an Operator.
@@ -199,6 +209,10 @@ func (t *Terraform) newPlatform(providerType types.ProviderType, configuration m
 			return nil, err
 		}
 		clusterTemplate = expTemplate
+	case types.Kind:
+		resourceProvider = kind.Provider()
+		providerName = "kind"
+		clusterTemplate = kindClusterTemplate
 	default:
 		return nil, errors.New("unknown provider")
 	}

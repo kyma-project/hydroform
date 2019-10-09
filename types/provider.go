@@ -24,4 +24,6 @@ const (
 	AWS ProviderType = "aws"
 	// Gardener stands for the Gardener platform.
 	Gardener ProviderType = "gardener"
+	// Kind stands for the kind (kubernetes in docker) platform.
+	Kind ProviderType = "kind"
 )
