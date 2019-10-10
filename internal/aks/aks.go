@@ -52,7 +52,7 @@ func (a *aksProvisioner) Status(cluster *types.Cluster, provider *types.Provider
 	}
 
 	return &types.ClusterStatus{
-		Phase: convertGCPStatus(cl.Status),
+		Phase: convertAKSStatus(cl.Status),
 	}, nil
 }
 
