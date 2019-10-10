@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/kyma-incubator/hydroform"
+	hf "github.com/kyma-incubator/hydroform"
 	"github.com/kyma-incubator/hydroform/types"
 )
 
@@ -22,7 +22,7 @@ func main() {
 
 	cluster := &types.Cluster{
 		KubernetesVersion: "1.13",
-		Name:              "test-cluster",
+		Name:              "hydro-cluster",
 		DiskSizeGB:        30,
 		NodeCount:         1,
 		Location:          "europe-west3-a",
@@ -34,7 +34,7 @@ func main() {
 		CredentialsFilePath: *credentials,
 	}
 
-	cluster, err := hydroform.Provision(cluster, provider)
+	cluster, err := hf.Provision(cluster, provider)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
@@ -44,7 +44,7 @@ func main() {
 
 	fmt.Println("Getting the status")
 
-	status, err := hydroform.Status(cluster, provider)
+	status, err := hf.Status(cluster, provider)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
@@ -54,7 +54,7 @@ func main() {
 
 	fmt.Println("Downloading the kubeconfig")
 
-	content, err := hydroform.Credentials(cluster, provider)
+	content, err := hf.Credentials(cluster, provider)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
@@ -70,7 +70,7 @@ func main() {
 
 	//fmt.Println("Deprovisioning...")
 	//
-	//err = hydroform.Deprovision(cluster, provider)
+	//err = hf.Deprovision(cluster, provider)
 	//if err != nil {
 	//	fmt.Println("Error", err.Error())
 	//	return
