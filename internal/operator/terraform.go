@@ -9,7 +9,7 @@ import (
 	"github.com/kyma-incubator/hydroform/types"
 	gardener "github.com/kyma-incubator/terraform-provider-gardener/provider"
 	"github.com/pkg/errors"
-	kind "github.com/tehcyx/terraform-provider-kind/kind"
+	"github.com/kyma-incubator/terraform-provider-kind/kind"
 
 	"github.com/hashicorp/terraform/terraform"
 	terraformClient "github.com/kyma-incubator/hydroform/internal/terraform"
