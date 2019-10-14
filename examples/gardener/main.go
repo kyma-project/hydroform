@@ -24,7 +24,7 @@ func main() {
 	cluster := &types.Cluster{
 		CPU:               1,
 		KubernetesVersion: "1.15.4",
-		Name:              "hydro-cluster",
+		Name:              "hydro",
 		DiskSizeGB:        30,
 		NodeCount:         2,
 		Location:          "europe-west4",
