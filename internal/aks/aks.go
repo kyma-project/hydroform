@@ -18,7 +18,6 @@ type aksProvisioner struct {
 	provisionOperator operator.Operator
 }
 
-
 func (a *aksProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	if err := a.validateInputs(cluster, provider); err != nil {
 		return nil, err

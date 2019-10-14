@@ -1,6 +1,5 @@
 package aks
 
-
 import (
 	"fmt"
 	"testing"
@@ -48,7 +47,7 @@ func TestValidateInputs(t *testing.T) {
 			"target_provider": "azure",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
-			"region":            "europe-west3-b",
+			"region":          "europe-west3-b",
 		},
 	}
 
@@ -124,7 +123,7 @@ func TestLoadConfigurations(t *testing.T) {
 			"target_provider": "azure",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
-			"region":            "europe-west3-b",
+			"region":          "europe-west3-b",
 		},
 	}
 
@@ -167,7 +166,7 @@ func TestProvision(t *testing.T) {
 			"target_provider": "azure",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
-			"region":            "europe-west3-b",
+			"region":          "europe-west3-b",
 		},
 	}
 
@@ -241,4 +240,3 @@ func TestDeprovision(t *testing.T) {
 	err = a.Deprovision(cluster, provider)
 	require.Error(t, err, "Deprovision should fail")
 }
-
