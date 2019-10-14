@@ -10,6 +10,7 @@ require (
 	cloud.google.com/go/storage v1.1.0 // indirect
 	github.com/dustinkirkland/golang-petname v0.0.0-20190613200456-11339a705ed2 // indirect
 	github.com/gardener/gardener v0.0.0-20190906111529-f9ad04069615
+	github.com/googleapis/gax-go v2.0.0+incompatible // indirect
 	github.com/hashicorp/terraform v0.11.14
 	github.com/kyma-incubator/terraform-provider-gardener v0.0.0-20191009110559-03aaeb836c35
 	github.com/pkg/errors v0.8.1
@@ -18,7 +19,9 @@ require (
 	github.com/terraform-providers/terraform-provider-google v1.20.0
 	github.com/terraform-providers/terraform-provider-null v1.0.0
 	github.com/terraform-providers/terraform-provider-random v2.0.0+incompatible // indirect
+	github.com/ugorji/go/codec v1.1.7 // indirect
 	google.golang.org/api v0.11.0
+	gopkg.in/ini.v1 v1.44.0 // indirect
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 )

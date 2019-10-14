@@ -2,7 +2,7 @@ package hydroform
 
 import (
 	"errors"
-	"github.com/hisarbalik/hydroform/internal/aks"
+	"github.com/kyma-incubator/hydroform/internal/aks"
 
 	"github.com/kyma-incubator/hydroform/internal/gardener"
 
@@ -80,18 +80,18 @@ func Deprovision(cluster *types.Cluster, provider *types.Provider) error {
 	}
 }
 
-func newGCPProvisioner(operatorType operator.OperatorType) Provisioner {
+func newGCPProvisioner(operatorType operator.Type) Provisioner {
 	return gcp.New(operatorType)
 }
 
-func newGardenerProvisioner(operatorType operator.OperatorType) Provisioner {
+func newGardenerProvisioner(operatorType operator.Type) Provisioner {
 	return gardener.New(operatorType)
 }
 
-func newAWSProvisioner(operatorType operator.OperatorType) Provisioner {
+func newAWSProvisioner(operatorType operator.Type) Provisioner {
 	return nil
 }
 
-func newAzureProvisioner(operatorType operator.OperatorType) Provisioner {
+func newAzureProvisioner(operatorType operator.Type) Provisioner {
 	return aks.New(operatorType)
 }

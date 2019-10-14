@@ -4,9 +4,9 @@ import (
 	"cloud.google.com/go/container"
 	"context"
 	"fmt"
-	"github.com/hisarbalik/hydroform/internal/errs"
-	"github.com/hisarbalik/hydroform/internal/operator"
-	"github.com/hisarbalik/hydroform/types"
+	"github.com/kyma-incubator/hydroform/internal/errs"
+	"github.com/kyma-incubator/hydroform/internal/operator"
+	"github.com/kyma-incubator/hydroform/types"
 	"github.com/pkg/errors"
 	"google.golang.org/api/option"
 	"k8s.io/client-go/tools/clientcmd"
@@ -106,7 +106,7 @@ func (a *aksProvisioner) Deprovision(cluster *types.Cluster, provider *types.Pro
 	return nil
 }
 
-func New(operatorType operator.OperatorType) *aksProvisioner {
+func New(operatorType operator.Type) *aksProvisioner {
 	var op operator.Operator
 
 	switch operatorType {
