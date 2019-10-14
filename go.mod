@@ -13,11 +13,9 @@ require (
 	github.com/hashicorp/terraform v0.11.14
 	github.com/kyma-incubator/terraform-provider-gardener v0.0.0-20191009110559-03aaeb836c35
 	github.com/pkg/errors v0.8.1
-	github.com/stoewer/go-strcase v1.0.2 // indirect
 	github.com/stretchr/testify v1.4.0
-	github.com/terraform-providers/terraform-provider-google v1.20.0
+	github.com/terraform-providers/terraform-provider-google v1.20.1-0.20190430222256-f9a9636be7cd
 	github.com/terraform-providers/terraform-provider-null v1.0.0
-	github.com/terraform-providers/terraform-provider-random v2.0.0+incompatible // indirect
 	google.golang.org/api v0.11.0
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
