@@ -15,17 +15,6 @@ import (
 
 const convertError = "Status [%s] should be converted to [%s]"
 
-func TestConvertaksState(t *testing.T) {
-
-	require.Equal(t, types.Unknown, convertAKSStatus(""), fmt.Sprintf(convertError, "\"\"", types.Unknown))
-	require.Equal(t, types.Provisioning, convertAKSStatus("PROVISIONING"), fmt.Sprintf(convertError, "PROVISIONING", types.Provisioning))
-	require.Equal(t, types.Pending, convertAKSStatus("RECONCILING"), fmt.Sprintf(convertError, "RECONCILING", types.Pending))
-	require.Equal(t, types.Stopping, convertAKSStatus("STOPPING"), fmt.Sprintf(convertError, "STOPPING", types.Stopping))
-	require.Equal(t, types.Errored, convertAKSStatus("ERROR"), fmt.Sprintf(convertError, "ERROR", types.Errored))
-	require.Equal(t, types.Errored, convertAKSStatus("DEGRADED"), fmt.Sprintf(convertError, "DEGRADED", types.Errored))
-	require.Equal(t, types.Provisioned, convertAKSStatus("RUNNING"), fmt.Sprintf(convertError, "RUNNING", types.Provisioned))
-}
-
 func TestValidateInputs(t *testing.T) {
 
 	a := &aksProvisioner{}

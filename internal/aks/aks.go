@@ -1,14 +1,11 @@
 package aks
 
 import (
-	"cloud.google.com/go/container"
-	"context"
 	"fmt"
 	"github.com/kyma-incubator/hydroform/internal/errs"
 	"github.com/kyma-incubator/hydroform/internal/operator"
 	"github.com/kyma-incubator/hydroform/types"
 	"github.com/pkg/errors"
-	"google.golang.org/api/option"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	"regexp"
@@ -39,19 +36,8 @@ func (a *aksProvisioner) Status(cluster *types.Cluster, provider *types.Provider
 		return nil, err
 	}
 
-	containerClient, err := container.NewClient(context.Background(),
-		provider.ProjectName,
-		option.WithCredentialsFile(provider.CredentialsFilePath))
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create GCP client")
-	}
-	cl, err := containerClient.Cluster(context.Background(), cluster.Location, cluster.Name)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get cluster info")
-	}
-
 	return &types.ClusterStatus{
-		Phase: convertAKSStatus(cl.Status),
+		Phase: "Unknown",
 	}, nil
 }
 
@@ -171,33 +157,4 @@ func loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[st
 		config[k] = v
 	}
 	return config
-}
-
-// Possible values for the GCP Cluster Status:
-//   "STATUS_UNSPECIFIED" - not set.
-//   "PROVISIONING" - indicates the cluster is being created.
-//   "RUNNING" - indicates the cluster has been created and is fully usable.
-//   "RECONCILING" - indicates that some work is actively being done on the cluster,
-//                   such as upgrading the master or node software.
-//   "STOPPING" - indicates the cluster is being deleted.
-//   "ERROR" - indicates the cluster may be unusable.
-//   "DEGRADED" - indicates the cluster requires user action to restore full functionality.
-// More details can be found in the `statusMessage` field.
-func convertAKSStatus(status container.Status) types.Phase {
-	switch status {
-	default:
-		return types.Unknown
-	case "PROVISIONING":
-		return types.Provisioning
-	case "RUNNING":
-		return types.Provisioned
-	case "RECONCILING":
-		return types.Pending
-	case "STOPPING":
-		return types.Stopping
-	case "ERROR":
-		return types.Errored
-	case "DEGRADED":
-		return types.Errored
-	}
 }
