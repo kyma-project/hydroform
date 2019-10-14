@@ -16,7 +16,9 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/terraform-providers/terraform-provider-google v1.20.1-0.20190430222256-f9a9636be7cd
 	github.com/terraform-providers/terraform-provider-null v1.0.0
+	github.com/ugorji/go/codec v1.1.7 // indirect
 	google.golang.org/api v0.11.0
+	gopkg.in/ini.v1 v1.44.0 // indirect
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 )

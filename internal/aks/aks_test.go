@@ -32,7 +32,7 @@ func TestValidateInputs(t *testing.T) {
 	a := &aksProvisioner{}
 
 	cluster := &types.Cluster{
-		CPU:               "1",
+		CPU:               1,
 		KubernetesVersion: "1.12",
 		Name:              "hydro-cluster",
 		DiskSizeGB:        30,
@@ -96,7 +96,7 @@ func TestValidateInputs(t *testing.T) {
 	require.Error(t, a.validateInputs(cluster, provider), "Validation should fail when target provider is empty")
 	provider.CustomConfigurations["target_provider"] = "nimbus"
 	require.Error(t, a.validateInputs(cluster, provider), "Validation should fail when target provider is not supported")
-	provider.CustomConfigurations["target_provider"] = "gcp"
+	provider.CustomConfigurations["target_provider"] = "aks"
 
 	delete(provider.CustomConfigurations, "target_secret")
 	require.Error(t, a.validateInputs(cluster, provider), "Validation should fail when target secret is empty")
@@ -108,7 +108,7 @@ func TestValidateInputs(t *testing.T) {
 
 func TestLoadConfigurations(t *testing.T) {
 	cluster := &types.Cluster{
-		CPU:               "1",
+		CPU:               1,
 		KubernetesVersion: "1.12",
 		Name:              "hydro-cluster",
 		DiskSizeGB:        30,
@@ -151,7 +151,7 @@ func TestProvision(t *testing.T) {
 	}
 
 	cluster := &types.Cluster{
-		CPU:               "1",
+		CPU:               1,
 		KubernetesVersion: "1.12",
 		Name:              "hydro-cluster",
 		DiskSizeGB:        30,
@@ -181,16 +181,16 @@ func TestProvision(t *testing.T) {
 			TerraformState: nil,
 		},
 	}
-	mockOp.On("Create", types.GCP, loadConfigurations(cluster, provider)).Return(result, nil)
+	mockOp.On("Create", types.Azure, loadConfigurations(cluster, provider)).Return(result, nil)
 
 	cluster, err := a.Provision(cluster, provider)
 	require.NoError(t, err, "Provision should succeed")
 	require.Equal(t, result, cluster.ClusterInfo, "The cluster info returned from the operator should be in the cluster returned by Provision")
 
 	badCluster := &types.Cluster{
-		CPU: "1",
+		CPU: 1,
 	}
-	mockOp.On("Create", types.GCP, loadConfigurations(badCluster, provider)).Return(badCluster, errors.New("Unable to provision cluster"))
+	mockOp.On("Create", types.Azure, loadConfigurations(badCluster, provider)).Return(badCluster, errors.New("Unable to provision cluster"))
 
 	_, err = a.Provision(badCluster, provider)
 	require.Error(t, err, "Provision should fail")
@@ -203,7 +203,7 @@ func TestDeprovision(t *testing.T) {
 	}
 
 	cluster := &types.Cluster{
-		CPU:               "1",
+		CPU:               1,
 		KubernetesVersion: "1.12",
 		Name:              "hydro-cluster",
 		DiskSizeGB:        30,
@@ -227,7 +227,7 @@ func TestDeprovision(t *testing.T) {
 		TerraformState: terraform.NewState(),
 	}
 	cluster.ClusterInfo.InternalState = goodState
-	mockOp.On("Delete", goodState, types.GCP, loadConfigurations(cluster, provider)).Return(nil)
+	mockOp.On("Delete", goodState, types.Azure, loadConfigurations(cluster, provider)).Return(nil)
 
 	err := a.Deprovision(cluster, provider)
 	require.NoError(t, err, "Deprovision should succeed")
@@ -236,7 +236,7 @@ func TestDeprovision(t *testing.T) {
 		TerraformState: nil,
 	}
 	cluster.ClusterInfo.InternalState = badState
-	mockOp.On("Delete", badState, types.GCP, loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
+	mockOp.On("Delete", badState, types.Azure, loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
 
 	err = a.Deprovision(cluster, provider)
 	require.Error(t, err, "Deprovision should fail")
