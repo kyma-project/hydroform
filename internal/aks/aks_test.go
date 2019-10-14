@@ -16,7 +16,7 @@ import (
 
 const convertError = "Status [%s] should be converted to [%s]"
 
-func TestConvertgcpState(t *testing.T) {
+func TestConvertaksState(t *testing.T) {
 
 	require.Equal(t, types.Unknown, convertAKSStatus(""), fmt.Sprintf(convertError, "\"\"", types.Unknown))
 	require.Equal(t, types.Provisioning, convertAKSStatus("PROVISIONING"), fmt.Sprintf(convertError, "PROVISIONING", types.Provisioning))
