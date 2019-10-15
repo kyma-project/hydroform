@@ -8,6 +8,7 @@ import "github.com/kyma-incubator/hydroform/types"
 type Operator interface {
 	Create(providerType types.ProviderType, configuration map[string]interface{}) (*types.ClusterInfo, error)
 	Delete(state *types.InternalState, providerType types.ProviderType, configuration map[string]interface{}) error
+	Status(providerType types.ProviderType, configuration map[string]interface{}) (*types.ClusterInfo, error)
 }
 
 // Type points out the type of the operator.

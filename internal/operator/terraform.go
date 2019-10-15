@@ -13,12 +13,76 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	terraformClient "github.com/kyma-incubator/hydroform/internal/terraform"
 	"github.com/terraform-providers/terraform-provider-google/google"
+	"github.com/terraform-providers/terraform-provider-azurerm/azurerm"
 )
 
 const (
 	awsClusterTemplate = ``
 
-	azureClusterTemplate = ``
+	azureClusterTemplate = `
+
+	variable "prefix" {}
+	variable "location" {}	
+	variable "kubernetes_client_id" {}
+	variable "kubernetes_client_secret" {}
+    variable "machine_type"  		{}
+	variable "kubernetes_version"   	{}
+	variable "disk_size" 			{}
+	variable "node_count" {}
+
+	resource "azurerm_resource_group" "azure_cluster" {
+	  name     = "${var.prefix}-k8s-resources"
+	  location = "${var.location}"
+	}
+	
+	resource "azurerm_kubernetes_cluster" "azure_cluster" {
+	  name                = "${var.prefix}-k8s"
+	  location            = "${azurerm_resource_group.azure_cluster.location}"
+	  resource_group_name = "${azurerm_resource_group.azure_cluster.name}"
+	  dns_prefix          = "${var.prefix}-k8s"
+	
+	  agent_pool_profile {
+		name            = "default"
+		count           = ${var.node_count}
+		vm_size         = ${var.machine_type}
+		os_type         = "Linux"
+		os_disk_size_gb = ${var.disk_size}
+	  }
+	
+	  service_principal {
+		client_id     = "${var.kubernetes_client_id}"
+		client_secret = "${var.kubernetes_client_secret}"
+	  }
+	
+	  tags = {
+		Environment = "Production"
+	  }
+	}
+
+	output "id" {
+	  value = "${azurerm_kubernetes_cluster.azure_cluster.id}"
+	}
+	
+	output "kube_config" {
+	  value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config_raw}"
+	}
+	
+	output "client_key" {
+	  value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.client_key}"
+	}
+	
+	output "client_certificate" {
+	  value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.client_certificate}"
+	}
+	
+	output "cluster_ca_certificate" {
+	  value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.cluster_ca_certificate}"
+	}
+	
+	output "host" {
+	  value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.host}"
+	}
+`
 
 	gcpClusterTemplate = `
   variable "node_count"    		{}
@@ -165,6 +229,18 @@ func (t *Terraform) Delete(state *types.InternalState, providerType types.Provid
 	return errors.Wrap(err, "unable to deprovision cluster")
 }
 
+func (t *Terraform) Status(providerType types.ProviderType, configuration map[string]interface{}) (*types.ClusterInfo, error) {
+	_, err := t.newPlatform(providerType, configuration)
+
+	if err != nil {
+		return nil, err
+	}
+	return &types.ClusterInfo{
+		InternalState:            nil,
+		Status:                   &types.ClusterStatus{Phase: types.Unknown},
+	}, nil
+}
+
 func newTerraform() Operator {
 	return &Terraform{}
 }
@@ -186,10 +262,9 @@ func (t *Terraform) newPlatform(providerType types.ProviderType, configuration m
 		//providerName = "aws"
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
-		//resourceProvider = azure.Provider()
-		//clusterTemplate = azureClusterTemplate
-		//providerName = "azure"
-		return nil, errors.New("azure not supported yet")
+		resourceProvider = azurerm.Provider()
+		clusterTemplate = azureClusterTemplate
+		providerName = "azure"
 	case types.Gardener:
 		resourceProvider = gardener.Provider()
 		providerName = "gardener"
