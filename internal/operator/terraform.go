@@ -229,16 +229,9 @@ func (t *Terraform) Delete(state *types.InternalState, providerType types.Provid
 	return errors.Wrap(err, "unable to deprovision cluster")
 }
 
-func (t *Terraform) Status(providerType types.ProviderType, configuration map[string]interface{}) (*types.ClusterInfo, error) {
-	_, err := t.newPlatform(providerType, configuration)
+func (t *Terraform) Status(state *types.InternalState, configuration map[string]interface{}) (*types.ClusterStatus, error) {
 
-	if err != nil {
-		return nil, err
-	}
-	return &types.ClusterInfo{
-		InternalState:            nil,
-		Status:                   &types.ClusterStatus{Phase: types.Unknown},
-	}, nil
+	return &types.ClusterStatus{Phase: types.Unknown}, nil
 }
 
 func newTerraform() Operator {

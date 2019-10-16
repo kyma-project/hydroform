@@ -36,9 +36,13 @@ func (a *aksProvisioner) Status(cluster *types.Cluster, provider *types.Provider
 		return nil, err
 	}
 
-	return &types.ClusterStatus{
-		Phase: "Unknown",
-	}, nil
+	config := loadConfigurations(cluster, provider)
+	clusterStatus, err := a.provisionOperator.Status(cluster.ClusterInfo.InternalState, config)
+
+	if err != nil {
+		return nil, err
+	}
+	return clusterStatus.Status, nil
 }
 
 func (a *aksProvisioner) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
