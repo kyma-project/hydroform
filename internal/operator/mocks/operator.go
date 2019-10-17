@@ -49,3 +49,7 @@ func (_m *Operator) Delete(state *types.InternalState, providerType types.Provid
 
 	return r0
 }
+
+func (t *Operator) Status(state *types.InternalState, configuration map[string]interface{}) (*types.ClusterStatus, error) {
+	return &types.ClusterStatus{Phase: types.Unknown}, nil
+}

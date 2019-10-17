@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	terraformClient "github.com/kyma-incubator/hydroform/internal/terraform"
 	"github.com/terraform-providers/terraform-provider-google/google"
-
 )
 
 const (
