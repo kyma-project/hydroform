@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	terraformClient "github.com/kyma-incubator/hydroform/internal/terraform"
 	"github.com/terraform-providers/terraform-provider-google/google"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm"
+
 )
 
 const (
@@ -255,9 +255,9 @@ func (t *Terraform) newPlatform(providerType types.ProviderType, configuration m
 		//providerName = "aws"
 		return nil, errors.New("aws not supported yet")
 	case types.Azure:
-		resourceProvider = azurerm.Provider()
-		clusterTemplate = azureClusterTemplate
-		providerName = "azure"
+		//resourceProvider = azurerm.Provider()
+		//clusterTemplate = azureClusterTemplate
+		//providerName = "azure"
 	case types.Gardener:
 		resourceProvider = gardener.Provider()
 		providerName = "gardener"

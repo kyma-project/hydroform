@@ -42,7 +42,7 @@ func (a *aksProvisioner) Status(cluster *types.Cluster, provider *types.Provider
 	if err != nil {
 		return nil, err
 	}
-	return clusterStatus.Status, nil
+	return clusterStatus, nil
 }
 
 func (a *aksProvisioner) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
