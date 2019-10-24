@@ -64,7 +64,7 @@ func (g *gardenerProvisioner) Status(cluster *types.Cluster, provider *types.Pro
 		return nil, err
 	}
 
-	shoot, err := gardenerClient.Shoots(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(cluster.Name, metav1.GetOptions{})
+	shoot, err := gardenerClient.Shoots(provider.ProjectName).Get(cluster.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (g *gardenerProvisioner) Credentials(cluster *types.Cluster, provider *type
 		return nil, err
 	}
 
-	s, err := k8s.CoreV1().Secrets(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
+	s, err := k8s.CoreV1().Secrets(provider.ProjectName).Get(fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -152,6 +152,16 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 		}
 	} else {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_provider']")
+	}
+	if v, ok := provider.CustomConfigurations["target_profile"]; ok {
+		if v != string(gcpProfile) && v != string(awsProfile) && v != string(azureProfile) {
+			errMessage += fmt.Sprintf(errs.Custom, "Provider.CustomConfigurations['target_profile'] has to be one of: gcp, az, aws")
+		}
+	} else {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_profile']")
+	}
+	if _, ok := provider.CustomConfigurations["target_seed"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_seed']")
 	}
 	if _, ok := provider.CustomConfigurations["target_secret"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_secret']")
@@ -226,3 +236,9 @@ func convertGardenertatus(status gardener_types.ShootStatus) types.Phase {
 		return types.Unknown
 	}
 }
+
+const (
+	gcpProfile   string = "gcp"
+	awsProfile   string = "aws"
+	azureProfile string = "az"
+)

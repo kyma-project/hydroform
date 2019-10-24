@@ -331,7 +331,6 @@ github.com/hashicorp/go-getter v1.0.1/go.mod h1:tkKN/c6I/LRSXLOWZ8wa/VB0LfVrryHz
 github.com/hashicorp/go-hclog v0.0.0-20170716174523-b4e5765d1e5f/go.mod h1:9bjs9uLqI8l75knNv3lV1kA55veR+WUPSiKIWcQHudI=
 github.com/hashicorp/go-hclog v0.0.0-20180709165350-ff2cf002a8dd/go.mod h1:9bjs9uLqI8l75knNv3lV1kA55veR+WUPSiKIWcQHudI=
 github.com/hashicorp/go-hclog v0.0.0-20181001195459-61d530d6c27f/go.mod h1:5CU+agLiy3J7N7QjHK5d05KxGsuXiQLrjA0H7acj2lQ=
-github.com/hashicorp/go-hclog v0.9.2 h1:CG6TE5H9/JXsFWJCfoIVpKFIkFe6ysEuHirp4DxCsHI=
 github.com/hashicorp/go-hclog v0.9.2/go.mod h1:5CU+agLiy3J7N7QjHK5d05KxGsuXiQLrjA0H7acj2lQ=
 github.com/hashicorp/go-immutable-radix v1.0.0/go.mod h1:0y9vanUI8NX6FsYoO3zeMjhV/C5i9g4Q3DwcSNZ4P60=
 github.com/hashicorp/go-msgpack v0.5.3/go.mod h1:ahLV/dePpqEmjfWmKiqvPkv/twdG7iPBM1vqhUKIvfM=
@@ -340,7 +339,6 @@ github.com/hashicorp/go-multierror v1.0.0 h1:iVjPR7a6H0tWELX5NxNe7bYopibicUzc7uP
 github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHhCYQXV3UM06sGGrk=
 github.com/hashicorp/go-plugin v0.0.0-20180125190438-e53f54cbf51e/go.mod h1:JSqWYsict+jzcj0+xElxyrBQRPNoiWQuddnxArJ7XHQ=
 github.com/hashicorp/go-plugin v0.0.0-20181212150838-f444068e8f5a/go.mod h1:Ft7ju2vWzhO0ETMKUVo12XmXmII6eSUS4rsPTkY/siA=
-github.com/hashicorp/go-plugin v1.0.1 h1:4OtAfUGbnKC6yS48p0CtMX2oFYtzFZVv6rok3cRWgnE=
 github.com/hashicorp/go-plugin v1.0.1/go.mod h1:++UyYGoz3o5w9ZzAdZxtQKrWWP+iqPBn3cQptSMzBuY=
 github.com/hashicorp/go-retryablehttp v0.5.2/go.mod h1:9B5zBasrRhHXnJnui7y6sL7es7NDiJgTc6Er0maI1Xs=
 github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90/go.mod h1:o4zcYY1e0GEZI6eSEr+43QDYmuGglw1qSO6qdHUHCgg=
@@ -388,7 +386,6 @@ github.com/hashicorp/vault v1.0.1 h1:x3hcjkJLd5L4ehPhZcraokFO7dq8MJ3oKvQtrkIiIU8
 github.com/hashicorp/vault v1.0.1/go.mod h1:KfSyffbKxoVyspOdlaGVjIuwLobi07qD1bAbosPMpP0=
 github.com/hashicorp/yamux v0.0.0-20160720233140-d1caa6c97c9f/go.mod h1:+NfK9FKeTrX5uv1uIXGdwYDTeHna2qgaIlx54MXqjAM=
 github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb/go.mod h1:+NfK9FKeTrX5uv1uIXGdwYDTeHna2qgaIlx54MXqjAM=
-github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d h1:W+SIwDdl3+jXWeidYySAgzytE3piq6GumXeBjFBG67c=
 github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d/go.mod h1:+NfK9FKeTrX5uv1uIXGdwYDTeHna2qgaIlx54MXqjAM=
 github.com/hpcloud/tail v1.0.0 h1:nfCOvKYfkgYP8hkirhJocXT2+zOD8yUNjXaWfTlyFKI=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
@@ -441,8 +438,8 @@ github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348 h1:MtvEpTB6LX3vkb4ax0b5D2DHbNAUsen0Gx5wZoq3lV4=
 github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348/go.mod h1:B69LEHPfb2qLo0BaaOLcbitczOKLWTsrBG9LczfCD4k=
-github.com/kyma-incubator/terraform-provider-gardener v0.0.0-20191015133725-08effd5d7987 h1:336kj0hmmnDBPUrkcjgBCjnzsfhj4yjs9tdiFmRItEY=
-github.com/kyma-incubator/terraform-provider-gardener v0.0.0-20191015133725-08effd5d7987/go.mod h1:Rfat4OJ69QqH+ieX38CVqKH/X4OjZZ8lgG/SD+bZ7GE=
+github.com/kyma-incubator/terraform-provider-gardener v0.0.0-20191024084317-100e0f88e4cf h1:/IseonHZmOEqnqz16+4kC6GJYOW7oCSbFSPyXBryuIo=
+github.com/kyma-incubator/terraform-provider-gardener v0.0.0-20191024084317-100e0f88e4cf/go.mod h1:AFkMPUCaxXuiGdeuZHh1tKcb1AgQd6Mil8srcIkaicI=
 github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82/go.mod h1:y54tfGmO3NKssKveTEFFzH8C/akrSOy/iW9qEAUDV84=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/mailru/easyjson v0.0.0-20160728113105-d5b7844b561a/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=

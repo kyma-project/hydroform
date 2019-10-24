@@ -11,7 +11,7 @@ require (
 	github.com/dustinkirkland/golang-petname v0.0.0-20190613200456-11339a705ed2 // indirect
 	github.com/gardener/gardener v0.0.0-20190906111529-f9ad04069615
 	github.com/hashicorp/terraform v0.11.14
-	github.com/kyma-incubator/terraform-provider-gardener v0.0.0-20191015133725-08effd5d7987
+	github.com/kyma-incubator/terraform-provider-gardener v0.0.0-20191024084317-100e0f88e4cf
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
 	github.com/terraform-providers/terraform-provider-google v1.20.1-0.20190430222256-f9a9636be7cd
