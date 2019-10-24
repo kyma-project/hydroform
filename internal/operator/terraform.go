@@ -50,8 +50,17 @@ const (
     maintenance_policy {
       	daily_maintenance_window {
         	start_time = "03:00"
-      		}
-    	}
+		}
+	}
+	
+	addons_config {
+		http_load_balancing {
+		  disabled = false
+		}
+		horizontal_pod_autoscaling {
+		  disabled = false
+		}
+	  }
   }
 
   output "endpoint" {
