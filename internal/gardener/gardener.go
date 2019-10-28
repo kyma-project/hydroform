@@ -64,7 +64,7 @@ func (g *gardenerProvisioner) Status(cluster *types.Cluster, provider *types.Pro
 		return nil, err
 	}
 
-	shoot, err := gardenerClient.Shoots(provider.ProjectName).Get(cluster.Name, metav1.GetOptions{})
+	shoot, err := gardenerClient.Shoots(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(cluster.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (g *gardenerProvisioner) Credentials(cluster *types.Cluster, provider *type
 		return nil, err
 	}
 
-	s, err := k8s.CoreV1().Secrets(provider.ProjectName).Get(fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
+	s, err := k8s.CoreV1().Secrets(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 	config["disk_size"] = cluster.DiskSizeGB
 	config["kubernetes_version"] = cluster.KubernetesVersion
 	config["location"] = cluster.Location
-	config["project"] = provider.ProjectName
+	config["namespace"] = fmt.Sprintf("garden-%s", provider.ProjectName)
 
 	for k, v := range provider.CustomConfigurations {
 		config[k] = v

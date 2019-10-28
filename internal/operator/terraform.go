@@ -71,7 +71,7 @@ variable "target_secret"			{}
 variable "node_count"    			{}
 variable "cluster_name"  			{}
 variable "credentials_file_path" 	{}
-variable "project"       			{}
+variable "namespace"       			{}
 variable "location"      			{}
 variable "zone"      				{}
 variable "cidr"      				{}
@@ -91,7 +91,7 @@ provider "gardener" {
 resource "gardener_shoot" "test_cluster" {
 	metadata {
 	  name      = "${var.cluster_name}"
-	  namespace = "${var.project}"
+	  namespace = "${var.namespace}"
   
 	}
   
