@@ -14,7 +14,7 @@ import (
 
 func main() {
 	projectName := flag.String("p", "", "Gardener project name")
-	machineType := flag.String("m", "n1-standard-4", "GCP machine type")
+	machineType := flag.String("m", "Standard_D2_v3", "Azure machine type")
 	credentials := flag.String("c", "", "Path to the credentials file")
 	secret := flag.String("s", "", "Name of the secret to access the underlying provider of gardener")
 	flag.Parse()
@@ -24,10 +24,10 @@ func main() {
 	cluster := &types.Cluster{
 		CPU:               1,
 		KubernetesVersion: "1.15.4",
-		Name:              "hydro",
-		DiskSizeGB:        30,
+		Name:              "hydro-azure",
+		DiskSizeGB:        35,
 		NodeCount:         2,
-		Location:          "europe-west4",
+		Location:          "eastus",
 		MachineType:       *machineType,
 	}
 	provider := &types.Provider{
@@ -35,11 +35,11 @@ func main() {
 		ProjectName:         *projectName,
 		CredentialsFilePath: *credentials,
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
+			"target_provider": "azure",
 			"target_secret":   *secret,
-			"disk_type":       "pd-standard",
-			"zone":            "europe-west4-b",
-			"cidr":            "10.250.0.0/19",
+			"disk_type":       "standard",
+			"workercidr":      "10.250.0.0/19",
+			"vnetcidr":        "10.250.0.0/19",
 			"autoscaler_min":  2,
 			"autoscaler_max":  4,
 			"max_surge":       4,
