@@ -81,7 +81,8 @@ variable "credentials_file_path" 	{}
 variable "project"       			{}
 variable "location"      			{}
 variable "zone"      				{}
-variable "cidr"      				{}
+variable "workercidr"      			{}
+variable "vnetcidr"					{}
 variable "machine_type"  			{}
 variable "kubernetes_version"   	{}
 variable "disk_size" 				{}
@@ -90,6 +91,9 @@ variable "autoscaler_min" 			{}
 variable "autoscaler_max" 			{}
 variable "max_surge" 				{}
 variable "max_unavailable" 			{}
+variable "vpccidr" 					{}
+variable "publicscidr" 				{}
+variable "internalscidr" 			{}
 
 provider "gardener" {
 	profile            = "${var.project}"
@@ -100,8 +104,21 @@ provider "gardener" {
 resource "gardener_{{index . "target_provider"}}_shoot" "gardener_cluster" {
 	name              = "${var.cluster_name}"
 	region            = "${var.location}"
+	{{ if eq (index . "target_provider") "gcp" }}
 	zones             = ["${var.zone}"]
-	workerscidr       = ["${var.cidr}"]
+	workerscidr       = ["${var.workercidr}"]
+	{{ end }}
+	{{ if eq (index . "target_provider") "azure" }}
+	vnetcidr		 = "${var.vnetcidr}"
+	workercidr       = "${var.workercidr}"
+	{{ end }}
+	{{ if eq (index . "target_provider") "aws" }}
+	zones             = ["${var.zone}"]
+	workerscidr       = ["${var.workercidr}"]
+	vpccidr			  = "${var.vpccidr}"
+	publicscidr		  = ["${var.publicscidr}"]
+	internalscidr	  = ["${var.internalscidr}"]
+	{{ end }}
 	kubernetesversion = "${var.kubernetes_version}"
 	{{range (seq (index . "node_count"))}}
 	worker {

@@ -146,8 +146,9 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	}
 
 	// Custom gardener configuration
-	if v, ok := provider.CustomConfigurations["target_provider"]; ok {
-		if v != string(types.GCP) && v != string(types.AWS) && v != string(types.Azure) {
+	targetProvider, ok := provider.CustomConfigurations["target_provider"]
+	if ok {
+		if targetProvider != string(types.GCP) && targetProvider != string(types.AWS) && targetProvider != string(types.Azure) {
 			errMessage += fmt.Sprintf(errs.Custom, "Provider.CustomConfigurations['target_provider'] has to be one of: gcp, azure, aws")
 		}
 	} else {
@@ -156,7 +157,7 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["target_secret"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_secret']")
 	}
-	if _, ok := provider.CustomConfigurations["zone"]; !ok {
+	if _, ok := provider.CustomConfigurations["zone"]; !ok && targetProvider == string(types.GCP) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['zone']")
 	}
 	if _, ok := provider.CustomConfigurations["disk_type"]; !ok {
@@ -174,8 +175,11 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["max_unavailable"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['max_unavailable']")
 	}
-	if _, ok := provider.CustomConfigurations["cidr"]; !ok {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['cidr']")
+	if _, ok := provider.CustomConfigurations["workercidr"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['workercidr']")
+	}
+	if _, ok := provider.CustomConfigurations["vnetcidr"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['vnetcidr']")
 	}
 
 	if errMessage != "" {
