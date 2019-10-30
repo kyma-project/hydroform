@@ -157,9 +157,7 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["target_secret"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_secret']")
 	}
-	if _, ok := provider.CustomConfigurations["zone"]; !ok && targetProvider == string(types.GCP) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['zone']")
-	}
+
 	if _, ok := provider.CustomConfigurations["disk_type"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['disk_type']")
 	}
@@ -177,6 +175,18 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	}
 	if _, ok := provider.CustomConfigurations["workercidr"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['workercidr']")
+	}
+	if _, ok := provider.CustomConfigurations["zone"]; !ok && (targetProvider == string(types.GCP) || targetProvider == string(types.AWS)) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['zone']")
+	}
+	if _, ok := provider.CustomConfigurations["publicscidr"]; !ok && targetProvider == string(types.AWS) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['publicscidr']")
+	}
+	if _, ok := provider.CustomConfigurations["vpccidr"]; !ok && targetProvider == string(types.AWS) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['vpccidr']")
+	}
+	if _, ok := provider.CustomConfigurations["internalscidr"]; !ok && targetProvider == string(types.AWS) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['internalscidr']")
 	}
 	if _, ok := provider.CustomConfigurations["vnetcidr"]; !ok && targetProvider == string(types.Azure) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['vnetcidr']")

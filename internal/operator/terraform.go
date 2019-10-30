@@ -83,6 +83,9 @@ variable "location"      			{}
 variable "zone"      				{}
 variable "workercidr"      			{}
 variable "vnetcidr"					{}
+variable "vpccidr" 					{}
+variable "publicscidr" 				{}
+variable "internalscidr" 			{}
 variable "machine_type"  			{}
 variable "kubernetes_version"   	{}
 variable "disk_size" 				{}
@@ -91,9 +94,6 @@ variable "autoscaler_min" 			{}
 variable "autoscaler_max" 			{}
 variable "max_surge" 				{}
 variable "max_unavailable" 			{}
-variable "vpccidr" 					{}
-variable "publicscidr" 				{}
-variable "internalscidr" 			{}
 
 provider "gardener" {
 	profile            = "${var.project}"

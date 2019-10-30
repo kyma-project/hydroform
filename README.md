@@ -25,7 +25,9 @@ The `actions` Hydroform subpackage brings even more extensibility to the standar
 ### Examples
 
 Follow the links to view Hydroform usage examples: 
-* [GCP](https://github.com/kyma-incubator/hydroform/tree/master/examples/gcp)
-* [Gardener](https://github.com/kyma-incubator/hydroform/blob/master/examples/gardener/main.go)
+* [GCP](https://github.com/kyma-incubator/hydroform/tree/master/examples/gcp/main.go)
+* [Gardener/GCP](https://github.com/kyma-incubator/hydroform/blob/master/examples/gardener/gcp/main.go)
+* [Gardener/Azure](https://github.com/kyma-incubator/hydroform/blob/master/examples/gardener/azure/main.go)
+* [Gardener/AKS](https://github.com/kyma-incubator/hydroform/blob/master/examples/gardener/aks/main.go)
 
 For detailed information on Hydroform API, see [this](https://godoc.org/github.com/kyma-incubator/hydroform) documentation.
