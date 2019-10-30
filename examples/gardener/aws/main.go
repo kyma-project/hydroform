@@ -13,10 +13,10 @@ import (
 )
 
 func main() {
-	projectName := flag.String("p", "mariusz", "Gardener project name")
+	projectName := flag.String("p", "", "Gardener project name")
 	machineType := flag.String("m", "m4.2xlarge", "AWS machine type")
-	credentials := flag.String("c", "/Users/i356141/Gardener/kubeconfig.yaml", "Path to the credentials file")
-	secret := flag.String("s", "my-aws-secret", "Name of the secret to access the underlying provider of gardener")
+	credentials := flag.String("c", "", "Path to the credentials file")
+	secret := flag.String("s", "", "Name of the secret to access the underlying provider of gardener")
 	flag.Parse()
 
 	log.SetOutput(ioutil.Discard)
