@@ -153,13 +153,6 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	} else {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_provider']")
 	}
-	if v, ok := provider.CustomConfigurations["target_profile"]; ok {
-		if v != string(gcpProfile) && v != string(awsProfile) && v != string(azureProfile) {
-			errMessage += fmt.Sprintf(errs.Custom, "Provider.CustomConfigurations['target_profile'] has to be one of: gcp, az, aws")
-		}
-	} else {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_profile']")
-	}
 	if _, ok := provider.CustomConfigurations["target_seed"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_seed']")
 	}
@@ -207,6 +200,14 @@ func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 
 	for k, v := range provider.CustomConfigurations {
 		config[k] = v
+	}
+	switch config["target_provider"] {
+	case string(types.GCP):
+		config["target_profile"] = gcpProfile
+	case string(types.AWS):
+		config["target_profile"] = awsProfile
+	case string(types.Azure):
+		config["target_profile"] = azureProfile
 	}
 	return config
 }

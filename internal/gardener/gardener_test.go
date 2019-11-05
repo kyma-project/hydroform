@@ -58,7 +58,6 @@ func TestValidate(t *testing.T) {
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
-			"target_profile":  "gcp",
 			"target_seed":     "gcp-eu1",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
@@ -117,12 +116,6 @@ func TestValidate(t *testing.T) {
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is not supported")
 	provider.CustomConfigurations["target_provider"] = "gcp"
 
-	delete(provider.CustomConfigurations, "target_profile")
-	require.Error(t, g.validate(cluster, provider), "Validation should fail when target profile is empty")
-	provider.CustomConfigurations["target_profile"] = "nimbus"
-	require.Error(t, g.validate(cluster, provider), "Validation should fail when target profile is not supported")
-	provider.CustomConfigurations["target_profile"] = "gcp"
-
 	delete(provider.CustomConfigurations, "target_seed")
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when target seed is empty")
 	provider.CustomConfigurations["target_seed"] = "gcp-eu1"
@@ -179,7 +172,6 @@ func TestLoadConfigurations(t *testing.T) {
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
-			"target_profile":  "gcp",
 			"target_seed":     "gcp-eu1",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
@@ -224,7 +216,6 @@ func TestProvision(t *testing.T) {
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
-			"target_profile":  "gcp",
 			"target_seed":     "gcp-eu1",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
@@ -284,7 +275,6 @@ func TestDeProvision(t *testing.T) {
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
-			"target_profile":  "gcp",
 			"target_seed":     "gcp-eu1",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
