@@ -81,7 +81,7 @@ func (p Parallel) Run(args ...interface{}) (interface{}, error) {
 		go func(a Action, ch chan<- resultSet, args ...interface{}) {
 			r := resultSet{}
 			r.result, r.err = a.Run(args...)
-			ach <- r
+			ch <- r
 		}(a, ach, args...)
 
 	}
