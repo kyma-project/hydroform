@@ -101,9 +101,9 @@ resource "gardener_shoot" "test_cluster" {
   
 	spec {
 	  cloud {
-		profile = "{{index . "target_profile"}}"
+		profile = "${var.target_profile}"
 		region  = "${var.location}"
-		seed    = "{{index . "target_seed"}}"
+		seed    = "${var.target_seed}"
 		secret_binding_ref {
 		  name = "${var.target_secret}"
 		}
@@ -115,10 +115,10 @@ resource "gardener_shoot" "test_cluster" {
   
 		  {{range (seq (index . "node_count"))}}
 		  worker {
-			  name           = "cpu-worker-{{.}}"
+			  name            = "cpu-worker-{{.}}"
 			  machine_type    = "${var.machine_type}"
-			  auto_scaler_min  = "${var.autoscaler_min}"
-			  auto_scaler_max  = "${var.autoscaler_max}"
+			  auto_scaler_min = "${var.autoscaler_min}"
+			  auto_scaler_max = "${var.autoscaler_max}"
 			  max_surge       = "${var.max_surge}"
 			  max_unavailable = "${var.max_unavailable}"
 			  volume_size     = "${var.disk_size}Gi"
@@ -191,10 +191,6 @@ func (t *Terraform) Delete(state *types.InternalState, providerType types.Provid
 
 	_, err = platform.Apply(state.TerraformState, true)
 	return errors.Wrap(err, "unable to deprovision cluster")
-}
-
-func newTerraform() Operator {
-	return &Terraform{}
 }
 
 func (t *Terraform) newPlatform(providerType types.ProviderType, configuration map[string]interface{}) (*terraformClient.Platform, error) {
