@@ -59,7 +59,8 @@ func TestValidate(t *testing.T) {
 			CredentialsFilePath: "/path/to/credentials",
 			CustomConfigurations: map[string]interface{}{
 				"target_provider": "gcp",
-				"target_secret":   "secret-name",
+				"target_seed":     "gcp-eu1",
+			"target_secret":   "secret-name",
 				"disk_type":       "pd-standard",
 				"zone":            "europe-west3-b",
 				"workercidr":      "10.250.0.0/19",
@@ -226,6 +227,16 @@ func performBasicValidation(t *testing.T, g gardenerProvisioner, cluster *types.
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when project name is empty")
 	provider.ProjectName = "my-project"
 
+	delete(provider.CustomConfigurations, "target_provider")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is empty")
+	provider.CustomConfigurations["target_provider"] = "nimbus"
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is not supported")
+	provider.CustomConfigurations["target_provider"] = "gcp"
+
+	delete(provider.CustomConfigurations, "target_seed")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when target seed is empty")
+	provider.CustomConfigurations["target_seed"] = "gcp-eu1"
+
 	delete(provider.CustomConfigurations, "target_secret")
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when target secret is empty")
 	provider.CustomConfigurations["target_secret"] = "secret_name"
@@ -274,6 +285,7 @@ func TestLoadConfigurations(t *testing.T) {
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
+			"target_seed":     "gcp-eu1",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
@@ -289,7 +301,7 @@ func TestLoadConfigurations(t *testing.T) {
 	require.Equal(t, cluster.DiskSizeGB, config["disk_size"])
 	require.Equal(t, cluster.KubernetesVersion, config["kubernetes_version"])
 	require.Equal(t, cluster.Location, config["location"])
-	require.Equal(t, provider.ProjectName, config["project"])
+	require.Equal(t, fmt.Sprintf("garden-%s", provider.ProjectName), config["namespace"])
 
 	for k, v := range provider.CustomConfigurations {
 		require.Equal(t, v, config[k], fmt.Sprintf("Custom config %s is incorrect", k))
@@ -317,6 +329,7 @@ func TestProvision(t *testing.T) {
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
+			"target_seed":     "gcp-eu1",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
@@ -375,6 +388,7 @@ func TestDeProvision(t *testing.T) {
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
+			"target_seed":     "gcp-eu1",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
