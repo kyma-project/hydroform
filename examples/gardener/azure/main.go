@@ -27,7 +27,7 @@ func main() {
 		Name:              "hydro-azure",
 		DiskSizeGB:        35,
 		NodeCount:         2,
-		Location:          "eastus",
+		Location:          "westeurope",
 		MachineType:       *machineType,
 	}
 	provider := &types.Provider{
