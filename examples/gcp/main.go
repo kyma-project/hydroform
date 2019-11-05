@@ -68,14 +68,14 @@ func main() {
 
 	fmt.Println("Kubeconfig downloaded")
 
-	//fmt.Println("Deprovisioning...")
-	//
-	//err = hf.Deprovision(cluster, provider)
-	//if err != nil {
-	//	fmt.Println("Error", err.Error())
-	//	return
-	//}
-	//
-	//fmt.Println("Deprovisioned successfully")
-	//fmt.Printf("Cluster status: %s, IP: %s\r\n", clusterInfo.Status, clusterInfo.IP)
+	// fmt.Println("Deprovisioning...")
+
+	// err = hf.Deprovision(cluster, provider)
+	// if err != nil {
+	// 	fmt.Println("Error", err.Error())
+	// 	return
+	// }
+
+	// fmt.Println("Deprovisioned successfully")
+	// fmt.Printf("Cluster status: %s, IP: %s\r\n", clusterInfo.Status, clusterInfo.IP)
 }

@@ -153,6 +153,9 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	} else {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_provider']")
 	}
+	if _, ok := provider.CustomConfigurations["target_seed"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_seed']")
+	}
 	if _, ok := provider.CustomConfigurations["target_secret"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_secret']")
 	}
@@ -193,10 +196,18 @@ func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 	config["disk_size"] = cluster.DiskSizeGB
 	config["kubernetes_version"] = cluster.KubernetesVersion
 	config["location"] = cluster.Location
-	config["project"] = provider.ProjectName
+	config["namespace"] = fmt.Sprintf("garden-%s", provider.ProjectName)
 
 	for k, v := range provider.CustomConfigurations {
 		config[k] = v
+	}
+	switch config["target_provider"] {
+	case string(types.GCP):
+		config["target_profile"] = gcpProfile
+	case string(types.AWS):
+		config["target_profile"] = awsProfile
+	case string(types.Azure):
+		config["target_profile"] = azureProfile
 	}
 	return config
 }
@@ -226,3 +237,9 @@ func convertGardenertatus(status gardener_types.ShootStatus) types.Phase {
 		return types.Unknown
 	}
 }
+
+const (
+	gcpProfile   string = "gcp"
+	awsProfile   string = "aws"
+	azureProfile string = "az"
+)

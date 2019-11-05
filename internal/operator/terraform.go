@@ -50,17 +50,8 @@ const (
     maintenance_policy {
       	daily_maintenance_window {
         	start_time = "03:00"
-		}
-	}
-	
-	addons_config {
-		http_load_balancing {
-		  disabled = false
-		}
-		horizontal_pod_autoscaling {
-		  disabled = false
-		}
-	  }
+      		}
+    	}
   }
 
   output "endpoint" {
@@ -74,11 +65,13 @@ const (
 
 	gardenerClusterTemplate = `
 variable "target_provider"			{}
+variable "target_profile"			{}
+variable "target_seed"			    {}
 variable "target_secret"			{}
 variable "node_count"    			{}
 variable "cluster_name"  			{}
 variable "credentials_file_path" 	{}
-variable "project"       			{}
+variable "namespace"       			{}
 variable "location"      			{}
 variable "zone"      				{}
 variable "cidr"      				{}
@@ -92,30 +85,52 @@ variable "max_surge" 				{}
 variable "max_unavailable" 			{}
 
 provider "gardener" {
-	profile            = "${var.project}"
-	{{index . "target_provider"}}_secret_binding = "${var.target_secret}"
-	kube_path          = "${var.credentials_file_path}"
+	kube_file          = "${file("${var.credentials_file_path}")}"
 }
 
-resource "gardener_{{index . "target_provider"}}_shoot" "gardener_cluster" {
-	name              = "${var.cluster_name}"
-	region            = "${var.location}"
-	zones             = ["${var.zone}"]
-	workerscidr       = ["${var.cidr}"]
-	kubernetesversion = "${var.kubernetes_version}"
-	{{range (seq (index . "node_count"))}}
-	worker {
-		name           = "cpu-worker-{{.}}"
-		machinetype    = "${var.machine_type}"
-		autoscalermin  = "${var.autoscaler_min}"
-		autoscalermax  = "${var.autoscaler_max}"
-		maxsurge       = "${var.max_surge}"
-		maxunavailable = "${var.max_unavailable}"
-		volumesize     = "${var.disk_size}Gi"
-		volumetype     = "${var.disk_type}"
+resource "gardener_shoot" "test_cluster" {
+	metadata {
+	  name      = "${var.cluster_name}"
+	  namespace = "${var.namespace}"
+  
 	}
-	{{end}}
-}
+  
+	spec {
+	  cloud {
+		profile = "{{index . "target_profile"}}"
+		region  = "${var.location}"
+		seed    = "{{index . "target_seed"}}"
+		secret_binding_ref {
+		  name = "${var.target_secret}"
+		}
+  
+		{{index . "target_provider"}} {
+		  networks {
+			workers = ["${var.cidr}"]
+		  }
+  
+		  {{range (seq (index . "node_count"))}}
+		  worker {
+			  name           = "cpu-worker-{{.}}"
+			  machine_type    = "${var.machine_type}"
+			  auto_scaler_min  = "${var.autoscaler_min}"
+			  auto_scaler_max  = "${var.autoscaler_max}"
+			  max_surge       = "${var.max_surge}"
+			  max_unavailable = "${var.max_unavailable}"
+			  volume_size     = "${var.disk_size}Gi"
+			  volume_type     = "${var.disk_type}"
+		  }
+		  {{end}}
+  
+		  zones = ["${var.zone}"]
+		}
+	  }
+  
+	  kubernetes {
+		version = "${var.kubernetes_version}"
+	  }
+	}
+  }
 `
 )
 
