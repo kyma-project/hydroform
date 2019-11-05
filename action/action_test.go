@@ -28,7 +28,7 @@ func TestFuncAction(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 84, res.(int))
 
-	res, err = f.Run([]byte("arg1"))
+	_, err = f.Run([]byte("arg1"))
 	require.Error(t, err)
 }
 
