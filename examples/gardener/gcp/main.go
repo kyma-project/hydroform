@@ -24,7 +24,7 @@ func main() {
 	cluster := &types.Cluster{
 		CPU:               1,
 		KubernetesVersion: "1.15.4",
-		Name:              "hydro",
+		Name:              "hydro-gcp",
 		DiskSizeGB:        30,
 		NodeCount:         2,
 		Location:          "europe-west4",
@@ -40,7 +40,7 @@ func main() {
 			"target_secret":   *secret,
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west4-b",
-			"cidr":            "10.250.0.0/19",
+			"workercidr":      "10.250.0.0/19",
 			"autoscaler_min":  2,
 			"autoscaler_max":  4,
 			"max_surge":       4,

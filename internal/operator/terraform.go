@@ -74,7 +74,11 @@ variable "credentials_file_path" 	{}
 variable "namespace"       			{}
 variable "location"      			{}
 variable "zone"      				{}
-variable "cidr"      				{}
+variable "workercidr"      			{}
+variable "vnetcidr"					{}
+variable "vpccidr" 					{}
+variable "publicscidr" 				{}
+variable "internalscidr" 			{}
 variable "machine_type"  			{}
 variable "kubernetes_version"   	{}
 variable "disk_size" 				{}
@@ -103,12 +107,32 @@ resource "gardener_shoot" "test_cluster" {
 		secret_binding_ref {
 		  name = "${var.target_secret}"
 		}
-  
-		{{index . "target_provider"}} {
-		  networks {
-			workers = ["${var.cidr}"]
+
+		{{ if eq (index . "target_provider") "gcp" }}
+		gcp {  
+          networks {
+			workers = ["${var.workercidr}"]
 		  }
-  
+		{{ end }}
+
+		{{ if eq (index . "target_provider") "azure" }}
+		azure {  
+          networks {
+			vnet    = [{cidr = "${var.vnetcidr}"}]
+			workers = "${var.workercidr}"
+		  }
+		{{ end }}
+
+		{{ if eq (index . "target_provider") "aws" }}
+		aws {  
+          networks {
+			workers       = ["${var.workercidr}"]
+			public		  = ["${var.publicscidr}"]
+			internal	  = ["${var.internalscidr}"]
+			vpc			  = [{cidr = "${var.vpccidr}"}]
+		  }
+		{{ end }}
+
 		  {{range (seq (index . "node_count"))}}
 		  worker {
 			  name            = "cpu-worker-{{.}}"
@@ -121,8 +145,9 @@ resource "gardener_shoot" "test_cluster" {
 			  volume_type     = "${var.disk_type}"
 		  }
 		  {{end}}
-  
+          {{ if not (eq (index . "target_provider") "azure") }}
 		  zones = ["${var.zone}"]
+          {{ end }}
 		}
 	  }
   

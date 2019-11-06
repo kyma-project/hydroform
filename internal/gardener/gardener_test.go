@@ -41,37 +41,156 @@ func TestConvertGardenerState(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	g := gardenerProvisioner{}
+	t.Run("Validate GCP config", func(t *testing.T) {
+		g := gardenerProvisioner{}
 
-	cluster := &types.Cluster{
-		CPU:               1,
-		KubernetesVersion: "1.12",
-		Name:              "hydro-cluster",
-		DiskSizeGB:        30,
-		NodeCount:         2,
-		Location:          "europe-west3",
-		MachineType:       "type1",
-	}
-	provider := &types.Provider{
-		Type:                types.Gardener,
-		ProjectName:         "my-project",
-		CredentialsFilePath: "/path/to/credentials",
-		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
-			"target_seed":     "gcp-eu1",
-			"target_secret":   "secret-name",
-			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
-			"cidr":            "10.250.0.0/19",
-			"autoscaler_min":  2,
-			"autoscaler_max":  4,
-			"max_surge":       4,
-			"max_unavailable": 1,
-		},
-	}
+		cluster := &types.Cluster{
+			CPU:               1,
+			KubernetesVersion: "1.12",
+			Name:              "hydro-cluster",
+			DiskSizeGB:        30,
+			NodeCount:         2,
+			Location:          "europe-west3",
+			MachineType:       "type1",
+		}
+		provider := &types.Provider{
+			Type:                types.Gardener,
+			ProjectName:         "my-project",
+			CredentialsFilePath: "/path/to/credentials",
+			CustomConfigurations: map[string]interface{}{
+				"target_provider": "gcp",
+				"target_seed":     "gcp-eu1",
+				"target_secret":   "secret-name",
+				"disk_type":       "pd-standard",
+				"zone":            "europe-west3-b",
+				"workercidr":      "10.250.0.0/19",
+				"autoscaler_min":  2,
+				"autoscaler_max":  4,
+				"max_surge":       4,
+				"max_unavailable": 1,
+			},
+		}
 
+		performBasicValidation(t, g, cluster, provider)
+
+		//gcp specific validation
+		delete(provider.CustomConfigurations, "target_provider")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is empty")
+		provider.CustomConfigurations["target_provider"] = "nimbus"
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is not supported")
+		provider.CustomConfigurations["target_provider"] = "gcp"
+
+		delete(provider.CustomConfigurations, "zone")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when zone is empty")
+		provider.CustomConfigurations["zone"] = "europe-west3-b"
+	})
+
+	t.Run("Validate Azure config", func(t *testing.T) {
+		g := gardenerProvisioner{}
+
+		cluster := &types.Cluster{
+			CPU:               1,
+			KubernetesVersion: "1.12",
+			Name:              "hydro-cluster",
+			DiskSizeGB:        35,
+			NodeCount:         2,
+			Location:          "eastus",
+			MachineType:       "Standard_D2_v3",
+		}
+		provider := &types.Provider{
+			Type:                types.Gardener,
+			ProjectName:         "my-project",
+			CredentialsFilePath: "/path/to/credentials",
+			CustomConfigurations: map[string]interface{}{
+				"target_provider": "azure",
+				"target_secret":   "secret-name",
+				"target_seed":     "gcp-eu1",
+				"disk_type":       "standard",
+				"workercidr":      "10.250.0.0/19",
+				"vnetcidr":        "10.250.0.0/19",
+				"autoscaler_min":  2,
+				"autoscaler_max":  4,
+				"max_surge":       4,
+				"max_unavailable": 1,
+			},
+		}
+
+		//azure specific validation
+		performBasicValidation(t, g, cluster, provider)
+
+		delete(provider.CustomConfigurations, "target_provider")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is empty")
+		provider.CustomConfigurations["target_provider"] = "nimbus"
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is not supported")
+		provider.CustomConfigurations["target_provider"] = "azure"
+
+		delete(provider.CustomConfigurations, "vnetcidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when vnetcidr is empty")
+		provider.CustomConfigurations["vnetcidr"] = "10.250.0.0/19"
+	})
+
+	t.Run("Validate AWS config", func(t *testing.T) {
+		g := gardenerProvisioner{}
+
+		cluster := &types.Cluster{
+			CPU:               1,
+			KubernetesVersion: "1.12",
+			Name:              "hydro-cluster",
+			DiskSizeGB:        35,
+			NodeCount:         2,
+			Location:          "eu-west-1",
+			MachineType:       "m4.2xlarge",
+		}
+		provider := &types.Provider{
+			Type:                types.Gardener,
+			ProjectName:         "my-project",
+			CredentialsFilePath: "/path/to/credentials",
+			CustomConfigurations: map[string]interface{}{
+				"target_provider": "aws",
+				"target_secret":   "secret-name",
+				"target_seed":     "gcp-eu1",
+				"disk_type":       "gp2",
+				"workercidr":      "172.31.0.0/16",
+				"publicscidr":     "172.31.0.0/16",
+				"vpccidr":         "192.168.2.112/29",
+				"internalscidr":   "10.250.0.0/19",
+				"zone":            "eu-west-1b",
+				"autoscaler_min":  2,
+				"autoscaler_max":  4,
+				"max_surge":       4,
+				"max_unavailable": 1,
+			},
+		}
+
+		performBasicValidation(t, g, cluster, provider)
+
+		//aws specific validation
+		delete(provider.CustomConfigurations, "target_provider")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is empty")
+		provider.CustomConfigurations["target_provider"] = "nimbus"
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is not supported")
+		provider.CustomConfigurations["target_provider"] = "aws"
+
+		delete(provider.CustomConfigurations, "zone")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when zone is empty")
+		provider.CustomConfigurations["zone"] = "eu-west-1"
+
+		delete(provider.CustomConfigurations, "publicscidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when publicscidr is empty")
+		provider.CustomConfigurations["publicscidr"] = "172.31.0.0/16"
+
+		delete(provider.CustomConfigurations, "vpccidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when vpccidr is empty")
+		provider.CustomConfigurations["vpccidr"] = "172.31.0.0/16"
+
+		delete(provider.CustomConfigurations, "internalscidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when internalscidr is empty")
+		provider.CustomConfigurations["internalscidr"] = "172.31.0.0/16"
+	})
+}
+
+func performBasicValidation(t *testing.T, g gardenerProvisioner, cluster *types.Cluster, provider *types.Provider) {
 	require.NoError(t, g.validate(cluster, provider), "Validation should pass")
-
 	cluster.NodeCount = -5
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when number of nodes is < 1")
 	cluster.NodeCount = 2
@@ -128,13 +247,9 @@ func TestValidate(t *testing.T) {
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when disk type is empty")
 	provider.CustomConfigurations["disk_type"] = "pd-standard"
 
-	delete(provider.CustomConfigurations, "zone")
-	require.Error(t, g.validate(cluster, provider), "Validation should fail when zone is empty")
-	provider.CustomConfigurations["zone"] = "europe-west3-b"
-
-	delete(provider.CustomConfigurations, "cidr")
-	require.Error(t, g.validate(cluster, provider), "Validation should fail when cidr is empty")
-	provider.CustomConfigurations["cidr"] = "10.250.0.0/19"
+	delete(provider.CustomConfigurations, "workercidr")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when workercidr is empty")
+	provider.CustomConfigurations["workercidr"] = "10.250.0.0/19"
 
 	delete(provider.CustomConfigurations, "autoscaler_min")
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when autoscaler_min is empty")
@@ -220,7 +335,7 @@ func TestProvision(t *testing.T) {
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
-			"cidr":            "10.250.0.0/19",
+			"workercidr":      "10.250.0.0/19",
 			"autoscaler_min":  2,
 			"autoscaler_max":  4,
 			"max_surge":       4,
@@ -279,7 +394,7 @@ func TestDeProvision(t *testing.T) {
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
-			"cidr":            "10.250.0.0/19",
+			"workercidr":      "10.250.0.0/19",
 			"autoscaler_min":  2,
 			"autoscaler_max":  4,
 			"max_surge":       4,
