@@ -60,7 +60,7 @@ func TestValidate(t *testing.T) {
 			CustomConfigurations: map[string]interface{}{
 				"target_provider": "gcp",
 				"target_seed":     "gcp-eu1",
-			"target_secret":   "secret-name",
+				"target_secret":   "secret-name",
 				"disk_type":       "pd-standard",
 				"zone":            "europe-west3-b",
 				"workercidr":      "10.250.0.0/19",
@@ -104,6 +104,7 @@ func TestValidate(t *testing.T) {
 			CustomConfigurations: map[string]interface{}{
 				"target_provider": "azure",
 				"target_secret":   "secret-name",
+				"target_seed":     "gcp-eu1",
 				"disk_type":       "standard",
 				"workercidr":      "10.250.0.0/19",
 				"vnetcidr":        "10.250.0.0/19",
@@ -147,6 +148,7 @@ func TestValidate(t *testing.T) {
 			CustomConfigurations: map[string]interface{}{
 				"target_provider": "aws",
 				"target_secret":   "secret-name",
+				"target_seed":     "gcp-eu1",
 				"disk_type":       "gp2",
 				"workercidr":      "172.31.0.0/16",
 				"publicscidr":     "172.31.0.0/16",

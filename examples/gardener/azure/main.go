@@ -36,6 +36,7 @@ func main() {
 		CredentialsFilePath: *credentials,
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "azure",
+			"target_seed":     "az-eu1",
 			"target_secret":   *secret,
 			"disk_type":       "standard",
 			"workercidr":      "10.250.0.0/19",
