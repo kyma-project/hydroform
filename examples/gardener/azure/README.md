@@ -10,7 +10,7 @@ This example shows you how you can use Hydroform to provision a cluster on Micro
 ### Configure Gardener and Azure
 
 
-1. In Gardener, click **+Create project** to set up a new project on Gardener. 
+1. Create a project in Gardener. 
 
     ![Create Project](../assets/create-project.png)
 

@@ -9,27 +9,19 @@ This example shows you how you can use Hydroform to provision a cluster on Googl
 
 ### Configure Gardener and GCP
 
+1. Use [these instructions](https://gardener.cloud/050-tutorials/content/howto/gardener_gcp/) to perform the following steps:
 
-1. In Gardener, click **+Create project** to set up a new project on Gardener. 
+    1. Create a project in Gardener.
+    2. Learn more about roles required by Gardener.
+    3. Create a new service account and roles.
+        >**NOTE:** Run `gcloud auth application-default login` and log in with your Google Cloud credentials to get authenticated by Google SDK.
+    4. Add the secret in Gardener. 
 
-    ![Create Project](../assets/create-project.png)
-
-2. Go to **Secrets** > **Google Cloud Platform**. Click **?** and to learn more about GCP Service Accounts. GCP needs this information to grant access to Gardener.
-
-3. Run `gcloud auth application-default login` and log in with your Google Cloud credentials to get authenticated by Google SDK.
-
-3. Use the instructions to create [a new service account and assign roles](https://gardener.cloud/050-tutorials/content/howto/gardener_gcp/#create-a-new-serviceaccount-and-assign-roles). Make sure you download the Service Account Key in JSON format.
-
-4. In Gardener, go to **Secrets** > **Google Cloud Platform** and add the Secret. 
-
-    ![Add Secret](../assets/add-secret_gcp.png)
-
-
-6. Go to **Members** > **Service Accounts** and add a new service account. 
+2. In Gardener, go to **Members** > **Service Accounts** and add a new service account. 
 
     ![Add Service Account](../assets/add-service-account.png)
 
-7. Download and save the `kubeconfig` file for this service account. 
+3. Download and save the `kubeconfig` file for this service account. 
 
     ![Download kubeconfig](../assets/download-kubeconfig.png)
 
