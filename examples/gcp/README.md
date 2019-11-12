@@ -2,12 +2,11 @@
 
 ## Overview
 
-This example shows you how to provision a GKE cluster.
-
+This example shows you how to use Hydroform to provision a GKE cluster on Google Cloud Platform.
 
 ## Installation
 
-### Configure GKE
+### Configure GCP 
 
 To provision a GKE cluster you need a service account the details of which you will pass as properties when executing this example.
 
@@ -34,7 +33,7 @@ Log in using Google Cloud credentials.
 
 ![Assign Roles](./assets/assign-roles.png)
 
-6. Optionally, you can grant user access to this service account.
+6. Optionally, you can grant access to this service account to specific users.
 
 7. Save your configuration. 
 
@@ -50,4 +49,4 @@ Log in using Google Cloud credentials.
 ```
 go run ./examples/gcp/main.go -p {project_name} -c /{path/to/service_account_key.json}
 ```
-2. Go to **Kubernetes Engine** > **Clusters**. Your cluster should appear there.
+2. Go to **Kubernetes Engine** > **Clusters** to see your cluster on the list.
