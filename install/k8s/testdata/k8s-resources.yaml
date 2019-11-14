@@ -1,0 +1,206 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: installations.installer.kyma-project.io
+spec:
+  group: installer.kyma-project.io
+  version: v1alpha1
+  scope: Namespaced
+  names:
+    kind: Installation
+    singular: installation
+    plural: installations
+    shortNames: ['installation']
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: service-account
+  namespace: kube-system
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: cluster-role-binding
+subjects:
+  - kind: ServiceAccount
+    name: service-account
+    namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: deployment
+  namespace: kube-system
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+  template:
+    spec:
+      serviceAccountName: service-account
+      containers:
+        - name: container
+          image: some-image:0.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 44134
+              name: container
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service
+  namespace: kube-system
+spec:
+  selector:
+    app: test
+    name: test
+  ports:
+    - name: test
+      port: 44134
+      targetPort: test
+  type: ClusterIP
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: role-binding
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: service-account
+    namespace: kube-system
+roleRef:
+  kind: Role
+  name: role
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: role
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "patch"]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job
+  namespace: kube-system
+spec:
+  template:
+    metadata:
+      name: tiller-certs-job
+      namespace: kube-system
+    spec:
+      serviceAccountName: service-account
+      restartPolicy: OnFailure
+      containers:
+        - name: container
+          image: some-job-image:0.1
+          command:
+            - bash
+            - -c
+            - |
+              WORKING_DIR="/tmp/certs"
+              mkdir -p "${WORKING_DIR}"
+
+              cat <<EOF > "${WORKING_DIR}/openssl.cnf"
+              [ req ]
+              #default_bits   = 2048
+              #default_md   = sha256
+              #default_keyfile  = privkey.pem
+              distinguished_name  = req_distinguished_name
+              attributes    = req_attributes
+
+              [ req_distinguished_name ]
+              countryName     = Country Name (2 letter code)
+              countryName_min     = 2
+              countryName_max     = 2
+              stateOrProvinceName   = State or Province Name (full name)
+              localityName      = Locality Name (eg, city)
+              0.organizationName    = Organization Name (eg, company)
+              organizationalUnitName    = Organizational Unit Name (eg, section)
+              commonName      = Common Name (eg, fully qualified host name)
+              commonName_max      = 64
+              emailAddress      = Email Address
+              emailAddress_max    = 64
+
+              [ req_attributes ]
+              challengePassword   = A challenge password
+              challengePassword_min   = 4
+              challengePassword_max   = 20
+              [ v3_ca ]
+              basicConstraints = critical,CA:TRUE
+              subjectKeyIdentifier = hash
+              authorityKeyIdentifier = keyid:always,issuer:always
+              EOF
+
+              echo "---> Generate CA"
+              openssl genrsa -out "${WORKING_DIR}/ca.key.pem" 4096
+              openssl req -key "${WORKING_DIR}/ca.key.pem" -new -x509 -days 365 -sha256 -out "${WORKING_DIR}/ca.cert.pem" -extensions v3_ca -config "${WORKING_DIR}/openssl.cnf" -subj "/C=PL/ST=Gliwice/L=Gliwice/O=tiller/CN=tiller"
+
+              echo "---> Generate Tiller key"
+              openssl genrsa -out "${WORKING_DIR}/tiller.key.pem" 4096
+              openssl req -key "${WORKING_DIR}/tiller.key.pem" -new -sha256 -out "${WORKING_DIR}/tiller.csr.pem" -subj "/C=PL/ST=Gliwice/L=Gliwice/O=Tiller Server/CN=tiller-server"
+              openssl x509 -req -CA "${WORKING_DIR}/ca.cert.pem" -CAkey "${WORKING_DIR}/ca.key.pem" -CAcreateserial -in "${WORKING_DIR}/tiller.csr.pem" -out "${WORKING_DIR}/tiller.cert.pem" -days 365
+
+              echo "---> Create secrets in k8s"
+              COMBO_YAML=$(cat << EOF
+              ---
+              apiVersion: v1
+              data:
+                ca.crt: "$(base64 ${WORKING_DIR}/ca.cert.pem | tr -d '\n')"
+                ca.key: "$(base64 ${WORKING_DIR}/ca.key.pem | tr -d '\n')"
+                tls.crt: "$(base64 ${WORKING_DIR}/tiller.cert.pem | tr -d '\n')"
+                tls.key: "$(base64 ${WORKING_DIR}/tiller.key.pem | tr -d '\n')"
+              kind: Secret
+              metadata:
+                creationTimestamp: null
+                labels:
+                  app: helm
+                  name: tiller
+                name: tiller-secret
+                namespace: kube-system
+              type: Opaque
+              EOF
+              )
+
+              echo "${COMBO_YAML}" | kubectl create -f -
+---
+apiVersion: "installer.kyma-project.io/v1alpha1"
+kind: Installation
+metadata:
+  name: kyma-installation
+  labels:
+    action: install
+    kyma-project.io/installation: ""
+  finalizers:
+    - finalizer.installer.kyma-project.io
+spec:
+  version: "0.0.1"
+  url: ""
+  components:
+    - name: "cluster-essentials"
+      namespace: "kyma-system"
+    - name: "testing"
+      namespace: "kyma-system"
+    - name: "istio-init"
+      namespace: "istio-system"
+    - name: "istio"
+      namespace: "istio-system"
+    - name: "xip-patch"
+      namespace: "kyma-installer"
+    - name: "istio-kyma-patch"
+      namespace: "istio-system"
+---
