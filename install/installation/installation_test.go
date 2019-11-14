@@ -237,10 +237,7 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      kymaInstallationName,
 			Namespace: defaultInstallationResourceNamespace,
-			Labels:    map[string]string{},
 		},
-		Spec:   v1alpha1.InstallationSpec{},
-		Status: v1alpha1.InstallationStatus{},
 	}
 
 	t.Run("should report installation status", func(t *testing.T) {
@@ -376,20 +373,6 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 		assert.False(t, opened)
 	})
 
-	t.Run("should return error when installation does not exist", func(t *testing.T) {
-		// given
-		k8sClientSet := fake.NewSimpleClientset()
-		installationClientSet := installationFake.NewSimpleClientset()
-
-		kymaInstaller := newKymaInstaller(nil, nil, k8sClientSet, installationClientSet)
-
-		// when
-		_, _, err := kymaInstaller.StartInstallation(context.Background())
-
-		// then
-		require.Error(t, err)
-	})
-
 	t.Run("should stop if context canceled", func(t *testing.T) {
 		// given
 		k8sClientSet := fake.NewSimpleClientset()
@@ -419,6 +402,44 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("should return error if installation already in progress", func(t *testing.T) {
+		// given
+		installation := &v1alpha1.Installation{
+			TypeMeta: v1.TypeMeta{},
+			ObjectMeta: v1.ObjectMeta{
+				Name:      kymaInstallationName,
+				Namespace: defaultInstallationResourceNamespace,
+			},
+			Status: v1alpha1.InstallationStatus{State: v1alpha1.StateInProgress},
+		}
+
+		k8sClientSet := fake.NewSimpleClientset()
+		installationClientSet := installationFake.NewSimpleClientset(installation)
+
+		kymaInstaller := newKymaInstaller(nil, nil, k8sClientSet, installationClientSet)
+
+		// when
+		_, _, err := kymaInstaller.StartInstallation(context.Background())
+
+		// then
+		require.Error(t, err)
+	})
+
+	t.Run("should return error when installation does not exist", func(t *testing.T) {
+		// given
+		k8sClientSet := fake.NewSimpleClientset()
+		installationClientSet := installationFake.NewSimpleClientset()
+
+		kymaInstaller := newKymaInstaller(nil, nil, k8sClientSet, installationClientSet)
+
+		// when
+		_, _, err := kymaInstaller.StartInstallation(context.Background())
+
+		// then
+		require.Error(t, err)
+	})
+
 }
 
 type installationStatusUpdateFunc func(installationStatus *v1alpha1.InstallationStatus)

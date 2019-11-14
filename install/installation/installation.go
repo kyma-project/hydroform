@@ -306,8 +306,7 @@ func (k KymaInstaller) triggerInstallation() error {
 	}
 
 	if installation.Status.State == v1alpha1.StateInProgress {
-		k.infof("Installation already in progress.")
-		return nil
+		return fmt.Errorf("failed to trigger installation, installation already in progress")
 	}
 
 	if installation.Labels == nil {
@@ -374,55 +373,6 @@ func (k KymaInstaller) waitForInstallation(context context.Context, stateChannel
 
 func (k KymaInstaller) newInstallationWatcher(timeout int64) (watch.Interface, error) {
 	return k.installationClient.Watch(metav1.ListOptions{FieldSelector: fmt.Sprintf("%s=%s", "metadata.name", kymaInstallationName), TimeoutSeconds: &timeout})
-}
-
-var WatchEndedError error = fmt.Errorf("watch ended, installation watche closed")
-
-func (k KymaInstaller) watchForInstallationEvents(installationWatcher watch.Interface, stateChannel chan<- InstallationState, errorChannel chan<- error) error {
-	defer installationWatcher.Stop()
-
-	for {
-		select {
-		case event, ok := <-installationWatcher.ResultChan():
-			if !ok {
-				return WatchEndedError
-			}
-			fmt.Println("Received event: ", event.Type)
-
-			switch event.Type {
-			case watch.Modified:
-				installation, ok := event.Object.(*v1alpha1.Installation)
-				if !ok {
-					errorChannel <- fmt.Errorf("installation watcher returned invalid type %T, expected Installation", event.Object)
-				}
-
-				switch installation.Status.State {
-				case v1alpha1.StateInstalled:
-					fmt.Println("INSTALLED")
-					stateChannel <- InstallationState{
-						State:       string(v1alpha1.StateInstalled),
-						Description: installation.Status.Description,
-					}
-					return nil
-				case v1alpha1.StateError:
-					fmt.Println("ERROR")
-					errorChannel <- fmt.Errorf("installation error occured, current errors: %s", "") // TODO
-				case v1alpha1.StateInProgress:
-					fmt.Println("IN PROGRESS")
-					stateChannel <- InstallationState{
-						State:       string(v1alpha1.StateInProgress),
-						Description: installation.Status.Description,
-					}
-				default:
-					fmt.Println("INVALID")
-					errorChannel <- fmt.Errorf("invalid installation state: %s", installation.Status.State)
-				}
-			default:
-				fmt.Printf("EVENT TYPE: %s\n", event.Type)
-				time.Sleep(2 * time.Second)
-			}
-		}
-	}
 }
 
 var installationObjectDeleted error = fmt.Errorf("installation object deleted")
