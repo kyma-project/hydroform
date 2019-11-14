@@ -42,6 +42,7 @@ const (
 	tillerNamespace     = "kube-system"
 	tillerLabelSelector = "name=tiller"
 	tillerWaitTimeout   = 2 * time.Minute
+	tillerCheckInterval = 2 * time.Second
 
 	defaultWatcherTimeoutSeconds = 3600
 
@@ -201,7 +202,7 @@ func (k KymaInstaller) installTiller(tillerYaml string) error {
 	k.infof("Tiller installed successfully")
 
 	k.infof("Waiting for Tiller to start...")
-	err = k.k8sGenericClient.WaitForPodByLabel(tillerNamespace, tillerLabelSelector, corev1.PodRunning, tillerWaitTimeout)
+	err = k.k8sGenericClient.WaitForPodByLabel(tillerNamespace, tillerLabelSelector, corev1.PodRunning, tillerWaitTimeout, tillerCheckInterval)
 	if err != nil {
 		return fmt.Errorf("timeout waiting for Tiller to start running: %w", err)
 	}

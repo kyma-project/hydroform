@@ -23,10 +23,6 @@ import (
 	corev1Client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
-const (
-	defaultCheckInterval = 2 * time.Second
-)
-
 type RESTMapper interface {
 	RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error)
 }
@@ -49,11 +45,14 @@ type GenericClient struct {
 	coreClient            corev1Client.CoreV1Interface
 }
 
-func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desiredPhase corev1.PodPhase, timeout time.Duration) error {
-	return util.WaitFor(defaultCheckInterval, timeout, func() (bool, error) {
+func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desiredPhase corev1.PodPhase, timeout, checkInterval time.Duration) error {
+	return util.WaitFor(checkInterval, timeout, func() (bool, error) {
 		pods, err := c.coreClient.Pods(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
 		if err != nil {
 			return false, err
+		}
+		if len(pods.Items) == 0 {
+			return false, nil
 		}
 
 		ok := true

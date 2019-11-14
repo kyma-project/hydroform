@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -14,8 +15,71 @@ import (
 )
 
 const (
-	namespace = "test"
+	namespace               = "test"
+	labelSelector           = "name=test"
+	waitForPodTimeout       = 200 * time.Millisecond
+	waitForPodCheckInterval = 20 * time.Millisecond
 )
+
+var (
+	podLabel = map[string]string{"name": "test"}
+)
+
+func TestGenericClient_WaitForPodByLabel(t *testing.T) {
+
+	t.Run("should return nil if pod exists with correct label", func(t *testing.T) {
+		// given
+		existingPods := []runtime.Object{
+			&v1.Pod{
+				ObjectMeta: v12.ObjectMeta{Name: "test", Namespace: namespace, Labels: podLabel},
+				Status:     v1.PodStatus{Phase: v1.PodRunning},
+			},
+		}
+
+		k8sClientSet := fake.NewSimpleClientset(existingPods...)
+
+		client := NewGenericClient(nil, nil, k8sClientSet, nil)
+
+		// when
+		err := client.WaitForPodByLabel(namespace, labelSelector, v1.PodRunning, waitForPodTimeout, waitForPodCheckInterval)
+
+		// then
+		require.NoError(t, err)
+	})
+
+	t.Run("should return error if pod does not exist", func(t *testing.T) {
+		// given
+		k8sClientSet := fake.NewSimpleClientset([]runtime.Object{}...)
+
+		client := NewGenericClient(nil, nil, k8sClientSet, nil)
+
+		// when
+		err := client.WaitForPodByLabel(namespace, labelSelector, v1.PodRunning, waitForPodTimeout, waitForPodCheckInterval)
+
+		// then
+		require.Error(t, err)
+	})
+
+	t.Run("should return error if pod does not have correct label", func(t *testing.T) {
+		// given
+		existingPods := []runtime.Object{
+			&v1.Pod{
+				ObjectMeta: v12.ObjectMeta{Name: "test", Namespace: namespace, Labels: podLabel},
+				Status:     v1.PodStatus{Phase: v1.PodPending},
+			},
+		}
+
+		k8sClientSet := fake.NewSimpleClientset(existingPods...)
+
+		client := NewGenericClient(nil, nil, k8sClientSet, nil)
+
+		// when
+		err := client.WaitForPodByLabel(namespace, labelSelector, v1.PodRunning, waitForPodTimeout, waitForPodCheckInterval)
+
+		// then
+		require.Error(t, err)
+	})
+}
 
 func TestGenericClient_ApplyConfigMaps(t *testing.T) {
 
@@ -63,7 +127,7 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 
 	t.Run("should apply config maps", func(t *testing.T) {
 		// given
-		existingSecretss := []runtime.Object{
+		existingSecrets := []runtime.Object{
 			&v1.Secret{
 				ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
 				Data:       map[string][]byte{"key1": []byte("value1")},
@@ -81,7 +145,7 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 			},
 		}
 
-		k8sClientSet := fake.NewSimpleClientset(existingSecretss...)
+		k8sClientSet := fake.NewSimpleClientset(existingSecrets...)
 
 		client := NewGenericClient(nil, nil, k8sClientSet, nil)
 
