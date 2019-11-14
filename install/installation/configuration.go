@@ -3,8 +3,6 @@ package installation
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -29,7 +27,7 @@ func YamlToConfiguration() {
 	// TODO - implement helper method
 }
 
-func (k KymaInstaller) applyConfiguration(configuration Configuration) error {
+func ConfigurationToK8sResources(configuration Configuration) ([]*corev1.ConfigMap, []*corev1.Secret) {
 	configMaps := make([]*corev1.ConfigMap, 0, len(configuration.ComponentConfiguration)+1)
 	secrets := make([]*corev1.Secret, 0, len(configuration.ComponentConfiguration)+1)
 
@@ -43,17 +41,7 @@ func (k KymaInstaller) applyConfiguration(configuration Configuration) error {
 		secrets = append(secrets, secret)
 	}
 
-	err := k.k8sGenericClient.ApplyConfigMaps(configMaps, kymaInstallerNamespace)
-	if err != nil {
-		return errors.Wrap(err, "failed to create configuration config maps")
-	}
-
-	err = k.k8sGenericClient.ApplySecrets(secrets, kymaInstallerNamespace)
-	if err != nil {
-		return errors.Wrap(err, "failed to create configuration secrets")
-	}
-
-	return nil
+	return configMaps, secrets
 }
 
 func k8sResourcesFromConfiguration(namePrefix, component string, configuration []ConfigEntry) (*corev1.ConfigMap, *corev1.Secret) {

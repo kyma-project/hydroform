@@ -245,6 +245,22 @@ func (k KymaInstaller) deployInstaller(installerYaml string) error {
 	return nil
 }
 
+func (k KymaInstaller) applyConfiguration(configuration Configuration) error {
+	configMaps, secrets := ConfigurationToK8sResources(configuration)
+
+	err := k.k8sGenericClient.ApplyConfigMaps(configMaps, kymaInstallerNamespace)
+	if err != nil {
+		return fmt.Errorf("failed to create configuration config maps: %s", err.Error())
+	}
+
+	err = k.k8sGenericClient.ApplySecrets(secrets, kymaInstallerNamespace)
+	if err != nil {
+		return fmt.Errorf("failed to create configuration secrets: %s", err.Error())
+	}
+
+	return nil
+}
+
 func (k KymaInstaller) applyInstallationCR(installationCR *v1alpha1.Installation) error {
 	if installationCR.Namespace == "" {
 		installationCR.Namespace = defaultInstallationResourceNamespace

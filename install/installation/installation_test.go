@@ -66,6 +66,14 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 
 		kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
 
+		installationComponents := []v1alpha1.KymaComponent{
+			{Name: "application-connector", ReleaseName: "application-connector", Namespace: "kyma-integration"},
+		}
+
+		kymaInstaller.installationCRModificationFunc = func(installation *v1alpha1.Installation) {
+			installation.Spec.Components = installationComponents
+		}
+
 		configuration := Configuration{
 			Configuration: []ConfigEntry{
 				{
@@ -108,7 +116,7 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 		// then
 		require.NoError(t, err)
 
-		assertInstallation(t, installationClientSet)
+		assertInstallation(t, installationClientSet, installationComponents)
 		assertConfiguration(t, k8sClientSet, configuration.Configuration, "global", "")
 
 		for _, componentConfig := range configuration.ComponentConfiguration {
@@ -451,10 +459,10 @@ func updateInstallationPeriodically(errChan chan<- error, installationClient v1a
 }
 
 // TODO - components list etc.
-func assertInstallation(t *testing.T, installationClientSet *installationFake.Clientset) {
+func assertInstallation(t *testing.T, installationClientSet *installationFake.Clientset, components []v1alpha1.KymaComponent) {
 	kymaInstallation, err := installationClientSet.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace).Get(kymaInstallationName, v1.GetOptions{})
 	require.NoError(t, err)
-	assert.NotEmpty(t, kymaInstallation)
+	assert.Equal(t, components, kymaInstallation.Spec.Components)
 }
 
 func assertConfiguration(t *testing.T, clientSet *fake.Clientset, configuration []ConfigEntry, namePrefix, component string) {
