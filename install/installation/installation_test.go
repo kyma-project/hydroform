@@ -56,10 +56,15 @@ var (
 
 func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 
+	runningTillerPod := &v12.Pod{
+		ObjectMeta: v1.ObjectMeta{Name: "tiller-pod", Namespace: tillerNamespace, Labels: map[string]string{"name": "tiller"}},
+		Status:     v12.PodStatus{Phase: v12.PodRunning},
+	}
+
 	t.Run("should prepare Kyma Installation", func(t *testing.T) {
 		// given
 		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema)
-		k8sClientSet := fake.NewSimpleClientset()
+		k8sClientSet := fake.NewSimpleClientset(runningTillerPod)
 		installationClientSet := installationFake.NewSimpleClientset()
 
 		mapper := dummyRestMapper{}
@@ -153,32 +158,41 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 	t.Run("should return error", func(t *testing.T) {
 
 		for _, testCase := range []struct {
-			description string
-			objects     []runtime.Object
+			description          string
+			dynamicClientObjects []runtime.Object
+			k8sClientsetObjects  []runtime.Object
+			errorContains        string
 		}{
 			{
 				description: "when one of Tiller resources already exists",
-				objects: []runtime.Object{&v12.ServiceAccount{
+				dynamicClientObjects: []runtime.Object{&v12.ServiceAccount{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "tiller",
 						Namespace: kubeSystemNamespace,
 					},
 				}},
+				errorContains: "failed to apply Tiller resources",
+			},
+			{
+				description:   "when Tiller pod is not running",
+				errorContains: "timeout waiting for Tiller to start",
 			},
 			{
 				description: "when one of Installer resources already exists",
-				objects: []runtime.Object{&v12.ServiceAccount{
+				dynamicClientObjects: []runtime.Object{&v12.ServiceAccount{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "helm-certs-job-sa",
 						Namespace: kymaInstallerNamespace,
 					},
 				}},
+				k8sClientsetObjects: []runtime.Object{runningTillerPod},
+				errorContains:       "failed to apply Installer resources",
 			},
 		} {
 			t.Run(testCase.description, func(t *testing.T) {
 				// given
-				dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema, testCase.objects...)
-				k8sClientSet := fake.NewSimpleClientset()
+				dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema, testCase.dynamicClientObjects...)
+				k8sClientSet := fake.NewSimpleClientset(testCase.k8sClientsetObjects...)
 				installationClientSet := installationFake.NewSimpleClientset()
 
 				mapper := dummyRestMapper{}
@@ -196,6 +210,7 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 
 				// then
 				require.Error(t, err)
+				assert.Contains(t, err.Error(), testCase.errorContains)
 			})
 		}
 
@@ -204,7 +219,7 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 	t.Run("should update installation CR if already exists", func(t *testing.T) {
 		// given
 		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema)
-		k8sClientSet := fake.NewSimpleClientset()
+		k8sClientSet := fake.NewSimpleClientset(runningTillerPod)
 		installationClientSet := installationFake.NewSimpleClientset(&v1alpha1.Installation{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      kymaInstallationName,
@@ -215,6 +230,7 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 		mapper := dummyRestMapper{}
 
 		kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
+		kymaInstaller.tillerWaitTimeout = 10 * time.Second
 
 		installation := Installation{
 			TillerYaml:    tillerYamlContent,

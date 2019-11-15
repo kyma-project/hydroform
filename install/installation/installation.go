@@ -38,10 +38,10 @@ const (
 	kymaInstallerNamespace = "kyma-installer"
 	kymaInstallationName   = "kyma-installation"
 
-	tillerNamespace     = "kube-system"
-	tillerLabelSelector = "name=tiller"
-	tillerWaitTimeout   = 2 * time.Minute
-	tillerCheckInterval = 2 * time.Second
+	tillerNamespace          = "kube-system"
+	tillerLabelSelector      = "name=tiller"
+	defaultTillerWaitTimeout = 2 * time.Minute
+	tillerCheckInterval      = 2 * time.Second
 
 	defaultWatcherTimeoutSeconds = 3600
 
@@ -118,6 +118,7 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*Kym
 	return &KymaInstaller{
 		installationOptions:               options,
 		installationWatcherTimeoutSeconds: defaultWatcherTimeoutSeconds,
+		tillerWaitTimeout:                 defaultTillerWaitTimeout,
 		yamlParser:                        k8s.NewK8sYamlParser(decoder),
 		k8sGenericClient:                  k8s.NewGenericClient(restMapper, dynamicClient, coreClient, installtionClient),
 		installationClient:                installtionClient.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace),
@@ -128,6 +129,7 @@ type KymaInstaller struct {
 	*installationOptions
 
 	installationWatcherTimeoutSeconds int64
+	tillerWaitTimeout                 time.Duration
 	yamlParser                        *k8s.YamlParser
 	k8sGenericClient                  *k8s.GenericClient
 	installationClient                installationTyped.InstallationInterface
@@ -187,7 +189,7 @@ func (k KymaInstaller) installTiller(tillerYaml string) error {
 	k.infof("Preparing Tiller installation...")
 	k8sTillerObjects, err := k.yamlParser.ParseYamlToK8sObjects(tillerYaml)
 	if err != nil {
-		return fmt.Errorf("failed to parse Tiller yaml file to Kubernetes objects: %w", err)
+		return fmt.Errorf("failed to parse Tiller yaml file to Kubernetes dynamicClientObjects: %w", err)
 	}
 
 	k.infof("Deploying Tiller...")
@@ -198,7 +200,7 @@ func (k KymaInstaller) installTiller(tillerYaml string) error {
 	k.infof("Tiller installed successfully")
 
 	k.infof("Waiting for Tiller to start...")
-	err = k.k8sGenericClient.WaitForPodByLabel(tillerNamespace, tillerLabelSelector, corev1.PodRunning, tillerWaitTimeout, tillerCheckInterval)
+	err = k.k8sGenericClient.WaitForPodByLabel(tillerNamespace, tillerLabelSelector, corev1.PodRunning, k.tillerWaitTimeout, tillerCheckInterval)
 	if err != nil {
 		return fmt.Errorf("timeout waiting for Tiller to start running: %w", err)
 	}
@@ -212,7 +214,7 @@ func (k KymaInstaller) deployInstaller(installerYaml string) error {
 
 	k8sInstallerObjects, err := k.yamlParser.ParseYamlToK8sObjects(installerYaml)
 	if err != nil {
-		return fmt.Errorf("failed to parse Installer yaml file to Kubernetes objects: %w", err)
+		return fmt.Errorf("failed to parse Installer yaml file to Kubernetes dynamicClientObjects: %w", err)
 	}
 
 	var installationCR *v1alpha1.Installation
@@ -293,7 +295,7 @@ func (k KymaInstaller) extractInstallationCR(k8sObjects []k8s.K8sObject) (*v1alp
 		}
 	}
 
-	return nil, k8sObjects, errors.New("Installation object not found in the objects slice")
+	return nil, k8sObjects, fmt.Errorf("installation object not found in the objects slice")
 }
 
 func (k KymaInstaller) triggerInstallation() error {
