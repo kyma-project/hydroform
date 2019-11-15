@@ -13,6 +13,8 @@ type K8sObject struct {
 	GVK    *schema.GroupVersionKind
 }
 
+// TODO - consider removing this struct (leave only method)
+
 func NewK8sYamlParser(decoder runtime.Decoder) *YamlParser {
 	return &YamlParser{
 		decoder: decoder,

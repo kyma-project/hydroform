@@ -497,8 +497,8 @@ func assertConfiguration(t *testing.T, clientSet *fake.Clientset, configuration 
 	require.NoError(t, err)
 
 	if component != "" {
-		assert.Equal(t, component, configMap.Labels[componentOverridesLabelKey])
-		assert.Equal(t, component, secret.Labels[componentOverridesLabelKey])
+		assert.Equal(t, component, configMap.Labels[ComponentOverridesLabelKey])
+		assert.Equal(t, component, secret.Labels[ComponentOverridesLabelKey])
 	}
 
 	for _, config := range configuration {

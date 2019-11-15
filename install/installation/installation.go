@@ -21,7 +21,6 @@ import (
 
 	"github.com/kyma-project/kyma/components/kyma-operator/pkg/apis/installer/v1alpha1"
 	installationTyped "github.com/kyma-project/kyma/components/kyma-operator/pkg/client/clientset/versioned/typed/installer/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/rest"
 
 	corev1 "k8s.io/api/core/v1"
@@ -48,7 +47,7 @@ const (
 
 	installerOverridesLabelKey = "installer"
 	installerOverridesLabelVal = "overrides"
-	componentOverridesLabelKey = "component"
+	ComponentOverridesLabelKey = "component"
 )
 
 // TODO - consider adding CleanupInstallation method
@@ -76,11 +75,6 @@ type InstallationState struct {
 // TODO - installation error
 
 func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*KymaInstaller, error) {
-	resourceScheme, err := k8s.DefaultScheme()
-	if err != nil {
-		return nil, err
-	}
-
 	options := &installationOptions{
 		installationCRModificationFunc: func(installation *v1alpha1.Installation) {},
 	}
@@ -116,8 +110,10 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*Kym
 		return nil, err
 	}
 
-	codecs := serializer.NewCodecFactory(resourceScheme)
-	decoder := codecs.UniversalDeserializer()
+	decoder, err := DefaultDecoder()
+	if err != nil {
+		return nil, err
+	}
 
 	return &KymaInstaller{
 		installationOptions:               options,

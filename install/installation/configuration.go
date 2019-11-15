@@ -23,10 +23,6 @@ type ConfigEntry struct {
 	Secret bool
 }
 
-func YamlToConfiguration() {
-	// TODO - implement helper method
-}
-
 func ConfigurationToK8sResources(configuration Configuration) ([]*corev1.ConfigMap, []*corev1.Secret) {
 	configMaps := make([]*corev1.ConfigMap, 0, len(configuration.ComponentConfiguration)+1)
 	secrets := make([]*corev1.Secret, 0, len(configuration.ComponentConfiguration)+1)
@@ -72,7 +68,7 @@ func newOverridesConfigMap(namePrefix, component string) *corev1.ConfigMap {
 	}
 
 	if component != "" {
-		configMap.Labels[componentOverridesLabelKey] = component
+		configMap.Labels[ComponentOverridesLabelKey] = component
 	}
 
 	return configMap
@@ -85,14 +81,14 @@ func newOverridesSecret(namePrefix, component string) *corev1.Secret {
 			Namespace: kymaInstallerNamespace,
 			Labels: map[string]string{
 				installerOverridesLabelKey: installerOverridesLabelVal,
-				componentOverridesLabelKey: component,
+				ComponentOverridesLabelKey: component,
 			},
 		},
 		Data: map[string][]byte{},
 	}
 
 	if component != "" {
-		secret.Labels[componentOverridesLabelKey] = component
+		secret.Labels[ComponentOverridesLabelKey] = component
 	}
 
 	return secret
