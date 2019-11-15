@@ -3,9 +3,10 @@ package config
 import (
 	"fmt"
 
+	"github.com/kyma-incubator/hydroform/install/k8s"
+
 	"github.com/kyma-incubator/hydroform/install/installation"
 
-	"github.com/kyma-incubator/hydroform/install/k8s"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	corev1 "k8s.io/api/core/v1"
@@ -16,10 +17,9 @@ const (
 	secretKind    = "Secret"
 )
 
-func YAMLToConfiguration(yamlContent string, decoder runtime.Decoder) (installation.Configuration, error) {
-	yamlParser := k8s.NewK8sYamlParser(decoder)
-
-	k8sObjects, err := yamlParser.ParseYamlToK8sObjects(yamlContent)
+// YAMLToConfiguration converts yaml content containing ConfigMaps and Secrets to installation Configuration
+func YAMLToConfiguration(decoder runtime.Decoder, yamlContent string) (installation.Configuration, error) {
+	k8sObjects, err := k8s.ParseYamlToK8sObjects(decoder, yamlContent)
 	if err != nil {
 		return installation.Configuration{}, fmt.Errorf("failed to convert yaml to configuration: %s", err.Error())
 	}

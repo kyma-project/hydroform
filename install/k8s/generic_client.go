@@ -11,7 +11,6 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	installationClientset "github.com/kyma-project/kyma/components/kyma-operator/pkg/client/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,22 +27,20 @@ type RESTMapper interface {
 	RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error)
 }
 
-func NewGenericClient(restMapper RESTMapper, dynamicClient dynamic.Interface, k8sClientSet kubernetes.Interface, installationClientSet installationClientset.Interface) *GenericClient {
+func NewGenericClient(restMapper RESTMapper, dynamicClient dynamic.Interface, k8sClientSet kubernetes.Interface) *GenericClient {
 	return &GenericClient{
-		restMapper:            restMapper,
-		k8sClientSet:          k8sClientSet,
-		installationClientSet: installationClientSet,
-		dynamicClient:         dynamicClient,
-		coreClient:            k8sClientSet.CoreV1(),
+		restMapper:    restMapper,
+		k8sClientSet:  k8sClientSet,
+		dynamicClient: dynamicClient,
+		coreClient:    k8sClientSet.CoreV1(),
 	}
 }
 
 type GenericClient struct {
-	restMapper            RESTMapper
-	k8sClientSet          kubernetes.Interface
-	installationClientSet installationClientset.Interface
-	dynamicClient         dynamic.Interface
-	coreClient            corev1Client.CoreV1Interface
+	restMapper    RESTMapper
+	k8sClientSet  kubernetes.Interface
+	dynamicClient dynamic.Interface
+	coreClient    corev1Client.CoreV1Interface
 }
 
 func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desiredPhase corev1.PodPhase, timeout, checkInterval time.Duration) error {

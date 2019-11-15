@@ -6,7 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/install/k8s"
+	"github.com/kyma-incubator/hydroform/install/scheme"
+
 	"k8s.io/client-go/rest"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,7 +34,7 @@ func TestMain(m *testing.M) {
 	logAndExitOnError(err)
 	installerYamlContent = string(installerYamlBytes)
 
-	resourcesSchema, err = k8s.DefaultScheme()
+	resourcesSchema, err = scheme.DefaultScheme()
 	logAndExitOnError(err)
 
 	codecs := serializer.NewCodecFactory(resourcesSchema)

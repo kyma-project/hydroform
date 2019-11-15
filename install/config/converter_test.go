@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/install/k8s"
+	"github.com/kyma-incubator/hydroform/install/scheme"
 
 	"github.com/stretchr/testify/assert"
 
@@ -18,7 +18,7 @@ func TestYAMLToConfiguration(t *testing.T) {
 	require.NoError(t, err)
 	configYamlContent := string(configYamlBytes)
 
-	decoder, err := k8s.DefaultDecoder()
+	decoder, err := scheme.DefaultDecoder()
 	require.NoError(t, err)
 
 	for _, testCase := range []struct {
@@ -64,7 +64,7 @@ func TestYAMLToConfiguration(t *testing.T) {
 	} {
 		t.Run(testCase.description, func(t *testing.T) {
 			// when
-			config, err := YAMLToConfiguration(testCase.yamlContent, decoder)
+			config, err := YAMLToConfiguration(decoder, testCase.yamlContent)
 
 			// then
 			require.NoError(t, err)
@@ -74,7 +74,7 @@ func TestYAMLToConfiguration(t *testing.T) {
 
 	t.Run("should return error if invalid yaml", func(t *testing.T) {
 		// when
-		_, err := YAMLToConfiguration("invalid", decoder)
+		_, err := YAMLToConfiguration(decoder, "invalid")
 
 		// then
 		require.Error(t, err)
@@ -104,7 +104,7 @@ metadata:
     kyma-project.io/installation: ""
 `
 
-		_, err := YAMLToConfiguration(yamlContent, decoder)
+		_, err := YAMLToConfiguration(decoder, yamlContent)
 
 		// then
 		require.Error(t, err)

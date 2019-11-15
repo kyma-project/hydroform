@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kyma-incubator/hydroform/install/scheme"
+
 	"github.com/kyma-incubator/hydroform/install/k8s/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +43,7 @@ func TestGenericClient_WaitForPodByLabel(t *testing.T) {
 
 		k8sClientSet := fake.NewSimpleClientset(existingPods...)
 
-		client := NewGenericClient(nil, nil, k8sClientSet, nil)
+		client := NewGenericClient(nil, nil, k8sClientSet)
 
 		// when
 		err := client.WaitForPodByLabel(namespace, labelSelector, v1.PodRunning, waitForPodTimeout, waitForPodCheckInterval)
@@ -73,7 +75,7 @@ func TestGenericClient_WaitForPodByLabel(t *testing.T) {
 			require.NoError(t, err)
 		}()
 
-		client := NewGenericClient(nil, nil, k8sClientSet, nil)
+		client := NewGenericClient(nil, nil, k8sClientSet)
 
 		// when
 		err := client.WaitForPodByLabel(namespace, labelSelector, v1.PodRunning, waitForPodTimeout, waitForPodCheckInterval)
@@ -90,7 +92,7 @@ func TestGenericClient_WaitForPodByLabel(t *testing.T) {
 		// given
 		k8sClientSet := fake.NewSimpleClientset([]runtime.Object{}...)
 
-		client := NewGenericClient(nil, nil, k8sClientSet, nil)
+		client := NewGenericClient(nil, nil, k8sClientSet)
 
 		// when
 		err := client.WaitForPodByLabel(namespace, labelSelector, v1.PodRunning, waitForPodTimeout, waitForPodCheckInterval)
@@ -110,7 +112,7 @@ func TestGenericClient_WaitForPodByLabel(t *testing.T) {
 
 		k8sClientSet := fake.NewSimpleClientset(existingPods...)
 
-		client := NewGenericClient(nil, nil, k8sClientSet, nil)
+		client := NewGenericClient(nil, nil, k8sClientSet)
 
 		// when
 		err := client.WaitForPodByLabel(namespace, labelSelector, v1.PodRunning, waitForPodTimeout, waitForPodCheckInterval)
@@ -144,7 +146,7 @@ func TestGenericClient_ApplyConfigMaps(t *testing.T) {
 
 		k8sClientSet := fake.NewSimpleClientset(existingCMs...)
 
-		client := NewGenericClient(nil, nil, k8sClientSet, nil)
+		client := NewGenericClient(nil, nil, k8sClientSet)
 
 		// when
 		err := client.ApplyConfigMaps(cmsToApply, namespace)
@@ -186,7 +188,7 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 
 		k8sClientSet := fake.NewSimpleClientset(existingSecrets...)
 
-		client := NewGenericClient(nil, nil, k8sClientSet, nil)
+		client := NewGenericClient(nil, nil, k8sClientSet)
 
 		// when
 		err := client.ApplySecrets(secretsToApply, namespace)
@@ -221,13 +223,13 @@ func TestGenericClient_ApplyResources(t *testing.T) {
 		restMapper := &mocks.RESTMapper{}
 		restMapper.On("RESTMapping", schema.GroupKind{Group: "", Kind: "Service"}, "v1").Return(nil, fmt.Errorf("some error"))
 
-		resourcesScheme, err := DefaultScheme()
+		resourcesScheme, err := scheme.DefaultScheme()
 		require.NoError(t, err)
 		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesScheme)
 
 		k8sClientSet := fake.NewSimpleClientset()
 
-		client := NewGenericClient(restMapper, dynamicClient, k8sClientSet, nil)
+		client := NewGenericClient(restMapper, dynamicClient, k8sClientSet)
 
 		// when
 		err = client.ApplyResources(resourcesToApply)

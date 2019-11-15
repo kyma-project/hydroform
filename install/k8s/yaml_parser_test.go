@@ -4,22 +4,19 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/kyma-incubator/hydroform/install/scheme"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/stretchr/testify/assert"
-
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"github.com/stretchr/testify/require"
 )
 
 func Test_ParseYaml(t *testing.T) {
 
-	resourcesSchema, err := DefaultScheme()
+	decoder, err := scheme.DefaultDecoder()
 	require.NoError(t, err)
-
-	codecs := serializer.NewCodecFactory(resourcesSchema)
-	decoder := codecs.UniversalDeserializer()
 
 	t.Run("should parse valid yaml file", func(t *testing.T) {
 		// given
@@ -27,10 +24,8 @@ func Test_ParseYaml(t *testing.T) {
 		require.NoError(t, err)
 		yamlContent := string(yamlBytes)
 
-		parser := NewK8sYamlParser(decoder)
-
 		// when
-		k8sObjects, err := parser.ParseYamlToK8sObjects(yamlContent)
+		k8sObjects, err := ParseYamlToK8sObjects(decoder, yamlContent)
 
 		// then
 		require.NoError(t, err)
@@ -69,10 +64,8 @@ roleRef:
   name: cluster-admin
 ---`
 
-		parser := NewK8sYamlParser(decoder)
-
 		// when
-		k8sObjects, err := parser.ParseYamlToK8sObjects(yamlContent)
+		k8sObjects, err := ParseYamlToK8sObjects(decoder, yamlContent)
 
 		// then
 		require.Error(t, err)

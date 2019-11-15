@@ -13,19 +13,7 @@ type K8sObject struct {
 	GVK    *schema.GroupVersionKind
 }
 
-// TODO - consider removing this struct (leave only method)
-
-func NewK8sYamlParser(decoder runtime.Decoder) *YamlParser {
-	return &YamlParser{
-		decoder: decoder,
-	}
-}
-
-type YamlParser struct {
-	decoder runtime.Decoder
-}
-
-func (k YamlParser) ParseYamlToK8sObjects(yamlContent string) ([]K8sObject, error) {
+func ParseYamlToK8sObjects(decoder runtime.Decoder, yamlContent string) ([]K8sObject, error) {
 	resources := strings.Split(yamlContent, "\n---\n")
 
 	var objects = make([]K8sObject, 0, len(resources))
@@ -34,7 +22,7 @@ func (k YamlParser) ParseYamlToK8sObjects(yamlContent string) ([]K8sObject, erro
 			continue
 		}
 
-		object, groupVersionKind, err := k.decoder.Decode([]byte(resource), nil, nil)
+		object, groupVersionKind, err := decoder.Decode([]byte(resource), nil, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode resource: %w", err)
 		}

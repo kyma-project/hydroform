@@ -1,4 +1,4 @@
-package k8s
+package scheme
 
 import (
 	"github.com/kyma-project/kyma/components/kyma-operator/pkg/apis/installer/v1alpha1"
@@ -15,7 +15,7 @@ func DefaultScheme() (*runtime.Scheme, error) {
 	var addToSchemes = []func(*runtime.Scheme) error{
 		scheme.AddToScheme,
 		apiextensionsv1beta1.AddToScheme,
-		v1alpha1.AddToScheme, // TODO - consider moving installation schema to different place
+		v1alpha1.AddToScheme,
 	}
 
 	for _, f := range addToSchemes {

@@ -35,10 +35,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-const (
-	kubeSystemNamespace = "kube-system"
-)
-
 var (
 	deploymentGVR           = schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "deployments"}
 	clusterRoleGVR          = schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1beta1", Resource: "clusterroles"}
@@ -58,7 +54,7 @@ var (
 func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 
 	runningTillerPod := &v12.Pod{
-		ObjectMeta: v1.ObjectMeta{Name: "tiller-pod", Namespace: tillerNamespace, Labels: map[string]string{"name": "tiller"}},
+		ObjectMeta: v1.ObjectMeta{Name: "tiller-pod", Namespace: kubeSystemNamespace, Labels: map[string]string{"name": "tiller"}},
 		Status:     v12.PodStatus{Phase: v12.PodRunning},
 	}
 
@@ -197,6 +193,12 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
 				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "invalid yaml", Configuration: Configuration{}},
 				errorContains:       "failed to parse Installer yaml",
+			},
+			{
+				description:         "when Installation CR not present in installer YAML",
+				k8sClientsetObjects: []runtime.Object{runningTillerPod},
+				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "", Configuration: Configuration{}},
+				errorContains:       "installation object not found",
 			},
 			{
 				description: "when one of Installer resources already exists",
@@ -582,8 +584,8 @@ func newKymaInstaller(mapper k8s.RESTMapper, dynamicInterface dynamic.Interface,
 		installationOptions: &installationOptions{
 			installationCRModificationFunc: func(installation *v1alpha1.Installation) {},
 		},
-		yamlParser:         k8s.NewK8sYamlParser(decoder),
-		k8sGenericClient:   k8s.NewGenericClient(mapper, dynamicInterface, k8sClientSet, installationClientSet),
+		decoder:            decoder,
+		k8sGenericClient:   k8s.NewGenericClient(mapper, dynamicInterface, k8sClientSet),
 		installationClient: installationClientSet.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace),
 	}
 
