@@ -8,12 +8,16 @@ import (
 )
 
 type Configuration struct {
-	Configuration          []ConfigEntry
+	// Configuration specifies a configuration for all components
+	Configuration []ConfigEntry
+	// ComponentConfiguration specifies configuration for individual components
 	ComponentConfiguration []ComponentConfiguration
 }
 
 type ComponentConfiguration struct {
-	Component     string
+	// Component specifies the name of the component for which the configuration will be used
+	Component string
+	// Configuration specifies configuration for the component
 	Configuration []ConfigEntry
 }
 
@@ -23,7 +27,7 @@ type ConfigEntry struct {
 	Secret bool
 }
 
-func ConfigurationToK8sResources(configuration Configuration) ([]*corev1.ConfigMap, []*corev1.Secret) {
+func configurationToK8sResources(configuration Configuration) ([]*corev1.ConfigMap, []*corev1.Secret) {
 	configMaps := make([]*corev1.ConfigMap, 0, len(configuration.ComponentConfiguration)+1)
 	secrets := make([]*corev1.Secret, 0, len(configuration.ComponentConfiguration)+1)
 

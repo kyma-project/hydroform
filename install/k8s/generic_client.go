@@ -52,6 +52,8 @@ func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desire
 		if err != nil {
 			return false, err
 		}
+
+		// pod does not exists, retry
 		if len(pods.Items) == 0 {
 			return false, nil
 		}

@@ -60,9 +60,13 @@ type Logger interface {
 	Infof(format string, a ...interface{})
 }
 
+// Installation provides configuration for Kyma installation
 type Installation struct {
-	TillerYaml    string
+	// TillerYaml is a content of yaml file with all resources related to Tiller which are required by Kyma
+	TillerYaml string
+	// InstallerYaml is a content of yaml file with all resources related to and required by Installer
 	InstallerYaml string
+	// Configuration specifies the configuration to be used for the installation
 	Configuration Configuration
 }
 
@@ -73,6 +77,7 @@ type InstallationState struct {
 
 // TODO - think of a better name
 
+// NewKymaInstaller initializes new KymaInstaller configured to work with the cluster from provided Kubeconfig
 func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*KymaInstaller, error) {
 	options := &installationOptions{
 		installationCRModificationFunc: func(installation *v1alpha1.Installation) {},
@@ -134,6 +139,7 @@ type KymaInstaller struct {
 	installationClient                installationTyped.InstallationInterface
 }
 
+// PrepareInstallation creates all the required resources for Kyma Installation. It does not start the installation.
 func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 	k.infof("Preparing Kyma Installation...")
 
@@ -156,6 +162,7 @@ func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 	return nil
 }
 
+// StartInstallation triggers Kyma installation to start. It expects that the cluster is already prepared.
 func (k KymaInstaller) StartInstallation(context context.Context) (<-chan InstallationState, <-chan error, error) {
 	err := checkContextNotCanceled(context)
 	if err != nil {
@@ -244,7 +251,7 @@ func (k KymaInstaller) deployInstaller(installerYaml string) error {
 }
 
 func (k KymaInstaller) applyConfiguration(configuration Configuration) error {
-	configMaps, secrets := ConfigurationToK8sResources(configuration)
+	configMaps, secrets := configurationToK8sResources(configuration)
 
 	err := k.k8sGenericClient.ApplyConfigMaps(configMaps, kymaInstallerNamespace)
 	if err != nil {
