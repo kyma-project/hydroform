@@ -19,6 +19,7 @@ const (
 	labelSelector           = "name=test"
 	waitForPodTimeout       = 200 * time.Millisecond
 	waitForPodCheckInterval = 20 * time.Millisecond
+	waitForLabelChange      = 100 * time.Millisecond
 )
 
 var (
@@ -45,6 +46,42 @@ func TestGenericClient_WaitForPodByLabel(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
+	})
+
+	t.Run("should return nil if pod changed its label to correct one", func(t *testing.T) {
+		// given
+		existingPods := []runtime.Object{
+			&v1.Pod{
+				ObjectMeta: v12.ObjectMeta{Name: "test", Namespace: namespace, Labels: podLabel},
+				Status:     v1.PodStatus{Phase: v1.PodPending},
+			},
+		}
+
+		k8sClientSet := fake.NewSimpleClientset(existingPods...)
+		podsClient := k8sClientSet.CoreV1().Pods(namespace)
+
+		go func() {
+			testPod, err := podsClient.Get("test", v12.GetOptions{})
+			require.NoError(t, err)
+
+			time.Sleep(waitForLabelChange)
+
+			testPod.Status = v1.PodStatus{Phase: v1.PodRunning}
+			_, err = podsClient.Update(testPod)
+			require.NoError(t, err)
+		}()
+
+		client := NewGenericClient(nil, nil, k8sClientSet, nil)
+
+		// when
+		err := client.WaitForPodByLabel(namespace, labelSelector, v1.PodRunning, waitForPodTimeout, waitForPodCheckInterval)
+
+		// then
+		require.NoError(t, err)
+
+		pod, err := podsClient.Get("test", v12.GetOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, v1.PodRunning, pod.Status.Phase)
 	})
 
 	t.Run("should return error if pod does not exist", func(t *testing.T) {
