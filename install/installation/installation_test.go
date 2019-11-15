@@ -2,6 +2,7 @@ package installation
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -161,8 +162,20 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 			description          string
 			dynamicClientObjects []runtime.Object
 			k8sClientsetObjects  []runtime.Object
+			installation         Installation
 			errorContains        string
 		}{
+			{
+				description: "when invalid Tiller yaml content",
+				dynamicClientObjects: []runtime.Object{&v12.ServiceAccount{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "tiller",
+						Namespace: kubeSystemNamespace,
+					},
+				}},
+				installation:  Installation{TillerYaml: "invalid ", InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				errorContains: "failed to parse Tiller yaml",
+			},
 			{
 				description: "when one of Tiller resources already exists",
 				dynamicClientObjects: []runtime.Object{&v12.ServiceAccount{
@@ -171,11 +184,19 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 						Namespace: kubeSystemNamespace,
 					},
 				}},
+				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
 				errorContains: "failed to apply Tiller resources",
 			},
 			{
 				description:   "when Tiller pod is not running",
+				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
 				errorContains: "timeout waiting for Tiller to start",
+			},
+			{
+				description:         "when invalid Installer yaml content",
+				k8sClientsetObjects: []runtime.Object{runningTillerPod},
+				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "invalid yaml", Configuration: Configuration{}},
+				errorContains:       "failed to parse Installer yaml",
 			},
 			{
 				description: "when one of Installer resources already exists",
@@ -186,6 +207,7 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 					},
 				}},
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
+				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
 				errorContains:       "failed to apply Installer resources",
 			},
 		} {
@@ -199,14 +221,8 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 
 				kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
 
-				installation := Installation{
-					TillerYaml:    tillerYamlContent,
-					InstallerYaml: installerYamlContent,
-					Configuration: Configuration{},
-				}
-
 				// when
-				err := kymaInstaller.PrepareInstallation(installation)
+				err := kymaInstaller.PrepareInstallation(testCase.installation)
 
 				// then
 				require.Error(t, err)
@@ -336,7 +352,9 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 				assert.Equal(t, expectedStates[0], state)
 			case err := <-errorChan:
 				assert.Error(t, err)
-				//assert.Contains(t, err.Error(), "Installation Error")
+				var installationError InstallationError
+				ok := errors.As(err, &installationError)
+				require.True(t, ok)
 				finished = true
 			case updateErr := <-updateErrChan:
 				t.Fatalf("Received update error: %s", updateErr.Error())
@@ -451,6 +469,23 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 
 		// when
 		_, _, err := kymaInstaller.StartInstallation(context.Background())
+
+		// then
+		require.Error(t, err)
+	})
+
+	t.Run("should return error when context already canceled", func(t *testing.T) {
+		// given
+		k8sClientSet := fake.NewSimpleClientset()
+		installationClientSet := installationFake.NewSimpleClientset()
+
+		kymaInstaller := newKymaInstaller(nil, nil, k8sClientSet, installationClientSet)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		// when
+		_, _, err := kymaInstaller.StartInstallation(ctx)
 
 		// then
 		require.Error(t, err)

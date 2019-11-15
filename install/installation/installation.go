@@ -3,7 +3,10 @@ package installation
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kyma-incubator/hydroform/install/k8s"
 
@@ -29,8 +32,6 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
-// TODO - comments
-
 const (
 	installationActionLabel              = "action"
 	defaultInstallationResourceNamespace = "default"
@@ -50,10 +51,8 @@ const (
 	ComponentOverridesLabelKey = "component"
 )
 
-// TODO - consider adding CleanupInstallation method
-
 type Installer interface {
-	PrepareInstallation(artifacts Installation) error
+	PrepareInstallation(installation Installation) error
 	StartInstallation(context context.Context) (<-chan InstallationState, <-chan error, error)
 }
 
@@ -72,7 +71,7 @@ type InstallationState struct {
 	Description string
 }
 
-// TODO - installation error
+// TODO - think of a better name
 
 func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*KymaInstaller, error) {
 	options := &installationOptions{
@@ -110,7 +109,7 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*Kym
 		return nil, err
 	}
 
-	decoder, err := DefaultDecoder()
+	decoder, err := k8s.DefaultDecoder()
 	if err != nil {
 		return nil, err
 	}
@@ -337,21 +336,20 @@ func (k KymaInstaller) waitForInstallation(context context.Context, stateChannel
 	for {
 		select {
 		case <-context.Done():
-			errorChannel <- errors.New("context canceled, waiting for installation interrupted")
+			errorChannel <- fmt.Errorf("context canceled, waiting for installation interrupted")
 			return
 		case event, ok := <-installationWatchChan:
 			if !ok {
 				// TODO - with retries?
 				installationWatcher, err := k.newInstallationWatcher(k.installationWatcherTimeoutSeconds)
 				if err != nil {
-					errorChannel <- fmt.Errorf("failed to update installation watcher: %w", err)
+					errorChannel <- fmt.Errorf("failed to renew installation watcher: %w", err)
 					return
 				}
 
 				installationWatchChan = installationWatcher.ResultChan()
 				break
 			}
-			fmt.Println("Received event: ", event.Type)
 
 			installationStatus, err := handleInstallationEvent(event)
 			if err != nil {
@@ -364,8 +362,7 @@ func (k KymaInstaller) waitForInstallation(context context.Context, stateChannel
 				stateChannel <- installationStatus
 			}
 		default:
-			fmt.Println("Waiting for watcher events")
-			time.Sleep(2 * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 	}
 }
@@ -386,33 +383,58 @@ func handleInstallationEvent(event watch.Event) (InstallationState, error) {
 
 		switch installation.Status.State {
 		case v1alpha1.StateInstalled:
-			fmt.Println("INSTALLED")
 			return InstallationState{
 				State:       string(v1alpha1.StateInstalled),
 				Description: installation.Status.Description,
 			}, nil
 		case v1alpha1.StateError:
-			fmt.Println("ERROR")
-			return InstallationState{}, fmt.Errorf("installation error occured, current errors: %s", "") // TODO
+			return InstallationState{}, newInstallationError(installation)
 		case v1alpha1.StateInProgress:
-			fmt.Println("IN PROGRESS")
 			return InstallationState{
 				State:       string(v1alpha1.StateInProgress),
 				Description: installation.Status.Description,
 			}, nil
 		default:
-			fmt.Println("INVALID")
 			return InstallationState{}, fmt.Errorf("invalid installation state: %s", installation.Status.State)
 		}
 	case watch.Error:
-		//err, ok := event.Object.(*metav1.Status) // TODO - consider extracting error info
-		return InstallationState{}, fmt.Errorf("installation watch error occured")
+		return InstallationState{}, fmt.Errorf("installation watch error occured: %s", tryToExtractErrorStatus(event.Object))
 	case watch.Deleted:
 		return InstallationState{}, installationObjectDeleted
 	default:
-		time.Sleep(2 * time.Second)
 		return InstallationState{}, fmt.Errorf("received watch event of unexpected type: %s", event.Type)
 	}
+}
+
+func newInstallationError(installation *v1alpha1.Installation) InstallationError {
+	installationError := InstallationError{
+		ShortMessage: fmt.Sprintf("installation error occurred: %s", installation.Status.Description),
+		ErrorEntries: make([]ErrorEntry, 0, len(installation.Status.ErrorLog)),
+	}
+
+	for _, errLog := range installation.Status.ErrorLog {
+		installationError.ErrorEntries = append(installationError.ErrorEntries, ErrorEntry{
+			Component:   errLog.Component,
+			Log:         errLog.Log,
+			Occurrences: errLog.Occurrences,
+		})
+	}
+
+	return installationError
+}
+
+func tryToExtractErrorStatus(object runtime.Object) string {
+	status, ok := object.(*metav1.Status)
+	if !ok {
+		return "unable to extract watch status"
+	}
+
+	errorStatusCauses := ""
+	for _, c := range status.Details.Causes {
+		errorStatusCauses = fmt.Sprintf("%sType: %s, Message: %s\n", errorStatusCauses, c.Type, c.Message)
+	}
+
+	return strings.TrimSuffix(errorStatusCauses, "\n")
 }
 
 func (k KymaInstaller) infof(format string, a ...interface{}) {

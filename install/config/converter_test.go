@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/kyma-incubator/hydroform/install/k8s"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kyma-incubator/hydroform/install/installation"
@@ -16,7 +18,7 @@ func TestYAMLToConfiguration(t *testing.T) {
 	require.NoError(t, err)
 	configYamlContent := string(configYamlBytes)
 
-	decoder, err := installation.DefaultDecoder()
+	decoder, err := k8s.DefaultDecoder()
 	require.NoError(t, err)
 
 	for _, testCase := range []struct {
