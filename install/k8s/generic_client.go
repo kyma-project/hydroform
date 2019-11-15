@@ -23,6 +23,7 @@ import (
 	corev1Client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
+//go:generate mockery -name=RESTMapper
 type RESTMapper interface {
 	RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error)
 }
@@ -122,7 +123,7 @@ func (c GenericClient) ApplyResources(resources []K8sObject) error {
 		}
 		err = c.applyObject(client, unstructuredObject)
 		if err != nil {
-			return fmt.Errorf("failed to apply resource: %w", err)
+			return fmt.Errorf("failed to apply resource: %s", err.Error())
 		}
 	}
 

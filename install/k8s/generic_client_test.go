@@ -1,16 +1,18 @@
 package k8s
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
+	"github.com/kyma-incubator/hydroform/install/k8s/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	dynamicFake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -199,5 +201,38 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 		secret2, err := secretClient.Get("test2", v12.GetOptions{})
 		require.NoError(t, err)
 		assert.Equal(t, secretsToApply[1].Data, secret2.Data)
+	})
+}
+
+func TestGenericClient_ApplyResources(t *testing.T) {
+
+	t.Run("should return an error if RESTMapper fails", func(t *testing.T) {
+		// given
+		resourcesToApply := []K8sObject{
+			{
+				Object: &v1.Service{
+					ObjectMeta: v12.ObjectMeta{Name: "test2", Namespace: namespace},
+					Spec:       v1.ServiceSpec{ExternalName: "test2"},
+				},
+				GVK: &schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"},
+			},
+		}
+
+		restMapper := &mocks.RESTMapper{}
+		restMapper.On("RESTMapping", schema.GroupKind{Group: "", Kind: "Service"}, "v1").Return(nil, fmt.Errorf("some error"))
+
+		resourcesScheme, err := DefaultScheme()
+		require.NoError(t, err)
+		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesScheme)
+
+		k8sClientSet := fake.NewSimpleClientset()
+
+		client := NewGenericClient(restMapper, dynamicClient, k8sClientSet, nil)
+
+		// when
+		err = client.ApplyResources(resourcesToApply)
+
+		// then
+		require.Error(t, err)
 	})
 }
