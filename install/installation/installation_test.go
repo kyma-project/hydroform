@@ -532,7 +532,6 @@ func updateInstallationPeriodically(errChan chan<- error, installationClient v1a
 	}
 }
 
-// TODO - components list etc.
 func assertInstallation(t *testing.T, installationClientSet *installationFake.Clientset, components []v1alpha1.KymaComponent) {
 	kymaInstallation, err := installationClientSet.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace).Get(kymaInstallationName, v1.GetOptions{})
 	require.NoError(t, err)

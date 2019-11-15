@@ -1,8 +1,6 @@
 .PHONY: build
-build:
+build: 
 	./before-commit.sh ci
-	# TODO: we should provide separate Prow jobs for provisioning and installation packages after the repository will be adjusted
-	$(MAKE) -C install build
 
 .PHONY: ci-pr
 ci-pr: build
