@@ -61,6 +61,38 @@ func TestYAMLToConfiguration(t *testing.T) {
 				ComponentConfiguration: []installation.ComponentConfiguration{},
 			},
 		},
+		{
+			description: "should override duplicated keys",
+			yamlContent: `---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: installation-config-overrides
+  namespace: kyma-installer
+  labels:
+    installer: overrides
+    kyma-project.io/installation: ""
+data:
+  global.config.key1: "value1"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: installation-config-overrides
+  namespace: kyma-installer
+  labels:
+    installer: overrides
+    kyma-project.io/installation: ""
+data:
+    global.config.key1: "value2"
+---`,
+			expectedConfig: installation.Configuration{
+				Configuration: []installation.ConfigEntry{
+					{Key: "global.config.key1", Value: "value2"},
+				},
+				ComponentConfiguration: []installation.ComponentConfiguration{},
+			},
+		},
 	} {
 		t.Run(testCase.description, func(t *testing.T) {
 			// when

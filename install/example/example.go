@@ -1,17 +1,25 @@
+// TODO - build tag?
+
 package main
 
 import (
 	"context"
+	"errors"
+	"flag"
 	"fmt"
-	"github.com/kyma-incubator/hydroform/install/config"
-	"github.com/kyma-incubator/hydroform/install/installation"
 	"io/ioutil"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
+
+	"github.com/kyma-incubator/hydroform/install/scheme"
+
+	"github.com/kyma-incubator/hydroform/install/config"
+	"github.com/kyma-incubator/hydroform/install/installation"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 type logger struct{}
@@ -21,31 +29,42 @@ func (l logger) Infof(format string, a ...interface{}) {
 }
 
 const (
-	tillerYamlUrl = "https://raw.githubusercontent.com/kyma-project/kyma/release-1.7/installation/resources/tiller.yaml" //TODO: Check if there is some better url to fetch tiller yaml
+	tillerYamlUrl    = "https://raw.githubusercontent.com/kyma-project/kyma/release-1.7/installation/resources/tiller.yaml"
 	installerYamlUrl = "https://github.com/kyma-project/kyma/releases/download/1.7.0/kyma-installer-local.yaml"
-	configYamlUrl = "https://github.com/kyma-project/kyma/releases/download/1.7.0/kyma-config-local.yaml"
+	configYamlUrl    = "https://github.com/kyma-project/kyma/releases/download/1.7.0/kyma-config-local.yaml"
 )
 
 func main() {
+	minikubeIp := flag.String("minikubeIP", "", "IP of Minikube instance")
+
+	flag.Parse()
+
+	if minikubeIp == nil || *minikubeIp == "" {
+		log.Print("minikubeIP is required")
+		os.Exit(1)
+	}
+
 	log.Printf("Fetching kubeconfig...")
 	kubeconfigPath := filepath.Join(homedir.HomeDir(), ".kube", "config")
 	k8sConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	logAndExitOnError(err)
 
 	log.Printf("Fetching Tiller config file...")
-	tillerYamlContent, err := get(tillerYamlUrl)
+	tillerYamlContent, err := fetchFile(tillerYamlUrl)
 	logAndExitOnError(err)
 
 	log.Printf("Fetching Kyma Installer config files...")
-	installerYamlContent, err := get(installerYamlUrl)
+	installerYamlContent, err := fetchFile(installerYamlUrl)
 	logAndExitOnError(err)
 
 	log.Printf("Fetching Kyma Config file...")
-	kymaConfigYamlContent, err := get(configYamlUrl)
-	decoder, err := installation.DefaultDecoder()
+	kymaConfigYamlContent, err := fetchFile(configYamlUrl)
+	decoder, err := scheme.DefaultDecoder()
 	logAndExitOnError(err)
-	configuration, err := config.YAMLToConfiguration(kymaConfigYamlContent, decoder)
+	configuration, err := config.YAMLToConfiguration(decoder, kymaConfigYamlContent)
 	logAndExitOnError(err)
+
+	configuration.Configuration.Set("global.minikubeIP", *minikubeIp, false)
 
 	log.Printf("Creating new Kyma Installer...")
 	installer, err := installation.NewKymaInstaller(k8sConfig, installation.WithLogger(logger{}))
@@ -78,7 +97,7 @@ func logAndExitOnError(err error) {
 	}
 }
 
-func get(url string) (string, error) {
+func fetchFile(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -108,7 +127,18 @@ func waitForInstallation(stateChannel <-chan installation.InstallationState, err
 			log.Printf("Description: %s, State: %s", state.Description, state.State)
 		case err := <-errorChannel:
 			log.Printf("An error occurred: %v", err)
+
+			installationError := installation.InstallationError{}
+			if ok := errors.As(err, &installationError); ok {
+				log.Printf("Installation errors:")
+				for _, e := range installationError.ErrorEntries {
+					log.Printf("Component: %s", e.Component)
+					log.Printf(e.Log)
+				}
+			}
 		default:
+			log.Printf("Waiting for next event...")
+			time.Sleep(5 * time.Second)
 		}
 	}
 }

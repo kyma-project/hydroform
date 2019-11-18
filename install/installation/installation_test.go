@@ -321,6 +321,11 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 				break
 			}
 		}
+
+		_, opened := <-installationStateChan
+		assert.False(t, opened)
+		_, opened = <-errorChan
+		assert.False(t, opened)
 	})
 
 	t.Run("should send to error channel if installation error occurs", func(t *testing.T) {
@@ -336,6 +341,12 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 			{State: string(v1alpha1.StateError), Description: "Installation Error"},
 		}
 
+		errorLog := []v1alpha1.ErrorLogEntry{{
+			Component:   "Istio",
+			Log:         "error",
+			Occurrences: 1,
+		}}
+
 		// when
 		installationStateChan, errorChan, err := kymaInstaller.StartInstallation(context.Background())
 		require.NoError(t, err)
@@ -344,7 +355,7 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 
 		go updateInstallationPeriodically(updateErrChan, installationClient,
 			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateInProgress, Description: "In progress"}),
-			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateError, Description: "Installation Error"}))
+			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateError, Description: "Installation Error", ErrorLog: errorLog}))
 
 		finished := false
 		// then
@@ -357,6 +368,7 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 				var installationError InstallationError
 				ok := errors.As(err, &installationError)
 				require.True(t, ok)
+				assert.Equal(t, 1, len(installationError.ErrorEntries))
 				finished = true
 			case updateErr := <-updateErrChan:
 				t.Fatalf("Received update error: %s", updateErr.Error())

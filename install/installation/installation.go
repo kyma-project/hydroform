@@ -370,6 +370,9 @@ func (k KymaInstaller) waitForInstallation(context context.Context, stateChannel
 				errorChannel <- err
 			} else {
 				stateChannel <- installationStatus
+				if installationStatus.State == string(v1alpha1.StateInstalled) {
+					return
+				}
 			}
 		default:
 			time.Sleep(1 * time.Second)
@@ -385,6 +388,11 @@ var installationObjectDeleted error = fmt.Errorf("installation object deleted")
 
 func handleInstallationEvent(event watch.Event) (InstallationState, error) {
 	switch event.Type {
+	case watch.Added:
+		return InstallationState{
+			State:       "Starting",
+			Description: "Installation starting",
+		}, nil
 	case watch.Modified:
 		installation, ok := event.Object.(*v1alpha1.Installation)
 		if !ok {

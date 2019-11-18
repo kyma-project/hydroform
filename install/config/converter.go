@@ -83,25 +83,25 @@ func setComponentConfig(configuration *installation.Configuration, config instal
 	configuration.ComponentConfiguration = append(configuration.ComponentConfiguration, config)
 }
 
-func addEntriesFromConfigMap(existing []installation.ConfigEntry, newEntries map[string]string) []installation.ConfigEntry {
+func addEntriesFromConfigMap(existing installation.ConfigEntries, newEntries map[string]string) []installation.ConfigEntry {
 	if existing == nil {
 		existing = make([]installation.ConfigEntry, 0, len(newEntries))
 	}
 
 	for key, val := range newEntries {
-		existing = append(existing, installation.ConfigEntry{Key: key, Value: val, Secret: false})
+		existing.Set(key, val, false)
 	}
 
 	return existing
 }
 
-func addEntriesFromSecrets(existing []installation.ConfigEntry, newEntries map[string][]byte) []installation.ConfigEntry {
+func addEntriesFromSecrets(existing installation.ConfigEntries, newEntries map[string][]byte) []installation.ConfigEntry {
 	if existing == nil {
 		existing = make([]installation.ConfigEntry, 0, len(newEntries))
 	}
 
 	for key, val := range newEntries {
-		existing = append(existing, installation.ConfigEntry{Key: key, Value: string(val), Secret: true})
+		existing.Set(key, string(val), true)
 	}
 
 	return existing

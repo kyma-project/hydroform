@@ -9,7 +9,7 @@ import (
 
 type Configuration struct {
 	// Configuration specifies a configuration for all components
-	Configuration []ConfigEntry
+	Configuration ConfigEntries
 	// ComponentConfiguration specifies configuration for individual components
 	ComponentConfiguration []ComponentConfiguration
 }
@@ -18,13 +18,41 @@ type ComponentConfiguration struct {
 	// Component specifies the name of the component for which the configuration will be used
 	Component string
 	// Configuration specifies configuration for the component
-	Configuration []ConfigEntry
+	Configuration ConfigEntries
 }
 
 type ConfigEntry struct {
 	Key    string
 	Value  string
 	Secret bool
+}
+
+type ConfigEntries []ConfigEntry
+
+func (c ConfigEntries) Get(key string) (ConfigEntry, bool) {
+	for _, entry := range c {
+		if entry.Key == key {
+			return entry, true
+		}
+	}
+
+	return ConfigEntry{}, false
+}
+
+func (c *ConfigEntries) Set(key, value string, secret bool) {
+	for i, entry := range *c {
+		if entry.Key == key {
+			entry.Value = value
+			entry.Secret = secret
+
+			entries := *c
+			entries[i] = entry
+			*c = entries
+			return
+		}
+	}
+
+	*c = append(*c, ConfigEntry{Key: key, Value: value, Secret: secret})
 }
 
 func configurationToK8sResources(configuration Configuration) ([]*corev1.ConfigMap, []*corev1.Secret) {
