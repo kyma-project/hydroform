@@ -4,17 +4,21 @@ import (
 	"fmt"
 	"regexp"
 
-	gardener_core "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
-	gardener_types "github.com/gardener/gardener/pkg/apis/garden/v1beta1"
-	gardener_api "github.com/gardener/gardener/pkg/client/garden/clientset/versioned/typed/garden/v1beta1"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kyma-incubator/hydroform/internal/errs"
 	"github.com/kyma-incubator/hydroform/internal/operator"
+	terraform_operator "github.com/kyma-incubator/hydroform/internal/operator/terraform"
 	"github.com/kyma-incubator/hydroform/types"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+)
+
+const (
+	gcpProfile   string = "gcp"
+	awsProfile   string = "aws"
+	azureProfile string = "az"
 )
 
 type gardenerProvisioner struct {
@@ -25,7 +29,7 @@ func New(operatorType operator.Type) *gardenerProvisioner {
 	var op operator.Operator
 	switch operatorType {
 	case operator.TerraformOperator:
-		op = &operator.Terraform{}
+		op = terraform_operator.New()
 	default:
 		op = &operator.Unknown{}
 	}
@@ -49,29 +53,15 @@ func (g *gardenerProvisioner) Provision(cluster *types.Cluster, provider *types.
 	return cluster, nil
 }
 
-func (g *gardenerProvisioner) Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
-	if err := g.validate(cluster, provider); err != nil {
+// Status returns the ClusterStatus for the requested cluster.
+func (g *gardenerProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
+	if err := g.validate(cluster, p); err != nil {
 		return nil, err
 	}
 
-	c, err := clientcmd.BuildConfigFromFlags("", provider.CredentialsFilePath)
-	if err != nil {
-		return nil, err
-	}
+	cfg := g.loadConfigurations(cluster, &types.Provider{})
 
-	gardenerClient, err := gardener_api.NewForConfig(c)
-	if err != nil {
-		return nil, err
-	}
-
-	shoot, err := gardenerClient.Shoots(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(cluster.Name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.ClusterStatus{
-		Phase: convertGardenertatus(shoot.Status),
-	}, nil
+	return g.operator.Status(p.Type, cfg)
 }
 
 func (g *gardenerProvisioner) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
@@ -104,7 +94,7 @@ func (g *gardenerProvisioner) Deprovision(cluster *types.Cluster, provider *type
 
 	config := g.loadConfigurations(cluster, provider)
 
-	err := g.operator.Delete(cluster.ClusterInfo.InternalState, provider.Type, config)
+	err := g.operator.Delete(provider.Type, config)
 	if err != nil {
 		return errors.Wrap(err, "unable to deprovision gardener cluster")
 	}
@@ -225,35 +215,3 @@ func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 	}
 	return config
 }
-
-// Possible values for the Gardener Cluster Status:
-// Processing - indicates the cluster is being created.
-// Succeeded - indicates the cluster has been created and is fully usable.
-// Error  - indicates the cluster may be unusable.
-// Failed - indicates that the creation operation failed.
-// Pending - indicates that the creation has not started yet.
-// Aborted - indicates that an external agent aborted the operation.
-func convertGardenertatus(status gardener_types.ShootStatus) types.Phase {
-	switch status.LastOperation.State {
-	case gardener_core.LastOperationStateProcessing:
-		return types.Provisioning
-	case gardener_core.LastOperationStatePending:
-		return types.Pending
-	case gardener_core.LastOperationStateSucceeded:
-		return types.Provisioned
-	case gardener_core.LastOperationStateError:
-		return types.Errored
-	case gardener_core.LastOperationStateFailed:
-		return types.Errored
-	case gardener_core.LastOperationStateAborted:
-		return types.Errored
-	default:
-		return types.Unknown
-	}
-}
-
-const (
-	gcpProfile   string = "gcp"
-	awsProfile   string = "aws"
-	azureProfile string = "az"
-)

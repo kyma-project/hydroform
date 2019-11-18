@@ -6,8 +6,9 @@ import "github.com/kyma-incubator/hydroform/types"
 
 // Operator allows switching easily between different types of provisioning operators.
 type Operator interface {
-	Create(providerType types.ProviderType, configuration map[string]interface{}) (*types.ClusterInfo, error)
-	Delete(state *types.InternalState, providerType types.ProviderType, configuration map[string]interface{}) error
+	Create(p types.ProviderType, cfg map[string]interface{}) (*types.ClusterInfo, error)
+	Status(p types.ProviderType, cfg map[string]interface{}) (*types.ClusterStatus, error)
+	Delete(p types.ProviderType, cfg map[string]interface{}) error
 }
 
 // Type points out the type of the operator.

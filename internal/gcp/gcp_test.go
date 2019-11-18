@@ -4,28 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/internal/terraform"
-
 	"github.com/kyma-incubator/hydroform/internal/operator/mocks"
 	"github.com/pkg/errors"
 
 	"github.com/kyma-incubator/hydroform/types"
 	"github.com/stretchr/testify/require"
 )
-
-const convertError = "Status [%s] should be converted to [%s]"
-
-func TestConvertgcpState(t *testing.T) {
-	g := &gcpProvisioner{}
-
-	require.Equal(t, types.Unknown, g.convertGCPStatus(""), fmt.Sprintf(convertError, "\"\"", types.Unknown))
-	require.Equal(t, types.Provisioning, g.convertGCPStatus("PROVISIONING"), fmt.Sprintf(convertError, "PROVISIONING", types.Provisioning))
-	require.Equal(t, types.Pending, g.convertGCPStatus("RECONCILING"), fmt.Sprintf(convertError, "RECONCILING", types.Pending))
-	require.Equal(t, types.Stopping, g.convertGCPStatus("STOPPING"), fmt.Sprintf(convertError, "STOPPING", types.Stopping))
-	require.Equal(t, types.Errored, g.convertGCPStatus("ERROR"), fmt.Sprintf(convertError, "ERROR", types.Errored))
-	require.Equal(t, types.Errored, g.convertGCPStatus("DEGRADED"), fmt.Sprintf(convertError, "DEGRADED", types.Errored))
-	require.Equal(t, types.Provisioned, g.convertGCPStatus("RUNNING"), fmt.Sprintf(convertError, "RUNNING", types.Provisioned))
-}
 
 func TestValidateInputs(t *testing.T) {
 	g := &gcpProvisioner{}
@@ -224,20 +208,14 @@ func TestDeprovision(t *testing.T) {
 			"zone":            "europe-west3-b",
 		},
 	}
-	goodState := &types.InternalState{
-		TerraformState: terraform.NewState(),
-	}
-	cluster.ClusterInfo.InternalState = goodState
-	mockOp.On("Delete", goodState, types.GCP, g.loadConfigurations(cluster, provider)).Return(nil)
+
+	mockOp.On("Delete", types.GCP, g.loadConfigurations(cluster, provider)).Return(nil)
 
 	err := g.Deprovision(cluster, provider)
 	require.NoError(t, err, "Deprovision should succeed")
 
-	badState := &types.InternalState{
-		TerraformState: nil,
-	}
-	cluster.ClusterInfo.InternalState = badState
-	mockOp.On("Delete", badState, types.GCP, g.loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
+	provider.CredentialsFilePath = "/wrong/credentials"
+	mockOp.On("Delete", types.GCP, g.loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
 
 	err = g.Deprovision(cluster, provider)
 	require.Error(t, err, "Deprovision should fail")

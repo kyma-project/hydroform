@@ -18,10 +18,8 @@ func main() {
 
 	log.SetOutput(ioutil.Discard)
 
-	fmt.Println("Provisioning...")
-
 	cluster := &types.Cluster{
-		KubernetesVersion: "1.13",
+		KubernetesVersion: "1.14",
 		Name:              "hydro",
 		DiskSizeGB:        30,
 		NodeCount:         1,
@@ -33,6 +31,8 @@ func main() {
 		ProjectName:         *projectName,
 		CredentialsFilePath: *credentials,
 	}
+
+	fmt.Println("Provisioning...")
 
 	cluster, err := hf.Provision(cluster, provider)
 	if err != nil {

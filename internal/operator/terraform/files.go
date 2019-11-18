@@ -1,26 +1,26 @@
-package operator
+package terraform
 
 import (
-	"encoding/base64"
 	"fmt"
+	"html/template"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
-	"text/template"
 
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/types"
-	gardener "github.com/kyma-incubator/terraform-provider-gardener/provider"
-	"github.com/pkg/errors"
-
-	"github.com/hashicorp/terraform/terraform"
-	terraformClient "github.com/kyma-incubator/hydroform/internal/terraform"
-	"github.com/terraform-providers/terraform-provider-google/google"
 )
 
 const (
-	awsClusterTemplate = ``
-
+	// file names for terraform
+	tfStateFile          = "terraform.tfstate"
+	tfModuleFile         = "terraform.tf"
+	tfVarsFile           = "terraform.tfvars"
+	awsClusterTemplate   = ``
 	azureClusterTemplate = ``
-
-	gcpClusterTemplate = `
+	gcpClusterTemplate   = `
   variable "node_count"    		{}
   variable "cluster_name"  		{}
   variable "credentials_file_path" 	{}
@@ -159,106 +159,89 @@ resource "gardener_shoot" "test_cluster" {
 `
 )
 
-// Terraform is an Operator.
-type Terraform struct {
-}
-
-// Create creates a new cluster for a specific provider based on configuration details. It returns a ClusterInfo object with provider-related information, or an error if cluster provisioning failed.
-func (t *Terraform) Create(providerType types.ProviderType, configuration map[string]interface{}) (*types.ClusterInfo, error) {
-	platform, err := t.newPlatform(providerType, configuration)
-	if err != nil {
-		return nil, err
-	}
-
-	state, err := platform.Apply(terraformClient.NewState(), false)
-	if err != nil {
-		return &types.ClusterInfo{
-			InternalState: &types.InternalState{TerraformState: state},
-			Status:        &types.ClusterStatus{Phase: types.Errored},
-		}, errors.Wrap(err, "unable to provision cluster")
-	}
-
-	var certificateData []byte
-	var endpoint string
-	if len(state.Modules) > 0 {
-		if val, ok := state.Modules[0].Outputs["cluster_ca_certificate"]; ok {
-			certificateData, err = base64.StdEncoding.DecodeString(fmt.Sprintf("%v", val.Value))
-			if err != nil {
-				return &types.ClusterInfo{
-					InternalState: &types.InternalState{TerraformState: state},
-					Status:        &types.ClusterStatus{Phase: types.Errored},
-				}, errors.Wrap(err, "Unable to decode certificate data")
-			}
-		}
-		if val, ok := state.Modules[0].Outputs["endpoint"]; ok {
-			endpoint = fmt.Sprintf("%v", val.Value)
-		}
-	}
-
-	return &types.ClusterInfo{
-		Endpoint:                 endpoint,
-		CertificateAuthorityData: certificateData,
-		InternalState:            &types.InternalState{TerraformState: state},
-		Status:                   &types.ClusterStatus{Phase: types.Provisioned},
-	}, nil
-}
-
-// Delete removes an existing cluster or returns an error if removing the cluster is not possible.
-func (t *Terraform) Delete(state *types.InternalState, providerType types.ProviderType, configuration map[string]interface{}) error {
-	platform, err := t.newPlatform(providerType, configuration)
+// initClusterFiles initializes all necessary files for a cluster in the given data directory
+func initClusterFiles(dataDir string, p types.ProviderType, cfg map[string]interface{}) error {
+	dir, err := clusterDir(dataDir, cfg["project"].(string), cfg["cluster_name"].(string), p)
 	if err != nil {
 		return err
 	}
 
-	_, err = platform.Apply(state.TerraformState, true)
-	return errors.Wrap(err, "unable to deprovision cluster")
-}
-
-func (t *Terraform) newPlatform(providerType types.ProviderType, configuration map[string]interface{}) (*terraformClient.Platform, error) {
-	var resourceProvider terraform.ResourceProvider
-	var clusterTemplate string
-	//providerName must match the name of the provider on the templates
-	var providerName string
-
-	switch providerType {
+	// create module file
+	var data []byte
+	switch p {
 	case types.GCP:
-		resourceProvider = google.Provider()
-		clusterTemplate = gcpClusterTemplate
-		providerName = "google"
-	case types.AWS:
-		//resourceProvider = aws.Provider()
-		//clusterTemplate = awsClusterTemplate
-		//providerName = "aws"
-		return nil, errors.New("aws not supported yet")
-	case types.Azure:
-		//resourceProvider = azure.Provider()
-		//clusterTemplate = azureClusterTemplate
-		//providerName = "azure"
-		return nil, errors.New("azure not supported yet")
+		data = []byte(gcpClusterTemplate)
 	case types.Gardener:
-		resourceProvider = gardener.Provider()
-		providerName = "gardener"
-
-		expTemplate, err := expandGardenerClusterTemplate(configuration)
+		t, err := expandGardenerClusterTemplate(cfg)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		clusterTemplate = expTemplate
-	default:
-		return nil, errors.New("unknown provider")
+		data = []byte(t)
+	case types.Azure:
+		data = []byte(azureClusterTemplate)
+	case types.AWS:
+		data = []byte(awsClusterTemplate)
+	}
+	if err := ioutil.WriteFile(filepath.Join(dir, tfModuleFile), data, 0700); err != nil {
+		return err
 	}
 
-	platform := terraformClient.NewPlatform(clusterTemplate)
-	platform.AddProvider(providerName, resourceProvider)
-	for k, v := range configuration {
-		platform.Var(k, v)
+	// create vars file
+	var vars strings.Builder
+	for k, v := range cfg {
+		switch t := v.(type) {
+		case int:
+			vars.WriteString(fmt.Sprintf("%s = \"%d\"\n", k, t))
+		case string:
+			vars.WriteString(fmt.Sprintf("%s = \"%s\"\n", k, t))
+		}
+
+	}
+	if err := ioutil.WriteFile(filepath.Join(dir, tfVarsFile), []byte(vars.String()), 0700); err != nil {
+		return err
 	}
 
-	return platform, nil
+	return nil
 }
 
-func expandGardenerClusterTemplate(config map[string]interface{}) (string, error) {
+// stateFromFile loads the terraform state file for the given cluster
+func stateFromFile(dataDir, project, cluster string, p types.ProviderType) (*states.State, error) {
+	dir, err := clusterDir(dataDir, project, cluster, p)
+	if err != nil {
+		return nil, err
+	}
 
+	stateFilePath := filepath.Join(dir, tfStateFile)
+	f, err := os.Open(stateFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	st, err := statefile.Read(f)
+	if err != nil {
+		return nil, err
+	}
+	return st.State, nil
+}
+
+// clusterDir either returns or creates the directory for a given cluster inside the given data directory.
+// All state and configuration files needed by the operator will be stored in this directory.
+func clusterDir(dataDir, project, cluster string, p types.ProviderType) (string, error) {
+	clDir, err := filepath.Abs(filepath.Join(dataDir, "clusters", string(p), project, cluster))
+	if err != nil {
+		return "", err
+	}
+
+	if _, err := os.Stat(clDir); os.IsNotExist(err) {
+		err = os.MkdirAll(clDir, 0700)
+		if err != nil {
+			return "", err
+		}
+	}
+	return clDir, nil
+}
+
+func expandGardenerClusterTemplate(cfg map[string]interface{}) (string, error) {
 	funcs := template.FuncMap{
 		"seq": func(n int) []int {
 			r := make([]int, n)
@@ -272,7 +255,7 @@ func expandGardenerClusterTemplate(config map[string]interface{}) (string, error
 
 	t := template.Must(template.New("gardenerCluster").Funcs(funcs).Parse(gardenerClusterTemplate))
 	s := &strings.Builder{}
-	if err := t.Execute(s, config); err != nil {
+	if err := t.Execute(s, cfg); err != nil {
 		return "", err
 	}
 	return s.String(), nil
