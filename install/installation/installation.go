@@ -350,7 +350,6 @@ func (k KymaInstaller) waitForInstallation(context context.Context, stateChannel
 			return
 		case event, ok := <-installationWatchChan:
 			if !ok {
-				// TODO - with retries?
 				installationWatcher, err := k.newInstallationWatcher(k.installationWatcherTimeoutSeconds)
 				if err != nil {
 					errorChannel <- fmt.Errorf("failed to renew installation watcher: %w", err)
