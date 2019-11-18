@@ -427,7 +427,8 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 		installationClientSet := installationFake.NewSimpleClientset(installation)
 
 		kymaInstaller := newKymaInstaller(nil, nil, k8sClientSet, installationClientSet)
-		ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
 
 		// when
 		installationStateChan, errorChan, err := kymaInstaller.StartInstallation(ctx)

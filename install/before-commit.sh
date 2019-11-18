@@ -40,7 +40,7 @@ fi
 # GO TEST
 ##
 echo "? go test"
-go test -count 100 -race -coverprofile=cover.out ./...
+go test -race -coverprofile=cover.out ./...
 # Check if tests passed
 if [[ $? != 0 ]]; then
 	echo -e "${RED}✗ go test\n${NC}"

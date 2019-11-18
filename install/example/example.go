@@ -1,5 +1,3 @@
-// TODO - build tag?
-
 package main
 
 import (
