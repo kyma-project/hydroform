@@ -123,7 +123,11 @@ func waitForInstallation(stateChannel <-chan installation.InstallationState, err
 				return
 			}
 			log.Printf("Description: %s, State: %s", state.Description, state.State)
-		case err := <-errorChannel:
+		case err, ok := <-errorChannel:
+			if !ok {
+				log.Println("Error channel closed")
+				continue
+			}
 			log.Printf("An error occurred: %v", err)
 
 			installationError := installation.InstallationError{}
