@@ -13,4 +13,4 @@ The installation process consist of two phases:
 
 ### Example
 
-To see how to use the library to install Kyma on a properly configured Minikube cluster, see this [example](https://github.com/kyma-incubator/hydroform/tree/master/install/examples/example.go).
+To learn how to use the library to install Kyma on a properly configured Minikube cluster, see this [example](https://github.com/kyma-incubator/hydroform/tree/master/install/examples/example.go).
