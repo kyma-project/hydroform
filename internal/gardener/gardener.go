@@ -59,7 +59,7 @@ func (g *gardenerProvisioner) Status(cluster *types.Cluster, p *types.Provider) 
 		return nil, err
 	}
 
-	cfg := g.loadConfigurations(cluster, &types.Provider{})
+	cfg := g.loadConfigurations(cluster, p)
 
 	return g.operator.Status(p.Type, cfg)
 }
@@ -200,6 +200,7 @@ func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 	config["disk_size"] = cluster.DiskSizeGB
 	config["kubernetes_version"] = cluster.KubernetesVersion
 	config["location"] = cluster.Location
+	config["project"] = provider.ProjectName
 	config["namespace"] = fmt.Sprintf("garden-%s", provider.ProjectName)
 
 	for k, v := range provider.CustomConfigurations {

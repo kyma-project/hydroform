@@ -75,10 +75,14 @@ variable "namespace"       			{}
 variable "location"      			{}
 variable "zone"      				{}
 variable "workercidr"      			{}
-variable "vnetcidr"					{}
+{{ if eq (index . "target_provider") "azure" }}
+ variable "vnetcidr"				{}
+{{ end }}
+{{ if eq (index . "target_provider") "aws" }}
 variable "vpccidr" 					{}
 variable "publicscidr" 				{}
 variable "internalscidr" 			{}
+{{ end }}
 variable "machine_type"  			{}
 variable "kubernetes_version"   	{}
 variable "disk_size" 				{}

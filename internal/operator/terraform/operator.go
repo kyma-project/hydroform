@@ -42,6 +42,11 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 	}
 
 	// INIT
+	if p == types.Gardener {
+		if err := initGardenerProvider(); err != nil {
+			return nil, errors.Wrap(err, "could not initialize the gardener provider")
+		}
+	}
 	i := &command.InitCommand{
 		Meta: t.ops.Meta,
 	}
@@ -86,6 +91,11 @@ func (t *Terraform) Delete(p types.ProviderType, cfg map[string]interface{}) err
 	}
 
 	// INIT
+	if p == types.Gardener {
+		if err := initGardenerProvider(); err != nil {
+			return errors.Wrap(err, "could not initialize the gardener provider")
+		}
+	}
 	i := &command.InitCommand{
 		Meta: t.ops.Meta,
 	}
