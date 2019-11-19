@@ -142,7 +142,9 @@ type KymaInstaller struct {
 	installationClient                installationTyped.InstallationInterface
 }
 
-// PrepareInstallation creates all the required resources for Kyma Installation. It does not start the installation.
+// PrepareInstallation creates all the required resources for Kyma Installation.
+// It installs Tiller and deploys the Kyma Installer to the cluster, together with provided configuration
+// It does not start the installation.
 func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 	k.infof("Preparing Kyma Installation...")
 
@@ -165,7 +167,9 @@ func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 	return nil
 }
 
-// StartInstallation triggers Kyma installation to start. It expects that the cluster is already prepared.
+// StartInstallation triggers Kyma installation to start.
+// It expects that the cluster is already prepared meaning the Tiller is installed and the Kyma Installer is deployed
+// and Installation CR exists
 func (k KymaInstaller) StartInstallation(context context.Context) (<-chan InstallationState, <-chan error, error) {
 	err := checkContextNotCanceled(context)
 	if err != nil {

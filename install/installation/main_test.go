@@ -8,8 +8,6 @@ import (
 
 	"github.com/kyma-incubator/hydroform/install/scheme"
 
-	"k8s.io/client-go/rest"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
@@ -21,8 +19,6 @@ var (
 	resourcesSchema *runtime.Scheme
 
 	decoder runtime.Decoder
-
-	k8sConfig *rest.Config
 )
 
 func TestMain(m *testing.M) {
@@ -37,8 +33,8 @@ func TestMain(m *testing.M) {
 	resourcesSchema, err = scheme.DefaultScheme()
 	logAndExitOnError(err)
 
-	codecs := serializer.NewCodecFactory(resourcesSchema)
-	decoder = codecs.UniversalDeserializer()
+	decoder, err = scheme.DefaultDecoder()
+	logAndExitOnError(err)
 
 	code, err := runTests(m)
 	logAndExitOnError(err)

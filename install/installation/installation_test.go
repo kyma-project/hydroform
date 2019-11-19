@@ -248,7 +248,6 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 		mapper := dummyRestMapper{}
 
 		kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
-		kymaInstaller.tillerWaitTimeout = 10 * time.Second
 
 		installation := Installation{
 			TillerYaml:    tillerYamlContent,

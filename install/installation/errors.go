@@ -2,8 +2,6 @@ package installation
 
 import "fmt"
 
-type ErrorType string
-
 type InstallationError struct {
 	ShortMessage string
 	ErrorEntries []ErrorEntry

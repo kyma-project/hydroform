@@ -34,7 +34,6 @@ const (
 
 func main() {
 	minikubeIp := flag.String("minikubeIP", "", "IP of Minikube instance")
-
 	flag.Parse()
 
 	if minikubeIp == nil || *minikubeIp == "" {
