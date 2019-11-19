@@ -2,6 +2,9 @@
 
 readonly CI_FLAG=ci
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 INVERTED='\033[7m'
@@ -12,6 +15,8 @@ echo "USER: " + $USER
 echo "PATH: " + $PATH
 echo "GOPATH:" + $GOPATH
 echo -e "${NC}"
+
+cd ${DIR}
 
 ##
 # Tidy dependencies
@@ -46,7 +51,7 @@ if [[ $? != 0 ]]; then
 	echo -e "${RED}✗ go test\n${NC}"
 	rm cover.out
 	exit 1
-else 
+else
 	echo -e "Total coverage: $(go tool cover -func=cover.out | grep total | awk '{print $3}')"
 	rm cover.out
 	echo -e "${GREEN}√ go test${NC}"
@@ -77,4 +82,5 @@ for vPackage in "${packagesToVet[@]}"; do
 		exit 1
 	else echo -e "${GREEN}√ go vet ${vPackage} ${NC}"
 	fi
+
 done
