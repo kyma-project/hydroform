@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"runtime"
 	"syscall"
 
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -13,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/kyma-incubator/hydroform/types"
 	"github.com/mitchellh/colorstring"
 
 	hashiCli "github.com/mitchellh/cli"
@@ -23,6 +22,8 @@ const defaultDataDir = "./.hydroform/"
 // Options contains all configuration for the terraform operator
 type Options struct {
 	command.Meta
+	// Persistent allows to configure if terraform files should stay in the file system or be cleaned up after each operation.
+	Persistent bool
 	// TODO add module source property here corresponding to flag -from-module
 }
 
@@ -41,6 +42,27 @@ func WithDataDir(dir string) Option {
 	return func(ops *Options) {
 		ops.Meta.OverrideDataDir = dir
 	}
+}
+
+// Make files persistent after using terraform
+func Persistent() Option {
+	return func(ops *Options) {
+		ops.Persistent = true
+	}
+}
+
+// ToTerraformOptions turns Hydroform options into terraform operator specific options
+func ToTerraformOptions(ops *types.Options) (tfOps []Option) {
+
+	if ops.DataDir != "" {
+		tfOps = append(tfOps, WithDataDir(ops.DataDir))
+	}
+
+	if ops.Persistent {
+		tfOps = append(tfOps, Persistent())
+	}
+
+	return tfOps
 }
 
 // options creates a configuration for the terraform operator
@@ -104,20 +126,6 @@ func options(ops ...Option) Options {
 	}
 
 	return tfOps
-}
-
-func globalPluginDirs() ([]string, error) {
-	var ret []string
-	// Look in ~/.terraform.d/plugins/ , or its equivalent on non-UNIX
-	dir, err := cliconfig.ConfigDir()
-	if err != nil {
-		return nil, err
-	}
-	machineDir := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
-	ret = append(ret, filepath.Join(dir, "plugins"))
-	ret = append(ret, filepath.Join(dir, "plugins", machineDir))
-
-	return ret, nil
 }
 
 func makeShutdownCh() <-chan struct{} {

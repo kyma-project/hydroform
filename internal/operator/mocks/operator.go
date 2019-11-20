@@ -5,6 +5,8 @@ package mocks
 import (
 	mock "github.com/stretchr/testify/mock"
 
+	statefile "github.com/hashicorp/terraform/states/statefile"
+
 	types "github.com/kyma-incubator/hydroform/types"
 )
 
@@ -36,13 +38,13 @@ func (_m *Operator) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 	return r0, r1
 }
 
-// Delete provides a mock function with given fields: p, cfg
-func (_m *Operator) Delete(p types.ProviderType, cfg map[string]interface{}) error {
-	ret := _m.Called(p, cfg)
+// Delete provides a mock function with given fields: state, p, cfg
+func (_m *Operator) Delete(state *statefile.File, p types.ProviderType, cfg map[string]interface{}) error {
+	ret := _m.Called(state, p, cfg)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(types.ProviderType, map[string]interface{}) error); ok {
-		r0 = rf(p, cfg)
+	if rf, ok := ret.Get(0).(func(*statefile.File, types.ProviderType, map[string]interface{}) error); ok {
+		r0 = rf(state, p, cfg)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -50,13 +52,13 @@ func (_m *Operator) Delete(p types.ProviderType, cfg map[string]interface{}) err
 	return r0
 }
 
-// Status provides a mock function with given fields: p, cfg
-func (_m *Operator) Status(p types.ProviderType, cfg map[string]interface{}) (*types.ClusterStatus, error) {
-	ret := _m.Called(p, cfg)
+// Status provides a mock function with given fields: state, p, cfg
+func (_m *Operator) Status(state *statefile.File, p types.ProviderType, cfg map[string]interface{}) (*types.ClusterStatus, error) {
+	ret := _m.Called(state, p, cfg)
 
 	var r0 *types.ClusterStatus
-	if rf, ok := ret.Get(0).(func(types.ProviderType, map[string]interface{}) *types.ClusterStatus); ok {
-		r0 = rf(p, cfg)
+	if rf, ok := ret.Get(0).(func(*statefile.File, types.ProviderType, map[string]interface{}) *types.ClusterStatus); ok {
+		r0 = rf(state, p, cfg)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.ClusterStatus)
@@ -64,8 +66,8 @@ func (_m *Operator) Status(p types.ProviderType, cfg map[string]interface{}) (*t
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(types.ProviderType, map[string]interface{}) error); ok {
-		r1 = rf(p, cfg)
+	if rf, ok := ret.Get(1).(func(*statefile.File, types.ProviderType, map[string]interface{}) error); ok {
+		r1 = rf(state, p, cfg)
 	} else {
 		r1 = ret.Error(1)
 	}

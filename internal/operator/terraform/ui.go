@@ -22,16 +22,13 @@ func (h *HydroUI) AskSecret(string) (string, error) {
 
 // Output is called for normal standard output.
 // Terraform output is ignored in Hydroform
-func (h *HydroUI) Output(string) {
-}
+func (h *HydroUI) Output(string) {}
 
 // Info is called for information related to the previous output.
 // In general this may be the exact same as Output, but this gives
 // Ui implementors some flexibility with output formats.
 // Terraform info is ignored in Hydroform.
-func (h *HydroUI) Info(string) {
-
-}
+func (h *HydroUI) Info(string) {}
 
 // Error saves error messages from terraform as an error slice to be retrieved later by Hydroform.
 func (h *HydroUI) Error(s string) {

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/kyma-incubator/hydroform/internal/operator/mocks"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/pkg/errors"
 
 	"github.com/kyma-incubator/hydroform/types"
@@ -372,13 +373,14 @@ func TestDeProvision(t *testing.T) {
 			"max_unavailable": 1,
 		},
 	}
-	mockOp.On("Delete", types.Gardener, g.loadConfigurations(cluster, provider)).Return(nil)
+	var state *statefile.File
+	mockOp.On("Delete", state, types.Gardener, g.loadConfigurations(cluster, provider)).Return(nil)
 
 	err := g.Deprovision(cluster, provider)
 	require.NoError(t, err, "Deprovision should succeed")
 
 	provider.CredentialsFilePath = "/wrong/credentials"
-	mockOp.On("Delete", types.Gardener, g.loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
+	mockOp.On("Delete", state, types.Gardener, g.loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
 
 	err = g.Deprovision(cluster, provider)
 	require.Error(t, err, "Deprovision should fail")

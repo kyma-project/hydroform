@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"github.com/kyma-incubator/hydroform/internal/errs"
+	"github.com/hashicorp/terraform/states/statefile"
 	terraform_operator "github.com/kyma-incubator/hydroform/internal/operator/terraform"
 
 	"github.com/kyma-incubator/hydroform/internal/operator"
@@ -38,13 +39,18 @@ func (g *gcpProvisioner) Provision(cluster *types.Cluster, provider *types.Provi
 
 // Status returns the ClusterStatus for the requested cluster.
 func (g *gcpProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
+	var state *statefile.File
+	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
+		state = cluster.ClusterInfo.InternalState.TerraformState
+	}
+
 	if err := g.validateInputs(cluster, p); err != nil {
 		return nil, err
 	}
 
 	cfg := g.loadConfigurations(cluster, p)
 
-	return g.provisionOperator.Status(p.Type, cfg)
+	return g.provisionOperator.Status(state, p.Type, cfg)
 }
 
 // Credentials returns the Kubeconfig file as a byte array for the requested cluster.
@@ -53,6 +59,7 @@ func (g *gcpProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) 
 		return nil, err
 	}
 	if cluster.ClusterInfo == nil || cluster.ClusterInfo.Endpoint == "" || cluster.ClusterInfo.CertificateAuthorityData == nil {
+		// TODO add a way to get endpoint and CA from the state file if possible
 		return nil, errors.New(errs.EmptyClusterInfo)
 	}
 
@@ -88,7 +95,12 @@ func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) 
 
 	config := g.loadConfigurations(cluster, p)
 
-	err := g.provisionOperator.Delete(p.Type, config)
+	var state *statefile.File
+	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
+		state = cluster.ClusterInfo.InternalState.TerraformState
+	}
+
+	err := g.provisionOperator.Delete(state, p.Type, config)
 	if err != nil {
 		return errors.Wrap(err, "unable to deprovision gcp cluster")
 	}
@@ -97,12 +109,18 @@ func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) 
 }
 
 // New creates a new instance of gcpProvisioner.
-func New(operatorType operator.Type) *gcpProvisioner {
-	var op operator.Operator
+func New(operatorType operator.Type, ops ...types.Option) *gcpProvisioner {
+	// parse config
+	os := &types.Options{}
+	for _, o := range ops {
+		o(os)
+	}
 
+	var op operator.Operator
 	switch operatorType {
 	case operator.TerraformOperator:
-		op = terraform_operator.New()
+		tfOps := terraform_operator.ToTerraformOptions(os)
+		op = terraform_operator.New(tfOps...)
 	default:
 		op = &operator.Unknown{}
 	}

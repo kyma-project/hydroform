@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/internal/errs"
 	"github.com/kyma-incubator/hydroform/internal/operator"
 	terraform_operator "github.com/kyma-incubator/hydroform/internal/operator/terraform"
@@ -25,11 +26,18 @@ type gardenerProvisioner struct {
 	operator operator.Operator
 }
 
-func New(operatorType operator.Type) *gardenerProvisioner {
+func New(operatorType operator.Type, ops ...types.Option) *gardenerProvisioner {
+	// parse config
+	os := &types.Options{}
+	for _, o := range ops {
+		o(os)
+	}
+
 	var op operator.Operator
 	switch operatorType {
 	case operator.TerraformOperator:
-		op = terraform_operator.New()
+		tfOps := terraform_operator.ToTerraformOptions(os)
+		op = terraform_operator.New(tfOps...)
 	default:
 		op = &operator.Unknown{}
 	}
@@ -55,13 +63,18 @@ func (g *gardenerProvisioner) Provision(cluster *types.Cluster, provider *types.
 
 // Status returns the ClusterStatus for the requested cluster.
 func (g *gardenerProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
+	var state *statefile.File
+	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
+		state = cluster.ClusterInfo.InternalState.TerraformState
+	}
+
 	if err := g.validate(cluster, p); err != nil {
 		return nil, err
 	}
 
 	cfg := g.loadConfigurations(cluster, p)
 
-	return g.operator.Status(p.Type, cfg)
+	return g.operator.Status(state, p.Type, cfg)
 }
 
 func (g *gardenerProvisioner) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
@@ -87,16 +100,21 @@ func (g *gardenerProvisioner) Credentials(cluster *types.Cluster, provider *type
 	return s.Data["kubeconfig"], nil
 }
 
-func (g *gardenerProvisioner) Deprovision(cluster *types.Cluster, provider *types.Provider) error {
-	if err := g.validate(cluster, provider); err != nil {
+func (g *gardenerProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
+	if err := g.validate(cluster, p); err != nil {
 		return err
 	}
 
-	config := g.loadConfigurations(cluster, provider)
+	config := g.loadConfigurations(cluster, p)
 
-	err := g.operator.Delete(provider.Type, config)
+	var state *statefile.File
+	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
+		state = cluster.ClusterInfo.InternalState.TerraformState
+	}
+
+	err := g.operator.Delete(state, p.Type, config)
 	if err != nil {
-		return errors.Wrap(err, "unable to deprovision gardener cluster")
+		return errors.Wrap(err, "unable to deprovision gcp cluster")
 	}
 
 	return nil

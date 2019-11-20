@@ -1,16 +1,19 @@
 package terraform
 
 import (
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/types"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -209,7 +212,7 @@ func initClusterFiles(dataDir string, p types.ProviderType, cfg map[string]inter
 }
 
 // stateFromFile loads the terraform state file for the given cluster
-func stateFromFile(dataDir, project, cluster string, p types.ProviderType) (*states.State, error) {
+func stateFromFile(dataDir, project, cluster string, p types.ProviderType) (*statefile.File, error) {
 	dir, err := clusterDir(dataDir, project, cluster, p)
 	if err != nil {
 		return nil, err
@@ -225,7 +228,68 @@ func stateFromFile(dataDir, project, cluster string, p types.ProviderType) (*sta
 	if err != nil {
 		return nil, err
 	}
-	return st.State, nil
+	return st, nil
+}
+
+// stateToFile saves the terraform state into its corresponding file
+func stateToFile(state *statefile.File, dataDir, project, cluster string, p types.ProviderType) error {
+	dir, err := clusterDir(dataDir, project, cluster, p)
+	if err != nil {
+		return err
+	}
+
+	stateFilePath := filepath.Join(dir, tfStateFile)
+	f, err := os.Create(stateFilePath)
+	if err != nil {
+		return err
+	}
+	return statefile.Write(state, f)
+}
+
+func clusterInfoFromFile(dataDir, project, cluster string, p types.ProviderType) (*types.ClusterInfo, error) {
+	sf, err := stateFromFile(dataDir, project, cluster, p)
+	if err != nil {
+		return nil, err
+	}
+
+	var certificateData []byte
+	var endpoint string
+
+	if len(sf.State.Modules) > 0 {
+		if val, ok := sf.State.Modules[""].OutputValues["cluster_ca_certificate"]; ok {
+			certificateData, err = base64.StdEncoding.DecodeString(val.Value.AsString())
+			if err != nil {
+				return &types.ClusterInfo{
+					InternalState: &types.InternalState{TerraformState: sf},
+					Status:        &types.ClusterStatus{Phase: types.Errored},
+				}, errors.Wrap(err, "Unable to decode certificate data")
+			}
+		}
+		if val, ok := sf.State.Modules[""].OutputValues["endpoint"]; ok {
+			endpoint = val.Value.AsString()
+		}
+	}
+
+	return &types.ClusterInfo{
+		Endpoint:                 endpoint,
+		CertificateAuthorityData: certificateData,
+		InternalState:            &types.InternalState{TerraformState: sf},
+		Status:                   &types.ClusterStatus{Phase: types.Provisioned},
+	}, nil
+}
+
+func globalPluginDirs() ([]string, error) {
+	var ret []string
+	// Look in ~/.terraform.d/plugins/ , or its equivalent on non-UNIX
+	dir, err := cliconfig.ConfigDir()
+	if err != nil {
+		return nil, err
+	}
+	machineDir := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
+	ret = append(ret, filepath.Join(dir, "plugins"))
+	ret = append(ret, filepath.Join(dir, "plugins", machineDir))
+
+	return ret, nil
 }
 
 // clusterDir either returns or creates the directory for a given cluster inside the given data directory.
@@ -263,4 +327,14 @@ func expandGardenerClusterTemplate(cfg map[string]interface{}) (string, error) {
 		return "", err
 	}
 	return s.String(), nil
+}
+
+// cleanup removes all terraform generated files for a given cluster
+func cleanup(dataDir, project, cluster string, p types.ProviderType) error {
+	d, err := clusterDir(dataDir, project, cluster, p)
+	if err != nil {
+		return err
+	}
+
+	return os.RemoveAll(d)
 }

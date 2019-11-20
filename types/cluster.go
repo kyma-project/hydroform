@@ -1,6 +1,6 @@
 package types
 
-import "github.com/hashicorp/terraform/states"
+import "github.com/hashicorp/terraform/states/statefile"
 
 // Cluster contains detailed cluster specification and properties.
 type Cluster struct {
@@ -51,5 +51,5 @@ const (
 
 // InternalState holds the state information of the internal operator which is currently in use. Hydroform uses this information for internal purposes only.
 type InternalState struct {
-	TerraformState *states.State
+	TerraformState *statefile.File
 }

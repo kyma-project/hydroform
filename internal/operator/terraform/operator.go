@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/hashicorp/terraform/command"
+	"github.com/hashicorp/terraform/states/statefile"
 )
 
 // Terraform is an Operator.
@@ -38,6 +38,10 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 	defer func() { os.Stderr = stderr }()
 
 	// init cluster files
+	if !t.ops.Persistent {
+		// remove all files if not persistent after running
+		defer cleanup(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
+	}
 	if err := initClusterFiles(t.ops.DataDir(), p, cfg); err != nil {
 		return nil, errors.Wrap(err, "Could not initialize cluster data")
 	}
@@ -71,30 +75,60 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 		return nil, t.checkUIErrors()
 	}
 
-	return t.clusterInfoFromFile(cfg["project"].(string), cfg["cluster_name"].(string), p)
+	return clusterInfoFromFile(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
 }
 
-// Status checks the current state of the cluster
-func (t *Terraform) Status(p types.ProviderType, cfg map[string]interface{}) (*types.ClusterStatus, error) {
-	cs := &types.ClusterStatus{}
-	st, err := stateFromFile(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
-	if err != nil {
-		cs.Phase = types.Unknown
-
-	} else if st.HasResources() {
-		cs.Phase = types.Provisioned
-	} else {
-		cs.Phase = types.Unknown
+// Status checks the current state of the cluster from the file
+func (t *Terraform) Status(sf *statefile.File, p types.ProviderType, cfg map[string]interface{}) (*types.ClusterStatus, error) {
+	cs := &types.ClusterStatus{
+		Phase: types.Unknown,
 	}
-	return cs, err
+	var err error
+
+	// if no state given, try the file system
+	if sf == nil {
+		sf, err = stateFromFile(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
+		if err != nil {
+			return cs, err
+		}
+	}
+
+	if sf.State.HasResources() {
+		cs.Phase = types.Provisioned
+	}
+
+	return cs, nil
 }
 
 // Delete removes an existing cluster or returns an error if removing the cluster is not possible.
-func (t *Terraform) Delete(p types.ProviderType, cfg map[string]interface{}) error {
+func (t *Terraform) Delete(sf *statefile.File, p types.ProviderType, cfg map[string]interface{}) error {
 	// silence stdErr during terraform execution, plugins send debug and trace entries there
 	stderr := os.Stderr
 	os.Stderr, _ = os.Open(os.DevNull)
 	defer func() { os.Stderr = stderr }()
+
+	// init cluster files
+	if !t.ops.Persistent {
+		// remove all files if not persistent after running
+		defer cleanup(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
+	}
+	if err := initClusterFiles(t.ops.DataDir(), p, cfg); err != nil {
+		return errors.Wrap(err, "Could not initialize cluster data")
+	}
+
+	var err error
+	// if no state given, check if it is already in the file system
+	if sf == nil {
+		_, err = stateFromFile(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
+		if err != nil {
+			return err
+		}
+	} else {
+		// otherwise save the state into a file so terraform can use it
+		if err := stateToFile(sf, t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p); err != nil {
+			return err
+		}
+	}
 
 	clusterDir, err := clusterDir(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
 	if err != nil {
@@ -153,38 +187,6 @@ func (t *Terraform) applyArgs(p types.ProviderType, cfg map[string]interface{}, 
 		clusterDir)
 
 	return args
-}
-
-func (t *Terraform) clusterInfoFromFile(project, cluster string, p types.ProviderType) (*types.ClusterInfo, error) {
-	st, err := stateFromFile(t.ops.DataDir(), project, cluster, p)
-	if err != nil {
-		return nil, err
-	}
-
-	var certificateData []byte
-	var endpoint string
-
-	if len(st.Modules) > 0 {
-		if val, ok := st.Modules[""].OutputValues["cluster_ca_certificate"]; ok {
-			certificateData, err = base64.StdEncoding.DecodeString(val.Value.AsString())
-			if err != nil {
-				return &types.ClusterInfo{
-					InternalState: &types.InternalState{TerraformState: st},
-					Status:        &types.ClusterStatus{Phase: types.Errored},
-				}, errors.Wrap(err, "Unable to decode certificate data")
-			}
-		}
-		if val, ok := st.Modules[""].OutputValues["endpoint"]; ok {
-			endpoint = val.Value.AsString()
-		}
-	}
-
-	return &types.ClusterInfo{
-		Endpoint:                 endpoint,
-		CertificateAuthorityData: certificateData,
-		InternalState:            &types.InternalState{TerraformState: st},
-		Status:                   &types.ClusterStatus{Phase: types.Provisioned},
-	}, nil
 }
 
 func (t *Terraform) checkUIErrors() error {
