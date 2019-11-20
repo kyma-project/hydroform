@@ -81,7 +81,7 @@ type InstallationState struct {
 // TODO - think of a better name
 
 // NewKymaInstaller initializes new KymaInstaller configured to work with the cluster from provided Kubeconfig
-func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*KymaInstaller, error) {
+func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (Installer, error) {
 	options := &installationOptions{
 		installationCRModificationFunc: func(installation *v1alpha1.Installation) {},
 	}
