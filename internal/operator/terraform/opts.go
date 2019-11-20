@@ -47,14 +47,7 @@ func WithDataDir(dir string) Option {
 // Use Option functions to configure its fields.
 func options(ops ...Option) Options {
 	// create default meta
-
-	// Problems loading the default terraform config will just be output to stderr
-	// If the config is loaded successfully we will start using the custom UI if any
-	Ui := &hashiCli.BasicUi{
-		Reader:      os.Stdin,
-		Writer:      os.Stdout,
-		ErrorWriter: os.Stderr,
-	}
+	Ui := &HydroUI{}
 
 	pluginsDirs, err := globalPluginDirs()
 	if err != nil {

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/kyma-incubator/hydroform/types"
 	"github.com/pkg/errors"
@@ -20,7 +22,7 @@ type Terraform struct {
 
 // New creates a new Terraform operator with the given options
 func New(ops ...Option) *Terraform {
-	// always silence the logs since terraform prints a lot of stuff
+	// silence the logs since terraform prints a lot of stuff
 	log.SetOutput(ioutil.Discard)
 
 	return &Terraform{
@@ -30,6 +32,10 @@ func New(ops ...Option) *Terraform {
 
 // Create creates a new cluster for a specific provider based on configuration details. It returns a ClusterInfo object with provider-related information, or an error if cluster provisioning failed.
 func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*types.ClusterInfo, error) {
+	// silence stdErr during terraform execution, plugins send debug and trace entries there
+	stderr := os.Stderr
+	os.Stderr, _ = os.Open(os.DevNull)
+	defer func() { os.Stderr = stderr }()
 
 	// init cluster files
 	if err := initClusterFiles(t.ops.DataDir(), p, cfg); err != nil {
@@ -53,7 +59,7 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 
 	e := i.Run(t.initArgs(p, cfg, clusterDir))
 	if e != 0 {
-		return nil, fmt.Errorf("Unable to provision cluster.\nExit code: %d\n", e)
+		return nil, t.checkUIErrors()
 	}
 
 	// APPLY
@@ -62,7 +68,7 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 	}
 	e = a.Run(t.applyArgs(p, cfg, clusterDir))
 	if e != 0 {
-		return nil, fmt.Errorf("Unable to provision cluster.\nExit code: %d\n", e)
+		return nil, t.checkUIErrors()
 	}
 
 	return t.clusterInfoFromFile(cfg["project"].(string), cfg["cluster_name"].(string), p)
@@ -85,6 +91,11 @@ func (t *Terraform) Status(p types.ProviderType, cfg map[string]interface{}) (*t
 
 // Delete removes an existing cluster or returns an error if removing the cluster is not possible.
 func (t *Terraform) Delete(p types.ProviderType, cfg map[string]interface{}) error {
+	// silence stdErr during terraform execution, plugins send debug and trace entries there
+	stderr := os.Stderr
+	os.Stderr, _ = os.Open(os.DevNull)
+	defer func() { os.Stderr = stderr }()
+
 	clusterDir, err := clusterDir(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
 	if err != nil {
 		return err
@@ -102,7 +113,7 @@ func (t *Terraform) Delete(p types.ProviderType, cfg map[string]interface{}) err
 
 	e := i.Run(t.initArgs(p, cfg, clusterDir))
 	if e != 0 {
-		return fmt.Errorf("Unable to deprovision cluster.\nExit code: %d\n", e)
+		return t.checkUIErrors()
 	}
 
 	// DESTROY
@@ -112,7 +123,7 @@ func (t *Terraform) Delete(p types.ProviderType, cfg map[string]interface{}) err
 	}
 	e = a.Run(t.applyArgs(p, cfg, clusterDir))
 	if e != 0 {
-		return fmt.Errorf("Unable to deprovision cluster.\nExit code: %d\n", e)
+		return t.checkUIErrors()
 	}
 	return nil
 }
@@ -138,6 +149,7 @@ func (t *Terraform) applyArgs(p types.ProviderType, cfg map[string]interface{}, 
 	args = append(args,
 		fmt.Sprintf("-state=%s", stateFile),
 		fmt.Sprintf("-var-file=%s", varsFile),
+		"-auto-approve",
 		clusterDir)
 
 	return args
@@ -173,4 +185,21 @@ func (t *Terraform) clusterInfoFromFile(project, cluster string, p types.Provide
 		InternalState:            &types.InternalState{TerraformState: st},
 		Status:                   &types.ClusterStatus{Phase: types.Provisioned},
 	}, nil
+}
+
+func (t *Terraform) checkUIErrors() error {
+	var errsum strings.Builder
+	if h, ok := t.ops.Ui.(*HydroUI); ok {
+		for _, e := range h.Errors() {
+			if _, err := errsum.WriteString(e.Error()); err != nil {
+				return errors.Wrap(err, "could not fetch errors from terraform")
+			}
+		}
+	}
+
+	if errsum.Len() != 0 {
+		return errors.New(errsum.String())
+	}
+
+	return nil
 }
