@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/internal/operator/mocks"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/kyma-incubator/hydroform/internal/operator/mocks"
 	"github.com/pkg/errors"
 
 	"github.com/kyma-incubator/hydroform/types"

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/kyma-incubator/hydroform/internal/errs"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/kyma-incubator/hydroform/internal/errs"
 	terraform_operator "github.com/kyma-incubator/hydroform/internal/operator/terraform"
 
 	"github.com/kyma-incubator/hydroform/internal/operator"
