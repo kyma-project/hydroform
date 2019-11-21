@@ -1,6 +1,6 @@
 package types
 
-import "github.com/kyma-incubator/hydroform/internal/terraform"
+import "github.com/hashicorp/terraform/states/statefile"
 
 // Cluster contains detailed cluster specification and properties.
 type Cluster struct {
@@ -41,21 +41,15 @@ type ClusterStatus struct {
 type Phase string
 
 const (
-	// Pending indicates that some work is actively being done on the cluster,
-	Pending Phase = "Pending"
-	// Provisioning indicates that the cluster is being created.
-	Provisioning Phase = "Provisioning"
 	// Provisioned indicates that the cluster has been created and is fully usable.
 	Provisioned Phase = "Provisioned"
 	// Errored indicates that the cluster may be unusable due to errors.
 	Errored Phase = "Errored"
-	// Stopping indicates that the cluster is being deleted.
-	Stopping Phase = "Stopping"
 	// Unknown indicates that the cluster status is not known.
 	Unknown Phase = "Unknown"
 )
 
 // InternalState holds the state information of the internal operator which is currently in use. Hydroform uses this information for internal purposes only.
 type InternalState struct {
-	TerraformState *terraform.State
+	TerraformState *statefile.File
 }

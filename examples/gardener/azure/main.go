@@ -17,6 +17,7 @@ func main() {
 	machineType := flag.String("m", "Standard_D2_v3", "Azure machine type")
 	credentials := flag.String("c", "", "Path to the credentials file")
 	secret := flag.String("s", "", "Name of the secret to access the underlying provider of gardener")
+	persist := flag.Bool("persist", false, "Persistence option. With persistence enabled, hydroform will keep state and configuraion of clusters on the file system.")
 	flag.Parse()
 
 	log.SetOutput(ioutil.Discard)
@@ -48,6 +49,12 @@ func main() {
 		},
 	}
 
+	var ops []types.Option
+	// add persistence option
+	if *persist {
+		ops = append(ops, types.Persistent())
+	}
+
 	action.SetArgs(cluster.Name, provider.Type)
 
 	action.SetBefore(action.FuncAction(func(args ...interface{}) (interface{}, error) {
@@ -59,7 +66,7 @@ func main() {
 		fmt.Printf("Provisioned %s successfully\n", args[0])
 		return nil, nil
 	}))
-	cluster, err := hf.Provision(cluster, provider)
+	cluster, err := hf.Provision(cluster, provider, ops...)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
@@ -69,7 +76,7 @@ func main() {
 		fmt.Printf("Getting the status of %s\n", args[0])
 		return nil, nil
 	}))
-	status, err := hf.Status(cluster, provider)
+	status, err := hf.Status(cluster, provider, ops...)
 	if err != nil {
 		fmt.Println("Error:", err.Error())
 		return
@@ -86,7 +93,7 @@ func main() {
 		fmt.Println("Kubeconfig downloaded")
 		return nil, nil
 	}))
-	content, err := hf.Credentials(cluster, provider)
+	content, err := hf.Credentials(cluster, provider, ops...)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
@@ -100,7 +107,7 @@ func main() {
 
 	//fmt.Println("Deprovisioning...")
 	//
-	//err = hf.Deprovision(cluster, provider)
+	//err = hf.Deprovision(cluster, provider, ops...)
 	//if err != nil {
 	//	fmt.Println("Error", err.Error())
 	//	return
