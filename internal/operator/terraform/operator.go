@@ -89,7 +89,7 @@ func (t *Terraform) Status(sf *statefile.File, p types.ProviderType, cfg map[str
 	if sf == nil {
 		sf, err = stateFromFile(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
 		if err != nil {
-			return cs, err
+			return cs, errors.Wrap(err, "no state provided, attempted to load from file")
 		}
 	}
 
@@ -121,12 +121,12 @@ func (t *Terraform) Delete(sf *statefile.File, p types.ProviderType, cfg map[str
 	if sf == nil {
 		_, err = stateFromFile(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "no state provided, attempted to load from file")
 		}
 	} else {
 		// otherwise save the state into a file so terraform can use it
 		if err := stateToFile(sf, t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p); err != nil {
-			return err
+			return errors.Wrap(err, "could not store state into file")
 		}
 	}
 

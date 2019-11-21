@@ -69,27 +69,27 @@ func ToTerraformOptions(ops *types.Options) (tfOps []Option) {
 // Use Option functions to configure its fields.
 func options(ops ...Option) Options {
 	// create default meta
-	Ui := &HydroUI{}
+	ui := &HydroUI{}
 
 	pluginsDirs, err := globalPluginDirs()
 	if err != nil {
-		Ui.Error(fmt.Sprintf("Error setting terraform plugins directory: %s", err))
+		ui.Error(fmt.Sprintf("Error setting terraform plugins directory: %s", err))
 		return Options{}
 	}
 
 	config, diags := cliconfig.LoadConfig()
 	if len(diags) > 0 {
-		Ui.Error("There are some problems with the CLI configuration:")
+		ui.Error("There are some problems with the CLI configuration:")
 		for _, diag := range diags {
 			earlyColor := &colorstring.Colorize{
 				Colors:  colorstring.DefaultColors,
 				Disable: true,
 				Reset:   true,
 			}
-			Ui.Error(format.Diagnostic(diag, nil, earlyColor, 78))
+			ui.Error(format.Diagnostic(diag, nil, earlyColor, 78))
 		}
 		if diags.HasErrors() {
-			Ui.Error("As a result of the above problems, Terraform may not behave as intended.\n\n")
+			ui.Error("As a result of the above problems, Terraform may not behave as intended.\n\n")
 			// We continue to run anyway, since Terraform has reasonable defaults.
 		}
 	}
@@ -97,7 +97,7 @@ func options(ops ...Option) Options {
 	helperPlugins := discovery.FindPlugins("credentials", pluginsDirs)
 	credsSrc, err := config.CredentialsSource(helperPlugins)
 	if err != nil {
-		Ui.Error(fmt.Sprintf("Error loading terraform provider plugins: %s", err))
+		ui.Error(fmt.Sprintf("Error loading terraform provider plugins: %s", err))
 		return Options{}
 	}
 	services := disco.NewWithCredentialsSource(credsSrc)
@@ -110,7 +110,7 @@ func options(ops ...Option) Options {
 	tfOps := Options{
 		Meta: command.Meta{
 			GlobalPluginDirs:    pluginsDirs,
-			Ui:                  Ui,
+			Ui:                  ui,
 			Services:            services,
 			RunningInAutomation: true,
 			CLIConfigDir:        configDir,

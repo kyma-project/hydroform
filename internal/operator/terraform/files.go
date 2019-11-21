@@ -198,9 +198,13 @@ func initClusterFiles(dataDir string, p types.ProviderType, cfg map[string]inter
 	for k, v := range cfg {
 		switch t := v.(type) {
 		case int:
-			vars.WriteString(fmt.Sprintf("%s = \"%d\"\n", k, t))
+			if _, err := vars.WriteString(fmt.Sprintf("%s = \"%d\"\n", k, t)); err != nil {
+				return err
+			}
 		case string:
-			vars.WriteString(fmt.Sprintf("%s = \"%s\"\n", k, t))
+			if _, err := vars.WriteString(fmt.Sprintf("%s = \"%s\"\n", k, t)); err != nil {
+				return err
+			}
 		}
 
 	}

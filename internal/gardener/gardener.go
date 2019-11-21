@@ -114,7 +114,7 @@ func (g *gardenerProvisioner) Deprovision(cluster *types.Cluster, p *types.Provi
 
 	err := g.operator.Delete(state, p.Type, config)
 	if err != nil {
-		return errors.Wrap(err, "unable to deprovision gcp cluster")
+		return errors.Wrap(err, "unable to deprovision gardener cluster")
 	}
 
 	return nil
