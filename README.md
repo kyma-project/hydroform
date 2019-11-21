@@ -4,18 +4,18 @@
 
 Hydroform is an infrastructure SDK you can use to create and manage Kubernetes clusters. Hydroform allows you to manage your clusters on the desired target provider and location. 
 
-The currently supported providers include:
+The currently supported platforms include:
 
 - Google Cloud Platform
 - Gardener
 
 ## Usage
 
-Hydroform is a Go package you can use with any program to: 
+Hydroform is a [Go package](https://godoc.org/github.com/kyma-incubator/hydroform) that you can use with any program. It gives you the following commands: `provision`, `status`, `credentials`, and `deprovision`. Use them to: 
 
 - Create and provision the cluster on a selected cloud provider.
 - Check the status of the cluster.
-- Fetch the kubeconfig file to communicate with the cluster.
+- Fetch the `kubeconfig` file to communicate with the cluster.
 - Delete the cluster along with the configuration. 
 
 ### Actions 
@@ -24,10 +24,4 @@ The `actions` Hydroform subpackage brings even more extensibility to the standar
 
 ### Examples
 
-Follow the links to view Hydroform usage examples: 
-* [GCP](https://github.com/kyma-incubator/hydroform/tree/master/examples/gcp/main.go)
-* [Gardener/GCP](https://github.com/kyma-incubator/hydroform/blob/master/examples/gardener/gcp/main.go)
-* [Gardener/Azure](https://github.com/kyma-incubator/hydroform/blob/master/examples/gardener/azure/main.go)
-* [Gardener/AKS](https://github.com/kyma-incubator/hydroform/blob/master/examples/gardener/aks/main.go)
-
-For detailed information on Hydroform API, see [this](https://godoc.org/github.com/kyma-incubator/hydroform) documentation.
+Follow the links to view Hydroform [usage examples](../hydroform/examples/README.md).
