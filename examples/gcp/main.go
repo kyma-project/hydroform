@@ -14,6 +14,7 @@ func main() {
 	projectName := flag.String("p", "", "GCP project name")
 	machineType := flag.String("m", "n1-standard-4", "GCP machine type")
 	credentials := flag.String("c", "", "Path to the credentials file")
+	persist := flag.Bool("persist", false, "Persistence option. With persistence enabled, hydroform will keep state and configuraion of clusters on the file system.")
 	flag.Parse()
 
 	log.SetOutput(ioutil.Discard)
@@ -32,9 +33,15 @@ func main() {
 		CredentialsFilePath: *credentials,
 	}
 
+	var ops []types.Option
+	// add persistence option
+	if *persist {
+		ops = append(ops, types.Persistent())
+	}
+
 	fmt.Println("Provisioning...")
 
-	cluster, err := hf.Provision(cluster, provider)
+	cluster, err := hf.Provision(cluster, provider, ops...)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
@@ -44,7 +51,7 @@ func main() {
 
 	fmt.Println("Getting the status")
 
-	status, err := hf.Status(cluster, provider)
+	status, err := hf.Status(cluster, provider, ops...)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
@@ -54,7 +61,7 @@ func main() {
 
 	fmt.Println("Downloading the kubeconfig")
 
-	content, err := hf.Credentials(cluster, provider)
+	content, err := hf.Credentials(cluster, provider, ops...)
 	if err != nil {
 		fmt.Println("Error", err.Error())
 		return
@@ -70,7 +77,7 @@ func main() {
 
 	// fmt.Println("Deprovisioning...")
 
-	// err = hf.Deprovision(cluster, provider)
+	// err = hf.Deprovision(cluster, provider, ops...)
 	// if err != nil {
 	// 	fmt.Println("Error", err.Error())
 	// 	return
