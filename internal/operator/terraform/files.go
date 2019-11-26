@@ -159,6 +159,7 @@ resource "gardener_shoot" "test_cluster" {
 	  }
   
 	  kubernetes {
+		allow_privileged_containers = true
 		version = "${var.kubernetes_version}"
 	  }
 	}
