@@ -76,7 +76,9 @@ variable "cluster_name"  			{}
 variable "credentials_file_path" 	{}
 variable "namespace"       			{}
 variable "location"      			{}
+{{ if not (eq (index . "target_provider") "azure") }}
 variable "zone"      				{}
+{{ end }}
 variable "workercidr"      			{}
 {{ if eq (index . "target_provider") "azure" }}
 variable "vnetcidr"				{}
