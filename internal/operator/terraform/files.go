@@ -76,10 +76,12 @@ variable "cluster_name"  			{}
 variable "credentials_file_path" 	{}
 variable "namespace"       			{}
 variable "location"      			{}
+{{ if not (eq (index . "target_provider") "azure") }}
 variable "zone"      				{}
+{{ end }}
 variable "workercidr"      			{}
 {{ if eq (index . "target_provider") "azure" }}
- variable "vnetcidr"				{}
+variable "vnetcidr"				{}
 {{ end }}
 {{ if eq (index . "target_provider") "aws" }}
 variable "vpccidr" 					{}
@@ -125,7 +127,9 @@ resource "gardener_shoot" "test_cluster" {
 		{{ if eq (index . "target_provider") "azure" }}
 		azure {  
           networks {
-			vnet    = [{cidr = "${var.vnetcidr}"}]
+			vnet {
+				cidr = "${var.vnetcidr}"
+			}
 			workers = "${var.workercidr}"
 		  }
 		{{ end }}
@@ -136,7 +140,9 @@ resource "gardener_shoot" "test_cluster" {
 			workers       = ["${var.workercidr}"]
 			public		  = ["${var.publicscidr}"]
 			internal	  = ["${var.internalscidr}"]
-			vpc			  = [{cidr = "${var.vpccidr}"}]
+			vpc	{
+				cidr = "${var.vpccidr}"
+			}
 		  }
 		{{ end }}
 
