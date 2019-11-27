@@ -1,17 +1,16 @@
 package gcp
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/internal/errs"
+	terraform_operator "github.com/kyma-incubator/hydroform/internal/operator/terraform"
 
-	"cloud.google.com/go/container"
 	"github.com/kyma-incubator/hydroform/internal/operator"
 	"github.com/kyma-incubator/hydroform/types"
 	"github.com/pkg/errors"
-	"google.golang.org/api/option"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
@@ -39,33 +38,28 @@ func (g *gcpProvisioner) Provision(cluster *types.Cluster, provider *types.Provi
 }
 
 // Status returns the ClusterStatus for the requested cluster.
-func (g *gcpProvisioner) Status(cluster *types.Cluster, provider *types.Provider) (*types.ClusterStatus, error) {
-	if err := g.validateInputs(cluster, provider); err != nil {
+func (g *gcpProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
+	var state *statefile.File
+	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
+		state = cluster.ClusterInfo.InternalState.TerraformState
+	}
+
+	if err := g.validateInputs(cluster, p); err != nil {
 		return nil, err
 	}
 
-	containerClient, err := container.NewClient(context.Background(),
-		provider.ProjectName,
-		option.WithCredentialsFile(provider.CredentialsFilePath))
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create GCP client")
-	}
-	cl, err := containerClient.Cluster(context.Background(), cluster.Location, cluster.Name)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get cluster info")
-	}
+	cfg := g.loadConfigurations(cluster, p)
 
-	return &types.ClusterStatus{
-		Phase: g.convertGCPStatus(cl.Status),
-	}, nil
+	return g.provisionOperator.Status(state, p.Type, cfg)
 }
 
 // Credentials returns the Kubeconfig file as a byte array for the requested cluster.
-func (g *gcpProvisioner) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
-	if err := g.validateInputs(cluster, provider); err != nil {
+func (g *gcpProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) ([]byte, error) {
+	if err := g.validateInputs(cluster, p); err != nil {
 		return nil, err
 	}
 	if cluster.ClusterInfo == nil || cluster.ClusterInfo.Endpoint == "" || cluster.ClusterInfo.CertificateAuthorityData == nil {
+		// TODO add a way to get endpoint and CA from the state file if possible
 		return nil, errors.New(errs.EmptyClusterInfo)
 	}
 
@@ -94,17 +88,19 @@ func (g *gcpProvisioner) Credentials(cluster *types.Cluster, provider *types.Pro
 }
 
 // Deprovision requests deprovisioning of an existing cluster on GCP with the given configurations.
-func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, provider *types.Provider) error {
-	if err := g.validateInputs(cluster, provider); err != nil {
+func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
+	if err := g.validateInputs(cluster, p); err != nil {
 		return err
 	}
-	if cluster.ClusterInfo == nil || cluster.ClusterInfo.InternalState == nil {
-		return errors.New(errs.EmptyClusterInfo)
+
+	config := g.loadConfigurations(cluster, p)
+
+	var state *statefile.File
+	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
+		state = cluster.ClusterInfo.InternalState.TerraformState
 	}
 
-	config := g.loadConfigurations(cluster, provider)
-
-	err := g.provisionOperator.Delete(cluster.ClusterInfo.InternalState, provider.Type, config)
+	err := g.provisionOperator.Delete(state, p.Type, config)
 	if err != nil {
 		return errors.Wrap(err, "unable to deprovision gcp cluster")
 	}
@@ -113,12 +109,18 @@ func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, provider *types.Pro
 }
 
 // New creates a new instance of gcpProvisioner.
-func New(operatorType operator.Type) *gcpProvisioner {
-	var op operator.Operator
+func New(operatorType operator.Type, ops ...types.Option) *gcpProvisioner {
+	// parse config
+	os := &types.Options{}
+	for _, o := range ops {
+		o(os)
+	}
 
+	var op operator.Operator
 	switch operatorType {
 	case operator.TerraformOperator:
-		op = &operator.Terraform{}
+		tfOps := terraform_operator.ToTerraformOptions(os)
+		op = terraform_operator.New(tfOps...)
 	default:
 		op = &operator.Unknown{}
 	}
@@ -179,33 +181,4 @@ func (g *gcpProvisioner) loadConfigurations(cluster *types.Cluster, provider *ty
 		config[k] = v
 	}
 	return config
-}
-
-// Possible values for the GCP Cluster Status:
-//   "STATUS_UNSPECIFIED" - not set.
-//   "PROVISIONING" - indicates the cluster is being created.
-//   "RUNNING" - indicates the cluster has been created and is fully usable.
-//   "RECONCILING" - indicates that some work is actively being done on the cluster,
-//                   such as upgrading the master or node software.
-//   "STOPPING" - indicates the cluster is being deleted.
-//   "ERROR" - indicates the cluster may be unusable.
-//   "DEGRADED" - indicates the cluster requires user action to restore full functionality.
-// More details can be found in the `statusMessage` field.
-func (g *gcpProvisioner) convertGCPStatus(status container.Status) types.Phase {
-	switch status {
-	default:
-		return types.Unknown
-	case "PROVISIONING":
-		return types.Provisioning
-	case "RUNNING":
-		return types.Provisioned
-	case "RECONCILING":
-		return types.Pending
-	case "STOPPING":
-		return types.Stopping
-	case "ERROR":
-		return types.Errored
-	case "DEGRADED":
-		return types.Errored
-	}
 }

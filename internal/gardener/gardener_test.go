@@ -4,41 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/internal/terraform"
-
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/internal/operator/mocks"
 	"github.com/pkg/errors"
 
 	"github.com/kyma-incubator/hydroform/types"
 	"github.com/stretchr/testify/require"
-
-	gardener_core "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
-	gardener_types "github.com/gardener/gardener/pkg/apis/garden/v1beta1"
 )
-
-const convertError = "Status [%s] should be converted to [%s]"
-
-func TestConvertGardenerState(t *testing.T) {
-	status := gardener_types.ShootStatus{
-		LastOperation: &gardener_core.LastOperation{
-			State: "",
-		},
-	}
-
-	require.Equal(t, types.Unknown, convertGardenertatus(status), fmt.Sprintf(convertError, "\"\"", types.Unknown))
-	status.LastOperation.State = gardener_core.LastOperationStatePending
-	require.Equal(t, types.Pending, convertGardenertatus(status), fmt.Sprintf(convertError, gardener_core.LastOperationStatePending, types.Pending))
-	status.LastOperation.State = gardener_core.LastOperationStateProcessing
-	require.Equal(t, types.Provisioning, convertGardenertatus(status), fmt.Sprintf(convertError, gardener_core.LastOperationStateProcessing, types.Provisioning))
-	status.LastOperation.State = gardener_core.LastOperationStateError
-	require.Equal(t, types.Errored, convertGardenertatus(status), fmt.Sprintf(convertError, gardener_core.LastOperationStateError, types.Errored))
-	status.LastOperation.State = gardener_core.LastOperationStateFailed
-	require.Equal(t, types.Errored, convertGardenertatus(status), fmt.Sprintf(convertError, gardener_core.LastOperationStateFailed, types.Errored))
-	status.LastOperation.State = gardener_core.LastOperationStateAborted
-	require.Equal(t, types.Errored, convertGardenertatus(status), fmt.Sprintf(convertError, gardener_core.LastOperationStateAborted, types.Errored))
-	status.LastOperation.State = gardener_core.LastOperationStateSucceeded
-	require.Equal(t, types.Provisioned, convertGardenertatus(status), fmt.Sprintf(convertError, gardener_core.LastOperationStateSucceeded, types.Provisioned))
-}
 
 func TestValidate(t *testing.T) {
 	t.Run("Validate GCP config", func(t *testing.T) {
@@ -401,20 +373,14 @@ func TestDeProvision(t *testing.T) {
 			"max_unavailable": 1,
 		},
 	}
-	goodState := &types.InternalState{
-		TerraformState: terraform.NewState(),
-	}
-	cluster.ClusterInfo.InternalState = goodState
-	mockOp.On("Delete", goodState, types.Gardener, g.loadConfigurations(cluster, provider)).Return(nil)
+	var state *statefile.File
+	mockOp.On("Delete", state, types.Gardener, g.loadConfigurations(cluster, provider)).Return(nil)
 
 	err := g.Deprovision(cluster, provider)
 	require.NoError(t, err, "Deprovision should succeed")
 
-	badState := &types.InternalState{
-		TerraformState: nil,
-	}
-	cluster.ClusterInfo.InternalState = badState
-	mockOp.On("Delete", badState, types.Gardener, g.loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
+	provider.CredentialsFilePath = "/wrong/credentials"
+	mockOp.On("Delete", state, types.Gardener, g.loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
 
 	err = g.Deprovision(cluster, provider)
 	require.Error(t, err, "Deprovision should fail")
