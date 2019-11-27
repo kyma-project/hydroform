@@ -13,7 +13,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +44,7 @@ type GenericClient struct {
 
 func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desiredPhase corev1.PodPhase, timeout, checkInterval time.Duration) error {
 	return util.WaitFor(checkInterval, timeout, func() (bool, error) {
-		pods, err := c.coreClient.Pods(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
+		pods, err := c.coreClient.Pods(namespace).List(v1.ListOptions{LabelSelector: labelSelector})
 		if err != nil {
 			return false, err
 		}

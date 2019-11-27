@@ -42,12 +42,9 @@ func (c ConfigEntries) Get(key string) (ConfigEntry, bool) {
 func (c *ConfigEntries) Set(key, value string, secret bool) {
 	for i, entry := range *c {
 		if entry.Key == key {
-			entry.Value = value
-			entry.Secret = secret
+			(*c)[i].Value = value
+			(*c)[i].Secret = secret
 
-			entries := *c
-			entries[i] = entry
-			*c = entries
 			return
 		}
 	}

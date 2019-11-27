@@ -32,7 +32,7 @@ var (
 
 func TestGenericClient_WaitForPodByLabel(t *testing.T) {
 
-	t.Run("should return nil if pod exists with correct label", func(t *testing.T) {
+	t.Run("should return nil if pod exists with correct status", func(t *testing.T) {
 		// given
 		existingPods := []runtime.Object{
 			&v1.Pod{
@@ -52,7 +52,7 @@ func TestGenericClient_WaitForPodByLabel(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("should return nil if pod changed its label to correct one", func(t *testing.T) {
+	t.Run("should return nil if pod changed its status to correct one", func(t *testing.T) {
 		// given
 		existingPods := []runtime.Object{
 			&v1.Pod{
@@ -101,7 +101,7 @@ func TestGenericClient_WaitForPodByLabel(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("should return error if pod does not have correct label", func(t *testing.T) {
+	t.Run("should return error if pod does not have correct status", func(t *testing.T) {
 		// given
 		existingPods := []runtime.Object{
 			&v1.Pod{

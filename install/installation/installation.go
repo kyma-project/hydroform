@@ -78,8 +78,6 @@ type InstallationState struct {
 	Description string
 }
 
-// TODO - think of a better name
-
 // NewKymaInstaller initializes new KymaInstaller configured to work with the cluster from provided Kubeconfig
 func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (Installer, error) {
 	options := &installationOptions{
@@ -107,7 +105,7 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (Inst
 		return nil, err
 	}
 
-	installtionClient, err := installationClientset.NewForConfig(kubeconfig)
+	installationClient, err := installationClientset.NewForConfig(kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +126,7 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (Inst
 		tillerWaitTimeout:                 defaultTillerWaitTimeout,
 		decoder:                           decoder,
 		k8sGenericClient:                  k8s.NewGenericClient(restMapper, dynamicClient, coreClient),
-		installationClient:                installtionClient.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace),
+		installationClient:                installationClient.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace),
 	}, nil
 }
 

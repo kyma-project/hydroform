@@ -53,7 +53,7 @@ func TestWaitFor(t *testing.T) {
 		assert.Contains(t, err.Error(), "timeout")
 	})
 
-	t.Run("should return error when error occured", func(t *testing.T) {
+	t.Run("should return error when error occurred", func(t *testing.T) {
 		// when
 		err := WaitFor(time.Second, time.Second*3, func() (b bool, e error) {
 			return false, fmt.Errorf("error")
