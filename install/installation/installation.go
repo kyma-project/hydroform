@@ -401,6 +401,11 @@ func handleInstallationEvent(event watch.Event) (InstallationState, error) {
 		}
 
 		switch installation.Status.State {
+		case v1alpha1.StateEmpty:
+			return InstallationState{
+				State:       "",
+				Description: installation.Status.Description,
+			}, nil
 		case v1alpha1.StateInstalled:
 			return InstallationState{
 				State:       string(v1alpha1.StateInstalled),
@@ -414,7 +419,7 @@ func handleInstallationEvent(event watch.Event) (InstallationState, error) {
 				Description: installation.Status.Description,
 			}, nil
 		default:
-			return InstallationState{}, newInvalidInstallationStateError(installation)
+			return InstallationState{}, fmt.Errorf("invalid installation state: %s", installation.Status.State)
 		}
 	case watch.Error:
 		return InstallationState{}, fmt.Errorf("installation watch error occured: %s", tryToExtractErrorStatus(event.Object))
@@ -440,13 +445,6 @@ func newInstallationError(installation *v1alpha1.Installation) InstallationError
 	}
 
 	return installationError
-}
-
-func newInvalidInstallationStateError(installation *v1alpha1.Installation) InvalidInstallationStateError {
-	return InvalidInstallationStateError{
-		InstallationState:  string(installation.Status.State),
-		InstallationStatus: installation.Status.Description,
-	}
 }
 
 func tryToExtractErrorStatus(object runtime.Object) string {

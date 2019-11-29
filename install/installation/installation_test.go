@@ -282,6 +282,7 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 		kymaInstaller := newKymaInstaller(nil, nil, k8sClientSet, installationClientSet)
 
 		expectedStates := []InstallationState{
+			{State: string(v1alpha1.StateEmpty), Description: ""},
 			{State: string(v1alpha1.StateInProgress), Description: "In progress"},
 			{State: string(v1alpha1.StateInProgress), Description: "Still in progress"},
 			{State: string(v1alpha1.StateInstalled), Description: "Kyma installed"},
@@ -294,6 +295,7 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 		updateErrChan := make(chan error)
 
 		go updateInstallationPeriodically(updateErrChan, installationClient,
+			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateEmpty, Description: ""}),
 			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateInProgress, Description: "In progress"}),
 			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateInProgress, Description: "Still in progress"}),
 			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateInstalled, Description: "Kyma installed"}))
@@ -320,57 +322,6 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 				break
 			}
 		}
-
-		_, opened := <-installationStateChan
-		assert.False(t, opened)
-		_, opened = <-errorChan
-		assert.False(t, opened)
-	})
-
-	t.Run("should return invalid installation state error if unexpected state occured", func(t *testing.T) {
-		// given
-		k8sClientSet := fake.NewSimpleClientset()
-		installationClientSet := installationFake.NewSimpleClientset(installation)
-		installationClient := installationClientSet.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace)
-
-		kymaInstaller := newKymaInstaller(nil, nil, k8sClientSet, installationClientSet)
-
-		ctx, cancel := context.WithCancel(context.Background())
-
-		// when
-		installationStateChan, errorChan, err := kymaInstaller.StartInstallation(ctx)
-		require.NoError(t, err)
-
-		updateErrChan := make(chan error)
-
-		go updateInstallationPeriodically(updateErrChan, installationClient,
-			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: "state", Description: "description"}))
-
-		finished := false
-		// then
-		for {
-			select {
-			case _ = <-installationStateChan:
-				t.Fatalf("unexpected - received from state channel")
-			case err := <-errorChan:
-				assert.Error(t, err)
-				var invalidInstallationError InvalidInstallationStateError
-				ok := errors.As(err, &invalidInstallationError)
-				require.True(t, ok)
-				assert.Equal(t, "state", invalidInstallationError.InstallationState)
-				assert.Equal(t, "description", invalidInstallationError.InstallationStatus)
-				finished = true
-			case updateErr := <-updateErrChan:
-				t.Fatalf("Received update error: %s", updateErr.Error())
-			}
-
-			if finished == true {
-				break
-			}
-		}
-
-		cancel()
-		assert.Error(t, <-errorChan)
 
 		_, opened := <-installationStateChan
 		assert.False(t, opened)
