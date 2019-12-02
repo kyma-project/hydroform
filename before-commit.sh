@@ -24,6 +24,14 @@ if [ ${ensureResult} != 0 ]; then
 else echo -e "${GREEN}√ go mod tidy${NC}"
 fi
 
+## Ensure go mod tidy did not modify go.mod and go.sum
+if [[ "$1" == "$CI_FLAG" ]]; then
+  if [[ -n $(git status -s go.*) ]]; then
+		echo -e "${RED}✗ go mod tidy modified go.mod or go.sum files${NC}";
+    exit 1
+  fi
+fi
+
 
 ##
 # Validate dependencies
