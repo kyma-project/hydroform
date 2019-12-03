@@ -1,6 +1,8 @@
 package installation
 
 import (
+	"time"
+
 	"github.com/kyma-project/kyma/components/kyma-operator/pkg/apis/installer/v1alpha1"
 )
 
@@ -17,6 +19,7 @@ func (f optionFunc) apply(o *installationOptions) {
 type installationOptions struct {
 	logger                         Logger
 	installationCRModificationFunc func(installation *v1alpha1.Installation)
+	tillerWaitTime                 time.Duration
 }
 
 func WithInstallationCRModification(modFunc func(installation *v1alpha1.Installation)) InstallationOption {
@@ -28,5 +31,11 @@ func WithInstallationCRModification(modFunc func(installation *v1alpha1.Installa
 func WithLogger(logger Logger) InstallationOption {
 	return optionFunc(func(o *installationOptions) {
 		o.logger = logger
+	})
+}
+
+func WithTillerWaitTime(tillerWaitTime time.Duration) InstallationOption {
+	return optionFunc(func(o *installationOptions) {
+		o.tillerWaitTime = tillerWaitTime
 	})
 }

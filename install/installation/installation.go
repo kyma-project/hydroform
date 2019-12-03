@@ -82,6 +82,7 @@ type InstallationState struct {
 func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (Installer, error) {
 	options := &installationOptions{
 		installationCRModificationFunc: func(installation *v1alpha1.Installation) {},
+		tillerWaitTime:                 defaultTillerWaitTimeout,
 	}
 
 	for _, o := range opts {
@@ -123,7 +124,6 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (Inst
 	return &KymaInstaller{
 		installationOptions:               options,
 		installationWatcherTimeoutSeconds: defaultWatcherTimeoutSeconds,
-		tillerWaitTimeout:                 defaultTillerWaitTimeout,
 		decoder:                           decoder,
 		k8sGenericClient:                  k8s.NewGenericClient(restMapper, dynamicClient, coreClient),
 		installationClient:                installationClient.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace),
@@ -134,7 +134,6 @@ type KymaInstaller struct {
 	*installationOptions
 
 	installationWatcherTimeoutSeconds int64
-	tillerWaitTimeout                 time.Duration
 	decoder                           runtime.Decoder
 	k8sGenericClient                  *k8s.GenericClient
 	installationClient                installationTyped.InstallationInterface
@@ -211,7 +210,7 @@ func (k KymaInstaller) installTiller(tillerYaml string) error {
 	k.infof("Tiller installed successfully")
 
 	k.infof("Waiting for Tiller to start...")
-	err = k.k8sGenericClient.WaitForPodByLabel(kubeSystemNamespace, tillerLabelSelector, corev1.PodRunning, k.tillerWaitTimeout, tillerCheckInterval)
+	err = k.k8sGenericClient.WaitForPodByLabel(kubeSystemNamespace, tillerLabelSelector, corev1.PodRunning, k.installationOptions.tillerWaitTime, tillerCheckInterval)
 	if err != nil {
 		return fmt.Errorf("timeout waiting for Tiller to start running: %w", err)
 	}
