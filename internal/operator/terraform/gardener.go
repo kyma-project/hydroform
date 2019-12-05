@@ -45,6 +45,12 @@ func initGardenerProvider() error {
 	}
 
 	// save the file
+	if _, err := os.Stat(pluginDirs[1]); os.IsNotExist(err) {
+		err = os.MkdirAll(pluginDirs[1], 0700)
+		if err != nil {
+			return err
+		}
+	}
 	if err := ioutil.WriteFile(providerPath, data, 0700); err != nil {
 		return err
 	}

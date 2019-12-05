@@ -2,6 +2,7 @@ package installation
 
 import (
 	"testing"
+	"time"
 
 	"github.com/kyma-project/kyma/components/kyma-operator/pkg/apis/installer/v1alpha1"
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,7 @@ func Test_Options(t *testing.T) {
 	optionsFuncs := []InstallationOption{
 		WithInstallationCRModification(crModFunc),
 		WithLogger(logger),
+		WithTillerWaitTime(time.Hour),
 	}
 
 	for _, f := range optionsFuncs {
@@ -34,4 +36,5 @@ func Test_Options(t *testing.T) {
 	// then
 	assert.Equal(t, logger, installationOptions.logger)
 	installationOptions.installationCRModificationFunc(nil)
+	assert.Equal(t, time.Hour, installationOptions.tillerWaitTime)
 }

@@ -282,6 +282,7 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 		kymaInstaller := newKymaInstaller(nil, nil, k8sClientSet, installationClientSet)
 
 		expectedStates := []InstallationState{
+			{State: string(v1alpha1.StateEmpty), Description: ""},
 			{State: string(v1alpha1.StateInProgress), Description: "In progress"},
 			{State: string(v1alpha1.StateInProgress), Description: "Still in progress"},
 			{State: string(v1alpha1.StateInstalled), Description: "Kyma installed"},
@@ -294,6 +295,7 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 		updateErrChan := make(chan error)
 
 		go updateInstallationPeriodically(updateErrChan, installationClient,
+			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateEmpty, Description: ""}),
 			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateInProgress, Description: "In progress"}),
 			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateInProgress, Description: "Still in progress"}),
 			updateInstallationStatusFunc(&v1alpha1.InstallationStatus{State: v1alpha1.StateInstalled, Description: "Kyma installed"}))
