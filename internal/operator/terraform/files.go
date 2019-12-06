@@ -107,6 +107,10 @@ resource "gardener_shoot" "test_cluster" {
 	  namespace = "${var.namespace}"
   
 	}
+
+	timeouts {
+		create = "${var.creation_timeout}"
+	}
   
 	spec {
 	  cloud {

@@ -3,6 +3,7 @@ package gardener
 import (
 	"fmt"
 	"regexp"
+	"time"
 
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -20,6 +21,8 @@ const (
 	gcpProfile   string = "gcp"
 	awsProfile   string = "aws"
 	azureProfile string = "az"
+
+	defaultCreationTimeout time.Duration = time.Minute * 35
 )
 
 type gardenerProvisioner struct {
@@ -220,6 +223,8 @@ func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 	config["location"] = cluster.Location
 	config["project"] = provider.ProjectName
 	config["namespace"] = fmt.Sprintf("garden-%s", provider.ProjectName)
+
+	config["creation_timeout"] = defaultCreationTimeout
 
 	for k, v := range provider.CustomConfigurations {
 		config[k] = v
