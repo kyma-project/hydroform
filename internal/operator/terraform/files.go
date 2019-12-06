@@ -109,9 +109,9 @@ resource "gardener_shoot" "test_cluster" {
 	}
 
 	timeouts {
-		create = "${var.creation_timeout}"
+ 	  create = "60m"
 	}
-  
+
 	spec {
 	  cloud {
 		profile = "${var.target_profile}"
