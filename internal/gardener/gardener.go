@@ -3,7 +3,8 @@ package gardener
 import (
 	"fmt"
 	"regexp"
-	"time"
+
+	configPkg "github.com/kyma-incubator/hydroform/internal/config"
 
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -21,12 +22,11 @@ const (
 	gcpProfile   string = "gcp"
 	awsProfile   string = "aws"
 	azureProfile string = "az"
-
-	defaultCreationTimeout time.Duration = time.Minute * 35
 )
 
 type gardenerProvisioner struct {
 	operator operator.Operator
+	timeouts types.Timeouts
 }
 
 func New(operatorType operator.Type, ops ...types.Option) *gardenerProvisioner {
@@ -46,6 +46,7 @@ func New(operatorType operator.Type, ops ...types.Option) *gardenerProvisioner {
 	}
 	return &gardenerProvisioner{
 		operator: op,
+		timeouts: os.Timeouts,
 	}
 }
 
@@ -212,7 +213,7 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	return nil
 }
 
-func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
+func (g *gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
 	config["credentials_file_path"] = provider.CredentialsFilePath
@@ -224,11 +225,11 @@ func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 	config["project"] = provider.ProjectName
 	config["namespace"] = fmt.Sprintf("garden-%s", provider.ProjectName)
 
-	config["creation_timeout"] = defaultCreationTimeout
+	configPkg.ExtendConfig(config, provider.CustomConfigurations)
 
-	for k, v := range provider.CustomConfigurations {
-		config[k] = v
-	}
+	timeoutsConfig := configPkg.LoadTimeoutConfiguration(g.timeouts)
+	configPkg.ExtendConfig(config, timeoutsConfig)
+
 	switch config["target_provider"] {
 	case string(types.GCP):
 		config["target_profile"] = gcpProfile

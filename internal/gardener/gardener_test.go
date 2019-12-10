@@ -3,6 +3,7 @@ package gardener
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/internal/operator/mocks"
@@ -242,7 +243,15 @@ func performBasicValidation(t *testing.T, g gardenerProvisioner, cluster *types.
 
 func TestLoadConfigurations(t *testing.T) {
 
-	g := gardenerProvisioner{}
+	timeouts := types.Timeouts{
+		Create: 10 * time.Minute,
+		Update: 20 * time.Minute,
+		Delete: 30 * time.Minute,
+	}
+
+	g := gardenerProvisioner{
+		timeouts: timeouts,
+	}
 
 	cluster := &types.Cluster{
 		CPU:               1,
@@ -276,6 +285,9 @@ func TestLoadConfigurations(t *testing.T) {
 	require.Equal(t, cluster.KubernetesVersion, config["kubernetes_version"])
 	require.Equal(t, cluster.Location, config["location"])
 	require.Equal(t, fmt.Sprintf("garden-%s", provider.ProjectName), config["namespace"])
+	require.Equal(t, timeouts.Create, config["create_timeout"])
+	require.Equal(t, timeouts.Update, config["update_timeout"])
+	require.Equal(t, timeouts.Delete, config["delete_timeout"])
 
 	for k, v := range provider.CustomConfigurations {
 		require.Equal(t, v, config[k], fmt.Sprintf("Custom config %s is incorrect", k))
