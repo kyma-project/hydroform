@@ -56,8 +56,8 @@ const (
 
 	timeouts {
 		create = "${var.create_timeout}"
-    	update = "${var.update_timeout}"
-    	delete = "${var.delete_timeout}"
+		update = "${var.update_timeout}"
+		delete = "${var.delete_timeout}"
 	}
 
     maintenance_policy {
@@ -124,8 +124,8 @@ resource "gardener_shoot" "test_cluster" {
 
 	timeouts {
 		create = "${var.create_timeout}"
-    	update = "${var.update_timeout}"
-    	delete = "${var.delete_timeout}"
+		update = "${var.update_timeout}"
+		delete = "${var.delete_timeout}"
 	}
 
 	spec {
