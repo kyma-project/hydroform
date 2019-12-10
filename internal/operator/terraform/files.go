@@ -84,7 +84,7 @@ variable "target_secret"			{}
 variable "node_count"    			{}
 variable "cluster_name"  			{}
 variable "credentials_file_path" 	{}
-variable "project"       		    {}
+variable "project"					{}
 variable "namespace"       			{}
 variable "location"      			{}
 {{ if not (eq (index . "target_provider") "azure") }}
