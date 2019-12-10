@@ -8,8 +8,8 @@ import (
 
 const (
 	defaultCreateTimeout = 30 * time.Minute
-	defaultUpdateTimeout = 20 * time.Minute
-	defaultDeleteTimeout = 15 * time.Minute
+	defaultUpdateTimeout = 30 * time.Minute
+	defaultDeleteTimeout = 20 * time.Minute
 )
 
 func LoadTimeoutConfiguration(timeouts types.Timeouts) map[string]interface{} {
