@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kyma-incubator/hydroform/types"
+	"github.com/kyma-incubator/hydroform/provision/types"
 	"github.com/pkg/errors"
 
 	"github.com/hashicorp/terraform/command"

@@ -2,7 +2,7 @@ package operator
 
 import (
 	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/kyma-incubator/hydroform/types"
+	"github.com/kyma-incubator/hydroform/provision/types"
 )
 
 //go:generate mockery -name=Operator -case=snake

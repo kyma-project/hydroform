@@ -1,6 +1,6 @@
 .PHONY: build
 build:
-	./before-commit.sh ci
+	./provision/before-commit.sh ci
 	./install/before-commit.sh ci
 
 .PHONY: ci-pr

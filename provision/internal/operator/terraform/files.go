@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/kyma-incubator/hydroform/types"
+	"github.com/kyma-incubator/hydroform/provision/types"
 	"github.com/pkg/errors"
 )
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/kyma-incubator/hydroform/types"
+	"github.com/kyma-incubator/hydroform/provision/types"
 )
 
 // Unknown represents an invalid operator.

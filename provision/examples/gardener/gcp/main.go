@@ -6,15 +6,15 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/kyma-incubator/hydroform/action"
+	"github.com/kyma-incubator/hydroform/provision/action"
 
-	hf "github.com/kyma-incubator/hydroform"
-	"github.com/kyma-incubator/hydroform/types"
+	hf "github.com/kyma-incubator/hydroform/provision"
+	"github.com/kyma-incubator/hydroform/provision/types"
 )
 
 func main() {
 	projectName := flag.String("p", "", "Gardener project name")
-	machineType := flag.String("m", "Standard_D2_v3", "Azure machine type")
+	machineType := flag.String("m", "n1-standard-4", "GCP machine type")
 	credentials := flag.String("c", "", "Path to the credentials file")
 	secret := flag.String("s", "", "Name of the secret to access the underlying provider of gardener")
 	persist := flag.Bool("persist", false, "Persistence option. With persistence enabled, hydroform will keep state and configuraion of clusters on the file system.")
@@ -25,10 +25,10 @@ func main() {
 	cluster := &types.Cluster{
 		CPU:               1,
 		KubernetesVersion: "1.15.4",
-		Name:              "hydro-azure",
-		DiskSizeGB:        35,
+		Name:              "hydro-gcp",
+		DiskSizeGB:        30,
 		NodeCount:         2,
-		Location:          "westeurope",
+		Location:          "europe-west4",
 		MachineType:       *machineType,
 	}
 	provider := &types.Provider{
@@ -36,12 +36,12 @@ func main() {
 		ProjectName:         *projectName,
 		CredentialsFilePath: *credentials,
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "azure",
-			"target_seed":     "az-eu1",
+			"target_provider": "gcp",
+			"target_seed":     "gcp-eu1",
 			"target_secret":   *secret,
-			"disk_type":       "standard",
+			"disk_type":       "pd-standard",
+			"zone":            "europe-west4-b",
 			"workercidr":      "10.250.0.0/19",
-			"vnetcidr":        "10.250.0.0/19",
 			"autoscaler_min":  2,
 			"autoscaler_max":  4,
 			"max_surge":       4,

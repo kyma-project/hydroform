@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plugin/discovery"
-	"github.com/kyma-incubator/hydroform/types"
+	"github.com/kyma-incubator/hydroform/provision/types"
 	"github.com/mitchellh/colorstring"
 
 	hashiCli "github.com/mitchellh/cli"

@@ -3,13 +3,13 @@ package hydroform
 import (
 	"errors"
 
-	"github.com/kyma-incubator/hydroform/action"
+	"github.com/kyma-incubator/hydroform/provision/action"
 
-	"github.com/kyma-incubator/hydroform/internal/gardener"
+	"github.com/kyma-incubator/hydroform/provision/internal/gardener"
 
-	"github.com/kyma-incubator/hydroform/internal/gcp"
-	"github.com/kyma-incubator/hydroform/internal/operator"
-	"github.com/kyma-incubator/hydroform/types"
+	"github.com/kyma-incubator/hydroform/provision/internal/gcp"
+	"github.com/kyma-incubator/hydroform/provision/internal/operator"
+	"github.com/kyma-incubator/hydroform/provision/types"
 )
 
 const provisioningOperator = operator.TerraformOperator

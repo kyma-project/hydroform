@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/kyma-incubator/hydroform/internal/operator/mocks"
+	"github.com/kyma-incubator/hydroform/provision/internal/operator/mocks"
 	"github.com/pkg/errors"
 
-	"github.com/kyma-incubator/hydroform/types"
+	"github.com/kyma-incubator/hydroform/provision/types"
 	"github.com/stretchr/testify/require"
 )
 

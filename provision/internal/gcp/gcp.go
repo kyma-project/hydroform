@@ -5,11 +5,11 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/kyma-incubator/hydroform/internal/errs"
-	terraform_operator "github.com/kyma-incubator/hydroform/internal/operator/terraform"
+	"github.com/kyma-incubator/hydroform/provision/internal/errs"
+	terraform_operator "github.com/kyma-incubator/hydroform/provision/internal/operator/terraform"
 
-	"github.com/kyma-incubator/hydroform/internal/operator"
-	"github.com/kyma-incubator/hydroform/types"
+	"github.com/kyma-incubator/hydroform/provision/internal/operator"
+	"github.com/kyma-incubator/hydroform/provision/types"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"

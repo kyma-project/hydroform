@@ -1,4 +1,4 @@
-module github.com/kyma-incubator/hydroform
+module github.com/kyma-incubator/hydroform/provision
 
 go 1.13
 
@@ -7,6 +7,7 @@ replace github.com/census-instrumentation/opencensus-proto v0.1.0-0.201812141439
 require (
 	github.com/hashicorp/terraform v0.12.13
 	github.com/hashicorp/terraform-svchost v0.0.0-20191011084731-65d371908596
+	github.com/kyma-incubator/hydroform v0.0.0-20191209064640-97160354ef3e //kavya
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/pkg/errors v0.8.1
