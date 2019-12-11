@@ -24,4 +24,4 @@ The `actions` Hydroform subpackage brings even more extensibility to the standar
 
 ### Examples
 
-Follow the links to view Hydroform [usage examples](/examples/README.md).
+Follow the links to view Hydroform [usage examples](/provision/examples/README.md).
