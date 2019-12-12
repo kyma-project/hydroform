@@ -7,7 +7,7 @@ import "time"
 type Options struct {
 	DataDir    string
 	Persistent bool
-	Timeouts   Timeouts
+	Timeouts   *Timeouts
 }
 
 // Timeouts specifies timeouts on various operation
@@ -35,7 +35,7 @@ func WithDataDir(dir string) Option {
 	}
 }
 
-func WithTimeouts(timeouts Timeouts) Option {
+func WithTimeouts(timeouts *Timeouts) Option {
 	return func(ops *Options) {
 		ops.Timeouts = timeouts
 	}

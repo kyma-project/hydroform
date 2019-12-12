@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"regexp"
 
-	configPkg "github.com/kyma-incubator/hydroform/internal/config"
-
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/internal/errs"
 	terraform_operator "github.com/kyma-incubator/hydroform/internal/operator/terraform"
@@ -20,7 +18,6 @@ import (
 // gcpProvisioner implements Provisioner
 type gcpProvisioner struct {
 	provisionOperator operator.Operator
-	timeouts          types.Timeouts
 }
 
 // Provision requests provisioning of a new Kubernetes cluster on GCP with the given configurations.
@@ -130,7 +127,6 @@ func New(operatorType operator.Type, ops ...types.Option) *gcpProvisioner {
 
 	return &gcpProvisioner{
 		provisionOperator: op,
-		timeouts:          os.Timeouts,
 	}
 }
 
@@ -181,11 +177,8 @@ func (g *gcpProvisioner) loadConfigurations(cluster *types.Cluster, provider *ty
 	config["location"] = cluster.Location
 	config["project"] = provider.ProjectName
 	config["credentials_file_path"] = provider.CredentialsFilePath
-
-	configPkg.ExtendConfig(config, provider.CustomConfigurations)
-
-	timeoutsConfig := configPkg.LoadTimeoutConfiguration(g.timeouts)
-	configPkg.ExtendConfig(config, timeoutsConfig)
-
+	for k, v := range provider.CustomConfigurations {
+		config[k] = v
+	}
 	return config
 }

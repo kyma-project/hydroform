@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"regexp"
 
-	configPkg "github.com/kyma-incubator/hydroform/internal/config"
-
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/hashicorp/terraform/states/statefile"
@@ -26,7 +24,6 @@ const (
 
 type gardenerProvisioner struct {
 	operator operator.Operator
-	timeouts types.Timeouts
 }
 
 func New(operatorType operator.Type, ops ...types.Option) *gardenerProvisioner {
@@ -46,7 +43,6 @@ func New(operatorType operator.Type, ops ...types.Option) *gardenerProvisioner {
 	}
 	return &gardenerProvisioner{
 		operator: op,
-		timeouts: os.Timeouts,
 	}
 }
 
@@ -213,7 +209,7 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	return nil
 }
 
-func (g *gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
+func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
 	config["credentials_file_path"] = provider.CredentialsFilePath
@@ -225,11 +221,9 @@ func (g *gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provide
 	config["project"] = provider.ProjectName
 	config["namespace"] = fmt.Sprintf("garden-%s", provider.ProjectName)
 
-	configPkg.ExtendConfig(config, provider.CustomConfigurations)
-
-	timeoutsConfig := configPkg.LoadTimeoutConfiguration(g.timeouts)
-	configPkg.ExtendConfig(config, timeoutsConfig)
-
+	for k, v := range provider.CustomConfigurations {
+		config[k] = v
+	}
 	switch config["target_provider"] {
 	case string(types.GCP):
 		config["target_profile"] = gcpProfile

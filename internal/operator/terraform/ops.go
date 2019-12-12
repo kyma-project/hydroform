@@ -25,6 +25,9 @@ type Options struct {
 	// Persistent allows to configure if terraform files should stay in the file system or be cleaned up after each operation.
 	Persistent bool
 	// TODO add module source property here corresponding to flag -from-module
+
+	// Timeouts specifies the timeouts of the operations
+	Timeouts types.Timeouts
 }
 
 // Option is a function that allows to extensibly configure the terraform operator.
@@ -51,6 +54,13 @@ func Persistent() Option {
 	}
 }
 
+// Sets operation timeouts
+func WithTimeouts(timeouts types.Timeouts) Option {
+	return func(ops *Options) {
+		ops.Timeouts = timeouts
+	}
+}
+
 // ToTerraformOptions turns Hydroform options into terraform operator specific options
 func ToTerraformOptions(ops *types.Options) (tfOps []Option) {
 
@@ -60,6 +70,10 @@ func ToTerraformOptions(ops *types.Options) (tfOps []Option) {
 
 	if ops.Persistent {
 		tfOps = append(tfOps, Persistent())
+	}
+
+	if ops.Timeouts != nil {
+		tfOps = append(tfOps, WithTimeouts(*ops.Timeouts))
 	}
 
 	return tfOps

@@ -1,4 +1,4 @@
-package config
+package terraform
 
 import (
 	"time"
@@ -27,5 +27,11 @@ func LoadTimeoutConfiguration(timeouts types.Timeouts) map[string]interface{} {
 		"create_timeout": timeouts.Create,
 		"update_timeout": timeouts.Update,
 		"delete_timeout": timeouts.Delete,
+	}
+}
+
+func ExtendConfig(sourceCfg map[string]interface{}, extensions map[string]interface{}) {
+	for k, v := range extensions {
+		sourceCfg[k] = v
 	}
 }
