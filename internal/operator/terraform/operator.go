@@ -32,6 +32,8 @@ func New(ops ...Option) *Terraform {
 
 // Create creates a new cluster for a specific provider based on configuration details. It returns a ClusterInfo object with provider-related information, or an error if cluster provisioning failed.
 func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*types.ClusterInfo, error) {
+	t.applyTimeoutsConfiguration(cfg)
+
 	// silence stdErr during terraform execution, plugins send debug and trace entries there
 	stderr := os.Stderr
 	os.Stderr, _ = os.Open(os.DevNull)
@@ -80,6 +82,8 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 
 // Status checks the current state of the cluster from the file
 func (t *Terraform) Status(sf *statefile.File, p types.ProviderType, cfg map[string]interface{}) (*types.ClusterStatus, error) {
+	t.applyTimeoutsConfiguration(cfg)
+
 	cs := &types.ClusterStatus{
 		Phase: types.Unknown,
 	}
@@ -102,6 +106,8 @@ func (t *Terraform) Status(sf *statefile.File, p types.ProviderType, cfg map[str
 
 // Delete removes an existing cluster or returns an error if removing the cluster is not possible.
 func (t *Terraform) Delete(sf *statefile.File, p types.ProviderType, cfg map[string]interface{}) error {
+	t.applyTimeoutsConfiguration(cfg)
+
 	// silence stdErr during terraform execution, plugins send debug and trace entries there
 	stderr := os.Stderr
 	os.Stderr, _ = os.Open(os.DevNull)
@@ -204,4 +210,9 @@ func (t *Terraform) checkUIErrors() error {
 	}
 
 	return nil
+}
+
+func (t *Terraform) applyTimeoutsConfiguration(config map[string]interface{}) {
+	timeoutsConfig := LoadTimeoutConfiguration(t.ops.Timeouts)
+	ExtendConfig(config, timeoutsConfig)
 }

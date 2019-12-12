@@ -1,10 +1,20 @@
 package types
 
+import "time"
+
 // Options contains all possible configuration options for Hydroform.
 // Options need to be set each time a Hydroform function is called
 type Options struct {
 	DataDir    string
 	Persistent bool
+	Timeouts   *Timeouts
+}
+
+// Timeouts specifies timeouts on various operation
+type Timeouts struct {
+	Create time.Duration
+	Update time.Duration
+	Delete time.Duration
 }
 
 // Option is a function that allows to extensibly configure Hydroform.
@@ -22,5 +32,11 @@ func Persistent() Option {
 func WithDataDir(dir string) Option {
 	return func(ops *Options) {
 		ops.DataDir = dir
+	}
+}
+
+func WithTimeouts(timeouts *Timeouts) Option {
+	return func(ops *Options) {
+		ops.Timeouts = timeouts
 	}
 }

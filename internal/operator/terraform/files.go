@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/states/statefile"
@@ -32,6 +33,9 @@ const (
   variable "machine_type"  		{}
   variable "kubernetes_version"   	{}
   variable "disk_size" 			{}
+  variable "create_timeout" 	{}
+  variable "update_timeout" 	{}
+  variable "delete_timeout" 	{}
 
   provider "google" {
     	credentials   = "${file("${var.credentials_file_path}")}"
@@ -49,6 +53,12 @@ const (
       	machine_type = "${var.machine_type}"
 		disk_size_gb = "${var.disk_size}"
     }
+
+	timeouts {
+		create = "${var.create_timeout}"
+		update = "${var.update_timeout}"
+		delete = "${var.delete_timeout}"
+	}
 
     maintenance_policy {
       	daily_maintenance_window {
@@ -74,6 +84,7 @@ variable "target_secret"			{}
 variable "node_count"    			{}
 variable "cluster_name"  			{}
 variable "credentials_file_path" 	{}
+variable "project"					{}
 variable "namespace"       			{}
 variable "location"      			{}
 {{ if not (eq (index . "target_provider") "azure") }}
@@ -96,6 +107,9 @@ variable "autoscaler_min" 			{}
 variable "autoscaler_max" 			{}
 variable "max_surge" 				{}
 variable "max_unavailable" 			{}
+variable "create_timeout" 			{}
+variable "update_timeout" 			{}
+variable "delete_timeout" 			{}
 
 provider "gardener" {
 	kube_file          = "${file("${var.credentials_file_path}")}"
@@ -107,7 +121,13 @@ resource "gardener_shoot" "test_cluster" {
 	  namespace = "${var.namespace}"
   
 	}
-  
+
+	timeouts {
+		create = "${var.create_timeout}"
+		update = "${var.update_timeout}"
+		delete = "${var.delete_timeout}"
+	}
+
 	spec {
 	  cloud {
 		profile = "${var.target_profile}"
@@ -210,6 +230,10 @@ func initClusterFiles(dataDir string, p types.ProviderType, cfg map[string]inter
 			}
 		case string:
 			if _, err := vars.WriteString(fmt.Sprintf("%s = \"%s\"\n", k, t)); err != nil {
+				return err
+			}
+		case time.Duration:
+			if _, err := vars.WriteString(fmt.Sprintf("%s = \"%s\"\n", k, t.String())); err != nil {
 				return err
 			}
 		}
