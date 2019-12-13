@@ -8,7 +8,7 @@ import (
 
 	"github.com/kyma-incubator/hydroform/provision/action"
 
-	hf "github.com/kyma-incubator/hydroform/provision/"
+	hf "github.com/kyma-incubator/hydroform/provision"
 	"github.com/kyma-incubator/hydroform/provision/types"
 )
 
