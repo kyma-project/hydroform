@@ -30,6 +30,6 @@ This example shows you how you can use Hydroform to provision a cluster on Amazo
 1. To provision a new cluster on AWS, go to the `hydroform` directory and run:
 
 ```
-go run ./examples/gardener/main.go -p {project_name} -c {/path/to/gardener/kubeconfig} -s {AWS-secret-name}
+go run ./examples/gardener/main.go -p {project_name} -c {/path/to/gardener/kubeconfig} -s {AWS-secret-name} --persist
 ```
 2. In Gardener, go to **Clusters** to see your cluster on the list.
