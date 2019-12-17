@@ -23,8 +23,72 @@ const (
 	tfModuleFile         = "terraform.tf"
 	tfVarsFile           = "terraform.tfvars"
 	awsClusterTemplate   = ``
-	azureClusterTemplate = ``
-	gcpClusterTemplate   = `
+	azureClusterTemplate = `
+	variable "cluster_name"  			{}
+	variable "project"       			{}
+	variable "location" 				{}	
+	variable "client_id" 	{}
+	variable "client_secret" {}
+	variable "machine_type"  			{}
+	variable "kubernetes_version"   	{}
+	variable "disk_size" 				{}
+	variable "node_count" 				{}
+	variable "create_timeout" 			{}
+	variable "update_timeout" 			{}
+	variable "delete_timeout" 			{}
+
+	resource "azurerm_resource_group" "azure_cluster" {
+		name     = "${var.project}"
+		location = "${var.location}"
+	}
+
+	resource "azurerm_kubernetes_cluster" "azure_cluster" {
+		name                = "${var.cluster_name}"
+		location            = "${azurerm_resource_group.azure_cluster.location}"
+		resource_group_name = "${azurerm_resource_group.azure_cluster.name}"
+		dns_prefix          = "${var.cluster_name}"
+
+		default_node_pool {
+			name            = "default"
+			node_count      = "${var.node_count}"
+			vm_size         = "${var.machine_type}"
+			os_disk_size_gb = "${var.disk_size}"
+		}
+
+		service_principal {
+			client_id     = "${var.client_id}"
+			client_secret = "${var.client_secret}"
+		}
+
+		tags = {
+			Environment = "Production"
+		}
+	}
+	output "id" {
+		value = "${azurerm_kubernetes_cluster.azure_cluster.id}"
+	}
+
+	output "kube_config" {
+		value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config_raw}"
+	}
+
+	output "client_key" {
+		value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.client_key}"
+	}
+
+	output "client_certificate" {
+		value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.client_certificate}"
+	}
+
+	output "cluster_ca_certificate" {
+		value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.cluster_ca_certificate}"
+	}
+
+	output "endpoint" {
+		value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.host}"
+	}
+`
+	gcpClusterTemplate = `
   variable "node_count"    		{}
   variable "cluster_name"  		{}
   variable "credentials_file_path" 	{}
@@ -39,7 +103,7 @@ const (
 
   provider "google" {
     	credentials   = "${file("${var.credentials_file_path}")}"
-	project       = "${var.project}"
+		project       = "${var.project}"
   }
 
   resource "google_container_cluster" "gke_cluster" {

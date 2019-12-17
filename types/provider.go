@@ -5,6 +5,7 @@ type Provider struct {
 	// Type specifies the cloud provider to use.
 	Type ProviderType `json:"type"`
 	// ProjectName specifies the project the cluster will be created in.
+	// In the case of Azure, it represents the resource group.
 	ProjectName string `json:"projectName"`
 	// CredentialsFilePath specifies the path to credentials used to access the cloud provider.
 	CredentialsFilePath string `json:"credentialsFilePath"`
