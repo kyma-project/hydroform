@@ -47,7 +47,7 @@ Log in using Google Cloud credentials.
 1. To provision a new cluster on GCP, go to the `hydroform` directory and run:
 
 ```bash
-go run ./examples/gcp/main.go -p {project_name} -c /{path/to/service_account_key.json}
+go run ./examples/gcp/main.go -p {project_name} -c /{path/to/service_account_key.json} --persist
 ```
 
 2. Go to **Kubernetes Engine** > **Clusters** to see your cluster on the list.
