@@ -13,5 +13,5 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
 	k8s.io/apimachinery v0.0.0-20191004115701-31ade1b30762 // tag kubernetes-1.15.6
-	k8s.io/client-go v0.0.0-20191114101336-8cba805ad12d
+	k8s.io/client-go v0.0.0-20191114101336-8cba805ad12d // tag kubernetes-1.15.6
 )
