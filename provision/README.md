@@ -9,7 +9,7 @@ The currently supported platforms include:
 - Gardener
 
 ## Usage
-Hydroform is a [Go package](https://godoc.org/github.com/kyma-incubator/hydroform) that you can use with any program. It gives you the following commands: `provision`, `status`, `credentials`, and `deprovision`.
+Hydroform is a [Go package](https://godoc.org/github.com/kyma-incubator/hydroform) that you can use with any program. It gives you the following commands: `provision`, `status`, `credentials`, and `deprovision`. Use them to:
 
 - Create and provision the cluster on a selected cloud provider.
 - Check the status of the cluster.
