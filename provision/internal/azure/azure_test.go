@@ -1,7 +1,9 @@
-package gcp
+package azure
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/states/statefile"
@@ -13,7 +15,7 @@ import (
 )
 
 func TestValidateInputs(t *testing.T) {
-	g := &gcpProvisioner{}
+	g := &azureProvisioner{}
 
 	cluster := &types.Cluster{
 		CPU:               1,
@@ -25,11 +27,11 @@ func TestValidateInputs(t *testing.T) {
 		MachineType:       "type1",
 	}
 	provider := &types.Provider{
-		Type:                types.GCP,
-		ProjectName:         "my-project",
+		Type:                types.Azure,
+		ProjectName:         "my-resource-group",
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
+			"target_provider": "azure",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
@@ -74,13 +76,13 @@ func TestValidateInputs(t *testing.T) {
 
 	provider.ProjectName = ""
 	require.Error(t, g.validateInputs(cluster, provider), "Validation should fail when project name is empty")
-	provider.ProjectName = "my-project"
+	provider.ProjectName = "/my-resource-group"
 
 	delete(provider.CustomConfigurations, "target_provider")
 	require.Error(t, g.validateInputs(cluster, provider), "Validation should fail when target provider is empty")
 	provider.CustomConfigurations["target_provider"] = "nimbus"
 	require.Error(t, g.validateInputs(cluster, provider), "Validation should fail when target provider is not supported")
-	provider.CustomConfigurations["target_provider"] = "gcp"
+	provider.CustomConfigurations["target_provider"] = "azure"
 
 	delete(provider.CustomConfigurations, "target_secret")
 	require.Error(t, g.validateInputs(cluster, provider), "Validation should fail when target secret is empty")
@@ -91,7 +93,7 @@ func TestValidateInputs(t *testing.T) {
 }
 
 func TestLoadConfigurations(t *testing.T) {
-	g := &gcpProvisioner{}
+	g := &azureProvisioner{}
 
 	cluster := &types.Cluster{
 		CPU:               1,
@@ -103,21 +105,26 @@ func TestLoadConfigurations(t *testing.T) {
 		MachineType:       "type1",
 	}
 	provider := &types.Provider{
-		Type:                types.GCP,
-		ProjectName:         "my-project",
-		CredentialsFilePath: "/path/to/credentials",
+		Type:                types.Azure,
+		ProjectName:         "my-resource-group",
+		CredentialsFilePath: "./credentials.toml",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
+			"target_provider": "azure",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
 		},
 	}
 
+	err := fakeCredentials(provider.CredentialsFilePath)
+	require.NoError(t, err, "Creating a fake credentials file should not have an error")
+	defer os.Remove(provider.CredentialsFilePath)
+
 	config := g.loadConfigurations(cluster, provider)
 
 	require.Equal(t, cluster.Name, config["cluster_name"])
-	require.Equal(t, provider.CredentialsFilePath, config["credentials_file_path"])
+	require.Equal(t, "fake-client-id", config["client_id"])
+	require.Equal(t, "fake-client-secret", config["client_secret"])
 	require.Equal(t, cluster.NodeCount, config["node_count"])
 	require.Equal(t, cluster.MachineType, config["machine_type"])
 	require.Equal(t, cluster.DiskSizeGB, config["disk_size"])
@@ -130,9 +137,16 @@ func TestLoadConfigurations(t *testing.T) {
 	}
 }
 
+func fakeCredentials(file string) error {
+	fake := `CLIENT_ID = "fake-client-id"
+CLIENT_SECRET = "fake-client-secret"`
+
+	return ioutil.WriteFile(file, []byte(fake), 0700)
+}
+
 func TestProvision(t *testing.T) {
 	mockOp := &mocks.Operator{}
-	g := gcpProvisioner{
+	g := azureProvisioner{
 		provisionOperator: mockOp,
 	}
 
@@ -146,11 +160,11 @@ func TestProvision(t *testing.T) {
 		MachineType:       "type1",
 	}
 	provider := &types.Provider{
-		Type:                types.GCP,
-		ProjectName:         "my-project",
+		Type:                types.Azure,
+		ProjectName:         "my-resource-group",
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
+			"target_provider": "azure",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
@@ -167,7 +181,7 @@ func TestProvision(t *testing.T) {
 			TerraformState: nil,
 		},
 	}
-	mockOp.On("Create", types.GCP, g.loadConfigurations(cluster, provider)).Return(result, nil)
+	mockOp.On("Create", types.Azure, g.loadConfigurations(cluster, provider)).Return(result, nil)
 
 	cluster, err := g.Provision(cluster, provider)
 	require.NoError(t, err, "Provision should succeed")
@@ -176,7 +190,7 @@ func TestProvision(t *testing.T) {
 	badCluster := &types.Cluster{
 		CPU: 1,
 	}
-	mockOp.On("Create", types.GCP, g.loadConfigurations(badCluster, provider)).Return(badCluster, errors.New("Unable to provision cluster"))
+	mockOp.On("Create", types.Azure, g.loadConfigurations(badCluster, provider)).Return(badCluster, errors.New("Unable to provision cluster"))
 
 	_, err = g.Provision(badCluster, provider)
 	require.Error(t, err, "Provision should fail")
@@ -184,7 +198,7 @@ func TestProvision(t *testing.T) {
 
 func TestDeprovision(t *testing.T) {
 	mockOp := &mocks.Operator{}
-	g := gcpProvisioner{
+	g := azureProvisioner{
 		provisionOperator: mockOp,
 	}
 
@@ -199,11 +213,11 @@ func TestDeprovision(t *testing.T) {
 		ClusterInfo:       &types.ClusterInfo{},
 	}
 	provider := &types.Provider{
-		Type:                types.GCP,
-		ProjectName:         "my-project",
+		Type:                types.Azure,
+		ProjectName:         "my-resource-group",
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
+			"target_provider": "azure",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
@@ -211,13 +225,13 @@ func TestDeprovision(t *testing.T) {
 	}
 
 	var state *statefile.File
-	mockOp.On("Delete", state, types.GCP, g.loadConfigurations(cluster, provider)).Return(nil)
+	mockOp.On("Delete", state, types.Azure, g.loadConfigurations(cluster, provider)).Return(nil)
 
 	err := g.Deprovision(cluster, provider)
 	require.NoError(t, err, "Deprovision should succeed")
 
-	provider.CredentialsFilePath = "/wrong/credentials"
-	mockOp.On("Delete", state, types.GCP, g.loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
+	provider.ProjectName = "invalid-resource-group"
+	mockOp.On("Delete", state, types.Azure, g.loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
 
 	err = g.Deprovision(cluster, provider)
 	require.Error(t, err, "Deprovision should fail")

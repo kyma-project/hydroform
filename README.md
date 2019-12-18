@@ -18,10 +18,3 @@ Hydroform is a [Go package](https://godoc.org/github.com/kyma-incubator/hydrofor
 - Fetch the `kubeconfig` file to communicate with the cluster.
 - Delete the cluster along with the configuration. 
 
-### Actions 
-
-The `actions` Hydroform subpackage brings even more extensibility to the standard Hydroform functionality. You can run actions before and after each Hydroform operation. You can also combine the actions in a sequence to run them in a specific order.
-
-### Examples
-
-Follow the links to view Hydroform [usage examples](/provision/examples/README.md).
