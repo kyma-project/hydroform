@@ -2,11 +2,11 @@
 
 ## Overview
 
-The `hydroform` package contains the library used to create and manage clusters.
+The [`provision`](https://godoc.org/github.com/kyma-incubator/hydroform/provision) package provided in this module allows you to create and manage clusters.
 
 ## Usage
 
-Hydroform is a [Go package](https://godoc.org/github.com/kyma-incubator/hydroform) that you can use with any program. It gives you the following commands: `provision`, `status`, `credentials`, and `deprovision`. Use them to:
+The package includes the  `provision`, `status`, `credentials`, and `deprovision` commands. Use them to:
 
 - Create and provision the cluster on a selected cloud provider.
 - Check the status of the cluster.
@@ -19,4 +19,4 @@ The `actions` Hydroform subpackage brings even more extensibility to the standar
 
 ### Examples
 
-Follow the links to view Hydroform [usage examples](./examples/README.md).
+Follow the links to view the [usage examples](./examples/README.md).
