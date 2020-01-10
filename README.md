@@ -6,5 +6,5 @@ Hydroform is an infrastructure SDK you can use to create and manage Kubernetes c
 
 Hydroform consists of two modules:
 
-- [Provision](./provision) which you can use to create and manage clusters.
-- [Install](./install) which you can use to install Kyma on clusters.
+- [Provision](./provision) which creates and manages clusters.
+- [Install](./install) which installs Kyma on clusters.
