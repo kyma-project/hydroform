@@ -2,15 +2,15 @@
 
 ## Overview
 
-The `install` package contains the library used to install Kyma on already existing clusters.
+The [`install`](https://godoc.org/github.com/kyma-incubator/hydroform/install/installation) package allows you to install Kyma on already existing clusters.
 
 
 ## Usage
 
-The installation process consist of two phases:
-- `PrepareInstallation` - in this phase Tiller is installed and the Kyma Installer is deployed to the cluster along with the default configuration.
-- `StartInstallation` - in this phase the Installation is triggered by labeling Installation Custom Resource.
+The installation process consist of two phases triggered by the following functions: 
+* `PrepareInstallation` which creates all necessary Kyma resources, installs  Tiller, and deploys the Kyma Installer to the cluster along with the default configuration.
+* `StartInstallation` which triggers the installation by labeling the Installation Custom Resource. 
 
 ### Example
 
-To learn how to use the library to install Kyma on a properly configured Minikube cluster, see this [example](https://github.com/kyma-incubator/hydroform/tree/master/install/examples/example.go).
+To learn how to use the library to install Kyma on a properly configured Minikube cluster, see this [example](../install/example/example.go).
