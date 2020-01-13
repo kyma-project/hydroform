@@ -5,6 +5,8 @@
 # For more details, read the following article on GitHub: https://help.github.com/articles/about-codeowners/.
 
 # These are the default owners for the whole content of the `hydroform` repository. The default owners are automatically added as reviewers when you open a pull request, unless different owners are specified in the file.
+* @a-thaler @hisarbalik @lilitgh @suleymanakbas91 @clebs
+
 /provision @a-thaler @hisarbalik @lilitgh @suleymanakbas91 @clebs
 
 /install @akgalwas @janmedrek @Szymongib @franpog859 @Maladie
