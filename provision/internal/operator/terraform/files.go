@@ -60,6 +60,10 @@ const (
 			client_secret = "${var.client_secret}"
 		}
 
+		role_based_access_control {
+			enabled       = true
+		}
+
 		tags = {
 			Environment = "Production"
 		}
