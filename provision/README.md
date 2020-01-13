@@ -6,7 +6,7 @@ The [`provision`](https://godoc.org/github.com/kyma-incubator/hydroform/provisio
 
 ## Usage
 
-The package includes the  `provision`, `status`, `credentials`, and `deprovision` commands. Use them to:
+The package includes the  `provision`, `status`, `credentials`, and `deprovision` functions. Use them to:
 
 - Create and provision the cluster on a selected cloud provider.
 - Check the status of the cluster.
