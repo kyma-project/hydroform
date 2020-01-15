@@ -95,6 +95,36 @@ func CheckInstallationState(kubeconfig *rest.Config) (InstallationState, error) 
 	return getInstallationState(*installationCR)
 }
 
+func TriggerUninstall(kubeconfig *rest.Config) error {
+	installationClient, err := installationClientset.NewForConfig(kubeconfig)
+	if err != nil {
+		return fmt.Errorf("error creating Installation client: %s", err.Error())
+	}
+
+	installationCR, err := installationClient.
+		InstallerV1alpha1().
+		Installations(defaultInstallationResourceNamespace).
+		Get(kymaInstallationName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error getting Installation client: %s", err.Error())
+	}
+
+	if installationCR.Labels == nil {
+		installationCR.Labels = map[string]string{}
+	}
+
+	installationCR.Labels[installationActionLabel] = "uninstall"
+
+	_, err = installationClient.InstallerV1alpha1().
+		Installations(defaultInstallationResourceNamespace).
+		Update(installationCR)
+	if err != nil {
+		return fmt.Errorf("error labeling Installation CR with action=uninstall label: %s", err.Error())
+	}
+
+	return nil
+}
+
 // NewKymaInstaller initializes new KymaInstaller configured to work with the cluster from provided Kubeconfig
 func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (Installer, error) {
 	options := &installationOptions{
