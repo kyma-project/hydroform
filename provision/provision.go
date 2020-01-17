@@ -2,6 +2,9 @@ package provision
 
 import (
 	"errors"
+	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/kyma-incubator/hydroform/provision/action"
 
@@ -32,6 +35,10 @@ func Provision(cluster *types.Cluster, provider *types.Provider, ops ...types.Op
 		return cl, err
 	}
 
+	if runtime.GOOS == "windows" {
+		provider.CredentialsFilePath = updateWindowsPath(provider.CredentialsFilePath)
+	}
+
 	switch provider.Type {
 	case types.GCP:
 		cl, err = newGCPProvisioner(provisioningOperator, ops...).Provision(cluster, provider)
@@ -58,6 +65,10 @@ func Status(cluster *types.Cluster, provider *types.Provider, ops ...types.Optio
 
 	if err = action.Before(); err != nil {
 		return cs, err
+	}
+
+	if runtime.GOOS == "windows" {
+		provider.CredentialsFilePath = updateWindowsPath(provider.CredentialsFilePath)
 	}
 
 	switch provider.Type {
@@ -87,6 +98,11 @@ func Credentials(cluster *types.Cluster, provider *types.Provider, ops ...types.
 	if err = action.Before(); err != nil {
 		return cr, err
 	}
+
+	if runtime.GOOS == "windows" {
+		provider.CredentialsFilePath = updateWindowsPath(provider.CredentialsFilePath)
+	}
+
 	switch provider.Type {
 	case types.GCP:
 		cr, err = newGCPProvisioner(provisioningOperator, ops...).Credentials(cluster, provider)
@@ -113,6 +129,11 @@ func Deprovision(cluster *types.Cluster, provider *types.Provider, ops ...types.
 	if err = action.Before(); err != nil {
 		return err
 	}
+
+	if runtime.GOOS == "windows" {
+		provider.CredentialsFilePath = updateWindowsPath(provider.CredentialsFilePath)
+	}
+
 	switch provider.Type {
 	case types.GCP:
 		err = newGCPProvisioner(provisioningOperator, ops...).Deprovision(cluster, provider)
@@ -145,4 +166,9 @@ func newAWSProvisioner(operatorType operator.Type, ops ...types.Option) Provisio
 
 func newAzureProvisioner(operatorType operator.Type, ops ...types.Option) Provisioner {
 	return azure.New(operatorType, ops...)
+}
+
+func updateWindowsPath(windowsPath string) string {
+	cleanWindowsPath := filepath.Clean(windowsPath)
+	return strings.Replace(cleanWindowsPath, `\`, `\\`, -1)
 }
