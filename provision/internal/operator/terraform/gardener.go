@@ -78,6 +78,18 @@ func initGardenerProvider() error {
 	return nil
 }
 
+func generateWindowsBinary(providerPath string) error {
+	windowsProviderPath := providerPath + ".exe"
+	if _, err := os.Stat(windowsProviderPath); os.IsNotExist(err) {
+		providerFile, err := ioutil.ReadFile(providerPath)
+		err = ioutil.WriteFile(windowsProviderPath, providerFile, 0700)
+		if err !=nil {
+			return err
+		}
+	}
+	return nil;
+}
+
 func downloadBinary(url string) (io.ReadCloser, error) {
 	c := &http.Client{
 		Timeout: 1 * time.Minute,
