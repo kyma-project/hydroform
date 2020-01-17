@@ -44,7 +44,7 @@ Log in using Google Cloud credentials.
 
 ### Run the example
 
-1. To provision a new cluster on GCP, go to the `hydroform` directory and run:
+1. To provision a new cluster on GCP, go to the `provision` directory and run:
 
 ```bash
 go run ./examples/gcp/main.go -p {project_name} -c /{path/to/service_account_key.json} --persist
