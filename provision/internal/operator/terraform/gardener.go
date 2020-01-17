@@ -63,7 +63,7 @@ func initGardenerProvider() error {
 
 	if runtime.GOOS == "windows" {
 		// Create exe for windows if it doesn't exist
-		err = generateWindowsBinary(providerPath);
+		err = generateWindowsBinary(providerPath)
 		if err != nil {
 			return err
 		}
@@ -77,11 +77,11 @@ func generateWindowsBinary(providerPath string) error {
 	if _, err := os.Stat(windowsProviderPath); os.IsNotExist(err) {
 		providerFile, err := ioutil.ReadFile(providerPath)
 		err = ioutil.WriteFile(windowsProviderPath, providerFile, 0700)
-		if err !=nil {
+		if err != nil {
 			return err
 		}
 	}
-	return nil;
+	return nil
 }
 
 func downloadBinary(url string) (io.ReadCloser, error) {
