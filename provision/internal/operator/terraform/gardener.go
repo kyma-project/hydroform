@@ -26,17 +26,13 @@ func initGardenerProvider() error {
 		return err
 	}
 	providerPath := filepath.Join(pluginDirs[1], providerName)
-	windowsProviderPath := providerPath + ".exe"
 
 	// check if plugin is in the plugins dir
 	if _, err := os.Stat(providerPath); !os.IsNotExist(err) {
 		if runtime.GOOS == "windows" {
-			if _, err := os.Stat(windowsProviderPath); os.IsNotExist(err) {
-				providerFile, err := ioutil.ReadFile(providerPath)
-				err = ioutil.WriteFile(windowsProviderPath, providerFile, 0700)
-				if err !=nil {
-					return err
-				}
+			err = generateWindowsBinary(providerPath)
+			if err != nil {
+				return err
 			}
 		}
 		return nil
@@ -67,11 +63,9 @@ func initGardenerProvider() error {
 
 	if runtime.GOOS == "windows" {
 		// Create exe for windows if it doesn't exist
-		if _, err := os.Stat(windowsProviderPath); os.IsNotExist(err) {
-			err = ioutil.WriteFile(windowsProviderPath, data, 0700)
-			if err !=nil {
-				return err
-			}
+		err = generateWindowsBinary(providerPath);
+		if err != nil {
+			return err
 		}
 	}
 
