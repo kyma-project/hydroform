@@ -1,17 +1,13 @@
 package terraform
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/kyma-incubator/hydroform/provision/types"
 	"github.com/pkg/errors"
 
-	"github.com/hashicorp/terraform/command"
 	"github.com/hashicorp/terraform/states/statefile"
 )
 
@@ -59,22 +55,13 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 			return nil, errors.Wrap(err, "could not initialize the gardener provider")
 		}
 	}
-	i := &command.InitCommand{
-		Meta: t.ops.Meta,
-	}
-
-	e := i.Run(t.initArgs(p, cfg, clusterDir))
-	if e != 0 {
-		return nil, t.checkUIErrors()
+	if err := tfInit(t.ops, p, cfg, clusterDir); err != nil {
+		return nil, err
 	}
 
 	// APPLY
-	a := &command.ApplyCommand{
-		Meta: t.ops.Meta,
-	}
-	e = a.Run(t.applyArgs(p, cfg, clusterDir))
-	if e != 0 {
-		return nil, t.checkUIErrors()
+	if err := tfApply(t.ops, p, cfg, clusterDir); err != nil {
+		return nil, err
 	}
 
 	return clusterInfoFromFile(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
@@ -147,68 +134,14 @@ func (t *Terraform) Delete(sf *statefile.File, p types.ProviderType, cfg map[str
 			return errors.Wrap(err, "could not initialize the gardener provider")
 		}
 	}
-	i := &command.InitCommand{
-		Meta: t.ops.Meta,
+	if err := tfInit(t.ops, p, cfg, clusterDir); err != nil {
+		return err
 	}
 
-	e := i.Run(t.initArgs(p, cfg, clusterDir))
-	if e != 0 {
-		return t.checkUIErrors()
+	// APPLY
+	if err := tfDestroy(t.ops, p, cfg, clusterDir); err != nil {
+		return err
 	}
-
-	// DESTROY
-	a := &command.ApplyCommand{
-		Meta:    t.ops.Meta,
-		Destroy: true,
-	}
-	e = a.Run(t.applyArgs(p, cfg, clusterDir))
-	if e != 0 {
-		return t.checkUIErrors()
-	}
-	return nil
-}
-
-// initArgs generates the flag list for the terraform init command based on the operator configuration
-func (t *Terraform) initArgs(p types.ProviderType, cfg map[string]interface{}, clusterDir string) []string {
-	args := make([]string, 0)
-
-	varsFile := filepath.Join(clusterDir, tfVarsFile)
-
-	args = append(args, fmt.Sprintf("-var-file=%s", varsFile), clusterDir)
-
-	return args
-}
-
-// applyArgs generates the flag list for the terraform apply command based on the operator configuration
-func (t *Terraform) applyArgs(p types.ProviderType, cfg map[string]interface{}, clusterDir string) []string {
-	args := make([]string, 0)
-
-	stateFile := filepath.Join(clusterDir, tfStateFile)
-	varsFile := filepath.Join(clusterDir, tfVarsFile)
-
-	args = append(args,
-		fmt.Sprintf("-state=%s", stateFile),
-		fmt.Sprintf("-var-file=%s", varsFile),
-		"-auto-approve",
-		clusterDir)
-
-	return args
-}
-
-func (t *Terraform) checkUIErrors() error {
-	var errsum strings.Builder
-	if h, ok := t.ops.Ui.(*HydroUI); ok {
-		for _, e := range h.Errors() {
-			if _, err := errsum.WriteString(e.Error()); err != nil {
-				return errors.Wrap(err, "could not fetch errors from terraform")
-			}
-		}
-	}
-
-	if errsum.Len() != 0 {
-		return errors.New(errsum.String())
-	}
-
 	return nil
 }
 

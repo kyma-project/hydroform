@@ -183,7 +183,7 @@ provider "gardener" {
 	kube_file          = "${file("${var.credentials_file_path}")}"
 }
 
-resource "gardener_shoot" "test_cluster" {
+resource "gardener_shoot" "gardener_cluster" {
 	metadata {
 	  name      = "${var.cluster_name}"
 	  namespace = "${var.namespace}"
