@@ -27,7 +27,7 @@ This example shows you how you can use Hydroform to provision a cluster on Googl
 
 ### Run the example
 
-1. To provision a new cluster on GCP, go to the `hydroform` directory and run:
+1. To provision a new cluster on GCP, go to the `provision` directory and run:
 
 ```
 go run ./examples/gardener/main.go -p {project_name} -c {/path/to/gardener/kubeconfig} -s {GCP-secret-name} --persist

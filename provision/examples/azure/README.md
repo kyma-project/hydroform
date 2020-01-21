@@ -22,7 +22,7 @@ To provision an Azure cluster you need:
 
 ### Run the example
 
-1. To provision a new cluster on Azure, go to the `hydroform` directory and run:
+1. To provision a new cluster on Azure, go to the `provision` directory and run:
     ```bash
     go run ./examples/azure/main.go -p {resource_group_name} -c /{path/to/credentials.toml} --persist
     ```

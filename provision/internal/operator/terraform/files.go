@@ -409,6 +409,11 @@ func clusterDir(dataDir, project, cluster string, p types.ProviderType) (string,
 			return "", err
 		}
 	}
+
+	if runtime.GOOS == "windows" {
+		clDir = `\\?\` + clDir
+	}
+
 	return clDir, nil
 }
 
