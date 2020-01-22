@@ -14,7 +14,7 @@ import (
 // TODO remove this file when the gardener provider is on the official terraform registry
 
 const (
-	providerURL  = "https://github.com/kyma-incubator/terraform-provider-gardener/releases/download/v0.0.3/terraform-provider-gardener-%s-%s"
+	providerURL  = "https://github.com/kyma-incubator/terraform-provider-gardener/releases/download/v0.0.4/terraform-provider-gardener-%s-%s"
 	providerName = "terraform-provider-gardener"
 )
 
