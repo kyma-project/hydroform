@@ -37,7 +37,6 @@ func main() {
 		CredentialsFilePath: *credentials,
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
-			"target_seed":     "gcp-eu1",
 			"target_secret":   *secret,
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west4-b",

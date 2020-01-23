@@ -162,9 +162,6 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	} else {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_provider']")
 	}
-	if _, ok := provider.CustomConfigurations["target_seed"]; !ok {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_seed']")
-	}
 	if _, ok := provider.CustomConfigurations["target_secret"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_secret']")
 	}

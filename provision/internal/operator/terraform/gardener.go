@@ -8,14 +8,16 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
 
 // TODO remove this file when the gardener provider is on the official terraform registry
 
 const (
-	providerURL  = "https://github.com/kyma-incubator/terraform-provider-gardener/releases/download/v0.0.4/terraform-provider-gardener-%s-%s"
-	providerName = "terraform-provider-gardener"
+	providerURL     = "https://github.com/kyma-incubator/terraform-provider-gardener/releases/download/%s/terraform-provider-gardener-%s-%s"
+	providerName    = "terraform-provider-gardener"
+	providerVersion = "v0.0.5"
 )
 
 // initGardenerProvider will check if the gardener provider is available and download it if not.
@@ -25,7 +27,7 @@ func initGardenerProvider() error {
 	if err != nil {
 		return err
 	}
-	providerPath := filepath.Join(pluginDirs[1], providerName)
+	providerPath := filepath.Join(pluginDirs[1], fmt.Sprintf("%s_%s", providerName, providerVersion))
 
 	// check if plugin is in the plugins dir
 	if _, err := os.Stat(providerPath); !os.IsNotExist(err) {
@@ -39,7 +41,7 @@ func initGardenerProvider() error {
 	}
 
 	// Download the plugin for the OS and arch
-	r, err := downloadBinary(fmt.Sprintf(providerURL, runtime.GOOS, runtime.GOARCH))
+	r, err := downloadBinary(fmt.Sprintf(providerURL, providerVersion, runtime.GOOS, runtime.GOARCH))
 	if err != nil {
 		return err
 	}
@@ -69,7 +71,19 @@ func initGardenerProvider() error {
 		}
 	}
 
-	return nil
+	// if just downloaded a new version successfully, delete any old ones
+	err = filepath.Walk(pluginDirs[1], func(path string, info os.FileInfo, err error) error {
+
+		if err != nil {
+			return err
+		}
+
+		if strings.HasPrefix(info.Name(), providerName) && !strings.HasSuffix(info.Name(), providerVersion) {
+			return os.Remove(path)
+		}
+		return nil
+	})
+	return err
 }
 
 func generateWindowsBinary(providerPath string) error {
