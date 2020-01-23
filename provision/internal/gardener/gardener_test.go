@@ -31,7 +31,6 @@ func TestValidate(t *testing.T) {
 			CredentialsFilePath: "/path/to/credentials",
 			CustomConfigurations: map[string]interface{}{
 				"target_provider": "gcp",
-				"target_seed":     "gcp-eu1",
 				"target_secret":   "secret-name",
 				"disk_type":       "pd-standard",
 				"zone":            "europe-west3-b",
@@ -76,7 +75,6 @@ func TestValidate(t *testing.T) {
 			CustomConfigurations: map[string]interface{}{
 				"target_provider": "azure",
 				"target_secret":   "secret-name",
-				"target_seed":     "gcp-eu1",
 				"disk_type":       "standard",
 				"workercidr":      "10.250.0.0/19",
 				"vnetcidr":        "10.250.0.0/19",
@@ -120,7 +118,6 @@ func TestValidate(t *testing.T) {
 			CustomConfigurations: map[string]interface{}{
 				"target_provider": "aws",
 				"target_secret":   "secret-name",
-				"target_seed":     "gcp-eu1",
 				"disk_type":       "gp2",
 				"workercidr":      "172.31.0.0/16",
 				"publicscidr":     "172.31.0.0/16",
@@ -207,10 +204,6 @@ func performBasicValidation(t *testing.T, g gardenerProvisioner, cluster *types.
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is not supported")
 	provider.CustomConfigurations["target_provider"] = "gcp"
 
-	delete(provider.CustomConfigurations, "target_seed")
-	require.Error(t, g.validate(cluster, provider), "Validation should fail when target seed is empty")
-	provider.CustomConfigurations["target_seed"] = "gcp-eu1"
-
 	delete(provider.CustomConfigurations, "target_secret")
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when target secret is empty")
 	provider.CustomConfigurations["target_secret"] = "secret_name"
@@ -259,7 +252,6 @@ func TestLoadConfigurations(t *testing.T) {
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
-			"target_seed":     "gcp-eu1",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
@@ -303,7 +295,6 @@ func TestProvision(t *testing.T) {
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
-			"target_seed":     "gcp-eu1",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
@@ -362,7 +353,6 @@ func TestDeProvision(t *testing.T) {
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "gcp",
-			"target_seed":     "gcp-eu1",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",

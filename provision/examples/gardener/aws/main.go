@@ -37,7 +37,6 @@ func main() {
 		CredentialsFilePath: *credentials,
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "aws",
-			"target_seed":     "aws-eu1",
 			"target_secret":   *secret,
 			"disk_type":       "gp2",
 			"workercidr":      "10.250.0.0/19",
