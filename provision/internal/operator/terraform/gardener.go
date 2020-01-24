@@ -90,6 +90,9 @@ func generateWindowsBinary(providerPath string) error {
 	windowsProviderPath := providerPath + ".exe"
 	if _, err := os.Stat(windowsProviderPath); os.IsNotExist(err) {
 		providerFile, err := ioutil.ReadFile(providerPath)
+		if err != nil {
+			return err
+		}
 		err = ioutil.WriteFile(windowsProviderPath, providerFile, 0700)
 		if err != nil {
 			return err
