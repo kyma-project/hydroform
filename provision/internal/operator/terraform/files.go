@@ -147,7 +147,6 @@ const (
 	gardenerClusterTemplate = `
 variable "target_provider"			{}
 variable "target_profile"			{}
-variable "target_seed"			    {}
 variable "target_secret"			{}
 variable "node_count"    			{}
 variable "cluster_name"  			{}
@@ -183,7 +182,7 @@ provider "gardener" {
 	kube_file          = "${file("${var.credentials_file_path}")}"
 }
 
-resource "gardener_shoot" "test_cluster" {
+resource "gardener_shoot" "gardener_cluster" {
 	metadata {
 	  name      = "${var.cluster_name}"
 	  namespace = "${var.namespace}"
@@ -200,7 +199,6 @@ resource "gardener_shoot" "test_cluster" {
 	  cloud {
 		profile = "${var.target_profile}"
 		region  = "${var.location}"
-		seed    = "${var.target_seed}"
 		secret_binding_ref {
 		  name = "${var.target_secret}"
 		}
