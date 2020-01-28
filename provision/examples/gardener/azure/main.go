@@ -38,7 +38,7 @@ func main() {
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "azure",
 			"target_secret":   *secret,
-			"disk_type":       "standard",
+			"disk_type":       "Standard_LRS",
 			"workercidr":      "10.250.0.0/19",
 			"vnetcidr":        "10.250.0.0/19",
 			"autoscaler_min":  2,
