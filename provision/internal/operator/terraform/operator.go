@@ -40,9 +40,6 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 		// remove all files if not persistent after running
 		defer cleanup(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
 	}
-	if err := initClusterFiles(t.ops.DataDir(), p, cfg); err != nil {
-		return nil, errors.Wrap(err, "Could not initialize cluster data")
-	}
 
 	clusterDir, err := clusterDir(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
 	if err != nil {
@@ -56,6 +53,10 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 	}
 	if err := tfInit(t.ops, p, cfg, clusterDir); err != nil {
 		return nil, err
+	}
+
+	if err := initClusterFiles(t.ops.DataDir(), p, cfg); err != nil {
+		return nil, errors.Wrap(err, "Could not initialize cluster data")
 	}
 
 	// APPLY

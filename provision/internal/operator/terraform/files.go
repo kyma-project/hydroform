@@ -19,79 +19,16 @@ import (
 
 const (
 	// file names for terraform
-	tfStateFile          = "terraform.tfstate"
-	tfModuleFile         = "terraform.tf"
-	tfVarsFile           = "terraform.tfvars"
-	awsClusterTemplate   = ``
-	azureClusterTemplate = `
-	variable "cluster_name"  			{}
-	variable "project"       			{}
-	variable "location" 				{}	
-	variable "client_id" 	{}
-	variable "client_secret" {}
-	variable "machine_type"  			{}
-	variable "kubernetes_version"   	{}
-	variable "disk_size" 				{}
-	variable "node_count" 				{}
-	variable "create_timeout" 			{}
-	variable "update_timeout" 			{}
-	variable "delete_timeout" 			{}
+	tfStateFile  = "terraform.tfstate"
+	tfModuleFile = "terraform.tf"
+	tfVarsFile   = "terraform.tfvars"
+	// TODO release modules and do not use master as ref when stable
+	azureMod    = "git::https://github.com/kyma-incubator/terraform-modules//azurerm_kubernetes_cluster?ref=master"
+	gcpMod      = "git::https://github.com/kyma-incubator/terraform-modules//google_gke_infra?ref=master"
+	gardenerMod = ""
 
-	resource "azurerm_resource_group" "azure_cluster" {
-		name     = "${var.project}"
-		location = "${var.location}"
-	}
-
-	resource "azurerm_kubernetes_cluster" "azure_cluster" {
-		name                = "${var.cluster_name}"
-		location            = "${azurerm_resource_group.azure_cluster.location}"
-		resource_group_name = "${azurerm_resource_group.azure_cluster.name}"
-		dns_prefix          = "${var.cluster_name}"
-
-		default_node_pool {
-			name            = "default"
-			node_count      = "${var.node_count}"
-			vm_size         = "${var.machine_type}"
-			os_disk_size_gb = "${var.disk_size}"
-		}
-
-		service_principal {
-			client_id     = "${var.client_id}"
-			client_secret = "${var.client_secret}"
-		}
-
-		role_based_access_control {
-			enabled       = true
-		}
-
-		tags = {
-			Environment = "Production"
-		}
-	}
-	output "id" {
-		value = "${azurerm_kubernetes_cluster.azure_cluster.id}"
-	}
-
-	output "kube_config" {
-		value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config_raw}"
-	}
-
-	output "client_key" {
-		value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.client_key}"
-	}
-
-	output "client_certificate" {
-		value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.client_certificate}"
-	}
-
-	output "cluster_ca_certificate" {
-		value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.cluster_ca_certificate}"
-	}
-
-	output "endpoint" {
-		value = "${azurerm_kubernetes_cluster.azure_cluster.kube_config.0.host}"
-	}
-`
+	// TODO remove hardcoded TF templates once modules work
+	awsClusterTemplate = ``
 	gcpClusterTemplate = `
   variable "node_count"    		{}
   variable "cluster_name"  		{}
@@ -307,7 +244,8 @@ func initClusterFiles(dataDir string, p types.ProviderType, cfg map[string]inter
 		return err
 	}
 
-	// create module file
+	// create module file for providers that are not using modules
+	// TODO delete this when all providers have downloadable modules
 	var data []byte
 	switch p {
 	case types.GCP:
@@ -319,12 +257,15 @@ func initClusterFiles(dataDir string, p types.ProviderType, cfg map[string]inter
 		}
 		data = []byte(t)
 	case types.Azure:
-		data = []byte(azureClusterTemplate)
+		break
 	case types.AWS:
 		data = []byte(awsClusterTemplate)
 	}
-	if err := ioutil.WriteFile(filepath.Join(dir, tfModuleFile), data, 0700); err != nil {
-		return err
+
+	if len(data) > 0 {
+		if err := ioutil.WriteFile(filepath.Join(dir, tfModuleFile), data, 0700); err != nil {
+			return err
+		}
 	}
 
 	// create vars file

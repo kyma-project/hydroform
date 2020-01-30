@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	be_init "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/command"
 	"github.com/kyma-incubator/hydroform/provision/types"
 	hashiCli "github.com/mitchellh/cli"
@@ -14,6 +15,8 @@ import (
 
 // tfInit runs the 'terraform init' command with the specified options and config in the given working directory
 func tfInit(ops Options, p types.ProviderType, cfg map[string]interface{}, dir string) error {
+	// need to init all backends before we start
+	be_init.Init(ops.Services)
 	i := &command.InitCommand{
 		Meta: ops.Meta,
 	}
@@ -28,11 +31,29 @@ func tfInit(ops Options, p types.ProviderType, cfg map[string]interface{}, dir s
 func initArgs(p types.ProviderType, cfg map[string]interface{}, clusterDir string) []string {
 	args := make([]string, 0)
 
-	varsFile := filepath.Join(clusterDir, tfVarsFile)
-
-	args = append(args, fmt.Sprintf("-var-file=%s", varsFile), clusterDir)
+	// TODO remove this condition when fully migrated to modules
+	if m := tfMod(p); m != "" {
+		args = append(args, fmt.Sprintf("-from-module=%s", tfMod(p)))
+	}
+	args = append(args, clusterDir)
 
 	return args
+}
+
+// tfMod returns the terraform module URL for the given provider or empty string if none avilable
+func tfMod(p types.ProviderType) string {
+	switch p {
+	case types.Azure:
+		return azureMod
+	case types.AWS:
+		return ""
+	case types.GCP:
+		return ""
+	case types.Gardener:
+		return ""
+	default:
+		return ""
+	}
 }
 
 // tfApply runs a smart 'terraform apply' command with the specified options

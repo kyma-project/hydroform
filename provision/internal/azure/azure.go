@@ -148,37 +148,44 @@ func (a *azureProvisioner) validateInputs(cluster *types.Cluster, provider *type
 func (a *azureProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
-	config["node_count"] = cluster.NodeCount
-	config["machine_type"] = cluster.MachineType
-	config["disk_size"] = cluster.DiskSizeGB
+	config["agent_count"] = cluster.NodeCount
+	config["agent_vm_size"] = cluster.MachineType
+	config["agent_disk_size"] = cluster.DiskSizeGB
 	config["kubernetes_version"] = cluster.KubernetesVersion
 	config["location"] = cluster.Location
 	config["project"] = provider.ProjectName
-	config["client_id"], config["client_secret"] = azureCredentials(provider.CredentialsFilePath)
+	config["resource_group"] = provider.ProjectName
+	config["subscription_id"], config["tenant_id"], config["client_id"], config["client_secret"] = azureCredentials(provider.CredentialsFilePath)
+
 	for k, v := range provider.CustomConfigurations {
 		config[k] = v
 	}
+
 	return config
 }
 
 // azureCredentials extracts the values of a credentials file to authenticate on azure.
-// It expects a file following the TOML format (https://github.com/toml-lang/toml#user-content-spec), containing at least the CLIENT_ID and CLIENT_SECRET.
-func azureCredentials(path string) (clientID, clientSecret string) {
+// It expects a file following the TOML format (https://github.com/toml-lang/toml#user-content-spec), containing the SUBSCRIPTION_ID, TENANT_ID, CLIENT_ID and CLIENT_SECRET.
+func azureCredentials(path string) (subscriptionID, tenantID, clientID, clientSecret string) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return
 	}
 
 	c := struct {
-		ID     string `toml:"CLIENT_ID"`
-		Secret string `toml:"CLIENT_SECRET"`
+		SubscriptionID string `toml:"SUBSCRIPTION_ID"`
+		TenantID       string `toml:"TENANT_ID"`
+		ClientID       string `toml:"CLIENT_ID"`
+		Secret         string `toml:"CLIENT_SECRET"`
 	}{}
 
 	if _, err = toml.Decode(string(data), &c); err != nil {
 		return
 	}
 
-	clientID = c.ID
+	subscriptionID = c.SubscriptionID
+	tenantID = c.TenantID
+	clientID = c.ClientID
 	clientSecret = c.Secret
 
 	return
