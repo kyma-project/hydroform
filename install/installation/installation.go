@@ -78,6 +78,53 @@ type InstallationState struct {
 	Description string
 }
 
+func CheckInstallationState(kubeconfig *rest.Config) (InstallationState, error) {
+	installationClient, err := installationClientset.NewForConfig(kubeconfig)
+	if err != nil {
+		return InstallationState{}, err
+	}
+
+	installationCR, err := installationClient.
+		InstallerV1alpha1().
+		Installations(defaultInstallationResourceNamespace).
+		Get(kymaInstallationName, metav1.GetOptions{})
+	if err != nil {
+		return InstallationState{}, err
+	}
+
+	return getInstallationState(*installationCR)
+}
+
+func TriggerUninstall(kubeconfig *rest.Config) error {
+	installationClient, err := installationClientset.NewForConfig(kubeconfig)
+	if err != nil {
+		return fmt.Errorf("error creating Installation client: %s", err.Error())
+	}
+
+	installationCR, err := installationClient.
+		InstallerV1alpha1().
+		Installations(defaultInstallationResourceNamespace).
+		Get(kymaInstallationName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error getting Installation client: %s", err.Error())
+	}
+
+	if installationCR.Labels == nil {
+		installationCR.Labels = map[string]string{}
+	}
+
+	installationCR.Labels[installationActionLabel] = "uninstall"
+
+	_, err = installationClient.InstallerV1alpha1().
+		Installations(defaultInstallationResourceNamespace).
+		Update(installationCR)
+	if err != nil {
+		return fmt.Errorf("error labeling Installation CR with action=uninstall label: %s", err.Error())
+	}
+
+	return nil
+}
+
 // NewKymaInstaller initializes new KymaInstaller configured to work with the cluster from provided Kubeconfig
 func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (Installer, error) {
 	options := &installationOptions{
@@ -399,27 +446,7 @@ func handleInstallationEvent(event watch.Event) (InstallationState, error) {
 			return InstallationState{}, fmt.Errorf("installation watcher returned invalid type %T, expected Installation", event.Object)
 		}
 
-		switch installation.Status.State {
-		case v1alpha1.StateEmpty:
-			return InstallationState{
-				State:       "",
-				Description: installation.Status.Description,
-			}, nil
-		case v1alpha1.StateInstalled:
-			return InstallationState{
-				State:       string(v1alpha1.StateInstalled),
-				Description: installation.Status.Description,
-			}, nil
-		case v1alpha1.StateError:
-			return InstallationState{}, newInstallationError(installation)
-		case v1alpha1.StateInProgress:
-			return InstallationState{
-				State:       string(v1alpha1.StateInProgress),
-				Description: installation.Status.Description,
-			}, nil
-		default:
-			return InstallationState{}, fmt.Errorf("invalid installation state: %s", installation.Status.State)
-		}
+		return getInstallationState(*installation)
 	case watch.Error:
 		return InstallationState{}, fmt.Errorf("installation watch error occured: %s", tryToExtractErrorStatus(event.Object))
 	case watch.Deleted:
@@ -429,7 +456,31 @@ func handleInstallationEvent(event watch.Event) (InstallationState, error) {
 	}
 }
 
-func newInstallationError(installation *v1alpha1.Installation) InstallationError {
+func getInstallationState(installation v1alpha1.Installation) (InstallationState, error) {
+	switch installation.Status.State {
+	case v1alpha1.StateEmpty:
+		return InstallationState{
+			State:       "",
+			Description: installation.Status.Description,
+		}, nil
+	case v1alpha1.StateInstalled:
+		return InstallationState{
+			State:       string(v1alpha1.StateInstalled),
+			Description: installation.Status.Description,
+		}, nil
+	case v1alpha1.StateError:
+		return InstallationState{}, newInstallationError(installation)
+	case v1alpha1.StateInProgress:
+		return InstallationState{
+			State:       string(v1alpha1.StateInProgress),
+			Description: installation.Status.Description,
+		}, nil
+	default:
+		return InstallationState{}, fmt.Errorf("invalid installation state: %s", installation.Status.State)
+	}
+}
+
+func newInstallationError(installation v1alpha1.Installation) InstallationError {
 	installationError := InstallationError{
 		ShortMessage: fmt.Sprintf("installation error occurred: %s", installation.Status.Description),
 		ErrorEntries: make([]ErrorEntry, 0, len(installation.Status.ErrorLog)),
