@@ -20,7 +20,7 @@ type kindProvisioner struct {
 	provisionOperator operator.Operator
 }
 
-// Provision requests provisioning of a new Kubernetes cluster on GCP with the given configurations.
+// Provision requests provisioning of a new Kubernetes cluster on Kind with the given configurations.
 func (k *kindProvisioner) Provision(cluster *types.Cluster, p *types.Provider) (*types.Cluster, error) {
 	if err := k.validateInputs(cluster, p); err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func (k *kindProvisioner) Credentials(cluster *types.Cluster, p *types.Provider)
 	return clientcmd.Write(*config)
 }
 
-// Deprovision requests deprovisioning of an existing cluster on GCP with the given configurations.
+// Deprovision requests deprovisioning of an existing cluster on Kind with the given configurations.
 func (k *kindProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
 	if err := k.validateInputs(cluster, p); err != nil {
 		return err
