@@ -259,8 +259,8 @@ resource "gardener_shoot" "gardener_cluster" {
 `
 
 	kindClusterTemplate = `
-variable "project"					{}
-variable "cluster_name"				{}
+variable "project"				{}
+variable "cluster_name"			{}
 variable "node_image"				{}
 variable "create_timeout" 			{}
 variable "update_timeout" 			{}
