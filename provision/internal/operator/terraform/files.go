@@ -174,10 +174,6 @@ variable "machine_type"  			{}
 variable "kubernetes_version"   	{}
 variable "disk_size" 				{}
 variable "disk_type" 				{}
-//variable "autoscaler_min" 			{}
-//variable "autoscaler_max" 			{}
-//variable "max_surge" 				{}
-//variable "max_unavailable" 			{}
 variable "create_timeout" 			{}
 variable "update_timeout" 			{}
 variable "delete_timeout" 			{}
@@ -185,30 +181,12 @@ variable "worker_max_surge" 		{}
 variable "worker_max_unavailable"	{}
 variable "worker_maximum"			{}
 variable "worker_minimum"			{}
-//variable "volume_size"				{}
-//variable "volume_type"				{}
 variable "worker_name"				{}
 variable "machine_image_name"		{}
 variable "machine_image_version"	{}
-//variable "machine_type"				{}
-//variable "region"					{}
 variable "networks_azure_cidr"      {}
+variable "networks_azure_workers" 	{}
 
-
-//variable "maintenance" {
-//  auto_update {
-//     "kubernetes_version" = "true"
-//     "machine_image_version" = "true"
-//  }
-//  time_window {
-//    "begin" = "030000+0000"
-//    "end "= "040000+0000"
-//  }
-//}
-
-
-
-//}
 
 provider "gardener" {
 	kube_file          = "${file("${var.credentials_file_path}")}"
@@ -260,6 +238,7 @@ resource "gardener_shoot" "gardener_cluster" {
                 }
               }
            {{ end }}
+        }
         worker {
          name = "${var.worker_name}"
          max_surge = "${var.worker_max_surge}"
@@ -267,7 +246,7 @@ resource "gardener_shoot" "gardener_cluster" {
 		 maximum = "${var.worker_maximum}"
          minimum = "${var.worker_minimum}"
 		 volume {
-           size = "${var.disk_size}"
+           size = "${var.disk_size}Gi"
   		   type = "${var.disk_type}"
          }
 		 machine {
@@ -277,7 +256,6 @@ resource "gardener_shoot" "gardener_cluster" {
 		   }
            type = "${var.machine_type}"
 		 }
-        }
         }
       }
 
@@ -332,8 +310,8 @@ resource "gardener_shoot" "gardener_cluster" {
 		allow_privileged_containers = true
 		version = "${var.kubernetes_version}"
 	  }
-	}
   }
+}
 `
 )
 

@@ -25,7 +25,7 @@ func main() {
 	cluster := &types.Cluster{
 		CPU:               1,
 		KubernetesVersion: "1.15.4",
-		Name:              "hydro-azure-rg",
+		Name:              "hydro-azure",
 		DiskSizeGB:        35,
 		NodeCount:         2,
 		Location:          "westeurope",
@@ -53,7 +53,8 @@ func main() {
 			"networking_nodes": "10.250.0.0/19",
 			"networking_pods": "100.96.0.0/11",
 			"networking_services": "100.64.0.0/13",
-			"networking_type":" calico",
+			"networking_type":"calico",
+
 		},
 	}
 
