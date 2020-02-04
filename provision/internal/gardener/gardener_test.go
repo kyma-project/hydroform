@@ -30,15 +30,15 @@ func TestValidate(t *testing.T) {
 			ProjectName:         "my-project",
 			CredentialsFilePath: "/path/to/credentials",
 			CustomConfigurations: map[string]interface{}{
-				"target_provider": "gcp",
-				"target_secret":   "secret-name",
-				"disk_type":       "pd-standard",
-				"zone":            "europe-west3-b",
-				"workercidr":      "10.250.0.0/19",
-				"autoscaler_min":  2,
-				"autoscaler_max":  4,
-				"max_surge":       4,
-				"max_unavailable": 1,
+				"target_provider":        "gcp",
+				"target_secret":          "secret-name",
+				"disk_type":              "pd-standard",
+				"zone":                   "europe-west3-b",
+				"workercidr":             "10.250.0.0/19",
+				"worker_max_surge":       4,
+				"worker_max_unavailable": 1,
+				"worker_maximum":         4,
+				"worker_minimum":         2,
 			},
 		}
 
@@ -73,15 +73,24 @@ func TestValidate(t *testing.T) {
 			ProjectName:         "my-project",
 			CredentialsFilePath: "/path/to/credentials",
 			CustomConfigurations: map[string]interface{}{
-				"target_provider": "azure",
-				"target_secret":   "secret-name",
-				"disk_type":       "standard",
-				"workercidr":      "10.250.0.0/19",
-				"vnetcidr":        "10.250.0.0/19",
-				"autoscaler_min":  2,
-				"autoscaler_max":  4,
-				"max_surge":       4,
-				"max_unavailable": 1,
+				"target_provider":        "azure",
+				"target_secret":          "secret_name",
+				"disk_type":              "Standard_LRS",
+				"workercidr":             "10.250.0.0/19",
+				"vnetcidr":               "10.250.0.0/19",
+				"worker_max_surge":       4,
+				"worker_max_unavailable": 1,
+				"worker_maximum":         4,
+				"worker_minimum":         2,
+				"worker_name":            "hydro-worker",
+				"machine_image_name":     "coreos",
+				"machine_image_version":  "2303.3.0",
+				"networks_azure_cidr":    "10.250.0.0/16",
+				"networks_azure_workers": "10.250.0.0/19",
+				"networking_nodes":       "10.250.0.0/19",
+				"networking_pods":        "100.96.0.0/11",
+				"networking_services":    "100.64.0.0/13",
+				"networking_type":        "calico",
 			},
 		}
 
@@ -116,18 +125,18 @@ func TestValidate(t *testing.T) {
 			ProjectName:         "my-project",
 			CredentialsFilePath: "/path/to/credentials",
 			CustomConfigurations: map[string]interface{}{
-				"target_provider": "aws",
-				"target_secret":   "secret-name",
-				"disk_type":       "gp2",
-				"workercidr":      "172.31.0.0/16",
-				"publicscidr":     "172.31.0.0/16",
-				"vpccidr":         "192.168.2.112/29",
-				"internalscidr":   "10.250.0.0/19",
-				"zone":            "eu-west-1b",
-				"autoscaler_min":  2,
-				"autoscaler_max":  4,
-				"max_surge":       4,
-				"max_unavailable": 1,
+				"target_provider":        "aws",
+				"target_secret":          "secret-name",
+				"disk_type":              "gp2",
+				"workercidr":             "172.31.0.0/16",
+				"publicscidr":            "172.31.0.0/16",
+				"vpccidr":                "192.168.2.112/29",
+				"internalscidr":          "10.250.0.0/19",
+				"zone":                   "eu-west-1b",
+				"worker_max_surge":       4,
+				"worker_max_unavailable": 1,
+				"worker_maximum":         4,
+				"worker_minimum":         2,
 			},
 		}
 
@@ -216,21 +225,21 @@ func performBasicValidation(t *testing.T, g gardenerProvisioner, cluster *types.
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when workercidr is empty")
 	provider.CustomConfigurations["workercidr"] = "10.250.0.0/19"
 
-	delete(provider.CustomConfigurations, "autoscaler_min")
-	require.Error(t, g.validate(cluster, provider), "Validation should fail when autoscaler_min is empty")
-	provider.CustomConfigurations["autoscaler_min"] = 2
+	delete(provider.CustomConfigurations, "worker_minimum")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when worker_minimum is empty")
+	provider.CustomConfigurations["worker_minimum"] = 2
 
-	delete(provider.CustomConfigurations, "autoscaler_max")
-	require.Error(t, g.validate(cluster, provider), "Validation should fail when autoscaler_max is empty")
-	provider.CustomConfigurations["autoscaler_max"] = 4
+	delete(provider.CustomConfigurations, "worker_maximum")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when worker_maximum is empty")
+	provider.CustomConfigurations["worker_maximum"] = 4
 
-	delete(provider.CustomConfigurations, "max_surge")
-	require.Error(t, g.validate(cluster, provider), "Validation should fail when max_surge is empty")
-	provider.CustomConfigurations["max_surge"] = 4
+	delete(provider.CustomConfigurations, "worker_max_surge")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when worker_max_surge is empty")
+	provider.CustomConfigurations["worker_max_surge"] = 4
 
-	delete(provider.CustomConfigurations, "max_unavailable")
-	require.Error(t, g.validate(cluster, provider), "Validation should fail when max_unavailable is empty")
-	provider.CustomConfigurations["max_unavailable"] = 1
+	delete(provider.CustomConfigurations, "worker_max_unavailable")
+	require.Error(t, g.validate(cluster, provider), "Validation should fail when worker_max_unavailable is empty")
+	provider.CustomConfigurations["worker_max_unavailable"] = 1
 }
 
 func TestLoadConfigurations(t *testing.T) {
@@ -294,15 +303,15 @@ func TestProvision(t *testing.T) {
 		ProjectName:         "my-project",
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
-			"target_secret":   "secret-name",
-			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
-			"workercidr":      "10.250.0.0/19",
-			"autoscaler_min":  2,
-			"autoscaler_max":  4,
-			"max_surge":       4,
-			"max_unavailable": 1,
+			"target_provider":        "gcp",
+			"target_secret":          "secret-name",
+			"disk_type":              "pd-standard",
+			"zone":                   "europe-west3-b",
+			"workercidr":             "10.250.0.0/19",
+			"worker_max_surge":       4,
+			"worker_max_unavailable": 1,
+			"worker_maximum":         4,
+			"worker_minimum":         2,
 		},
 	}
 
@@ -352,15 +361,15 @@ func TestDeProvision(t *testing.T) {
 		ProjectName:         "my-project",
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
-			"target_secret":   "secret-name",
-			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
-			"workercidr":      "10.250.0.0/19",
-			"autoscaler_min":  2,
-			"autoscaler_max":  4,
-			"max_surge":       4,
-			"max_unavailable": 1,
+			"target_provider":        "gcp",
+			"target_secret":          "secret-name",
+			"disk_type":              "pd-standard",
+			"zone":                   "europe-west3-b",
+			"workercidr":             "10.250.0.0/19",
+			"worker_max_surge":       4,
+			"worker_max_unavailable": 1,
+			"worker_maximum":         4,
+			"worker_minimum":         2,
 		},
 	}
 	var state *statefile.File

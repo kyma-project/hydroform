@@ -199,6 +199,33 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["vnetcidr"]; !ok && targetProvider == string(types.Azure) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['vnetcidr']")
 	}
+	if _, ok := provider.CustomConfigurations["worker_name"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['worker_name']")
+	}
+	if _, ok := provider.CustomConfigurations["machine_image_name"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['machine_image_name']")
+	}
+	if _, ok := provider.CustomConfigurations["machine_image_version"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['machine_image_version']")
+	}
+	if _, ok := provider.CustomConfigurations["networks_azure_cidr"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networks_azure_cidr']")
+	}
+	if _, ok := provider.CustomConfigurations["networks_azure_workers"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networks_azure_workers']")
+	}
+	if _, ok := provider.CustomConfigurations["networking_nodes"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_nodes']")
+	}
+	if _, ok := provider.CustomConfigurations["networking_pods"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_pods']")
+	}
+	if _, ok := provider.CustomConfigurations["networking_services"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_services']")
+	}
+	if _, ok := provider.CustomConfigurations["networking_type"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_type']")
+	}
 
 	if errMessage != "" {
 		return errors.New("input validation failed with the following information: " + errMessage)

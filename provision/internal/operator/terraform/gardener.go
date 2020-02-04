@@ -24,19 +24,19 @@ const (
 
 func initGardenerProvider() error {
 	pluginDirs, err := globalPluginDirs()
-		if err != nil {
-			return err
-		}
-		providerPath := filepath.Join(pluginDirs[1], fmt.Sprintf("%s_%s", providerName, providerVersion))
+	if err != nil {
+		return err
+	}
+	providerPath := filepath.Join(pluginDirs[1], fmt.Sprintf("%s_%s", providerName, providerVersion))
 
-		//check if plugin is in the plugins dir
-		if _, err := os.Stat(providerPath); !os.IsNotExist(err) {
-			if runtime.GOOS == "windows" {
-				err = generateWindowsBinary(providerPath)
-				if err != nil {
-					return err
-				}
+	//check if plugin is in the plugins dir
+	if _, err := os.Stat(providerPath); !os.IsNotExist(err) {
+		if runtime.GOOS == "windows" {
+			err = generateWindowsBinary(providerPath)
+			if err != nil {
+				return err
 			}
+		}
 	return nil
 	}
 
@@ -74,14 +74,14 @@ func initGardenerProvider() error {
 	// if just downloaded a new version successfully, delete any old ones
 	err = filepath.Walk(pluginDirs[1], func(path string, info os.FileInfo, err error) error {
 
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
+	}
 
-		if strings.HasPrefix(info.Name(), providerName) && !strings.HasSuffix(info.Name(), providerVersion) {
-			return os.Remove(path)
-		}
-		return nil
+	if strings.HasPrefix(info.Name(), providerName) && !strings.HasSuffix(info.Name(), providerVersion) {
+		return os.Remove(path)
+	}
+	return nil
 	})
 	return err
 }

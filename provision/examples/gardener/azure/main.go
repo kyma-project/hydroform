@@ -54,7 +54,6 @@ func main() {
 			"networking_pods": "100.96.0.0/11",
 			"networking_services": "100.64.0.0/13",
 			"networking_type":"calico",
-
 		},
 	}
 
