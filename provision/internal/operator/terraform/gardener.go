@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 )
 
@@ -41,48 +40,48 @@ func initGardenerProvider() error {
 	}
 
 	// Download the plugin for the OS and arch
-	r, err := downloadBinary(fmt.Sprintf(providerURL, providerVersion, runtime.GOOS, runtime.GOARCH))
-	if err != nil {
-		return err
-	}
-	defer r.Close()
+	//r, err := downloadBinary(fmt.Sprintf(providerURL, providerVersion, runtime.GOOS, runtime.GOARCH))
+	//if err != nil {
+	//	return err
+	//}
+	//defer r.Close()
 
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
+	//data, err := ioutil.ReadAll(r)
+	//if err != nil {
+	//	return err
+	//}
 
 	// save the file
-	if _, err := os.Stat(pluginDirs[1]); os.IsNotExist(err) {
-		err = os.MkdirAll(pluginDirs[1], 0700)
-		if err != nil {
-			return err
-		}
-	}
-	if err := ioutil.WriteFile(providerPath, data, 0700); err != nil {
-		return err
-	}
-
-	if runtime.GOOS == "windows" {
-		// Create exe for windows if it doesn't exist
-		err = generateWindowsBinary(providerPath)
-		if err != nil {
-			return err
-		}
-	}
+	//if _, err := os.Stat(pluginDirs[1]); os.IsNotExist(err) {
+	//	err = os.MkdirAll(pluginDirs[1], 0700)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
+	//if err := ioutil.WriteFile(providerPath, data, 0700); err != nil {
+	//	return err
+	//}
+	//
+	//if runtime.GOOS == "windows" {
+	//	// Create exe for windows if it doesn't exist
+	//	err = generateWindowsBinary(providerPath)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	// if just downloaded a new version successfully, delete any old ones
-	err = filepath.Walk(pluginDirs[1], func(path string, info os.FileInfo, err error) error {
-
-		if err != nil {
-			return err
-		}
-
-		if strings.HasPrefix(info.Name(), providerName) && !strings.HasSuffix(info.Name(), providerVersion) {
-			return os.Remove(path)
-		}
-		return nil
-	})
+	//err = filepath.Walk(pluginDirs[1], func(path string, info os.FileInfo, err error) error {
+	//
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	if strings.HasPrefix(info.Name(), providerName) && !strings.HasSuffix(info.Name(), providerVersion) {
+	//		return os.Remove(path)
+	//	}
+	//	return nil
+	//})
 	return err
 }
 
