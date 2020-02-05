@@ -37,7 +37,7 @@ func initGardenerProvider() error {
 				return err
 			}
 		}
-	return nil
+		return nil
 	}
 
 	// Download the plugin for the OS and arch
@@ -74,14 +74,14 @@ func initGardenerProvider() error {
 	// if just downloaded a new version successfully, delete any old ones
 	err = filepath.Walk(pluginDirs[1], func(path string, info os.FileInfo, err error) error {
 
-	if err != nil {
-		return err
-	}
+		if err != nil {
+			return err
+		}
 
-	if strings.HasPrefix(info.Name(), providerName) && !strings.HasSuffix(info.Name(), providerVersion) {
-		return os.Remove(path)
-	}
-	return nil
+		if strings.HasPrefix(info.Name(), providerName) && !strings.HasSuffix(info.Name(), providerVersion) {
+			return os.Remove(path)
+		}
+		return nil
 	})
 	return err
 }
