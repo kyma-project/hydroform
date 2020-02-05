@@ -17,7 +17,7 @@ import (
 const (
 	providerURL     = "https://github.com/kyma-incubator/terraform-provider-gardener/releases/download/%s/terraform-provider-gardener-%s-%s"
 	providerName    = "terraform-provider-gardener"
-	providerVersion = "v0.0.5"
+	providerVersion = "v0.0.6"
 )
 
 // initGardenerProvider will check if the gardener provider is available and download it if not.
