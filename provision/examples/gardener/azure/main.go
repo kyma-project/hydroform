@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	hf "github.com/kyma-incubator/hydroform/provision"
 	"io/ioutil"
 	"log"
 
 	"github.com/kyma-incubator/hydroform/provision/action"
 
-	hf "github.com/kyma-incubator/hydroform/provision"
 	"github.com/kyma-incubator/hydroform/provision/types"
 )
 
@@ -36,15 +36,24 @@ func main() {
 		ProjectName:         *projectName,
 		CredentialsFilePath: *credentials,
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "azure",
-			"target_secret":   *secret,
-			"disk_type":       "Standard_LRS",
-			"workercidr":      "10.250.0.0/19",
-			"vnetcidr":        "10.250.0.0/19",
-			"autoscaler_min":  2,
-			"autoscaler_max":  4,
-			"max_surge":       4,
-			"max_unavailable": 1,
+			"target_provider":        "azure",
+			"target_secret":          *secret,
+			"disk_type":              "Standard_LRS",
+			"workercidr":             "10.250.0.0/19",
+			"vnetcidr":               "10.250.0.0/19",
+			"worker_max_surge":       4,
+			"worker_max_unavailable": 1,
+			"worker_maximum":         4,
+			"worker_minimum":         2,
+			"worker_name":            "hydro-worker",
+			"machine_image_name":     "coreos",
+			"machine_image_version":  "2303.3.0",
+			"networks_azure_cidr":    "10.250.0.0/16",
+			"networks_azure_workers": "10.250.0.0/19",
+			"networking_nodes":       "10.250.0.0/19",
+			"networking_pods":        "100.96.0.0/11",
+			"networking_services":    "100.64.0.0/13",
+			"networking_type":        "calico",
 		},
 	}
 
@@ -106,7 +115,7 @@ func main() {
 
 	//fmt.Println("Deprovisioning...")
 	//
-	//err = hf.Deprovision(cluster, provider, ops...)
+	//err := hf.Deprovision(cluster, provider, ops...)
 	//if err != nil {
 	//	fmt.Println("Error", err.Error())
 	//	return

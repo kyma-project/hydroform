@@ -169,17 +169,17 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["disk_type"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['disk_type']")
 	}
-	if _, ok := provider.CustomConfigurations["autoscaler_min"]; !ok {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['autoscaler_min']")
+	if _, ok := provider.CustomConfigurations["worker_minimum"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['worker_minimum']")
 	}
-	if _, ok := provider.CustomConfigurations["autoscaler_max"]; !ok {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['autoscaler_max']")
+	if _, ok := provider.CustomConfigurations["worker_maximum"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['worker_maximum']")
 	}
-	if _, ok := provider.CustomConfigurations["max_surge"]; !ok {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['max_surge']")
+	if _, ok := provider.CustomConfigurations["worker_max_surge"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['worker_max_surge']")
 	}
-	if _, ok := provider.CustomConfigurations["max_unavailable"]; !ok {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['max_unavailable']")
+	if _, ok := provider.CustomConfigurations["worker_max_unavailable"]; !ok {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['worker_max_unavailable']")
 	}
 	if _, ok := provider.CustomConfigurations["workercidr"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['workercidr']")
@@ -198,6 +198,33 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	}
 	if _, ok := provider.CustomConfigurations["vnetcidr"]; !ok && targetProvider == string(types.Azure) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['vnetcidr']")
+	}
+	if _, ok := provider.CustomConfigurations["worker_name"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['worker_name']")
+	}
+	if _, ok := provider.CustomConfigurations["machine_image_name"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['machine_image_name']")
+	}
+	if _, ok := provider.CustomConfigurations["machine_image_version"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['machine_image_version']")
+	}
+	if _, ok := provider.CustomConfigurations["networks_azure_cidr"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networks_azure_cidr']")
+	}
+	if _, ok := provider.CustomConfigurations["networks_azure_workers"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networks_azure_workers']")
+	}
+	if _, ok := provider.CustomConfigurations["networking_nodes"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_nodes']")
+	}
+	if _, ok := provider.CustomConfigurations["networking_pods"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_pods']")
+	}
+	if _, ok := provider.CustomConfigurations["networking_services"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_services']")
+	}
+	if _, ok := provider.CustomConfigurations["networking_type"]; !ok && targetProvider == string(types.Azure) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_type']")
 	}
 
 	if errMessage != "" {

@@ -17,7 +17,7 @@ import (
 const (
 	providerURL     = "https://github.com/kyma-incubator/terraform-provider-gardener/releases/download/%s/terraform-provider-gardener-%s-%s"
 	providerName    = "terraform-provider-gardener"
-	providerVersion = "v0.0.5"
+	providerVersion = "v0.0.6"
 )
 
 // initGardenerProvider will check if the gardener provider is available and download it if not.
@@ -29,7 +29,7 @@ func initGardenerProvider() error {
 	}
 	providerPath := filepath.Join(pluginDirs[1], fmt.Sprintf("%s_%s", providerName, providerVersion))
 
-	// check if plugin is in the plugins dir
+	//check if plugin is in the plugins dir
 	if _, err := os.Stat(providerPath); !os.IsNotExist(err) {
 		if runtime.GOOS == "windows" {
 			err = generateWindowsBinary(providerPath)

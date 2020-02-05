@@ -48,7 +48,6 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 	if err != nil {
 		return nil, err
 	}
-
 	// INIT
 	if p == types.Gardener {
 		if err := initGardenerProvider(); err != nil {
@@ -63,7 +62,6 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 	if err := tfApply(t.ops, p, cfg, clusterDir); err != nil {
 		return nil, err
 	}
-
 	return clusterInfoFromFile(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
 }
 

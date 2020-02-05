@@ -112,7 +112,7 @@ const (
 
   resource "google_container_cluster" "gke_cluster" {
     	name               = "${var.cluster_name}"
-    	location 	   = "${var.location}"
+    	location 	       = "${var.location}"
     	initial_node_count = "${var.node_count}"
     	min_master_version = "${var.kubernetes_version}"
     	node_version       = "${var.kubernetes_version}"
@@ -154,6 +154,10 @@ variable "credentials_file_path" 	{}
 variable "project"					{}
 variable "namespace"       			{}
 variable "location"      			{}
+variable "networking_nodes"			{}
+variable "networking_pods"			{}
+variable "networking_services"		{}
+variable "networking_type"			{}
 {{ if not (eq (index . "target_provider") "azure") }}
 variable "zone"      				{}
 {{ end }}
@@ -170,13 +174,19 @@ variable "machine_type"  			{}
 variable "kubernetes_version"   	{}
 variable "disk_size" 				{}
 variable "disk_type" 				{}
-variable "autoscaler_min" 			{}
-variable "autoscaler_max" 			{}
-variable "max_surge" 				{}
-variable "max_unavailable" 			{}
 variable "create_timeout" 			{}
 variable "update_timeout" 			{}
 variable "delete_timeout" 			{}
+variable "worker_max_surge" 		{}
+variable "worker_max_unavailable"	{}
+variable "worker_maximum"			{}
+variable "worker_minimum"			{}
+variable "worker_name"				{}
+variable "machine_image_name"		{}
+variable "machine_image_version"	{}
+variable "networks_azure_cidr"      {}
+variable "networks_azure_workers" 	{}
+
 
 provider "gardener" {
 	kube_file          = "${file("${var.credentials_file_path}")}"
@@ -196,66 +206,112 @@ resource "gardener_shoot" "gardener_cluster" {
 	}
 
 	spec {
-	  cloud {
-		profile = "${var.target_profile}"
-		region  = "${var.location}"
-		secret_binding_ref {
-		  name = "${var.target_secret}"
-		}
+       cloud_profile_name = "${var.target_profile}"
+       region  = "${var.location}"
+	   secret_binding_name = "${var.target_secret}"
+       networking {
+         nodes = "${var.networking_nodes}"
+         pods = "${var.networking_pods}"
+         services = "${var.networking_services}"
+	     type = "${var.networking_type}"
+       }
+      maintenance {
+        auto_update {
+          kubernetes_version = "true"
+          machine_image_version = "true"
+        }
+		time_window {
+		  begin = "030000+0000"
+          end = "040000+0000"
+        }
+      }
+      provider {
+        type = "${var.target_provider}"
+        infrastructure_config {
+           {{ if eq (index . "target_provider") "azure" }}
+			  azure {
+                networks {
+                  vnet {
+					cidr = "${var.networks_azure_cidr}"          
+                  }
+				  workers = "${var.networks_azure_workers}" 
+                }
+              }
+           {{ end }}
+        }
+        worker {
+         name = "${var.worker_name}"
+         max_surge = "${var.worker_max_surge}"
+		 max_unavailable = "${var.worker_max_unavailable}"
+		 maximum = "${var.worker_maximum}"
+         minimum = "${var.worker_minimum}"
+		 volume {
+           size = "${var.disk_size}Gi"
+  		   type = "${var.disk_type}"
+         }
+		 machine {
+		   image {
+ 			 name = "${var.machine_image_name}"
+			 version = "${var.machine_image_version}"
+		   }
+           type = "${var.machine_type}"
+		 }
+        }
+      }
 
-		{{ if eq (index . "target_provider") "gcp" }}
-		gcp {  
-          networks {
-			workers = ["${var.workercidr}"]
-		  }
-		{{ end }}
-
-		{{ if eq (index . "target_provider") "azure" }}
-		azure {  
-          networks {
-			vnet {
-				cidr = "${var.vnetcidr}"
-			}
-			workers = "${var.workercidr}"
-		  }
-		{{ end }}
-
-		{{ if eq (index . "target_provider") "aws" }}
-		aws {  
-          networks {
-			workers       = ["${var.workercidr}"]
-			public		  = ["${var.publicscidr}"]
-			internal	  = ["${var.internalscidr}"]
-			vpc	{
-				cidr = "${var.vpccidr}"
-			}
-		  }
-		{{ end }}
-
-		  {{range (seq (index . "node_count"))}}
-		  worker {
-			  name            = "cpu-worker-{{.}}"
-			  machine_type    = "${var.machine_type}"
-			  auto_scaler_min = "${var.autoscaler_min}"
-			  auto_scaler_max = "${var.autoscaler_max}"
-			  max_surge       = "${var.max_surge}"
-			  max_unavailable = "${var.max_unavailable}"
-			  volume_size     = "${var.disk_size}Gi"
-			  volume_type     = "${var.disk_type}"
-		  }
-		  {{end}}
-          {{ if not (eq (index . "target_provider") "azure") }}
-		  zones = ["${var.zone}"]
-          {{ end }}
-		}
-	  }
+      //{{ if eq (index . "target_provider") "gcp" }}
+		//gcp {  
+      //    networks {
+		//	workers = ["${var.workercidr}"]
+		//  }
+		//{{ end }}
+	  //
+		//{{ if eq (index . "target_provider") "azure" }}
+		//azure {  
+      //    networks {
+		//	vnet {
+		//		cidr = "${var.vnetcidr}"
+		//	}
+		//	workers = "${var.workercidr}"
+		//  }
+		//{{ end }}
+	  //
+		//{{ if eq (index . "target_provider") "aws" }}
+		//aws {  
+      //    networks {
+		//	workers       = ["${var.workercidr}"]
+		//	public		  = ["${var.publicscidr}"]
+		//	internal	  = ["${var.internalscidr}"]
+		//	vpc	{
+		//		cidr = "${var.vpccidr}"
+		//	}
+		//  }
+		//{{ end }}
+	  //
+		//  {{range (seq (index . "node_count"))}}
+		//  worker {
+		//	  name            = "cpu-worker-{{.}}"
+		//	  machine_type    = "${var.machine_type}"
+		//	  auto_scaler_min = "${var.autoscaler_min}"
+		//	  auto_scaler_max = "${var.autoscaler_max}"
+		//	  max_surge       = "${var.max_surge}"
+		//	  max_unavailable = "${var.max_unavailable}"
+		//	  volume_size     = "${var.disk_size}Gi"
+		//	  volume_type     = "${var.disk_type}"
+		//  }
+		//  {{end}}
+      //    {{ if not (eq (index . "target_provider") "azure") }}
+		//  zones = ["${var.zone}"]
+      //    {{ end }}
+		//}
+	  //}
   
 	  kubernetes {
 		allow_privileged_containers = true
 		version = "${var.kubernetes_version}"
 	  }
-	}
   }
+}
 `
 )
 
