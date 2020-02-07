@@ -184,8 +184,6 @@ variable "worker_minimum"			{}
 variable "worker_name"				{}
 variable "machine_image_name"		{}
 variable "machine_image_version"	{}
-variable "networks_azure_cidr"      {}
-variable "networks_azure_workers" 	{}
 
 
 provider "gardener" {
@@ -232,9 +230,9 @@ resource "gardener_shoot" "gardener_cluster" {
 			  azure {
                 networks {
                   vnet {
-					cidr = "${var.networks_azure_cidr}"          
+					cidr = "${var.vnetcidr}"
                   }
-				  workers = "${var.networks_azure_workers}" 
+				  workers = "${var.workercidr}"
                 }
               }
            {{ end }}

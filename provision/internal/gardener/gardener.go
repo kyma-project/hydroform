@@ -48,7 +48,7 @@ func New(operatorType operator.Type, ops ...types.Option) *gardenerProvisioner {
 
 func (g *gardenerProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	if err := g.validate(cluster, provider); err != nil {
-		return nil, err
+		return cluster, err
 	}
 
 	config := g.loadConfigurations(cluster, provider)
@@ -208,12 +208,7 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["machine_image_version"]; !ok && targetProvider == string(types.Azure) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['machine_image_version']")
 	}
-	if _, ok := provider.CustomConfigurations["networks_azure_cidr"]; !ok && targetProvider == string(types.Azure) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networks_azure_cidr']")
-	}
-	if _, ok := provider.CustomConfigurations["networks_azure_workers"]; !ok && targetProvider == string(types.Azure) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networks_azure_workers']")
-	}
+
 	if _, ok := provider.CustomConfigurations["networking_nodes"]; !ok && targetProvider == string(types.Azure) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_nodes']")
 	}
