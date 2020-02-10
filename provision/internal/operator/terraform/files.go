@@ -239,8 +239,9 @@ resource "gardener_shoot" "gardener_cluster" {
               }
            {{ end }}
         }
+		{{range (seq (index . "node_count"))}}
         worker {
-         name = "${var.worker_name}"
+         name = "cpu-worker-{{.}}"
          max_surge = "${var.worker_max_surge}"
 		 max_unavailable = "${var.worker_max_unavailable}"
 		 maximum = "${var.worker_maximum}"
@@ -257,6 +258,7 @@ resource "gardener_shoot" "gardener_cluster" {
            type = "${var.machine_type}"
 		 }
         }
+        {{end}}
       }
 
       //{{ if eq (index . "target_provider") "gcp" }}

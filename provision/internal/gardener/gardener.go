@@ -199,9 +199,7 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["vnetcidr"]; !ok && targetProvider == string(types.Azure) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['vnetcidr']")
 	}
-	if _, ok := provider.CustomConfigurations["worker_name"]; !ok && targetProvider == string(types.Azure) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['worker_name']")
-	}
+
 	if _, ok := provider.CustomConfigurations["machine_image_name"]; !ok && targetProvider == string(types.Azure) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['machine_image_name']")
 	}
