@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"

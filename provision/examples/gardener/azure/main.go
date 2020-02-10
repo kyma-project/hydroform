@@ -48,12 +48,12 @@ func main() {
 			"worker_name":            "hydro-worker",
 			"machine_image_name":     "coreos",
 			"machine_image_version":  "2303.3.0",
-			"networks_azure_cidr":    "10.250.0.0/16",
-			"networks_azure_workers": "10.250.0.0/19",
 			"networking_nodes":       "10.250.0.0/19",
 			"networking_pods":        "100.96.0.0/11",
 			"networking_services":    "100.64.0.0/13",
 			"networking_type":        "calico",
+			"service_endpoints": 	  []string{"microsoft.test", "microsoft2.test"},
+
 		},
 	}
 
