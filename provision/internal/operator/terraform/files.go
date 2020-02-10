@@ -184,6 +184,7 @@ variable "worker_minimum"			{}
 variable "worker_name"				{}
 variable "machine_image_name"		{}
 variable "machine_image_version"	{}
+variable "service_endpoints"		{}
 
 
 provider "gardener" {
@@ -233,6 +234,7 @@ resource "gardener_shoot" "gardener_cluster" {
 					cidr = "${var.vnetcidr}"
                   }
 				  workers = "${var.workercidr}"
+                  service_endpoints = ["${var.service_endpoints}"]
                 }
               }
            {{ end }}
@@ -354,6 +356,11 @@ func initClusterFiles(dataDir string, p types.ProviderType, cfg map[string]inter
 			}
 		case time.Duration:
 			if _, err := vars.WriteString(fmt.Sprintf("%s = \"%s\"\n", k, t.String())); err != nil {
+				return err
+			}
+		case []string:
+			a := strings.Join(t, ", ")
+			if _, err := vars.WriteString(fmt.Sprintf("%s = \"%s\"\n", k, a)); err != nil {
 				return err
 			}
 		}
