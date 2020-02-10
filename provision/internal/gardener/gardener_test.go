@@ -82,7 +82,6 @@ func TestValidate(t *testing.T) {
 				"worker_max_unavailable": 1,
 				"worker_maximum":         4,
 				"worker_minimum":         2,
-				"worker_name":            "hydro-worker",
 				"machine_image_name":     "coreos",
 				"machine_image_version":  "2303.3.0",
 				"networks_azure_cidr":    "10.250.0.0/16",

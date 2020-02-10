@@ -181,7 +181,6 @@ variable "worker_max_surge" 		{}
 variable "worker_max_unavailable"	{}
 variable "worker_maximum"			{}
 variable "worker_minimum"			{}
-variable "worker_name"				{}
 variable "machine_image_name"		{}
 variable "machine_image_version"	{}
 variable "service_endpoints"		{}
