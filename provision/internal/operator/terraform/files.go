@@ -234,7 +234,7 @@ resource "gardener_shoot" "gardener_cluster" {
 					cidr = "${var.vnetcidr}"
                   }
 				  workers = "${var.workercidr}"
-                  service_endpoints = ["${var.service_endpoints}"]
+                  service_endpoints = "${var.service_endpoints}"
                 }
               }
            {{ end }}
@@ -359,8 +359,13 @@ func initClusterFiles(dataDir string, p types.ProviderType, cfg map[string]inter
 				return err
 			}
 		case []string:
-			a := strings.Join(t, ", ")
-			if _, err := vars.WriteString(fmt.Sprintf("%s = \"%s\"\n", k, a)); err != nil {
+			var a []string
+			for _, v := range t {
+				x := fmt.Sprintf("\"%s\"", v)
+				a = append(a, x)
+			}
+			b := strings.Join(a, ",")
+			if _, err := vars.WriteString(fmt.Sprintf("%s = [%s]\n", k, b)); err != nil {
 				return err
 			}
 		}
