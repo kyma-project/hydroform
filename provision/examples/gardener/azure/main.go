@@ -52,6 +52,7 @@ func main() {
 			"networking_services":    "100.64.0.0/13",
 			"networking_type":        "calico",
 			"service_endpoints":      []string{""},
+			"zone":                   []string{"1"},
 		},
 	}
 

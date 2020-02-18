@@ -158,9 +158,7 @@ variable "networking_nodes"			{}
 variable "networking_pods"			{}
 variable "networking_services"		{}
 variable "networking_type"			{}
-{{ if not (eq (index . "target_provider") "azure") }}
 variable "zone"      				{}
-{{ end }}
 variable "workercidr"      			{}
 {{ if eq (index . "target_provider") "azure" }}
 variable "vnetcidr"				{}
@@ -256,6 +254,7 @@ resource "gardener_shoot" "gardener_cluster" {
 		   }
            type = "${var.machine_type}"
 		 }
+         zones = "${var.zone}"
         }
         {{end}}
       }
