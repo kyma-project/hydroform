@@ -54,6 +54,10 @@ func TestValidate(t *testing.T) {
 		delete(provider.CustomConfigurations, "zone")
 		require.Error(t, g.validate(cluster, provider), "Validation should fail when zone is empty")
 		provider.CustomConfigurations["zone"] = "europe-west3-b"
+
+		delete(provider.CustomConfigurations, "gcp_control_plane_zone")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when gcp_control_plane_zone is empty")
+		provider.CustomConfigurations["gcp_control_plane_zone"] = "europe-west-4-b"
 	})
 
 	t.Run("Validate Azure config", func(t *testing.T) {
@@ -152,17 +156,18 @@ func TestValidate(t *testing.T) {
 		require.Error(t, g.validate(cluster, provider), "Validation should fail when zone is empty")
 		provider.CustomConfigurations["zone"] = "eu-west-1"
 
-		delete(provider.CustomConfigurations, "publicscidr")
-		require.Error(t, g.validate(cluster, provider), "Validation should fail when publicscidr is empty")
-		provider.CustomConfigurations["publicscidr"] = "172.31.0.0/16"
+		delete(provider.CustomConfigurations, "aws_public_cidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when aws_public_cidr is empty")
+		provider.CustomConfigurations["aws_public_cidr"] = "172.31.0.0/16"
 
-		delete(provider.CustomConfigurations, "vpccidr")
-		require.Error(t, g.validate(cluster, provider), "Validation should fail when vpccidr is empty")
-		provider.CustomConfigurations["vpccidr"] = "172.31.0.0/16"
+		delete(provider.CustomConfigurations, "aws_vpc_cidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when aws_vpc_cidr is empty")
+		provider.CustomConfigurations["aws_vpc_cidr"] = "172.31.0.0/16"
 
-		delete(provider.CustomConfigurations, "internalscidr")
-		require.Error(t, g.validate(cluster, provider), "Validation should fail when internalscidr is empty")
-		provider.CustomConfigurations["internalscidr"] = "172.31.0.0/16"
+		delete(provider.CustomConfigurations, "aws_internal_cidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when aws_internal_cidr is empty")
+		provider.CustomConfigurations["aws_internal_cidr"] = "172.31.0.0/16"
+
 	})
 }
 

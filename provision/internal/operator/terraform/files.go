@@ -160,14 +160,19 @@ variable "networking_services"		{}
 variable "networking_type"			{}
 variable "zone"      				{}
 variable "workercidr"      			{}
+{{ if eq (index . "target_provider") "gcp" }}
+variable "gcp_control_plane_zone"		{}
+{{ end }}
 {{ if eq (index . "target_provider") "azure" }}
 variable "vnetcidr"				{}
+variable "service_endpoints"		{}
+
 {{ end }}
 {{ if eq (index . "target_provider") "aws" }}
-variable "vpccidr" 					{}
-variable "publicscidr" 				{}
-variable "internalscidr" 			{}
-variable "awsZone"
+variable "aws_vpc_cidr" 					{}
+variable "aws_public_cidr" 			{}
+variable "aws_internal_cidr" 		{}
+variable "aws_zone"					{}
 {{ end }}
 variable "machine_type"  			{}
 variable "kubernetes_version"   	{}
@@ -182,7 +187,6 @@ variable "worker_maximum"			{}
 variable "worker_minimum"			{}
 variable "machine_image_name"		{}
 variable "machine_image_version"	{}
-variable "service_endpoints"		{}
 
 
 provider "gardener" {
@@ -227,7 +231,7 @@ resource "gardener_shoot" "gardener_cluster" {
 		{{ if eq (index . "target_provider") "gcp" }}
 			control_plane_config {
 				gcp {
-					"zones" = "${var.zone}"
+					zone = "${var.gcp_control_plane_zone}"
  				}
 			}
 		{{ end }}
@@ -247,29 +251,21 @@ resource "gardener_shoot" "gardener_cluster" {
 				gcp {
 					networks {
 						workers = "${var.workercidr}"
-						internal = "${var.gcpInternal}"
-						cloud_nat {
-							min_ports_per_vm = "${var.minPortsPerVM}"
-						}
-						vpc {
-							name = "${var.gcpVPCName}"
-							cloud_router {
-								name = "$var.gcpCloudRouterName"
-							}
-						}
 					}
 				}
            {{ end }}
 		   {{ if eq (index . "target_provider") "aws" }}
 				aws {
-					vpc {
-						cidr = "${var.vpccidr}"
-					}
-					zones {
-						name = "${var.awsZone}"
-						internal = "${var.awsInternalCidr}"
-						public = "${var.awsPubliccidr}"
-						workers = "${var.workercidr}"
+					networks {
+						vpc {
+							cidr = "${var.aws_vpc_cidr}"
+						}
+						zones {
+							name = "${var.aws_zone}"
+							internal = "${var.aws_internal_cidr}"
+							public = "${var.aws_public_cidr}"
+							workers = "${var.workercidr}"
+						}
 					}
 				}
 		   {{ end }}
