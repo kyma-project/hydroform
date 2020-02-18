@@ -39,7 +39,7 @@ func main() {
 			"target_provider": "gcp",
 			"target_secret":   *secret,
 			"disk_type":       "pd-standard",
-			"zone":            "europe-west4-b",
+			"zone":            []string{"europe-west4-b"},
 			"workercidr":      "10.250.0.0/19",
 			"autoscaler_min":  2,
 			"autoscaler_max":  4,

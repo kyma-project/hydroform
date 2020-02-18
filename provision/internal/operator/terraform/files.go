@@ -158,9 +158,7 @@ variable "networking_nodes"			{}
 variable "networking_pods"			{}
 variable "networking_services"		{}
 variable "networking_type"			{}
-{{ if not (eq (index . "target_provider") "azure") }}
 variable "zone"      				{}
-{{ end }}
 variable "workercidr"      			{}
 {{ if eq (index . "target_provider") "azure" }}
 variable "vnetcidr"				{}
@@ -169,6 +167,7 @@ variable "vnetcidr"				{}
 variable "vpccidr" 					{}
 variable "publicscidr" 				{}
 variable "internalscidr" 			{}
+variable "awsZone"
 {{ end }}
 variable "machine_type"  			{}
 variable "kubernetes_version"   	{}
@@ -225,6 +224,13 @@ resource "gardener_shoot" "gardener_cluster" {
       }
       provider {
         type = "${var.target_provider}"
+		{{ if eq (index . "target_provider") "gcp" }}
+			control_plane_config {
+				gcp {
+					"zones" = "${var.zone}"
+ 				}
+			}
+		{{ end }}
         infrastructure_config {
            {{ if eq (index . "target_provider") "azure" }}
 			  azure {
@@ -237,10 +243,41 @@ resource "gardener_shoot" "gardener_cluster" {
                 }
               }
            {{ end }}
+		   {{ if eq (index . "target_provider") "gcp" }}
+				gcp {
+					networks {
+						workers = "${var.workercidr}"
+						internal = "${var.gcpInternal}"
+						cloud_nat {
+							min_ports_per_vm = "${var.minPortsPerVM}"
+						}
+						vpc {
+							name = "${var.gcpVPCName}"
+							cloud_router {
+								name = "$var.gcpCloudRouterName"
+							}
+						}
+					}
+				}
+           {{ end }}
+		   {{ if eq (index . "target_provider") "aws" }}
+				aws {
+					vpc {
+						cidr = "${var.vpccidr}"
+					}
+					zones {
+						name = "${var.awsZone}"
+						internal = "${var.awsInternalCidr}"
+						public = "${var.awsPubliccidr}"
+						workers = "${var.workercidr}"
+					}
+				}
+		   {{ end }}
         }
 		{{range (seq (index . "node_count"))}}
         worker {
          name = "cpu-worker-{{.}}"
+		 zones = "${var.zone}"
          max_surge = "${var.worker_max_surge}"
 		 max_unavailable = "${var.worker_max_unavailable}"
 		 maximum = "${var.worker_maximum}"
@@ -259,53 +296,6 @@ resource "gardener_shoot" "gardener_cluster" {
         }
         {{end}}
       }
-
-      //{{ if eq (index . "target_provider") "gcp" }}
-		//gcp {  
-      //    networks {
-		//	workers = ["${var.workercidr}"]
-		//  }
-		//{{ end }}
-	  //
-		//{{ if eq (index . "target_provider") "azure" }}
-		//azure {  
-      //    networks {
-		//	vnet {
-		//		cidr = "${var.vnetcidr}"
-		//	}
-		//	workers = "${var.workercidr}"
-		//  }
-		//{{ end }}
-	  //
-		//{{ if eq (index . "target_provider") "aws" }}
-		//aws {  
-      //    networks {
-		//	workers       = ["${var.workercidr}"]
-		//	public		  = ["${var.publicscidr}"]
-		//	internal	  = ["${var.internalscidr}"]
-		//	vpc	{
-		//		cidr = "${var.vpccidr}"
-		//	}
-		//  }
-		//{{ end }}
-	  //
-		//  {{range (seq (index . "node_count"))}}
-		//  worker {
-		//	  name            = "cpu-worker-{{.}}"
-		//	  machine_type    = "${var.machine_type}"
-		//	  auto_scaler_min = "${var.autoscaler_min}"
-		//	  auto_scaler_max = "${var.autoscaler_max}"
-		//	  max_surge       = "${var.max_surge}"
-		//	  max_unavailable = "${var.max_unavailable}"
-		//	  volume_size     = "${var.disk_size}Gi"
-		//	  volume_type     = "${var.disk_type}"
-		//  }
-		//  {{end}}
-      //    {{ if not (eq (index . "target_provider") "azure") }}
-		//  zones = ["${var.zone}"]
-      //    {{ end }}
-		//}
-	  //}
   
 	  kubernetes {
 		allow_privileged_containers = true
