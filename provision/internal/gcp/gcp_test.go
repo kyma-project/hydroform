@@ -32,7 +32,8 @@ func TestValidateInputs(t *testing.T) {
 			"target_provider": "gcp",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
+			"zone":            []string{"europe-west3-b"},
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
 	}
 
@@ -110,7 +111,8 @@ func TestLoadConfigurations(t *testing.T) {
 			"target_provider": "gcp",
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
+			"zone":            []string{"europe-west3-b"},
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
 	}
 
@@ -207,6 +209,7 @@ func TestDeprovision(t *testing.T) {
 			"target_secret":   "secret-name",
 			"disk_type":       "pd-standard",
 			"zone":            "europe-west3-b",
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
 	}
 

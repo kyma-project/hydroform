@@ -33,12 +33,13 @@ func TestValidate(t *testing.T) {
 				"target_provider":        "gcp",
 				"target_secret":          "secret-name",
 				"disk_type":              "pd-standard",
-				"zone":                   "europe-west3-b",
 				"workercidr":             "10.250.0.0/19",
 				"worker_max_surge":       4,
 				"worker_max_unavailable": 1,
 				"worker_maximum":         4,
 				"worker_minimum":         2,
+				"zone":            []string{"europe-west3-b"},
+				"gcp_control_plane_zone": "europe-west3-b",
 			},
 		}
 
@@ -132,9 +133,9 @@ func TestValidate(t *testing.T) {
 				"target_secret":          "secret-name",
 				"disk_type":              "gp2",
 				"workercidr":             "172.31.0.0/16",
-				"publicscidr":            "172.31.0.0/16",
-				"vpccidr":                "192.168.2.112/29",
-				"internalscidr":          "10.250.0.0/19",
+				"aws_public_cidr":            "172.31.0.0/16",
+				"aws_vpc_cidr":                "192.168.2.112/29",
+				"aws_internal_cidr":          "10.250.0.0/19",
 				"zone":                   "eu-west-1b",
 				"worker_max_surge":       4,
 				"worker_max_unavailable": 1,
@@ -264,11 +265,13 @@ func TestLoadConfigurations(t *testing.T) {
 		ProjectName:         "my-project",
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
-			"target_secret":   "secret-name",
-			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
+			"target_provider":        "gcp",
+			"target_secret":          "secret-name",
+			"disk_type":              "pd-standard",
+			"zone":                   []string{"europe-west3-b"},
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
+
 	}
 
 	config := g.loadConfigurations(cluster, provider)
@@ -310,12 +313,14 @@ func TestProvision(t *testing.T) {
 			"target_provider":        "gcp",
 			"target_secret":          "secret-name",
 			"disk_type":              "pd-standard",
-			"zone":                   "europe-west3-b",
 			"workercidr":             "10.250.0.0/19",
 			"worker_max_surge":       4,
 			"worker_max_unavailable": 1,
 			"worker_maximum":         4,
 			"worker_minimum":         2,
+			"zone":                   []string{"europe-west3-b"},
+			"gcp_control_plane_zone": "europe-west3-b",
+
 		},
 	}
 
@@ -368,12 +373,13 @@ func TestDeProvision(t *testing.T) {
 			"target_provider":        "gcp",
 			"target_secret":          "secret-name",
 			"disk_type":              "pd-standard",
-			"zone":                   "europe-west3-b",
 			"workercidr":             "10.250.0.0/19",
 			"worker_max_surge":       4,
 			"worker_max_unavailable": 1,
 			"worker_maximum":         4,
 			"worker_minimum":         2,
+			"zone":            "europe-west3-b",
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
 	}
 	var state *statefile.File
