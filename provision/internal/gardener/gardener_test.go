@@ -33,12 +33,13 @@ func TestValidate(t *testing.T) {
 				"target_provider":        "gcp",
 				"target_secret":          "secret-name",
 				"disk_type":              "pd-standard",
-				"zone":                   "europe-west3-b",
 				"workercidr":             "10.250.0.0/19",
 				"worker_max_surge":       4,
 				"worker_max_unavailable": 1,
 				"worker_maximum":         4,
 				"worker_minimum":         2,
+				"zone":                   []string{"europe-west3-b"},
+				"gcp_control_plane_zone": "europe-west3-b",
 			},
 		}
 
@@ -54,6 +55,10 @@ func TestValidate(t *testing.T) {
 		delete(provider.CustomConfigurations, "zone")
 		require.Error(t, g.validate(cluster, provider), "Validation should fail when zone is empty")
 		provider.CustomConfigurations["zone"] = "europe-west3-b"
+
+		delete(provider.CustomConfigurations, "gcp_control_plane_zone")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when gcp_control_plane_zone is empty")
+		provider.CustomConfigurations["gcp_control_plane_zone"] = "europe-west-4-b"
 	})
 
 	t.Run("Validate Azure config", func(t *testing.T) {
@@ -128,9 +133,9 @@ func TestValidate(t *testing.T) {
 				"target_secret":          "secret-name",
 				"disk_type":              "gp2",
 				"workercidr":             "172.31.0.0/16",
-				"publicscidr":            "172.31.0.0/16",
-				"vpccidr":                "192.168.2.112/29",
-				"internalscidr":          "10.250.0.0/19",
+				"aws_public_cidr":        "172.31.0.0/16",
+				"aws_vpc_cidr":           "192.168.2.112/29",
+				"aws_internal_cidr":      "10.250.0.0/19",
 				"zone":                   "eu-west-1b",
 				"worker_max_surge":       4,
 				"worker_max_unavailable": 1,
@@ -152,17 +157,18 @@ func TestValidate(t *testing.T) {
 		require.Error(t, g.validate(cluster, provider), "Validation should fail when zone is empty")
 		provider.CustomConfigurations["zone"] = "eu-west-1"
 
-		delete(provider.CustomConfigurations, "publicscidr")
-		require.Error(t, g.validate(cluster, provider), "Validation should fail when publicscidr is empty")
-		provider.CustomConfigurations["publicscidr"] = "172.31.0.0/16"
+		delete(provider.CustomConfigurations, "aws_public_cidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when aws_public_cidr is empty")
+		provider.CustomConfigurations["aws_public_cidr"] = "172.31.0.0/16"
 
-		delete(provider.CustomConfigurations, "vpccidr")
-		require.Error(t, g.validate(cluster, provider), "Validation should fail when vpccidr is empty")
-		provider.CustomConfigurations["vpccidr"] = "172.31.0.0/16"
+		delete(provider.CustomConfigurations, "aws_vpc_cidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when aws_vpc_cidr is empty")
+		provider.CustomConfigurations["aws_vpc_cidr"] = "172.31.0.0/16"
 
-		delete(provider.CustomConfigurations, "internalscidr")
-		require.Error(t, g.validate(cluster, provider), "Validation should fail when internalscidr is empty")
-		provider.CustomConfigurations["internalscidr"] = "172.31.0.0/16"
+		delete(provider.CustomConfigurations, "aws_internal_cidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when aws_internal_cidr is empty")
+		provider.CustomConfigurations["aws_internal_cidr"] = "172.31.0.0/16"
+
 	})
 }
 
@@ -259,10 +265,11 @@ func TestLoadConfigurations(t *testing.T) {
 		ProjectName:         "my-project",
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
-			"target_secret":   "secret-name",
-			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
+			"target_provider":        "gcp",
+			"target_secret":          "secret-name",
+			"disk_type":              "pd-standard",
+			"zone":                   []string{"europe-west3-b"},
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
 	}
 
@@ -305,12 +312,13 @@ func TestProvision(t *testing.T) {
 			"target_provider":        "gcp",
 			"target_secret":          "secret-name",
 			"disk_type":              "pd-standard",
-			"zone":                   "europe-west3-b",
 			"workercidr":             "10.250.0.0/19",
 			"worker_max_surge":       4,
 			"worker_max_unavailable": 1,
 			"worker_maximum":         4,
 			"worker_minimum":         2,
+			"zone":                   []string{"europe-west3-b"},
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
 	}
 
@@ -363,12 +371,13 @@ func TestDeProvision(t *testing.T) {
 			"target_provider":        "gcp",
 			"target_secret":          "secret-name",
 			"disk_type":              "pd-standard",
-			"zone":                   "europe-west3-b",
 			"workercidr":             "10.250.0.0/19",
 			"worker_max_surge":       4,
 			"worker_max_unavailable": 1,
 			"worker_maximum":         4,
 			"worker_minimum":         2,
+			"zone":                   "europe-west3-b",
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
 	}
 	var state *statefile.File

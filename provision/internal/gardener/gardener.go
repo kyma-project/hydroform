@@ -187,14 +187,14 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["zone"]; !ok && (targetProvider == string(types.GCP) || targetProvider == string(types.AWS)) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['zone']")
 	}
-	if _, ok := provider.CustomConfigurations["publicscidr"]; !ok && targetProvider == string(types.AWS) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['publicscidr']")
+	if _, ok := provider.CustomConfigurations["aws_public_cidr"]; !ok && targetProvider == string(types.AWS) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['aws_public_cidr']")
 	}
-	if _, ok := provider.CustomConfigurations["vpccidr"]; !ok && targetProvider == string(types.AWS) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['vpccidr']")
+	if _, ok := provider.CustomConfigurations["aws_vpc_cidr"]; !ok && targetProvider == string(types.AWS) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['aws_vpc_cidr']")
 	}
-	if _, ok := provider.CustomConfigurations["internalscidr"]; !ok && targetProvider == string(types.AWS) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['internalscidr']")
+	if _, ok := provider.CustomConfigurations["aws_internal_cidr"]; !ok && targetProvider == string(types.AWS) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['aws_internal_cidr']")
 	}
 	if _, ok := provider.CustomConfigurations["vnetcidr"]; !ok && targetProvider == string(types.Azure) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['vnetcidr']")
@@ -218,6 +218,9 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	}
 	if _, ok := provider.CustomConfigurations["networking_type"]; !ok && targetProvider == string(types.Azure) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_type']")
+	}
+	if _, ok := provider.CustomConfigurations["gcp_control_plane_zone"]; !ok && targetProvider == string(types.GCP) {
+		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['gcp_control_plane_zone']")
 	}
 
 	if errMessage != "" {

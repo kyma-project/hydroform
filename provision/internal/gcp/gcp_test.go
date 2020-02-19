@@ -29,10 +29,11 @@ func TestValidateInputs(t *testing.T) {
 		ProjectName:         "my-project",
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
-			"target_secret":   "secret-name",
-			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
+			"target_provider":        "gcp",
+			"target_secret":          "secret-name",
+			"disk_type":              "pd-standard",
+			"zone":                   []string{"europe-west3-b"},
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
 	}
 
@@ -107,10 +108,11 @@ func TestLoadConfigurations(t *testing.T) {
 		ProjectName:         "my-project",
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
-			"target_secret":   "secret-name",
-			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
+			"target_provider":        "gcp",
+			"target_secret":          "secret-name",
+			"disk_type":              "pd-standard",
+			"zone":                   []string{"europe-west3-b"},
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
 	}
 
@@ -203,10 +205,11 @@ func TestDeprovision(t *testing.T) {
 		ProjectName:         "my-project",
 		CredentialsFilePath: "/path/to/credentials",
 		CustomConfigurations: map[string]interface{}{
-			"target_provider": "gcp",
-			"target_secret":   "secret-name",
-			"disk_type":       "pd-standard",
-			"zone":            "europe-west3-b",
+			"target_provider":        "gcp",
+			"target_secret":          "secret-name",
+			"disk_type":              "pd-standard",
+			"zone":                   "europe-west3-b",
+			"gcp_control_plane_zone": "europe-west3-b",
 		},
 	}
 
