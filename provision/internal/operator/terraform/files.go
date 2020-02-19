@@ -289,7 +289,6 @@ resource "gardener_shoot" "gardener_cluster" {
 		   }
            type = "${var.machine_type}"
 		 }
-         zones = "${var.zone}"
         }
         {{end}}
       }
