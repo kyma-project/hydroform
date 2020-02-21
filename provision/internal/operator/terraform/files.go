@@ -271,7 +271,7 @@ resource "gardener_shoot" "gardener_cluster" {
 		   {{ end }}
         }
         worker {
-         name = "cpu-worker-{{.}}"
+         name = "cpu-worker"
 		 zones = "${var.zone}"
          max_surge = "${var.worker_max_surge}"
 		 max_unavailable = "${var.worker_max_unavailable}"
