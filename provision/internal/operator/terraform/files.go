@@ -270,7 +270,6 @@ resource "gardener_shoot" "gardener_cluster" {
 				}
 		   {{ end }}
         }
-		{{range (seq (index . "node_count"))}}
         worker {
          name = "cpu-worker-{{.}}"
 		 zones = "${var.zone}"
@@ -290,7 +289,6 @@ resource "gardener_shoot" "gardener_cluster" {
            type = "${var.machine_type}"
 		 }
         }
-        {{end}}
       }
   
 	  kubernetes {
