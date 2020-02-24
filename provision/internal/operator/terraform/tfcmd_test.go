@@ -8,12 +8,18 @@ import (
 )
 
 func TestInitArgs(t *testing.T) {
-	// for now init args does not use the cluster and provider config for anything
+	// test provider that has no module support
 	res := initArgs("", nil, "/path/to/cluster")
 
+	require.Len(t, res, 1)
+	require.Equal(t, res[0], "/path/to/cluster") // cluster config directory
+
+	// test provider that has module
+	res = initArgs(types.Azure, nil, "/path/to/cluster")
+
 	require.Len(t, res, 2)
-	require.Equal(t, res[0], "-var-file=/path/to/cluster/terraform.tfvars") // vars file
-	require.Equal(t, res[1], "/path/to/cluster")                            // cluster config directory
+	require.Contains(t, res[0], "-from-module")
+	require.Equal(t, res[1], "/path/to/cluster") // cluster config directory
 }
 
 func TestApplyArgs(t *testing.T) {
