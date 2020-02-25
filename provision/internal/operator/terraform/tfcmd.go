@@ -13,7 +13,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// tfInit runs the 'terraform init' command with the specified options and config in the given working directory
+// tfInit runs the 'terraform init' command with the specified options and config in the given working directory.
+// Always run this before creating any files in the given dir, modules can only be downloaded into empty dirs.
+// If the given dir is not empty, no modules will be downloaded and init will assume there is a valid module in dir.
 func tfInit(ops Options, p types.ProviderType, cfg map[string]interface{}, dir string) error {
 	// need to init all backends before we start
 	be_init.Init(ops.Services)
@@ -31,9 +33,18 @@ func tfInit(ops Options, p types.ProviderType, cfg map[string]interface{}, dir s
 func initArgs(p types.ProviderType, cfg map[string]interface{}, clusterDir string) []string {
 	args := make([]string, 0)
 
-	// TODO remove this condition when fully migrated to modules
-	if m := tfMod(p); m != "" {
-		args = append(args, fmt.Sprintf("-from-module=%s", tfMod(p)))
+	empty, err := isEmptyDir(clusterDir)
+	if err != nil {
+		fmt.Printf("Could not verify if the cluster directory is empty: %s.\nAttempting initialisation without downloading modules.", err)
+	}
+
+	// Only download module if the directory is empty, otherwise we might
+	// already have a valid module config from a previous persistent operation.
+	if empty {
+		// TODO remove this condition when fully migrated to modules
+		if m := tfMod(p); m != "" {
+			args = append(args, fmt.Sprintf("-from-module=%s", m))
+		}
 	}
 	args = append(args, clusterDir)
 

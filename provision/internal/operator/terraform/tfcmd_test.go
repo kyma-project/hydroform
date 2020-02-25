@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"os"
 	"testing"
 
 	"github.com/kyma-incubator/hydroform/provision/types"
@@ -12,14 +13,24 @@ func TestInitArgs(t *testing.T) {
 	res := initArgs("", nil, "/path/to/cluster")
 
 	require.Len(t, res, 1)
-	require.Equal(t, res[0], "/path/to/cluster") // cluster config directory
+	require.Equal(t, "/path/to/cluster", res[0]) // cluster config directory
 
-	// test provider that has module
-	res = initArgs(types.Azure, nil, "/path/to/cluster")
+	// test provider that has module but not an empty cluster dir => no modules will be initialized
+	res = initArgs(types.Azure, nil, ".")
 
+	require.Len(t, res, 1)
+	require.Equal(t, ".", res[0]) // cluster config directory
+
+	// test provider that has module and an empty cluster dir => modules will be initialized
+	dir, err := clusterDir(".hf-test", "project", "cluster", types.Azure)
+	defer os.RemoveAll(".hf-test")
+	require.NoError(t, err)
+
+	res = initArgs(types.Azure, nil, dir)
 	require.Len(t, res, 2)
 	require.Contains(t, res[0], "-from-module")
-	require.Equal(t, res[1], "/path/to/cluster") // cluster config directory
+	require.Equal(t, res[1], dir) // cluster config directory
+
 }
 
 func TestApplyArgs(t *testing.T) {
@@ -27,10 +38,10 @@ func TestApplyArgs(t *testing.T) {
 	res := applyArgs("", nil, "/path/to/cluster")
 
 	require.Len(t, res, 4)
-	require.Equal(t, res[0], "-state=/path/to/cluster/terraform.tfstate")   // state file
-	require.Equal(t, res[1], "-var-file=/path/to/cluster/terraform.tfvars") // vars file
-	require.Equal(t, res[2], "-auto-approve")                               // auto approve is important so that hydroform does not wait for user confirmation
-	require.Equal(t, res[3], "/path/to/cluster")                            // cluster config directory
+	require.Equal(t, "-state=/path/to/cluster/terraform.tfstate", res[0])   // state file
+	require.Equal(t, "-var-file=/path/to/cluster/terraform.tfvars", res[1]) // vars file
+	require.Equal(t, "-auto-approve", res[2])                               // auto approve is important so that hydroform does not wait for user confirmation
+	require.Equal(t, "/path/to/cluster", res[3])                            // cluster config directory
 }
 
 func TestImportArgs(t *testing.T) {
@@ -40,20 +51,20 @@ func TestImportArgs(t *testing.T) {
 	// test GCP
 	res := importArgs(types.GCP, cfg, "/path/to/cluster")
 	require.Len(t, res, 6)
-	require.Equal(t, res[0], "-state=/path/to/cluster/terraform.tfstate")     // state file
-	require.Equal(t, res[1], "-state-out=/path/to/cluster/terraform.tfstate") // state output file
-	require.Equal(t, res[2], "-var-file=/path/to/cluster/terraform.tfvars")   // vars file
-	require.Equal(t, res[3], "-config=/path/to/cluster")                      // config folder for import to know where the tf files are (if any)
-	require.Equal(t, res[4], "google_container_cluster.gke_cluster")          // resource type for a GCP cluster
-	require.Equal(t, res[5], "my-project/somewhere/my-cluster")               // cluster ID
+	require.Equal(t, "-state=/path/to/cluster/terraform.tfstate", res[0])     // state file
+	require.Equal(t, "-state-out=/path/to/cluster/terraform.tfstate", res[1]) // state output file
+	require.Equal(t, "-var-file=/path/to/cluster/terraform.tfvars", res[2])   // vars file
+	require.Equal(t, "-config=/path/to/cluster", res[3])                      // config folder for import to know where the tf files are (if any)
+	require.Equal(t, "google_container_cluster.gke_cluster", res[4])          // resource type for a GCP cluster
+	require.Equal(t, "my-project/somewhere/my-cluster", res[5])               // cluster ID
 
 	// test Gardener
 	res = importArgs(types.Gardener, cfg, "/path/to/cluster")
 	require.Len(t, res, 6)
-	require.Equal(t, res[0], "-state=/path/to/cluster/terraform.tfstate")     // state file
-	require.Equal(t, res[1], "-state-out=/path/to/cluster/terraform.tfstate") // state output file
-	require.Equal(t, res[2], "-var-file=/path/to/cluster/terraform.tfvars")   // vars file
-	require.Equal(t, res[3], "-config=/path/to/cluster")                      // config folder for import to know where the tf files are (if any)
-	require.Equal(t, res[4], "gardener_shoot.gardener_cluster")               // resource type for a GCP cluster
-	require.Equal(t, res[5], "my-namespace/my-cluster")                       // cluster ID
+	require.Equal(t, "-state=/path/to/cluster/terraform.tfstate", res[0])     // state file
+	require.Equal(t, "-state-out=/path/to/cluster/terraform.tfstate", res[1]) // state output file
+	require.Equal(t, "-var-file=/path/to/cluster/terraform.tfvars", res[2])   // vars file
+	require.Equal(t, "-config=/path/to/cluster", res[3])                      // config folder for import to know where the tf files are (if any)
+	require.Equal(t, "gardener_shoot.gardener_cluster", res[4])               // resource type for a GCP cluster
+	require.Equal(t, "my-namespace/my-cluster", res[5])                       // cluster ID
 }

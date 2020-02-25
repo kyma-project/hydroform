@@ -434,3 +434,12 @@ func cleanup(dataDir, project, cluster string, p types.ProviderType) error {
 
 	return os.RemoveAll(d)
 }
+
+// isEmptyDir returns true if the given path contains no files or subdirectories, false otherwise.
+func isEmptyDir(path string) (bool, error) {
+	entries, err := ioutil.ReadDir(path)
+	if err != nil {
+		return false, err
+	}
+	return len(entries) == 0, nil
+}
