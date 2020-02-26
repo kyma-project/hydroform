@@ -123,11 +123,13 @@ func TestLoadConfigurations(t *testing.T) {
 	config := g.loadConfigurations(cluster, provider)
 
 	require.Equal(t, cluster.Name, config["cluster_name"])
+	require.Equal(t, "fake-subscription-id", config["subscription_id"])
+	require.Equal(t, "fake-tenant-id", config["tenant_id"])
 	require.Equal(t, "fake-client-id", config["client_id"])
 	require.Equal(t, "fake-client-secret", config["client_secret"])
-	require.Equal(t, cluster.NodeCount, config["node_count"])
-	require.Equal(t, cluster.MachineType, config["machine_type"])
-	require.Equal(t, cluster.DiskSizeGB, config["disk_size"])
+	require.Equal(t, cluster.NodeCount, config["agent_count"])
+	require.Equal(t, cluster.MachineType, config["agent_vm_size"])
+	require.Equal(t, cluster.DiskSizeGB, config["agent_disk_size"])
 	require.Equal(t, cluster.KubernetesVersion, config["kubernetes_version"])
 	require.Equal(t, cluster.Location, config["location"])
 	require.Equal(t, provider.ProjectName, config["project"])
@@ -138,7 +140,9 @@ func TestLoadConfigurations(t *testing.T) {
 }
 
 func fakeCredentials(file string) error {
-	fake := `CLIENT_ID = "fake-client-id"
+	fake := `SUBSCRIPTION_ID = "fake-subscription-id"
+TENANT_ID = "fake-tenant-id"
+CLIENT_ID = "fake-client-id"
 CLIENT_SECRET = "fake-client-secret"`
 
 	return ioutil.WriteFile(file, []byte(fake), 0700)

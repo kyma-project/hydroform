@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_LoadTimeoutConfiguration(t *testing.T) {
+func TestApplyTimeouts(t *testing.T) {
 
 	for _, testCase := range []struct {
 		description    string
@@ -40,7 +40,8 @@ func Test_LoadTimeoutConfiguration(t *testing.T) {
 	} {
 		t.Run("should load timeouts configuration when "+testCase.description, func(t *testing.T) {
 			// when
-			config := LoadTimeoutConfiguration(testCase.timeouts)
+			config := make(map[string]interface{})
+			applyTimeouts(config, testCase.timeouts)
 
 			// then
 			assert.Equal(t, testCase.expectedConfig, config)
