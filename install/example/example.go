@@ -1,11 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -105,12 +106,12 @@ func fetchFile(url string) (string, error) {
 		return "", fmt.Errorf("received non OK status code while getting a file from url: %s", url)
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
+	var data bytes.Buffer
+	if _, err := io.Copy(&data, resp.Body); err != nil {
 		return "", err
 	}
 
-	return string(data), nil
+	return data.String(), nil
 }
 
 func waitForInstallation(stateChannel <-chan installation.InstallationState, errorChannel <-chan error) {
