@@ -23,7 +23,7 @@ type azureProvisioner struct {
 // Provision requests provisioning of a new Kubernetes cluster on Azure with the given configurations.
 func (a *azureProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	if err := a.validateInputs(cluster, provider); err != nil {
-		return nil, err
+		return cluster, err
 	}
 
 	config := a.loadConfigurations(cluster, provider)
