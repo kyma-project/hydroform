@@ -219,6 +219,9 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["networking_type"]; !ok && targetProvider == string(types.Azure) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_type']")
 	}
+	if _, ok := provider.CustomConfigurations["service_endpoints"]; !ok && targetProvider == string(types.Azure) {
+		provider.CustomConfigurations["service_endpoints"] = []string{""}
+	}
 	if _, ok := provider.CustomConfigurations["gcp_control_plane_zone"]; !ok && targetProvider == string(types.GCP) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['gcp_control_plane_zone']")
 	}
