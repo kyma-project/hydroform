@@ -23,7 +23,7 @@ type gcpProvisioner struct {
 // Provision requests provisioning of a new Kubernetes cluster on GCP with the given configurations.
 func (g *gcpProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	if err := g.validateInputs(cluster, provider); err != nil {
-		return nil, err
+		return cluster, err
 	}
 
 	config := g.loadConfigurations(cluster, provider)
