@@ -47,11 +47,6 @@ func initGardenerProvider() error {
 	}
 	defer r.Close()
 
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-
 	// save the file
 	if _, err := os.Stat(pluginDirs[1]); os.IsNotExist(err) {
 		err = os.MkdirAll(pluginDirs[1], 0700)
@@ -59,10 +54,16 @@ func initGardenerProvider() error {
 			return err
 		}
 	}
-	if err := ioutil.WriteFile(providerPath, data, 0700); err != nil {
+	providerFile, err := os.OpenFile(providerPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+	if err != nil {
 		return err
 	}
-
+	if _, err := io.Copy(providerFile, r); err != nil {
+		return err
+	}
+	if err := providerFile.Close(); err != nil {
+		return err
+	}
 	if runtime.GOOS == "windows" {
 		// Create exe for windows if it doesn't exist
 		err = generateWindowsBinary(providerPath)
