@@ -7,14 +7,6 @@ This example shows you how to use Hydroform to provision a Kind cluster.
 To provision a Kind cluster you need Docker with memory settings configured to support the cluster you want to run.
 ## Installation
 
-### Configure Kind
-
-To provision an Kind cluster you need:
-
-1. Docker installed on the machine
-
-2. Docker configured to have the memory settings to support the cluster you want to run
-
 ### Run the example
 
 1. To provision a new cluster on Azure, go to the `provision` directory and run:
