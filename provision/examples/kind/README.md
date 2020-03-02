@@ -3,7 +3,8 @@
 ## Overview
 
 This example shows you how to use Hydroform to provision a Kind cluster.
-
+## Prerequisites
+To provision a Kind cluster you need Docker with memory settings configured to support the cluster you want to run.
 ## Installation
 
 ### Configure Kind
