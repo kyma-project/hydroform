@@ -23,7 +23,7 @@ const (
 	tfModuleFile = "terraform.tf"
 	tfVarsFile   = "terraform.tfvars"
 	// TODO release modules and do not use master as ref when stable
-	azureMod = "git::https://github.com/kyma-incubator/terraform-modules//azurerm_kubernetes_cluster?ref=master"
+	azureMod = "git::https://github.com/kyma-incubator/terraform-modules//azurerm_kubernetes_cluster?ref=v0.0.3"
 
 	// TODO remove hardcoded TF templates once modules work
 	awsClusterTemplate = ``
