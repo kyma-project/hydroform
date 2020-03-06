@@ -104,7 +104,7 @@ func generateWindowsBinary(providerPath string) error {
 
 func downloadBinary(url string) (io.ReadCloser, error) {
 	c := &http.Client{
-		Timeout: 1 * time.Minute,
+		Timeout: 5 * time.Minute,
 	}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
