@@ -10,6 +10,7 @@ import (
 
 	"github.com/kyma-incubator/hydroform/provision/internal/azure"
 	"github.com/kyma-incubator/hydroform/provision/internal/gardener"
+	"github.com/kyma-incubator/hydroform/provision/internal/kind"
 
 	"github.com/kyma-incubator/hydroform/provision/internal/gcp"
 	"github.com/kyma-incubator/hydroform/provision/internal/operator"
@@ -48,6 +49,8 @@ func Provision(cluster *types.Cluster, provider *types.Provider, ops ...types.Op
 		err = errors.New("aws not supported yet")
 	case types.Azure:
 		cl, err = newAzureProvisioner(provisioningOperator, ops...).Provision(cluster, provider)
+	case types.Kind:
+		cl, err = newKindProvisioner(provisioningOperator, ops...).Provision(cluster, provider)
 	default:
 		err = errors.New("unknown provider")
 	}
@@ -80,6 +83,8 @@ func Status(cluster *types.Cluster, provider *types.Provider, ops ...types.Optio
 		err = errors.New("aws not supported yet")
 	case types.Azure:
 		cs, err = newAzureProvisioner(provisioningOperator, ops...).Status(cluster, provider)
+	case types.Kind:
+		cs, err = newKindProvisioner(provisioningOperator, ops...).Status(cluster, provider)
 	default:
 		err = errors.New("unknown provider")
 	}
@@ -112,6 +117,8 @@ func Credentials(cluster *types.Cluster, provider *types.Provider, ops ...types.
 		err = errors.New("aws not supported yet")
 	case types.Azure:
 		cr, err = newAzureProvisioner(provisioningOperator, ops...).Credentials(cluster, provider)
+	case types.Kind:
+		cr, err = newKindProvisioner(provisioningOperator, ops...).Credentials(cluster, provider)
 	default:
 		err = errors.New("unknown provider")
 	}
@@ -143,6 +150,8 @@ func Deprovision(cluster *types.Cluster, provider *types.Provider, ops ...types.
 		err = errors.New("aws not supported yet")
 	case types.Azure:
 		err = newAzureProvisioner(provisioningOperator, ops...).Deprovision(cluster, provider)
+	case types.Kind:
+		err = newKindProvisioner(provisioningOperator, ops...).Deprovision(cluster, provider)
 	default:
 		err = errors.New("unknown provider")
 	}
@@ -166,6 +175,10 @@ func newAWSProvisioner(operatorType operator.Type, ops ...types.Option) Provisio
 
 func newAzureProvisioner(operatorType operator.Type, ops ...types.Option) Provisioner {
 	return azure.New(operatorType, ops...)
+}
+
+func newKindProvisioner(operatorType operator.Type, ops ...types.Option) Provisioner {
+	return kind.New(operatorType, ops...)
 }
 
 func updateWindowsPath(windowsPath string) string {
