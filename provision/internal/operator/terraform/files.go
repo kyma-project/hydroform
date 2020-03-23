@@ -233,6 +233,28 @@ resource "gardener_shoot" "gardener_cluster" {
   }
 }
 `
+
+	kindClusterTemplate = `
+variable "project"				{}
+variable "cluster_name"			{}
+variable "node_image"				{}
+variable "create_timeout" 			{}
+variable "update_timeout" 			{}
+variable "delete_timeout" 			{}
+
+provider "kind" {
+}
+resource "kind" "kind-cluster" {
+	name       = "${var.cluster_name}"
+	node_image = "${var.node_image}"
+
+	timeouts {
+		create = "${var.create_timeout}"
+		update = "${var.update_timeout}"
+		delete = "${var.delete_timeout}"
+	}
+}
+`
 )
 
 // initClusterFiles initializes all necessary files for a cluster in the given data directory
@@ -258,6 +280,8 @@ func initClusterFiles(dataDir string, p types.ProviderType, cfg map[string]inter
 		break
 	case types.AWS:
 		data = []byte(awsClusterTemplate)
+	case types.Kind:
+		data = []byte(kindClusterTemplate)
 	}
 
 	if len(data) > 0 {
