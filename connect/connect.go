@@ -67,19 +67,19 @@ func (c *KymaConnector) Connect(configurationUrl string) (connector *KymaConnect
 	}
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
-		return nil, fmt.Errorf("Error in JSON : ", err.Error())
+		return nil, fmt.Errorf(err.Error())
 	}
 	body := bytes.NewReader(payloadBytes)
 
 	req, err := http.NewRequest("POST", csrInfo.CSRUrl, body)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating new request : ", err.Error())
+		return nil, fmt.Errorf(err.Error())
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Error trying to fetch response : ", err.Error())
+		return nil, fmt.Errorf(err.Error())
 	}
 	defer resp.Body.Close()
 	certificates, err := ioutil.ReadAll(resp.Body)
@@ -232,7 +232,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	resp, err := client.Post(c.CsrInfo.API.MetadataUrl, "application/json", bytes.NewBuffer(jsonBytes))
 
 	if err != nil {
-		return fmt.Errorf("Could not register service : ", err.Error())
+		return fmt.Errorf(err.Error())
 	}
 
 	defer resp.Body.Close()
@@ -269,6 +269,104 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	ioutil.WriteFile(id.ID+".json", serviceDescriptionString, 0644)
 
 	return err
+}
+
+func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs string) (err error) {
+	serviceDescription := new(Service)
+	err = c.ReadService(id+".json", serviceDescription)
+	if err != nil {
+		log.Printf("Failed to read service config: %s", id+".json")
+		return err
+	}
+
+	if apiDocs != "" {
+		if serviceDescription.API == nil {
+			serviceDescription.API = new(ServiceAPI)
+			serviceDescription.API.TargetURL = "http://localhost:8080/"
+		}
+
+		serviceDescription.API.Spec, err = c.getApiDocs(apiDocs)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	if eventDocs != "" {
+
+		serviceDescription.Events = new(ServiceEvent)
+
+		serviceDescription.Events.Spec, err = c.getEventDocs(eventDocs)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	jsonBytes, err := json.Marshal(serviceDescription)
+	if err != nil {
+		log.Printf("JSON marshal failed: %s", err)
+		return
+	}
+
+	if c.CsrInfo == nil || c.CsrInfo.API.MetadataUrl == "" {
+		log.Printf("%s", fmt.Errorf("metadata url is missing, cannot proceed"))
+		return
+	}
+
+	client, err := c.GetSecureClient()
+	if err != nil {
+		return err
+	}
+
+	url := c.CsrInfo.API.MetadataUrl + "/" + id
+	log.Println(string(jsonBytes[:]))
+	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Couldn't register service: %s", err)
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		log.Printf("Successfully registered service with")
+	} else {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		bodyString := string(bodyBytes)
+		log.Printf("Status: %d >%s<\n on URL: %s", resp.StatusCode, bodyString, url)
+		return errors.New("Failed to Update")
+	}
+
+	return
+}
+
+func (c *KymaConnector) DeleteService(id string) (err error) {
+	client, err := c.GetSecureClient()
+	if err != nil {
+		return err
+	}
+
+	url := c.CsrInfo.API.MetadataUrl + "/" + id
+	req, _ := http.NewRequest("DELETE", url, nil)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Couldn't delete service: %s", err)
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNoContent {
+		log.Printf("Successfully deleted service")
+		return nil
+	} else {
+		return errors.New("Failed to delete")
+	}
 }
 
 func writeClientCertificateToFile(cert types.ClientCertificate) error {
