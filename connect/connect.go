@@ -28,17 +28,21 @@ func (c *KymaConnector) Connect(configurationUrl string) (connector *KymaConnect
 		return nil, fmt.Errorf(err.Error())
 	}
 
-	c, err = getConnector(csrInfo)
+	csr, privateKey, err := getCertSigningRequest(csrInfo.Certificate.Subject)
 	if err != nil {
 		return nil, fmt.Errorf(err.Error())
 	}
 
-	// encode CSR to base64
-	encodedCsr := base64.StdEncoding.EncodeToString([]byte(c.Ca.Csr))
-	c.Ca.PublicKey, err = getClientCert(csrInfo.CSRUrl, encodedCsr)
-
+	/*c.Ca.PublicKey*/
+	clientCert, err := getClientCert(csrInfo.CSRUrl, c.Ca.Csr)
 	if err != nil {
 		return nil, fmt.Errorf(err.Error())
+	}
+
+	c.Ca = &types.ClientCertificate{
+		PrivateKey: privateKey,
+		PublicKey:  clientCert,
+		Csr:        csr,
 	}
 
 	err = writeClientCertificateToFile(*c.Ca)
@@ -83,10 +87,13 @@ func getCsrInfo(configurationUrl string) (*types.CSRInfo, error) {
 	return &csrInfo, err
 }
 
-func getConnector(csrInfo *types.CSRInfo) (*KymaConnector, error) {
-
+func getCertSigningRequest(subject string) (string, string, error) {
 	keys, err := rsa.GenerateKey(rand.Reader, 2048)
-	parts := strings.Split(csrInfo.Certificate.Subject, ",")
+	if err != nil {
+		return "", "", fmt.Errorf(err.Error())
+	}
+
+	parts := strings.Split(subject, ",")
 
 	var org, orgUnit, location, street, country, appName string
 
@@ -127,7 +134,7 @@ func getConnector(csrInfo *types.CSRInfo) (*KymaConnector, error) {
 
 	csrCertificate, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, keys)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return "", "", fmt.Errorf(err.Error())
 	}
 
 	csr := pem.EncodeToMemory(&pem.Block{
@@ -135,21 +142,19 @@ func getConnector(csrInfo *types.CSRInfo) (*KymaConnector, error) {
 	})
 
 	var privateKey bytes.Buffer
-	pem.Encode(&privateKey, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(keys)})
+	err = pem.Encode(&privateKey, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(keys)})
 
-	clientCertificate := types.ClientCertificate{
-		PrivateKey: privateKey.String(),
-		Csr:        string(csr),
+	if err != nil {
+		return "", "", fmt.Errorf(err.Error())
 	}
 
-	return &KymaConnector{
-		Ca:      &clientCertificate,
-		AppName: appName,
-		CsrInfo: csrInfo,
-	}, err
+	return string(csr), privateKey.String(), err
 }
 
-func getClientCert(csrUrl string, encodedCsr string) (string, error) {
+func getClientCert(csrUrl string, csr string) (string, error) {
+
+	// encode CSR to base64
+	encodedCsr := base64.StdEncoding.EncodeToString([]byte(csr))
 	type Payload struct {
 		Csr string `json:"csr"`
 	}
