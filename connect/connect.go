@@ -33,12 +33,12 @@ func (c *KymaConnector) Connect(configurationUrl string) (connector *KymaConnect
 		return nil, fmt.Errorf(err.Error())
 	}
 
-	/*c.Ca.PublicKey*/
-	clientCert, err := getClientCert(csrInfo.CSRUrl, c.Ca.Csr)
+	clientCert, err := getClientCert(csrInfo.CSRUrl, csr)
 	if err != nil {
 		return nil, fmt.Errorf(err.Error())
 	}
 
+	c.CsrInfo = csrInfo
 	c.Ca = &types.ClientCertificate{
 		PrivateKey: privateKey,
 		PublicKey:  clientCert,
@@ -229,7 +229,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 			serviceDescription.API.TargetURL = "http://localhost:8080/"
 		}
 
-		serviceDescription.API.Spec, err = c.getApiDocs(apiDocs)
+		serviceDescription.API.Spec, err = c.getRawJsonFromDoc(apiDocs)
 		if err != nil {
 			return err
 		}
@@ -237,7 +237,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 
 	if eventDocs != "" {
 		serviceDescription.Events = new(ServiceEvent)
-		serviceDescription.Events.Spec, err = c.getEventDocs(eventDocs)
+		serviceDescription.Events.Spec, err = c.getRawJsonFromDoc(eventDocs)
 		if err != nil {
 			return err
 		}
@@ -311,7 +311,7 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 			serviceDescription.API.TargetURL = "http://localhost:8080/"
 		}
 
-		serviceDescription.API.Spec, err = c.getApiDocs(apiDocs)
+		serviceDescription.API.Spec, err = c.getRawJsonFromDoc(apiDocs)
 		if err != nil {
 			return err
 		}
@@ -322,7 +322,7 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 
 		serviceDescription.Events = new(ServiceEvent)
 
-		serviceDescription.Events.Spec, err = c.getEventDocs(eventDocs)
+		serviceDescription.Events.Spec, err = c.getRawJsonFromDoc(eventDocs)
 		if err != nil {
 			return err
 		}
@@ -396,7 +396,10 @@ func (c *KymaConnector) DeleteService(id string) (err error) {
 }
 
 func writeClientCertificateToFile(cert types.ClientCertificate) error {
+
+	//dir, _ := os.Getwd()
 	if cert.Csr != "" {
+		//err := ioutil.WriteFile(filepath.Join(dir,"certs","generated.csr"), []byte(cert.Csr), 0644)
 		err := ioutil.WriteFile("generated.csr", []byte(cert.Csr), 0644)
 		if err != nil {
 			return fmt.Errorf(err.Error())
@@ -404,6 +407,7 @@ func writeClientCertificateToFile(cert types.ClientCertificate) error {
 	}
 
 	if cert.PublicKey != "" {
+		//err := ioutil.WriteFile(filepath.Join(dir,"certs","generated.crt"), []byte(cert.PublicKey), 0644)
 		err := ioutil.WriteFile("generated.crt", []byte(cert.PublicKey), 0644)
 		if err != nil {
 			return fmt.Errorf(err.Error())
@@ -411,6 +415,7 @@ func writeClientCertificateToFile(cert types.ClientCertificate) error {
 	}
 
 	if cert.PrivateKey != "" {
+		//err := ioutil.WriteFile(filepath.Join(dir,"certs","generated.key"), []byte(cert.PrivateKey), 0644)
 		err := ioutil.WriteFile("generated.key", []byte(cert.PrivateKey), 0644)
 		if err != nil {
 			return fmt.Errorf(err.Error())
@@ -461,24 +466,75 @@ func (c *KymaConnector) ReadService(path string, s *Service) error {
 	return nil
 }
 
-func (c *KymaConnector) getApiDocs(apiDocs string) (m json.RawMessage, err error) {
-	log.Println("Load API Docs")
-	apiBytes, err := ioutil.ReadFile(apiDocs)
+func (c *KymaConnector) getRawJsonFromDoc(doc string) (m json.RawMessage, err error) {
+	bytes, err := ioutil.ReadFile(doc)
 	if err != nil {
 		log.Println("Read error on API Docs")
 		return
 	}
-	m = json.RawMessage(string(apiBytes[:]))
+	m = json.RawMessage(string(bytes[:]))
 	return
 }
 
-func (c *KymaConnector) getEventDocs(eventDocs string) (m json.RawMessage, err error) {
-	log.Println("Load Event logs")
-	eventsBytes, err := ioutil.ReadFile(eventDocs)
+func (c *KymaConnector) AddEvent(eventDoc string) (err error) {
+
+	file, err := ioutil.ReadFile(eventDoc)
 	if err != nil {
-		log.Println("Read error on Event Docs")
-		return
+		return fmt.Errorf(err.Error())
 	}
-	m = json.RawMessage(string(eventsBytes[:]))
-	return
+
+	//	event := types.Event{}
+
+	/*err = json.Unmarshal([]byte(file), &event)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	jsonBytes, err := json.Marshal(event)
+	*/
+	client, err := c.GetSecureClient()
+	resp, err := client.Post(c.CsrInfo.API.EventsUrl, "application/json", bytes.NewBuffer([]byte(file)))
+
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		log.Printf("Successfully registered event")
+		//return nil
+	} else {
+		log.Print("Incorrect response")
+		return err
+	}
+
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+
+	log.Print(string(bodyBytes))
+	if err != nil {
+		log.Println("Failed to parse registration response")
+		return err
+	}
+
+	return err
+}
+
+func (c *KymaConnector) GetSubscribedEvents() (err error) {
+	client, err := c.GetSecureClient()
+
+	resp, err := client.Get(c.CsrInfo.API.EventsInfoUrl)
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf(err.Error())
+	}
+
+	//unmarshal response json and store in csrInfo
+	response, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	log.Print(string(response))
+	return err
 }
