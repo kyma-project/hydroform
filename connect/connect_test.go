@@ -6,11 +6,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
-	"strings"
 	"testing"
 )
 
+/*
 func Test_getCsrInfo(t *testing.T) {
 
 	getCsrInfoServer := getCsrInfoServer(t, "test.com/csrurl")
@@ -173,7 +172,7 @@ func Test_getClientCert(t *testing.T) {
 		})
 	}
 }
-
+*/
 func sendCsrToKymaServer(t *testing.T) *httptest.Server {
 	sendCsrToKymaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

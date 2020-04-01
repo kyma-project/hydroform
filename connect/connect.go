@@ -229,23 +229,13 @@ func (c *KymaConnector) DeleteService(id string) error {
 	}
 }
 
-func (c *KymaConnector) AddEvent(eventDoc string) error {
+func (c *KymaConnector) AddEvent(event types.Event) error {
 
-	file, err := ioutil.ReadFile(eventDoc)
+	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
-
-	//	event := types.Event{}
-
-	/*err = json.Unmarshal([]byte(file), &event)
-	if err != nil {
-		return fmt.Errorf(err.Error())
-	}
-
-	jsonBytes, err := json.Marshal(event)
-	*/
-	resp, err := c.SecureClient.Post(c.CsrInfo.API.EventsUrl, "application/json", bytes.NewBuffer([]byte(file)))
+	resp, err := c.SecureClient.Post(c.CsrInfo.API.EventsUrl, "application/json", bytes.NewBuffer(eventBytes))
 
 	if err != nil {
 		return fmt.Errorf(err.Error())
@@ -255,7 +245,6 @@ func (c *KymaConnector) AddEvent(eventDoc string) error {
 
 	if resp.StatusCode == http.StatusOK {
 		log.Printf("Successfully registered event")
-		//return nil
 	} else {
 		log.Print("Incorrect response")
 		return err
