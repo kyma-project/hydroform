@@ -3,12 +3,14 @@ package connect
 import (
 	"encoding/json"
 	"github.com/kyma-incubator/hydroform/connect/types"
+	"net/http"
 )
 
 type KymaConnector struct {
-	CsrInfo *types.CSRInfo
-	AppName string
-	Ca      *types.ClientCertificate
+	CsrInfo      *types.CSRInfo
+	AppName      string
+	Ca           *types.ClientCertificate
+	SecureClient *http.Client
 }
 
 // Service kyma service struct

@@ -2,200 +2,44 @@ package connect
 
 import (
 	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"github.com/kyma-incubator/hydroform/connect/types"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
-	"os"
-	"strings"
 )
 
-func (c *KymaConnector) Connect(configurationUrl string) (connector *KymaConnector, err error) {
+func (c *KymaConnector) Connect(configurationUrl string) error {
 
-	csrInfo, err := getCsrInfo(configurationUrl)
+	err := c.getCsrInfo(configurationUrl)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return fmt.Errorf(err.Error())
 	}
 
-	csr, privateKey, err := getCertSigningRequest(csrInfo.Certificate.Subject)
+	err = c.getCertSigningRequest()
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return fmt.Errorf(err.Error())
 	}
 
-	clientCert, err := getClientCert(csrInfo.CSRUrl, csr)
+	err = c.getClientCert()
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return fmt.Errorf(err.Error())
 	}
 
-	c.CsrInfo = csrInfo
-	c.Ca = &types.ClientCertificate{
-		PrivateKey: privateKey,
-		PublicKey:  clientCert,
-		Csr:        csr,
+	c.SecureClient, err = c.GetSecureClient()
+	if err != nil {
+		return fmt.Errorf(err.Error())
 	}
 
 	err = writeClientCertificateToFile(*c.Ca)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return fmt.Errorf(err.Error())
 	}
 
-	return c, err //returning client certificate
-}
-
-func getCsrInfo(configurationUrl string) (*types.CSRInfo, error) {
-	url, err := url.Parse(configurationUrl)
-
-	if err != nil {
-		return nil, fmt.Errorf("invalid URL")
-	}
-
-	resp, err := http.Get(url.String())
-
-	if err != nil {
-		return nil, fmt.Errorf("error trying to get CSR Information : '%s'", err.Error())
-	}
-	if resp == nil {
-		return nil, fmt.Errorf("did not recieve a response from configuration URL : '%s'", url)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("recieved non OK status code from configuration URL : '%s'", url)
-	}
-
-	//unmarshal response json and store in csrInfo
-	response, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error trying to parse JSON : '%s'", err.Error())
-	}
-
-	csrInfo := types.CSRInfo{}
-	err = json.Unmarshal(response, &csrInfo)
-	if err != nil {
-		return nil, fmt.Errorf("error trying to get CSR Information : '%s'", err.Error())
-	}
-	return &csrInfo, err
-}
-
-func getCertSigningRequest(subject string) (string, string, error) {
-	keys, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return "", "", fmt.Errorf(err.Error())
-	}
-
-	parts := strings.Split(subject, ",")
-
-	var org, orgUnit, location, street, country, appName string
-
-	for i := range parts {
-		subjectTitle := strings.Split(parts[i], "=")
-		switch subjectTitle[0] {
-		case "O":
-			org = subjectTitle[1]
-		case "OU":
-			orgUnit = subjectTitle[1]
-		case "L":
-			location = subjectTitle[1]
-		case "ST":
-			street = subjectTitle[1]
-		case "C":
-			country = subjectTitle[1]
-		case "CN":
-			appName = subjectTitle[1]
-
-		}
-	}
-
-	pkixName := pkix.Name{
-		Organization:       []string{org},
-		OrganizationalUnit: []string{orgUnit},
-		Locality:           []string{location},
-		StreetAddress:      []string{street},
-		Country:            []string{country},
-		CommonName:         appName,
-		Province:           []string{"Waldorf"}, // KAVYA - gives error if empty string provided / string not provided, should be returned in subject field ideally with other data?
-	}
-
-	// create CSR
-	var csrTemplate = x509.CertificateRequest{
-		Subject:            pkixName,
-		SignatureAlgorithm: x509.SHA256WithRSA, // KAVYA - add extensions
-	}
-
-	csrCertificate, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, keys)
-	if err != nil {
-		return "", "", fmt.Errorf(err.Error())
-	}
-
-	csr := pem.EncodeToMemory(&pem.Block{
-		Type: "CERTIFICATE REQUEST", Bytes: csrCertificate,
-	})
-
-	var privateKey bytes.Buffer
-	err = pem.Encode(&privateKey, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(keys)})
-
-	if err != nil {
-		return "", "", fmt.Errorf(err.Error())
-	}
-
-	return string(csr), privateKey.String(), err
-}
-
-func getClientCert(csrUrl string, csr string) (string, error) {
-
-	// encode CSR to base64
-	encodedCsr := base64.StdEncoding.EncodeToString([]byte(csr))
-	type Payload struct {
-		Csr string `json:"csr"`
-	}
-
-	data := Payload{
-		Csr: encodedCsr,
-	}
-	payloadBytes, err := json.Marshal(data)
-	if err != nil {
-		return "", fmt.Errorf(err.Error())
-	}
-	body := bytes.NewReader(payloadBytes)
-
-	req, err := http.NewRequest("POST", csrUrl, body)
-	if err != nil {
-		return "", fmt.Errorf(err.Error())
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf(err.Error())
-	}
-	defer resp.Body.Close()
-	certificates, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf(err.Error())
-	}
-	crtResponse := types.CRTResponse{}
-	err = json.Unmarshal(certificates, &crtResponse)
-	if err != nil {
-		return "", fmt.Errorf("JSON Error")
-	}
-	decodedCert, err := base64.StdEncoding.DecodeString(crtResponse.ClientCRT)
-	if err != nil {
-		return "", fmt.Errorf(err.Error())
-	}
-	if err != nil {
-		return "", fmt.Errorf(err.Error())
-	}
-	return string(decodedCert), err
+	return err
 }
 
 func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, serviceConfig string) (err error) {
@@ -215,7 +59,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 
 	if serviceConfig != "" {
 		log.Println("Read Service Config")
-		err := c.ReadService(serviceConfig, serviceDescription)
+		err := c.readService(serviceConfig, serviceDescription)
 		if err != nil {
 			log.Printf("Failed to read service config: %s", serviceConfig)
 			return err
@@ -254,8 +98,8 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 		return
 	}
 
-	client, err := c.GetSecureClient()
-	resp, err := client.Post(c.CsrInfo.API.MetadataUrl, "application/json", bytes.NewBuffer(jsonBytes))
+	//	client, err := c.GetSecureClient()
+	resp, err := c.SecureClient.Post(c.CsrInfo.API.MetadataUrl, "application/json", bytes.NewBuffer(jsonBytes))
 
 	if err != nil {
 		return fmt.Errorf(err.Error())
@@ -297,9 +141,9 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	return err
 }
 
-func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs string) (err error) {
+func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs string) error {
 	serviceDescription := new(Service)
-	err = c.ReadService(id+".json", serviceDescription)
+	err := c.readService(id+".json", serviceDescription)
 	if err != nil {
 		log.Printf("Failed to read service config: %s", id+".json")
 		return err
@@ -332,16 +176,11 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 	jsonBytes, err := json.Marshal(serviceDescription)
 	if err != nil {
 		log.Printf("JSON marshal failed: %s", err)
-		return
+		return err
 	}
 
 	if c.CsrInfo == nil || c.CsrInfo.API.MetadataUrl == "" {
 		log.Printf("%s", fmt.Errorf("metadata url is missing, cannot proceed"))
-		return
-	}
-
-	client, err := c.GetSecureClient()
-	if err != nil {
 		return err
 	}
 
@@ -350,10 +189,10 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(jsonBytes))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := c.SecureClient.Do(req)
 	if err != nil {
 		log.Printf("Couldn't register service: %s", err)
-		return
+		return err
 	}
 
 	defer resp.Body.Close()
@@ -366,20 +205,15 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 		log.Printf("Status: %d >%s<\n on URL: %s", resp.StatusCode, bodyString, url)
 		return errors.New("Failed to Update")
 	}
-
-	return
+	return err
 }
 
-func (c *KymaConnector) DeleteService(id string) (err error) {
-	client, err := c.GetSecureClient()
-	if err != nil {
-		return err
-	}
+func (c *KymaConnector) DeleteService(id string) error {
 
 	url := c.CsrInfo.API.MetadataUrl + "/" + id
 	req, _ := http.NewRequest("DELETE", url, nil)
 
-	resp, err := client.Do(req)
+	resp, err := c.SecureClient.Do(req)
 	if err != nil {
 		log.Printf("Couldn't delete service: %s", err)
 		return err
@@ -395,88 +229,7 @@ func (c *KymaConnector) DeleteService(id string) (err error) {
 	}
 }
 
-func writeClientCertificateToFile(cert types.ClientCertificate) error {
-
-	//dir, _ := os.Getwd()
-	if cert.Csr != "" {
-		//err := ioutil.WriteFile(filepath.Join(dir,"certs","generated.csr"), []byte(cert.Csr), 0644)
-		err := ioutil.WriteFile("generated.csr", []byte(cert.Csr), 0644)
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-	}
-
-	if cert.PublicKey != "" {
-		//err := ioutil.WriteFile(filepath.Join(dir,"certs","generated.crt"), []byte(cert.PublicKey), 0644)
-		err := ioutil.WriteFile("generated.crt", []byte(cert.PublicKey), 0644)
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-	}
-
-	if cert.PrivateKey != "" {
-		//err := ioutil.WriteFile(filepath.Join(dir,"certs","generated.key"), []byte(cert.PrivateKey), 0644)
-		err := ioutil.WriteFile("generated.key", []byte(cert.PrivateKey), 0644)
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-	}
-	return nil
-}
-
-// GetSecureClient is returning an http client with client certificate enabled
-func (c *KymaConnector) GetSecureClient() (*http.Client, error) {
-	cert, err := tls.X509KeyPair([]byte(c.Ca.PublicKey), []byte(c.Ca.PrivateKey))
-	if err != nil {
-		log.Println("Can't load certificates")
-		return nil, err
-	}
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-	}
-
-	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	return &http.Client{Transport: transport}, nil
-
-}
-
-// ReadService is loading a service description from disk
-func (c *KymaConnector) ReadService(path string, s *Service) error {
-	_, err := os.Stat(path)
-	if err != nil {
-		log.Println("No service config available")
-		return err
-	}
-
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Println("Failed to read file")
-		return err
-	}
-
-	err = json.Unmarshal(b, s)
-	if err != nil {
-		log.Println("Failed to parse json")
-		return err
-	}
-
-	return nil
-}
-
-func (c *KymaConnector) getRawJsonFromDoc(doc string) (m json.RawMessage, err error) {
-	bytes, err := ioutil.ReadFile(doc)
-	if err != nil {
-		log.Println("Read error on API Docs")
-		return
-	}
-	m = json.RawMessage(string(bytes[:]))
-	return
-}
-
-func (c *KymaConnector) AddEvent(eventDoc string) (err error) {
+func (c *KymaConnector) AddEvent(eventDoc string) error {
 
 	file, err := ioutil.ReadFile(eventDoc)
 	if err != nil {
@@ -492,8 +245,7 @@ func (c *KymaConnector) AddEvent(eventDoc string) (err error) {
 
 	jsonBytes, err := json.Marshal(event)
 	*/
-	client, err := c.GetSecureClient()
-	resp, err := client.Post(c.CsrInfo.API.EventsUrl, "application/json", bytes.NewBuffer([]byte(file)))
+	resp, err := c.SecureClient.Post(c.CsrInfo.API.EventsUrl, "application/json", bytes.NewBuffer([]byte(file)))
 
 	if err != nil {
 		return fmt.Errorf(err.Error())
@@ -520,10 +272,9 @@ func (c *KymaConnector) AddEvent(eventDoc string) (err error) {
 	return err
 }
 
-func (c *KymaConnector) GetSubscribedEvents() (err error) {
-	client, err := c.GetSecureClient()
+func (c *KymaConnector) GetSubscribedEvents() error {
 
-	resp, err := client.Get(c.CsrInfo.API.EventsInfoUrl)
+	resp, err := c.SecureClient.Get(c.CsrInfo.API.EventsInfoUrl)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf(err.Error())
@@ -537,4 +288,34 @@ func (c *KymaConnector) GetSubscribedEvents() (err error) {
 
 	log.Print(string(response))
 	return err
+}
+
+func GetBlankKymaConnector() *KymaConnector {
+	c := &KymaConnector{
+		CsrInfo:      &types.CSRInfo{},
+		AppName:      "",
+		Ca:           &types.ClientCertificate{},
+		SecureClient: nil,
+	}
+
+	return c
+}
+
+// GetSecureClient is returning an http client with client certificate enabled
+func (c *KymaConnector) GetSecureClient() (*http.Client, error) {
+	cert, err := tls.X509KeyPair([]byte(c.Ca.PublicKey), []byte(c.Ca.PrivateKey))
+	if err != nil {
+		log.Println("Can't load certificates")
+		return nil, err
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+
+	tlsConfig.BuildNameToCertificate()
+	transport := &http.Transport{TLSClientConfig: tlsConfig}
+
+	return &http.Client{Transport: transport}, nil
+
 }
