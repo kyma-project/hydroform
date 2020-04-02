@@ -12,7 +12,17 @@ import (
 	"net/http"
 )
 
-func (c *KymaConnector) Connect(configurationUrl string) error {
+type KymaInterface interface {
+	//	*http.Client SecureClient
+	getCsrInfo(string) error
+	getCertSigningRequest() error
+	getClientCert() error
+	populateClient() error
+	writeClientCertificateToFile(writerInterface) error
+	writeToFile(string, []byte) error
+}
+
+func Connect(c KymaInterface, configurationUrl string) error {
 
 	err := c.getCsrInfo(configurationUrl)
 	if err != nil {
@@ -29,12 +39,13 @@ func (c *KymaConnector) Connect(configurationUrl string) error {
 		return fmt.Errorf(err.Error())
 	}
 
-	c.SecureClient, err = c.GetSecureClient()
+	err = c.populateClient()
+
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
-	err = writeClientCertificateToFile(*c.Ca)
+	err = c.writeClientCertificateToFile(c)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}

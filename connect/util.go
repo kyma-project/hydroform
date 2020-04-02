@@ -19,12 +19,12 @@ import (
 	"strings"
 )
 
-func (c *KymaConnector) getCsrInfo(configurationUrl string) error {
-	url, err := url.Parse(configurationUrl)
+type writerInterface interface {
+	writeToFile(string, []byte) error
+}
 
-	if err != nil {
-		return fmt.Errorf("invalid URL")
-	}
+func (c *KymaConnector) getCsrInfo(configurationUrl string) error {
+	url, _ := url.Parse(configurationUrl)
 
 	resp, err := http.Get(url.String())
 
@@ -171,28 +171,23 @@ func (c *KymaConnector) getClientCert() error {
 	return err
 }
 
-func writeClientCertificateToFile(cert types.ClientCertificate) error {
-
-	//dir, _ := os.Getwd()
-	if cert.Csr != "" {
-		//err := ioutil.WriteFile(filepath.Join(dir,"certs","generated.csr"), []byte(cert.Csr), 0644)
-		err := ioutil.WriteFile("generated.csr", []byte(cert.Csr), 0644)
+func (c *KymaConnector) writeClientCertificateToFile(w writerInterface) error {
+	if c.Ca.Csr != "" {
+		err := w.writeToFile("generated.csr", []byte(c.Ca.Csr))
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
 	}
 
-	if cert.PublicKey != "" {
-		//err := ioutil.WriteFile(filepath.Join(dir,"certs","generated.crt"), []byte(cert.PublicKey), 0644)
-		err := ioutil.WriteFile("generated.crt", []byte(cert.PublicKey), 0644)
+	if c.Ca.PublicKey != "" {
+		err := w.writeToFile("generated.crt", []byte(c.Ca.PublicKey))
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
 	}
 
-	if cert.PrivateKey != "" {
-		//err := ioutil.WriteFile(filepath.Join(dir,"certs","generated.key"), []byte(cert.PrivateKey), 0644)
-		err := ioutil.WriteFile("generated.key", []byte(cert.PrivateKey), 0644)
+	if c.Ca.PrivateKey != "" {
+		err := w.writeToFile("generated.key", []byte(c.Ca.PrivateKey))
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
@@ -231,4 +226,13 @@ func (c *KymaConnector) getRawJsonFromDoc(doc string) (m json.RawMessage, err er
 	}
 	m = json.RawMessage(string(bytes[:]))
 	return
+}
+
+func (c *KymaConnector) writeToFile(fileName string, data []byte) error {
+	return ioutil.WriteFile(fileName, data, 0644)
+}
+
+func (c *KymaConnector) populateClient() (err error) {
+	c.SecureClient, err = c.GetSecureClient()
+	return err
 }

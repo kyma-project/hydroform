@@ -1,7 +1,6 @@
 package connect
 
 import (
-	"fmt"
 	"github.com/kyma-incubator/hydroform/connect/types"
 	"net/http"
 	"reflect"
@@ -58,6 +57,46 @@ func TestKymaConnector_getCsrInfo(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "incorrectUrl",
+			fields: fields{
+				CsrInfo: &types.CSRInfo{
+					CSRUrl:      "",
+					API:         nil,
+					Certificate: nil,
+				},
+				AppName:      "",
+				Ca:           nil,
+				SecureClient: nil,
+			},
+			args: args{configurationUrl: "incorrectConfigurationUrl"},
+			want: &types.CSRInfo{
+				CSRUrl:      "",
+				API:         nil,
+				Certificate: nil,
+			},
+			wantErr: true,
+		},
+		{
+			name: "blankUrl",
+			fields: fields{
+				CsrInfo: &types.CSRInfo{
+					CSRUrl:      "",
+					API:         nil,
+					Certificate: nil,
+				},
+				AppName:      "",
+				Ca:           nil,
+				SecureClient: nil,
+			},
+			args: args{configurationUrl: ""},
+			want: &types.CSRInfo{
+				CSRUrl:      "",
+				API:         nil,
+				Certificate: nil,
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -67,14 +106,16 @@ func TestKymaConnector_getCsrInfo(t *testing.T) {
 				Ca:           tt.fields.Ca,
 				SecureClient: tt.fields.SecureClient,
 			}
-			if err := c.getCsrInfo(tt.args.configurationUrl); (err != nil) != tt.wantErr {
+
+			err := c.getCsrInfo(tt.args.configurationUrl)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("getCsrInfo() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
 
-			if !reflect.DeepEqual(c.CsrInfo, tt.want) {
+			if c.CsrInfo != nil && !reflect.DeepEqual(c.CsrInfo, tt.want) {
 				t.Errorf("getCsrInfo() got = %v, want %v", c.CsrInfo, tt.want)
 			}
-			fmt.Print(c.Ca.PublicKey)
 		})
 	}
 }
@@ -231,5 +272,14 @@ func TestKymaConnector_getClientCert(t *testing.T) {
 				t.Errorf("getClientCert() got = %v, want = %v", c.Ca.PublicKey, tt.want)
 			}
 		})
+	}
+}
+
+func TestWriteClientCertificateToFile(t *testing.T) {
+
+	c := GetBlankKymaConnector()
+	err := c.writeClientCertificateToFile(c)
+	if err != nil {
+		t.Errorf("Error in connect")
 	}
 }
