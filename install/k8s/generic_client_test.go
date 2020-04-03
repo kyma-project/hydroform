@@ -206,7 +206,7 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 	})
 }
 
-func TestGenericClient_ApplyResources(t *testing.T) {
+func TestGenericClient_CreateResources(t *testing.T) {
 
 	t.Run("should return an error if RESTMapper fails", func(t *testing.T) {
 		// given
@@ -232,7 +232,7 @@ func TestGenericClient_ApplyResources(t *testing.T) {
 		client := NewGenericClient(restMapper, dynamicClient, k8sClientSet)
 
 		// when
-		err = client.ApplyResources(resourcesToApply)
+		err = client.CreateResources(resourcesToApply)
 
 		// then
 		require.Error(t, err)

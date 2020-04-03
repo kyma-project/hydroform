@@ -203,12 +203,12 @@ type KymaInstaller struct {
 func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 	k.infof("Preparing Kyma Installation...")
 
-	err := k.installTiller(artifacts.TillerYaml)
+	err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.CreateResources)
 	if err != nil {
 		return err
 	}
 
-	err = k.deployInstaller(artifacts.InstallerYaml)
+	err = k.deployInstallerForIstallation(artifacts.InstallerYaml)
 	if err != nil {
 		return err
 	}
@@ -219,6 +219,28 @@ func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 	}
 
 	k.infof("Ready to start installation.")
+	return nil
+}
+
+func (k KymaInstaller) PrepareUpgrade(artifacts Installation) error {
+	k.infof("Preparing Kyma Upgrade...")
+
+	err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.ApplyResources)
+	if err != nil {
+		return err
+	}
+
+	err = k.deployInstallerForUpgrade(artifacts.InstallerYaml)
+	if err != nil {
+		return err
+	}
+
+	err = k.applyConfiguration(artifacts.Configuration)
+	if err != nil {
+		return err
+	}
+
+	k.infof("Ready to start upgrade.")
 	return nil
 }
 
@@ -253,7 +275,7 @@ func checkContextNotCanceled(ctx context.Context) error {
 	}
 }
 
-func (k KymaInstaller) installTiller(tillerYaml string) error {
+func (k KymaInstaller) installTiller(tillerYaml string, createFunction func([]k8s.K8sObject) error) error {
 	k.infof("Preparing Tiller installation...")
 	k8sTillerObjects, err := k8s.ParseYamlToK8sObjects(k.decoder, tillerYaml)
 	if err != nil {
@@ -261,7 +283,7 @@ func (k KymaInstaller) installTiller(tillerYaml string) error {
 	}
 
 	k.infof("Deploying Tiller...")
-	err = k.k8sGenericClient.ApplyResources(k8sTillerObjects)
+	err = createFunction(k8sTillerObjects)
 	if err != nil {
 		return fmt.Errorf("failed to apply Tiller resources: %w", err)
 	}
@@ -277,7 +299,15 @@ func (k KymaInstaller) installTiller(tillerYaml string) error {
 	return nil
 }
 
-func (k KymaInstaller) deployInstaller(installerYaml string) error {
+func (k KymaInstaller) deployInstallerForIstallation(installerYaml string) error {
+	return k.deployInstaller(installerYaml, k.k8sGenericClient.CreateResources)
+}
+
+func (k KymaInstaller) deployInstallerForUpgrade(installerYaml string) error {
+	return k.deployInstaller(installerYaml, k.k8sGenericClient.ApplyResources)
+}
+
+func (k KymaInstaller) deployInstaller(installerYaml string, createResourcesFunc func(resources []k8s.K8sObject) error) error {
 	k.infof("Deploying Installer...")
 
 	k8sInstallerObjects, err := k8s.ParseYamlToK8sObjects(k.decoder, installerYaml)
@@ -296,7 +326,7 @@ func (k KymaInstaller) deployInstaller(installerYaml string) error {
 		delete(installationCR.Labels, installationActionLabel)
 	}
 
-	err = k.k8sGenericClient.ApplyResources(k8sInstallerObjects)
+	err = createResourcesFunc(k8sInstallerObjects)
 	if err != nil {
 		return fmt.Errorf("failed to apply Installer resources: %w", err)
 	}
