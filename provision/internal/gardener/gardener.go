@@ -181,22 +181,13 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	if _, ok := provider.CustomConfigurations["worker_max_unavailable"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['worker_max_unavailable']")
 	}
-	if _, ok := provider.CustomConfigurations["workercidr"]; !ok {
+	if _, ok := provider.CustomConfigurations["workercidr"]; !ok && (targetProvider == string(types.GCP) || targetProvider == string(types.Azure)) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['workercidr']")
 	}
-	if _, ok := provider.CustomConfigurations["zone"]; !ok && (targetProvider == string(types.GCP) || targetProvider == string(types.AWS)) {
+	if _, ok := provider.CustomConfigurations["zones"]; !ok && (targetProvider == string(types.GCP) || targetProvider == string(types.AWS)) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['zone']")
 	}
-	if _, ok := provider.CustomConfigurations["aws_public_cidr"]; !ok && targetProvider == string(types.AWS) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['aws_public_cidr']")
-	}
-	if _, ok := provider.CustomConfigurations["aws_vpc_cidr"]; !ok && targetProvider == string(types.AWS) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['aws_vpc_cidr']")
-	}
-	if _, ok := provider.CustomConfigurations["aws_internal_cidr"]; !ok && targetProvider == string(types.AWS) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['aws_internal_cidr']")
-	}
-	if _, ok := provider.CustomConfigurations["vnetcidr"]; !ok && targetProvider == string(types.Azure) {
+	if _, ok := provider.CustomConfigurations["vnetcidr"]; !ok && (targetProvider == string(types.Azure) || targetProvider == string(types.AWS)) {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['vnetcidr']")
 	}
 
@@ -207,16 +198,7 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['machine_image_version']")
 	}
 
-	if _, ok := provider.CustomConfigurations["networking_nodes"]; !ok && targetProvider == string(types.Azure) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_nodes']")
-	}
-	if _, ok := provider.CustomConfigurations["networking_pods"]; !ok && targetProvider == string(types.Azure) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_pods']")
-	}
-	if _, ok := provider.CustomConfigurations["networking_services"]; !ok && targetProvider == string(types.Azure) {
-		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_services']")
-	}
-	if _, ok := provider.CustomConfigurations["networking_type"]; !ok && targetProvider == string(types.Azure) {
+	if _, ok := provider.CustomConfigurations["networking_type"]; !ok {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['networking_type']")
 	}
 	if _, ok := provider.CustomConfigurations["service_endpoints"]; !ok && targetProvider == string(types.Azure) {
@@ -247,13 +229,29 @@ func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 	for k, v := range provider.CustomConfigurations {
 		config[k] = v
 	}
+
 	switch config["target_provider"] {
 	case string(types.GCP):
 		config["target_profile"] = gcpProfile
+
+		// nodes CIDR is usually the same as workercidr
+		if v, ok := config["networking_nodes"]; !ok || v == "" {
+			config["networking_nodes"] = config["workercidr"]
+		}
 	case string(types.AWS):
 		config["target_profile"] = awsProfile
+
+		// nodes CIDR is usually the same as vnetcidr
+		if v, ok := config["networking_nodes"]; !ok || v == "" {
+			config["networking_nodes"] = config["vnetcidr"]
+		}
 	case string(types.Azure):
 		config["target_profile"] = azureProfile
+
+		// nodes CIDR is usually the same as vnetcidr
+		if v, ok := config["networking_nodes"]; !ok || v == "" {
+			config["networking_nodes"] = config["vnetcidr"]
+		}
 	}
 	return config
 }

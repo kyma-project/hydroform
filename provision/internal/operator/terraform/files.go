@@ -3,12 +3,13 @@ package terraform
 import (
 	"encoding/base64"
 	"fmt"
-	"html/template"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/hashicorp/terraform/command/cliconfig"
@@ -89,25 +90,28 @@ variable "credentials_file_path" 	{}
 variable "project"					{}
 variable "namespace"       			{}
 variable "location"      			{}
-variable "networking_nodes"			{}
-variable "networking_pods"			{}
-variable "networking_services"		{}
+variable "vnetcidr"					{
+	default = ""
+}
+variable "networking_nodes"			{
+	default = ""
+}
+variable "networking_pods"			{
+	default = ""
+}
+variable "networking_services"		{
+	default = ""
+}
 variable "networking_type"			{}
-variable "zone"      				{}
-variable "workercidr"      			{}
+variable "zones"      				{}
+variable "workercidr"      			{
+	default = ""
+}
 {{ if eq (index . "target_provider") "gcp" }}
 variable "gcp_control_plane_zone"		{}
 {{ end }}
 {{ if eq (index . "target_provider") "azure" }}
-variable "vnetcidr"				{}
 variable "service_endpoints"		{}
-
-{{ end }}
-{{ if eq (index . "target_provider") "aws" }}
-variable "aws_vpc_cidr" 					{}
-variable "aws_public_cidr" 			{}
-variable "aws_internal_cidr" 		{}
-variable "aws_zone"					{}
 {{ end }}
 variable "machine_type"  			{}
 variable "kubernetes_version"   	{}
@@ -193,21 +197,23 @@ resource "gardener_shoot" "gardener_cluster" {
 				aws {
 					networks {
 						vpc {
-							cidr = "${var.aws_vpc_cidr}"
+							cidr = "${var.vnetcidr}"
 						}
+						{{range $i, $z:= (index . "zones")}}
 						zones {
-							name = "${var.aws_zone}"
-							internal = "${var.aws_internal_cidr}"
-							public = "${var.aws_public_cidr}"
-							workers = "${var.workercidr}"
+							name = "{{ $z }}"
+							workers = "{{ (index (index $ "workerNets") $i) }}"
+							public = "{{ (index (index $ "publicNets") $i) }}"
+							internal = "{{ (index (index $ "internalNets") $i) }}"
 						}
+						{{end}}
 					}
 				}
 		   {{ end }}
         }
         worker {
          name = "cpu-worker"
-		 zones = "${var.zone}"
+		 zones = "${var.zones}"
          max_surge = "${var.worker_max_surge}"
 		 max_unavailable = "${var.worker_max_unavailable}"
 		 maximum = "${var.worker_maximum}"
@@ -441,6 +447,15 @@ func expandGardenerClusterTemplate(cfg map[string]interface{}) (string, error) {
 		},
 	}
 
+	if cfg["target_provider"] == string(types.AWS) {
+		// subnets for zones
+		var err error
+		cfg["workerNets"], cfg["publicNets"], cfg["internalNets"], err = generateGardenerAWSSubnets(cfg["vnetcidr"].(string), len(cfg["zones"].([]string)))
+		if err != nil {
+			return "", errors.Wrap(err, "Error generating subnets for AWS zones")
+		}
+	}
+
 	t := template.Must(template.New("gardenerCluster").Funcs(funcs).Parse(gardenerClusterTemplate))
 	s := &strings.Builder{}
 	if err := t.Execute(s, cfg); err != nil {
@@ -466,4 +481,31 @@ func isEmptyDir(path string) (bool, error) {
 		return false, err
 	}
 	return len(entries) == 0, nil
+}
+
+func generateGardenerAWSSubnets(baseNet string, zoneCount int) (workerNets, publicNets, internalNets []string, err error) {
+	_, cidr, err := net.ParseCIDR(baseNet)
+	if err != nil {
+		return
+	}
+	if zoneCount < 1 {
+		err = errors.New("There must be at least 1 zone defined.")
+	}
+
+	// each zone gets its own subnet
+	const subnetSize = 64
+	for i := 0; i < zoneCount; i++ {
+		// workers subnet
+		cidr.IP[2] = byte(i * subnetSize)
+		cidr.Mask = net.CIDRMask(19, 8*net.IPv4len)
+		workerNets = append(workerNets, cidr.String())
+
+		// public and internal share the subnet and divide it further
+		cidr.Mask = net.CIDRMask(20, 8*net.IPv4len)
+		cidr.IP[2] = byte(i*subnetSize + subnetSize/2) // first half of the subnet after worker
+		publicNets = append(publicNets, cidr.String())
+		cidr.IP[2] = byte(int(cidr.IP[2]) + subnetSize/4) // second half of the subnet after worker
+		internalNets = append(internalNets, cidr.String())
+	}
+	return
 }

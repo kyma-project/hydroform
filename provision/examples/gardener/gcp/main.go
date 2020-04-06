@@ -39,7 +39,7 @@ func main() {
 			"target_provider":        "gcp",
 			"target_secret":          *secret,
 			"disk_type":              "pd-standard",
-			"zone":                   []string{"europe-west4-b"},
+			"zones":                  []string{"europe-west4-b"},
 			"gcp_control_plane_zone": "europe-west4-b",
 			"workercidr":             "10.250.0.0/19",
 			"worker_max_surge":       4,
@@ -48,9 +48,6 @@ func main() {
 			"worker_minimum":         2,
 			"machine_image_name":     "coreos",
 			"machine_image_version":  "2303.3.0",
-			"networking_nodes":       "10.250.0.0/19",
-			"networking_pods":        "100.96.0.0/11",
-			"networking_services":    "100.64.0.0/13",
 			"networking_type":        "calico",
 		},
 	}
