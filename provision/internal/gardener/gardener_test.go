@@ -38,8 +38,9 @@ func TestValidate(t *testing.T) {
 				"worker_max_unavailable": 1,
 				"worker_maximum":         4,
 				"worker_minimum":         2,
-				"zone":                   []string{"europe-west3-b"},
+				"zones":                  []string{"europe-west3-b"},
 				"gcp_control_plane_zone": "europe-west3-b",
+				"networking_type":        "calico",
 			},
 		}
 
@@ -52,9 +53,9 @@ func TestValidate(t *testing.T) {
 		require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is not supported")
 		provider.CustomConfigurations["target_provider"] = "gcp"
 
-		delete(provider.CustomConfigurations, "zone")
+		delete(provider.CustomConfigurations, "zones")
 		require.Error(t, g.validate(cluster, provider), "Validation should fail when zone is empty")
-		provider.CustomConfigurations["zone"] = "europe-west3-b"
+		provider.CustomConfigurations["zones"] = "europe-west3-b"
 
 		delete(provider.CustomConfigurations, "gcp_control_plane_zone")
 		require.Error(t, g.validate(cluster, provider), "Validation should fail when gcp_control_plane_zone is empty")
@@ -133,14 +134,13 @@ func TestValidate(t *testing.T) {
 				"target_secret":          "secret-name",
 				"disk_type":              "gp2",
 				"workercidr":             "172.31.0.0/16",
-				"aws_public_cidr":        "172.31.0.0/16",
-				"aws_vpc_cidr":           "192.168.2.112/29",
-				"aws_internal_cidr":      "10.250.0.0/19",
-				"zone":                   "eu-west-1b",
+				"vnetcidr":               "192.168.2.112/29",
+				"zones":                  []string{"eu-west-1b"},
 				"worker_max_surge":       4,
 				"worker_max_unavailable": 1,
 				"worker_maximum":         4,
 				"worker_minimum":         2,
+				"networking_type":        "calico",
 			},
 		}
 
@@ -153,22 +153,13 @@ func TestValidate(t *testing.T) {
 		require.Error(t, g.validate(cluster, provider), "Validation should fail when target provider is not supported")
 		provider.CustomConfigurations["target_provider"] = "aws"
 
-		delete(provider.CustomConfigurations, "zone")
+		delete(provider.CustomConfigurations, "zones")
 		require.Error(t, g.validate(cluster, provider), "Validation should fail when zone is empty")
-		provider.CustomConfigurations["zone"] = "eu-west-1"
+		provider.CustomConfigurations["zones"] = []string{"eu-west-1b"}
 
-		delete(provider.CustomConfigurations, "aws_public_cidr")
-		require.Error(t, g.validate(cluster, provider), "Validation should fail when aws_public_cidr is empty")
-		provider.CustomConfigurations["aws_public_cidr"] = "172.31.0.0/16"
-
-		delete(provider.CustomConfigurations, "aws_vpc_cidr")
-		require.Error(t, g.validate(cluster, provider), "Validation should fail when aws_vpc_cidr is empty")
-		provider.CustomConfigurations["aws_vpc_cidr"] = "172.31.0.0/16"
-
-		delete(provider.CustomConfigurations, "aws_internal_cidr")
-		require.Error(t, g.validate(cluster, provider), "Validation should fail when aws_internal_cidr is empty")
-		provider.CustomConfigurations["aws_internal_cidr"] = "172.31.0.0/16"
-
+		delete(provider.CustomConfigurations, "vnetcidr")
+		require.Error(t, g.validate(cluster, provider), "Validation should fail when vnetcidr is empty")
+		provider.CustomConfigurations["vnetcidr"] = "172.31.0.0/16"
 	})
 }
 
@@ -268,8 +259,9 @@ func TestLoadConfigurations(t *testing.T) {
 			"target_provider":        "gcp",
 			"target_secret":          "secret-name",
 			"disk_type":              "pd-standard",
-			"zone":                   []string{"europe-west3-b"},
+			"zones":                  []string{"europe-west3-b"},
 			"gcp_control_plane_zone": "europe-west3-b",
+			"networking_type":        "calico",
 		},
 	}
 
@@ -317,8 +309,9 @@ func TestProvision(t *testing.T) {
 			"worker_max_unavailable": 1,
 			"worker_maximum":         4,
 			"worker_minimum":         2,
-			"zone":                   []string{"europe-west3-b"},
+			"zones":                  []string{"europe-west3-b"},
 			"gcp_control_plane_zone": "europe-west3-b",
+			"networking_type":        "calico",
 		},
 	}
 
@@ -376,8 +369,9 @@ func TestDeProvision(t *testing.T) {
 			"worker_max_unavailable": 1,
 			"worker_maximum":         4,
 			"worker_minimum":         2,
-			"zone":                   "europe-west3-b",
+			"zones":                  []string{"eu-west-1b"},
 			"gcp_control_plane_zone": "europe-west3-b",
+			"networking_type":        "calico",
 		},
 	}
 	var state *statefile.File
