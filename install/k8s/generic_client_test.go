@@ -2,6 +2,8 @@ package k8s
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"strings"
 	"testing"
 	"time"
 
@@ -207,19 +209,39 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 }
 
 func TestGenericClient_CreateResources(t *testing.T) {
+	resourcesToApply := []K8sObject{
+		{
+			Object: &v1.Service{
+				ObjectMeta: v12.ObjectMeta{Name: "test2", Namespace: namespace},
+				Spec:       v1.ServiceSpec{ExternalName: "test2"},
+			},
+			GVK: &schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"},
+		},
+	}
+
+	t.Run("should create resource", func(t *testing.T) {
+		//given
+		restMapper := dummyRestMapper{}
+
+		resourcesScheme, err := scheme.DefaultScheme()
+		require.NoError(t, err)
+		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesScheme)
+
+		k8sClientSet := fake.NewSimpleClientset()
+
+		client := NewGenericClient(restMapper, dynamicClient, k8sClientSet)
+
+		expectedObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(resourcesToApply[0].Object)
+
+		//when
+		resources, err := client.CreateResources(resourcesToApply)
+
+		//then
+		require.NoError(t, err)
+		require.Equal(t, expectedObj, resources[0].Object)
+	})
 
 	t.Run("should return an error if RESTMapper fails", func(t *testing.T) {
-		// given
-		resourcesToApply := []K8sObject{
-			{
-				Object: &v1.Service{
-					ObjectMeta: v12.ObjectMeta{Name: "test2", Namespace: namespace},
-					Spec:       v1.ServiceSpec{ExternalName: "test2"},
-				},
-				GVK: &schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"},
-			},
-		}
-
 		restMapper := &mocks.RESTMapper{}
 		restMapper.On("RESTMapping", schema.GroupKind{Group: "", Kind: "Service"}, "v1").Return(nil, fmt.Errorf("some error"))
 
@@ -232,9 +254,115 @@ func TestGenericClient_CreateResources(t *testing.T) {
 		client := NewGenericClient(restMapper, dynamicClient, k8sClientSet)
 
 		// when
-		err = client.CreateResources(resourcesToApply)
+		_, err = client.CreateResources(resourcesToApply)
 
 		// then
 		require.Error(t, err)
 	})
+}
+
+func TestGenericClient_ApplyResources(t *testing.T) {
+	resourcesToCreate := []K8sObject{
+		{
+			Object: &v1.Service{
+				ObjectMeta: v12.ObjectMeta{Name: "test2", Namespace: namespace},
+				Spec:       v1.ServiceSpec{ExternalName: "test2", ClusterIP: "1111", HealthCheckNodePort: 3000},
+			},
+			GVK: &schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"},
+		},
+	}
+
+	t.Run("should create resource when not exists", func(t *testing.T) {
+		//given
+		restMapper := dummyRestMapper{}
+
+		resourcesScheme, err := scheme.DefaultScheme()
+		require.NoError(t, err)
+		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesScheme)
+
+		k8sClientSet := fake.NewSimpleClientset()
+
+		client := NewGenericClient(restMapper, dynamicClient, k8sClientSet)
+
+		expectedObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(resourcesToCreate[0].Object)
+		require.NoError(t, err)
+
+		//when
+		resources, err := client.ApplyResources(resourcesToCreate)
+
+		//then
+		require.NoError(t, err)
+		require.Equal(t, expectedObj, resources[0].Object)
+	})
+
+	t.Run("should update resource when exists", func(t *testing.T) {
+		//given
+		restMapper := dummyRestMapper{}
+
+		resourcesScheme, err := scheme.DefaultScheme()
+		require.NoError(t, err)
+		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesScheme)
+
+		k8sClientSet := fake.NewSimpleClientset()
+
+		client := NewGenericClient(restMapper, dynamicClient, k8sClientSet)
+
+		//when
+		resources, err := client.CreateResources(resourcesToCreate)
+
+		//then
+		require.NoError(t, err)
+		require.NotEmpty(t, resources)
+
+		//given
+		resourcesToApply := []K8sObject{
+			{
+				Object: &v1.Service{
+					ObjectMeta: v12.ObjectMeta{Name: "test2", Namespace: namespace},
+					Spec:       v1.ServiceSpec{ExternalName: "test2", ClusterIP: "2222"},
+				},
+				GVK: &schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"},
+			},
+		}
+
+		oldResource, err := runtime.DefaultUnstructuredConverter.ToUnstructured(resourcesToCreate[0].Object)
+		require.NoError(t, err)
+		newResource, err := runtime.DefaultUnstructuredConverter.ToUnstructured(resourcesToApply[0].Object)
+		require.NoError(t, err)
+
+		expectedObj := MergeMaps(newResource, oldResource)
+
+		//when
+		appliedResources, err := client.ApplyResources(resourcesToApply)
+
+		//then
+		require.NoError(t, err)
+		assert.Equal(t, expectedObj, appliedResources[0].Object)
+	})
+}
+
+type dummyRestMapper struct{}
+
+func (d dummyRestMapper) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error) {
+	if len(versions) < 1 {
+		return nil, fmt.Errorf("no version provided")
+	}
+
+	return &meta.RESTMapping{
+		Resource: schema.GroupVersionResource{
+			Group:    gk.Group,
+			Version:  versions[0],
+			Resource: kindToResource(gk.Kind),
+		},
+		GroupVersionKind: schema.GroupVersionKind{
+			Group:   gk.Group,
+			Version: versions[0],
+			Kind:    gk.Kind,
+		},
+		Scope: nil,
+	}, nil
+}
+
+func kindToResource(kind string) string {
+	return fmt.Sprintf("%ss", strings.ToLower(kind))
 }

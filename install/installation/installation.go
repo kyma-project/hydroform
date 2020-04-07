@@ -3,6 +3,7 @@ package installation
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"strings"
 	"time"
 
@@ -276,7 +277,7 @@ func checkContextNotCanceled(ctx context.Context) error {
 	}
 }
 
-func (k KymaInstaller) installTiller(tillerYaml string, createFunction func([]k8s.K8sObject) error) error {
+func (k KymaInstaller) installTiller(tillerYaml string, createFunction func([]k8s.K8sObject) ([]*unstructured.Unstructured, error)) error {
 	k.infof("Preparing Tiller installation...")
 	k8sTillerObjects, err := k8s.ParseYamlToK8sObjects(k.decoder, tillerYaml)
 	if err != nil {
@@ -284,7 +285,7 @@ func (k KymaInstaller) installTiller(tillerYaml string, createFunction func([]k8
 	}
 
 	k.infof("Deploying Tiller...")
-	err = createFunction(k8sTillerObjects)
+	_, err = createFunction(k8sTillerObjects)
 	if err != nil {
 		return fmt.Errorf("failed to apply Tiller resources: %w", err)
 	}
@@ -308,7 +309,7 @@ func (k KymaInstaller) deployInstallerForUpgrade(installerYaml string) error {
 	return k.deployInstaller(installerYaml, k.k8sGenericClient.ApplyResources)
 }
 
-func (k KymaInstaller) deployInstaller(installerYaml string, createResourcesFunc func(resources []k8s.K8sObject) error) error {
+func (k KymaInstaller) deployInstaller(installerYaml string, createResourcesFunc func(resources []k8s.K8sObject) ([]*unstructured.Unstructured, error)) error {
 	k.infof("Deploying Installer...")
 
 	k8sInstallerObjects, err := k8s.ParseYamlToK8sObjects(k.decoder, installerYaml)
@@ -327,7 +328,7 @@ func (k KymaInstaller) deployInstaller(installerYaml string, createResourcesFunc
 		delete(installationCR.Labels, installationActionLabel)
 	}
 
-	err = createResourcesFunc(k8sInstallerObjects)
+	_, err = createResourcesFunc(k8sInstallerObjects)
 	if err != nil {
 		return fmt.Errorf("failed to apply Installer resources: %w", err)
 	}
