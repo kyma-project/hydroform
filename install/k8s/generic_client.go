@@ -149,13 +149,49 @@ func (c GenericClient) applyObject(client dynamic.ResourceInterface, unstructure
 	_, err := client.Create(unstructuredObject, v1.CreateOptions{})
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
-			//TODO update resource
+			err := c.updateObject(client, unstructuredObject)
+			if err != nil {
+				return fmt.Errorf("failed to create update %s of kind %s: %s", unstructuredObject.GetName(), unstructuredObject.GetKind(), err.Error())
+			}
 			return nil
 		}
 		return fmt.Errorf("failed to create object %s of kind %s: %s", unstructuredObject.GetName(), unstructuredObject.GetKind(), err.Error())
 	}
 
 	return nil
+}
+
+func (c GenericClient) updateObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) error {
+	get, err := client.Get(unstructuredObject.GetName(), v1.GetOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	merged := mergeMaps(unstructuredObject.Object, get.Object)
+
+	newObject := &unstructured.Unstructured{Object: merged}
+
+	_, err = client.Update(newObject, v1.UpdateOptions{})
+
+	return err
+}
+
+//mergeMaps copies the keys that don't exist in the new map from the original map
+func mergeMaps(new, original map[string]interface{}) map[string]interface{} {
+	for key, originalValue := range original {
+		newValue, exists := new[key]
+		if !exists {
+			new[key] = originalValue
+		} else {
+			nextNew, ok1 := newValue.(map[string]interface{})
+			nextOriginal, ok2 := originalValue.(map[string]interface{})
+			if ok1 && ok2 {
+				mergeMaps(nextNew, nextOriginal)
+			}
+		}
+	}
+	return new
 }
 
 func (c GenericClient) clientForResource(unstructuredObject *unstructured.Unstructured, gvk *schema.GroupVersionKind) (dynamic.ResourceInterface, error) {

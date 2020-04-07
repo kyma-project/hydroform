@@ -56,6 +56,7 @@ const (
 
 type Installer interface {
 	PrepareInstallation(installation Installation) error
+	PrepareUpgrade(artifacts Installation) error
 	StartInstallation(context context.Context) (<-chan InstallationState, <-chan error, error)
 }
 
@@ -367,7 +368,14 @@ func (k KymaInstaller) applyInstallationCR(installationCR *v1alpha1.Installation
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
 			k.infof("installation %s already exists, trying to update...", installationCR.Name)
-			_, err := k.installationClient.Update(installationCR)
+			get, err := k.installationClient.Get(installationCR.Name, metav1.GetOptions{})
+			if err != nil {
+				return fmt.Errorf("installation CR already exists, failed to get installation CR: %w", err)
+			}
+
+			installationCR.ResourceVersion = get.ResourceVersion
+
+			_, err = k.installationClient.Update(installationCR)
 			if err != nil {
 				return fmt.Errorf("installation CR already exists, failed to updated installation CR: %w", err)
 			}
