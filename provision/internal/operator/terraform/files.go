@@ -104,7 +104,6 @@ variable "networking_services"		{
 }
 variable "networking_type"			{}
 variable "zones"      				{}
-variable "zoned"      				{}
 variable "workercidr"      			{
 	default = ""
 }
@@ -112,6 +111,7 @@ variable "workercidr"      			{
 variable "gcp_control_plane_zone"		{}
 {{ end }}
 {{ if eq (index . "target_provider") "azure" }}
+variable "zoned"      				{}
 variable "service_endpoints"		{}
 {{ end }}
 variable "machine_type"  			{}
