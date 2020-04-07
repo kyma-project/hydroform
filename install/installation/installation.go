@@ -73,6 +73,10 @@ type Installation struct {
 	Configuration Configuration
 }
 
+const (
+	NoInstallationState = "NoInstallation"
+)
+
 type InstallationState struct {
 	State       string
 	Description string
@@ -89,6 +93,13 @@ func CheckInstallationState(kubeconfig *rest.Config) (InstallationState, error) 
 		Installations(defaultInstallationResourceNamespace).
 		Get(kymaInstallationName, metav1.GetOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return InstallationState{
+				State:       NoInstallationState,
+				Description: "Kyma Installation CR not found on the cluster",
+			}, nil
+		}
+
 		return InstallationState{}, err
 	}
 
@@ -126,7 +137,7 @@ func TriggerUninstall(kubeconfig *rest.Config) error {
 }
 
 // NewKymaInstaller initializes new KymaInstaller configured to work with the cluster from provided Kubeconfig
-func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (Installer, error) {
+func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*KymaInstaller, error) {
 	options := &installationOptions{
 		installationCRModificationFunc: func(installation *v1alpha1.Installation) {},
 		tillerWaitTime:                 defaultTillerWaitTimeout,
