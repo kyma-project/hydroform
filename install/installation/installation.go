@@ -137,7 +137,7 @@ func TriggerUninstall(kubeconfig *rest.Config) error {
 }
 
 // NewKymaInstaller initializes new KymaInstaller configured to work with the cluster from provided Kubeconfig
-func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (Installer, error) {
+func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*KymaInstaller, error) {
 	options := &installationOptions{
 		installationCRModificationFunc: func(installation *v1alpha1.Installation) {},
 		tillerWaitTime:                 defaultTillerWaitTimeout,
