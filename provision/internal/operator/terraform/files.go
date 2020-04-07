@@ -104,6 +104,7 @@ variable "networking_services"		{
 }
 variable "networking_type"			{}
 variable "zones"      				{}
+variable "zoned"      				{}
 variable "workercidr"      			{
 	default = ""
 }
@@ -177,6 +178,7 @@ resource "gardener_shoot" "gardener_cluster" {
         infrastructure_config {
            {{ if eq (index . "target_provider") "azure" }}
 			  azure {
+				zoned = "${var.zoned}"
                 networks {
                   vnet {
 					cidr = "${var.vnetcidr}"

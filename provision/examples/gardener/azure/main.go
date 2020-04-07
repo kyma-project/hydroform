@@ -50,7 +50,7 @@ func main() {
 			"machine_image_version":  "2303.3.0",
 			"networking_type":        "calico",
 			"service_endpoints":      []string{""},
-			"zones":                  []string{},
+			"zones":                  []string{"1"},
 		},
 	}
 

@@ -3,6 +3,7 @@ package gardener
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -252,6 +253,9 @@ func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 		if v, ok := config["networking_nodes"]; !ok || v == "" {
 			config["networking_nodes"] = config["vnetcidr"]
 		}
+
+		// need to set the zoned property if we have a cluster with zones
+		config["zoned"] = strconv.FormatBool(len(config["zones"].([]string)) > 0) // add zoned boolean
 	}
 	return config
 }
