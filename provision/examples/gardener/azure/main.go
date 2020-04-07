@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	hf "github.com/kyma-incubator/hydroform/provision"
 	"io/ioutil"
 	"log"
+
+	hf "github.com/kyma-incubator/hydroform/provision"
 
 	"github.com/kyma-incubator/hydroform/provision/action"
 
@@ -24,7 +25,7 @@ func main() {
 
 	cluster := &types.Cluster{
 		CPU:               1,
-		KubernetesVersion: "1.15.4",
+		KubernetesVersion: "1.17.4",
 		Name:              "hydro-azure",
 		DiskSizeGB:        35,
 		NodeCount:         2,
@@ -40,19 +41,16 @@ func main() {
 			"target_secret":          *secret,
 			"disk_type":              "Standard_LRS",
 			"workercidr":             "10.250.0.0/19",
-			"vnetcidr":               "10.250.0.0/19",
+			"vnetcidr":               "10.250.0.0/16",
 			"worker_max_surge":       4,
 			"worker_max_unavailable": 1,
 			"worker_maximum":         4,
 			"worker_minimum":         2,
 			"machine_image_name":     "coreos",
 			"machine_image_version":  "2303.3.0",
-			"networking_nodes":       "10.250.0.0/19",
-			"networking_pods":        "100.96.0.0/11",
-			"networking_services":    "100.64.0.0/13",
 			"networking_type":        "calico",
 			"service_endpoints":      []string{""},
-			"zone":                   []string{"1"},
+			"zones":                  []string{"1"},
 		},
 	}
 
