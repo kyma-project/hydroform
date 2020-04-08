@@ -7,7 +7,6 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.2.2
-	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.0.0-20190805141119-fdd30b57c827
 	k8s.io/apiextensions-apiserver v0.0.0-20190805143126-cdb999c96590
 	k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719

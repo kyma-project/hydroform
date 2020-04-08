@@ -263,6 +263,172 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 	})
 }
 
+func TestKymaInstaller_PrepareUpgrade(t *testing.T) {
+	runningTillerPod := &v12.Pod{
+		ObjectMeta: v1.ObjectMeta{Name: "tiller-pod", Namespace: kubeSystemNamespace, Labels: map[string]string{"name": "tiller"}},
+		Status:     v12.PodStatus{Phase: v12.PodRunning},
+	}
+
+	t.Run("should prepare upgrade", func(t *testing.T) {
+		// given
+		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema)
+		k8sClientSet := fake.NewSimpleClientset(runningTillerPod)
+		installationClientSet := installationFake.NewSimpleClientset()
+
+		mapper := dummyRestMapper{}
+
+		kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
+
+		installationComponents := []v1alpha1.KymaComponent{
+			{Name: "application-connector", ReleaseName: "application-connector", Namespace: "kyma-integration"},
+		}
+
+		kymaInstaller.installationCRModificationFunc = func(installation *v1alpha1.Installation) {
+			installation.Spec.Components = installationComponents
+		}
+
+		configuration := Configuration{
+			Configuration: []ConfigEntry{
+				{
+					Key:   "global.test.key",
+					Value: "global-value",
+				},
+				{
+					Key:    "global.test.secret.key",
+					Value:  "global-secret-value",
+					Secret: true,
+				},
+			},
+			ComponentConfiguration: []ComponentConfiguration{
+				{
+					Component: "application-connector",
+					Configuration: []ConfigEntry{
+						{
+							Key:   "component.test.key",
+							Value: "component-value",
+						},
+						{
+							Key:    "component.test.secret.key",
+							Value:  "component-secret-value",
+							Secret: true,
+						},
+					},
+				},
+			},
+		}
+
+		installation := Installation{
+			TillerYaml:    tillerYamlContent,
+			InstallerYaml: installerYamlContent,
+			Configuration: configuration,
+		}
+
+		// when
+		err := kymaInstaller.PrepareInstallation(installation)
+
+		// then
+		require.NoError(t, err)
+
+		//given
+		upgrade := Installation{
+			TillerYaml:    upgradeTillerYamlContent,
+			InstallerYaml: upgradeInstallerYamlContent,
+			Configuration: configuration,
+		}
+
+		//when
+		err = kymaInstaller.PrepareUpgrade(upgrade)
+
+		//then
+		require.NoError(t, err)
+
+		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "tiller", kubeSystemNamespace)
+		assertDynamicResource(t, dynamicClient, clusterRoleBindingGVR, "tiller-cluster-admin", "")
+		assertDynamicResource(t, dynamicClient, deploymentGVR, "tiller-deploy", kubeSystemNamespace)
+		assertDynamicResource(t, dynamicClient, serviceGVR, "tiller-deploy", kubeSystemNamespace)
+		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "tiller-certs-sa", kubeSystemNamespace)
+		assertDynamicResource(t, dynamicClient, roleBindingGVR, "tiller-certs", kubeSystemNamespace)
+		assertDynamicResource(t, dynamicClient, roleGVR, "tiller-certs-installer", kubeSystemNamespace)
+		assertDynamicResource(t, dynamicClient, jobGVR, "tiller-certs-job", kubeSystemNamespace)
+
+		assertDynamicResource(t, dynamicClient, namespaceGVR, "kyma-installer", "")
+		assertDynamicResource(t, dynamicClient, limitRangeGVR, "kyma-default", kymaInstallerNamespace)
+		assertDynamicResource(t, dynamicClient, crdGVR, "installations.installer.kyma-project.io", "")
+		assertDynamicResource(t, dynamicClient, crdGVR, "releases.release.kyma-project.io", "")
+		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "helm-certs-job-sa", kymaInstallerNamespace)
+		assertDynamicResource(t, dynamicClient, roleBindingGVR, "helm-certs-rolebinding", kubeSystemNamespace)
+		assertDynamicResource(t, dynamicClient, roleBindingGVR, "helm-certs-rolebinding", kymaInstallerNamespace)
+		assertDynamicResource(t, dynamicClient, roleGVR, "helm-certs-getter", kubeSystemNamespace)
+		assertDynamicResource(t, dynamicClient, roleGVR, "helm-certs-setter", kymaInstallerNamespace)
+		assertDynamicResource(t, dynamicClient, clusterRoleV1GVR, "all-psp", "")
+		assertDynamicResource(t, dynamicClient, clusterRoleBindingV1GVR, "all-psp", "")
+		assertDynamicResource(t, dynamicClient, jobGVR, "helm-certs-job", kymaInstallerNamespace)
+		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "kyma-installer", kymaInstallerNamespace)
+		assertDynamicResource(t, dynamicClient, deploymentGVR, "kyma-installer", kymaInstallerNamespace)
+		assertDynamicResource(t, dynamicClient, clusterRoleGVR, "kyma-installer-reader", "")
+		assertDynamicResource(t, dynamicClient, clusterRoleBindingGVR, "kyma-installer", "")
+	})
+
+	t.Run("should return error", func(t *testing.T) {
+
+		for _, testCase := range []struct {
+			description          string
+			dynamicClientObjects []runtime.Object
+			k8sClientsetObjects  []runtime.Object
+			installation         Installation
+			errorContains        string
+		}{
+			{
+				description: "when invalid Tiller yaml content",
+				dynamicClientObjects: []runtime.Object{&v12.ServiceAccount{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "tiller",
+						Namespace: kubeSystemNamespace,
+					},
+				}},
+				installation:  Installation{TillerYaml: "invalid ", InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				errorContains: "failed to parse Tiller yaml",
+			},
+			{
+				description:   "when Tiller pod is not running",
+				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				errorContains: "timeout waiting for Tiller to start",
+			},
+			{
+				description:         "when invalid Installer yaml content",
+				k8sClientsetObjects: []runtime.Object{runningTillerPod},
+				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "invalid yaml", Configuration: Configuration{}},
+				errorContains:       "failed to parse Installer yaml",
+			},
+			{
+				description:         "when Installation CR not present in installer YAML",
+				k8sClientsetObjects: []runtime.Object{runningTillerPod},
+				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "", Configuration: Configuration{}},
+				errorContains:       "installation object not found",
+			},
+		} {
+			t.Run(testCase.description, func(t *testing.T) {
+				// given
+				dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema, testCase.dynamicClientObjects...)
+				k8sClientSet := fake.NewSimpleClientset(testCase.k8sClientsetObjects...)
+				installationClientSet := installationFake.NewSimpleClientset()
+
+				mapper := dummyRestMapper{}
+
+				kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
+
+				// when
+				err := kymaInstaller.PrepareUpgrade(testCase.installation)
+
+				// then
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), testCase.errorContains)
+			})
+		}
+
+	})
+}
+
 func TestKymaInstaller_StartInstallation(t *testing.T) {
 
 	installation := &v1alpha1.Installation{
