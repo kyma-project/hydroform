@@ -11,6 +11,9 @@ import (
 
 type MockConnect struct{}
 
+func (m *MockConnect) Connect(string) error {
+	return nil
+}
 func (m *MockConnect) getCsrInfo(string) error {
 	return nil
 }
@@ -35,10 +38,19 @@ func (m *MockConnect) populateClient() error {
 	return nil
 }
 
+func (m *MockConnect) getRawJsonFromDoc(string) (json.RawMessage, error) {
+	return nil, nil
+}
+
+func (m *MockConnect) readService(string, *Service) error {
+	return nil
+}
+
 func TestConnect(t *testing.T) {
 
 	mockConnector := &MockConnect{}
-	err := Connect(mockConnector, "testUrl")
+	c := GetKymaConnector(mockConnector)
+	err := c.Connect("testUrl")
 
 	if err != nil {
 		t.Errorf("Error in connect")
@@ -329,6 +341,68 @@ func TestKymaConnector_GetSecureClient(t *testing.T) {
 	}
 }
 
+func TestKymaConnector_AddEvent(t *testing.T) {
+	addEventServer := addEventServer(t)
+	type fields struct {
+		CsrInfo      *types.CSRInfo
+		AppName      string
+		Ca           *types.ClientCertificate
+		SecureClient *http.Client
+	}
+	type args struct {
+		event types.Event
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "correct",
+			fields: fields{
+				CsrInfo: &types.CSRInfo{
+					CSRUrl: "test.com/csrurl",
+					API: &types.API{
+						MetadataUrl:     "test.com/metadataurl",
+						EventsUrl:       addEventServer.URL,
+						EventsInfoUrl:   "test.com/eventsinfourl",
+						InfoUrl:         "test.com/infourl",
+						CertificatesUrl: "test.com/certificatesurl",
+					},
+					Certificate: &types.Certificate{
+						Subject:      "O=Organization,OU=OrgUnit,L=Waldorf,ST=Waldorf,C=DE,CN=testApplication",
+						Extensions:   "",
+						KeyAlgorithm: "rsa2048",
+					},
+				},
+				AppName: "testApplication",
+				Ca: &types.ClientCertificate{
+					PrivateKey: "",
+					PublicKey:  "",
+					Csr:        "",
+				},
+				SecureClient: addEventServer.Client(),
+			},
+			args:    args{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &KymaConnector{
+				CsrInfo:      tt.fields.CsrInfo,
+				AppName:      tt.fields.AppName,
+				Ca:           tt.fields.Ca,
+				SecureClient: tt.fields.SecureClient,
+			}
+			if err := c.AddEvent(tt.args.event); (err != nil) != tt.wantErr {
+				t.Errorf("AddEvent() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func sendCsrToKymaServer(t *testing.T) *httptest.Server {
 	sendCsrToKymaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -444,4 +518,29 @@ func updateServiceServer(t *testing.T) *httptest.Server {
 	}))
 
 	return updateServiceServer
+}
+
+func addEventServer(t *testing.T) *httptest.Server {
+	addEventServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		if r.Method != "POST" {
+			t.Errorf("Expected 'POST' request, got '%s'", r.Method)
+		}
+		type eventResponse struct {
+			eventId string
+		}
+		eventResponseObj := eventResponse{
+			eventId: "testId",
+		}
+		js, err := json.Marshal(eventResponseObj)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+
+	}))
+	return addEventServer
 }

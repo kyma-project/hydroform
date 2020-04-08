@@ -7,3 +7,8 @@ type Event struct {
 	EventTime        string `json:"event-time"`
 	Data             string `json:"data"`
 }
+
+type EventResponse struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}

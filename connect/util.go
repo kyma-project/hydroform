@@ -52,6 +52,11 @@ func (c *KymaConnector) getCsrInfo(configurationUrl string) error {
 	}
 
 	c.CsrInfo = &csrInfo
+	err = c.writeToFile("config.json", response)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
 	return err
 }
 
@@ -195,7 +200,6 @@ func (c *KymaConnector) writeClientCertificateToFile(w writerInterface) error {
 	return nil
 }
 
-// ReadService is loading a service description from disk
 func (c *KymaConnector) readService(path string, s *Service) error {
 	_, err := os.Stat(path)
 	if err != nil {
@@ -234,5 +238,60 @@ func (c *KymaConnector) writeToFile(fileName string, data []byte) error {
 
 func (c *KymaConnector) populateClient() (err error) {
 	c.SecureClient, err = c.GetSecureClient()
+	return err
+}
+
+func (c *KymaConnector) populateAppName() {
+	parts := strings.Split(c.CsrInfo.Certificate.Subject, ",")
+	for i := range parts {
+		subjectTitle := strings.Split(parts[i], "=")
+		switch subjectTitle[0] {
+		case "CN":
+			c.AppName = subjectTitle[1]
+		}
+	}
+}
+func (c *KymaConnector) loadConfig() error {
+
+	_, err := os.Stat("config.json")
+	if err == nil {
+		config, err := ioutil.ReadFile("config.json")
+		if err != nil {
+			return fmt.Errorf(err.Error())
+		}
+
+		csrInfo := &types.CSRInfo{}
+		json.Unmarshal(config, csrInfo)
+		c.CsrInfo = csrInfo
+	}
+
+	_, err = os.Stat("generated.csr")
+	if err == nil {
+		csr, err := ioutil.ReadFile("generated.csr")
+		if err != nil {
+			return fmt.Errorf(err.Error())
+		}
+		c.Ca.Csr = string(csr[:])
+	}
+
+	_, err = os.Stat("generated.crt")
+	if err == nil {
+		crt, err := ioutil.ReadFile("generated.crt")
+		if err != nil {
+			return fmt.Errorf(err.Error())
+		}
+		c.Ca.PublicKey = string(crt[:])
+	}
+
+	_, err = os.Stat("generated.key")
+	if err == nil {
+		key, err := ioutil.ReadFile("generated.key")
+		if err != nil {
+			return fmt.Errorf(err.Error())
+		}
+		c.Ca.PrivateKey = string(key[:])
+	}
+
+	c.populateAppName()
 	return err
 }

@@ -3,6 +3,7 @@ package connect
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,16 +14,17 @@ import (
 )
 
 type KymaInterface interface {
-	//	*http.Client SecureClient
 	getCsrInfo(string) error
 	getCertSigningRequest() error
 	getClientCert() error
 	populateClient() error
 	writeClientCertificateToFile(writerInterface) error
 	writeToFile(string, []byte) error
+	getRawJsonFromDoc(string) (json.RawMessage, error)
+	readService(string, *Service) error
 }
 
-func Connect(c KymaInterface, configurationUrl string) error {
+func (c *KymaConnector) Connect(configurationUrl string) error {
 
 	err := c.getCsrInfo(configurationUrl)
 	if err != nil {
@@ -39,11 +41,11 @@ func Connect(c KymaInterface, configurationUrl string) error {
 		return fmt.Errorf(err.Error())
 	}
 
-	err = c.populateClient()
+	//err = c.populateClient()
 
-	if err != nil {
+	/*	if err != nil {
 		return fmt.Errorf(err.Error())
-	}
+	}*/
 
 	err = c.writeClientCertificateToFile(c)
 	if err != nil {
@@ -147,8 +149,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	log.Printf("%v", id)
 	serviceDescription.id = id.ID
 	serviceDescriptionString, err := json.Marshal(serviceDescription)
-	ioutil.WriteFile(id.ID+".json", serviceDescriptionString, 0644)
-
+	c.writeToFile(id.ID+".json", serviceDescriptionString)
 	return err
 }
 
@@ -272,22 +273,29 @@ func (c *KymaConnector) AddEvent(event types.Event) error {
 	return err
 }
 
-func (c *KymaConnector) GetSubscribedEvents() error {
+func (c *KymaConnector) GetSubscribedEvents() ([]types.Event, error) {
 
 	resp, err := c.SecureClient.Get(c.CsrInfo.API.EventsInfoUrl)
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(err.Error())
+		return nil, fmt.Errorf(err.Error())
 	}
 
 	//unmarshal response json and store in csrInfo
 	response, err := ioutil.ReadAll(resp.Body)
+
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return nil, fmt.Errorf(err.Error())
 	}
 
+	var eventsArr []types.Event
+	err = json.Unmarshal(response, &eventsArr)
+	if err != nil {
+		log.Println("Failed to parse registration response")
+		return nil, err
+	}
 	log.Print(string(response))
-	return err
+	return eventsArr, err
 }
 
 func GetBlankKymaConnector() *KymaConnector {
@@ -298,10 +306,28 @@ func GetBlankKymaConnector() *KymaConnector {
 		SecureClient: nil,
 	}
 
+	c.loadConfig()
+
+	c.populateClient()
+	// are we supposed to load config here -- maybe certificates need to be populated from file??
 	return c
 }
 
-// GetSecureClient is returning an http client with client certificate enabled
+func GetKymaConnector(kymaInterface KymaInterface) *KymaConnector {
+	//c  := kymaInterface.(*KymaConnector)
+	switch kymaInterface.(type) {
+	case *KymaConnector:
+		c := kymaInterface.(*KymaConnector)
+		c.CsrInfo = &types.CSRInfo{}
+		c.AppName = ""
+		c.Ca = &types.ClientCertificate{}
+		return c
+		/*case *MockConnect :
+		return kymaInterface.(*MockConnect)*/
+	}
+	return nil
+}
+
 func (c *KymaConnector) GetSecureClient() (*http.Client, error) {
 	cert, err := tls.X509KeyPair([]byte(c.Ca.PublicKey), []byte(c.Ca.PrivateKey))
 	if err != nil {
@@ -318,4 +344,74 @@ func (c *KymaConnector) GetSecureClient() (*http.Client, error) {
 
 	return &http.Client{Transport: transport}, nil
 
+}
+
+func (c *KymaConnector) RenewCertificateSigningRequest() error {
+
+	type csrStruct struct {
+		Csr string `json:"csr"`
+	}
+
+	encodedCsr := base64.StdEncoding.EncodeToString([]byte(c.Ca.Csr))
+
+	requestBody := csrStruct{
+		Csr: encodedCsr,
+	}
+
+	jsonBytes, err := json.Marshal(requestBody)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	resp, err := c.SecureClient.Post(c.CsrInfo.API.CertificatesUrl, "application/json", bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusCreated {
+		log.Printf("Successfully renewed certificate")
+	} else {
+		log.Printf("error in renewing csr")
+		return errors.New("Failed to renew")
+	}
+
+	certificates, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+	crtResponse := types.CRTResponse{}
+	err = json.Unmarshal(certificates, &crtResponse)
+	if err != nil {
+		return fmt.Errorf("JSON Error")
+	}
+	decodedCert, err := base64.StdEncoding.DecodeString(crtResponse.ClientCRT)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	c.Ca.PublicKey = string(decodedCert)
+	return err
+
+}
+
+func (c *KymaConnector) RevokeCertificate() error {
+	resp, err := c.SecureClient.Post(c.CsrInfo.API.CertificatesUrl+"/revocations", "application/json", nil)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusCreated {
+		log.Print("Successfully revoked certificate for client")
+	} else {
+		log.Print("Error in trying to revoke certificate")
+		return errors.New("error in trying to revoke certificate")
+	}
+	return err
 }
