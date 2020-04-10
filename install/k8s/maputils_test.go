@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"github.com/stretchr/testify/assert"
-	"reflect"
 	"testing"
 )
 
@@ -52,6 +51,6 @@ func TestMergeMaps(t *testing.T) {
 		actual := MergeMaps(newMap, oldMap)
 
 		//then
-		assert.True(t, reflect.DeepEqual(expectedMap, actual))
+		assert.Equal(t, expectedMap, actual)
 	})
 }

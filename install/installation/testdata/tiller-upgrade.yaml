@@ -116,6 +116,14 @@ spec:
   type: ClusterIP
 ---
 apiVersion: v1
+kind: Service
+metadata:
+  name: tiller-upgrade-check
+  namespace: kube-system
+spec:
+  type: ClusterIP
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: tiller-certs-sa

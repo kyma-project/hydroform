@@ -125,31 +125,8 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 			assertConfiguration(t, k8sClientSet, componentConfig.Configuration, componentConfig.Component, componentConfig.Component)
 		}
 
-		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "tiller", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, clusterRoleBindingGVR, "tiller-cluster-admin", "")
-		assertDynamicResource(t, dynamicClient, deploymentGVR, "tiller-deploy", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, serviceGVR, "tiller-deploy", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "tiller-certs-sa", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, roleBindingGVR, "tiller-certs", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, roleGVR, "tiller-certs-installer", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, jobGVR, "tiller-certs-job", kubeSystemNamespace)
-
-		assertDynamicResource(t, dynamicClient, namespaceGVR, "kyma-installer", "")
-		assertDynamicResource(t, dynamicClient, limitRangeGVR, "kyma-default", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, crdGVR, "installations.installer.kyma-project.io", "")
-		assertDynamicResource(t, dynamicClient, crdGVR, "releases.release.kyma-project.io", "")
-		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "helm-certs-job-sa", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, roleBindingGVR, "helm-certs-rolebinding", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, roleBindingGVR, "helm-certs-rolebinding", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, roleGVR, "helm-certs-getter", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, roleGVR, "helm-certs-setter", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, clusterRoleV1GVR, "all-psp", "")
-		assertDynamicResource(t, dynamicClient, clusterRoleBindingV1GVR, "all-psp", "")
-		assertDynamicResource(t, dynamicClient, jobGVR, "helm-certs-job", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "kyma-installer", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, deploymentGVR, "kyma-installer", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, clusterRoleGVR, "kyma-installer-reader", "")
-		assertDynamicResource(t, dynamicClient, clusterRoleBindingGVR, "kyma-installer", "")
+		assertTillerResources(t, dynamicClient)
+		assertInstallerResources(t, dynamicClient)
 	})
 
 	t.Run("should return error", func(t *testing.T) {
@@ -342,31 +319,12 @@ func TestKymaInstaller_PrepareUpgrade(t *testing.T) {
 		//then
 		require.NoError(t, err)
 
-		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "tiller", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, clusterRoleBindingGVR, "tiller-cluster-admin", "")
-		assertDynamicResource(t, dynamicClient, deploymentGVR, "tiller-deploy", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, serviceGVR, "tiller-deploy", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "tiller-certs-sa", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, roleBindingGVR, "tiller-certs", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, roleGVR, "tiller-certs-installer", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, jobGVR, "tiller-certs-job", kubeSystemNamespace)
+		assertTillerResources(t, dynamicClient)
+		assertInstallerResources(t, dynamicClient)
 
-		assertDynamicResource(t, dynamicClient, namespaceGVR, "kyma-installer", "")
-		assertDynamicResource(t, dynamicClient, limitRangeGVR, "kyma-default", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, crdGVR, "installations.installer.kyma-project.io", "")
-		assertDynamicResource(t, dynamicClient, crdGVR, "releases.release.kyma-project.io", "")
-		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "helm-certs-job-sa", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, roleBindingGVR, "helm-certs-rolebinding", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, roleBindingGVR, "helm-certs-rolebinding", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, roleGVR, "helm-certs-getter", kubeSystemNamespace)
-		assertDynamicResource(t, dynamicClient, roleGVR, "helm-certs-setter", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, clusterRoleV1GVR, "all-psp", "")
-		assertDynamicResource(t, dynamicClient, clusterRoleBindingV1GVR, "all-psp", "")
-		assertDynamicResource(t, dynamicClient, jobGVR, "helm-certs-job", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, serviceAccountGVR, "kyma-installer", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, deploymentGVR, "kyma-installer", kymaInstallerNamespace)
-		assertDynamicResource(t, dynamicClient, clusterRoleGVR, "kyma-installer-reader", "")
-		assertDynamicResource(t, dynamicClient, clusterRoleBindingGVR, "kyma-installer", "")
+		assertDynamicResource(t, dynamicClient, serviceGVR, "tiller-upgrade-check", kubeSystemNamespace)
+		assertDynamicResource(t, dynamicClient, serviceGVR, "kyma-upgrade-check", kymaInstallerNamespace)
+
 	})
 
 	t.Run("should return error", func(t *testing.T) {
@@ -740,6 +698,36 @@ func assertConfiguration(t *testing.T, clientSet *fake.Clientset, configuration 
 			assert.Equal(t, config.Value, configMap.Data[config.Key])
 		}
 	}
+}
+
+func assertTillerResources(t *testing.T, dynamicClient *dynamicFake.FakeDynamicClient) {
+	assertDynamicResource(t, dynamicClient, serviceAccountGVR, "tiller", kubeSystemNamespace)
+	assertDynamicResource(t, dynamicClient, clusterRoleBindingGVR, "tiller-cluster-admin", "")
+	assertDynamicResource(t, dynamicClient, deploymentGVR, "tiller-deploy", kubeSystemNamespace)
+	assertDynamicResource(t, dynamicClient, serviceGVR, "tiller-deploy", kubeSystemNamespace)
+	assertDynamicResource(t, dynamicClient, serviceAccountGVR, "tiller-certs-sa", kubeSystemNamespace)
+	assertDynamicResource(t, dynamicClient, roleBindingGVR, "tiller-certs", kubeSystemNamespace)
+	assertDynamicResource(t, dynamicClient, roleGVR, "tiller-certs-installer", kubeSystemNamespace)
+	assertDynamicResource(t, dynamicClient, jobGVR, "tiller-certs-job", kubeSystemNamespace)
+}
+
+func assertInstallerResources(t *testing.T, dynamicClient *dynamicFake.FakeDynamicClient) {
+	assertDynamicResource(t, dynamicClient, namespaceGVR, "kyma-installer", "")
+	assertDynamicResource(t, dynamicClient, limitRangeGVR, "kyma-default", kymaInstallerNamespace)
+	assertDynamicResource(t, dynamicClient, crdGVR, "installations.installer.kyma-project.io", "")
+	assertDynamicResource(t, dynamicClient, crdGVR, "releases.release.kyma-project.io", "")
+	assertDynamicResource(t, dynamicClient, serviceAccountGVR, "helm-certs-job-sa", kymaInstallerNamespace)
+	assertDynamicResource(t, dynamicClient, roleBindingGVR, "helm-certs-rolebinding", kubeSystemNamespace)
+	assertDynamicResource(t, dynamicClient, roleBindingGVR, "helm-certs-rolebinding", kymaInstallerNamespace)
+	assertDynamicResource(t, dynamicClient, roleGVR, "helm-certs-getter", kubeSystemNamespace)
+	assertDynamicResource(t, dynamicClient, roleGVR, "helm-certs-setter", kymaInstallerNamespace)
+	assertDynamicResource(t, dynamicClient, clusterRoleV1GVR, "all-psp", "")
+	assertDynamicResource(t, dynamicClient, clusterRoleBindingV1GVR, "all-psp", "")
+	assertDynamicResource(t, dynamicClient, jobGVR, "helm-certs-job", kymaInstallerNamespace)
+	assertDynamicResource(t, dynamicClient, serviceAccountGVR, "kyma-installer", kymaInstallerNamespace)
+	assertDynamicResource(t, dynamicClient, deploymentGVR, "kyma-installer", kymaInstallerNamespace)
+	assertDynamicResource(t, dynamicClient, clusterRoleGVR, "kyma-installer-reader", "")
+	assertDynamicResource(t, dynamicClient, clusterRoleBindingGVR, "kyma-installer", "")
 }
 
 func assertDynamicResource(t *testing.T, dynamicClient *dynamicFake.FakeDynamicClient, gvr schema.GroupVersionResource, name, namespace string) {

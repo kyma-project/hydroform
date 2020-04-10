@@ -136,6 +136,14 @@ roleRef:
   name: all-psp
   apiGroup: rbac.authorization.k8s.io
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyma-upgrade-check
+  namespace: kyma-installer
+spec:
+  type: ClusterIP
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
