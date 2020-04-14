@@ -16,6 +16,9 @@ var (
 	tillerYamlContent    string
 	installerYamlContent string
 
+	upgradeTillerYamlContent    string
+	upgradeInstallerYamlContent string
+
 	resourcesSchema *runtime.Scheme
 
 	decoder runtime.Decoder
@@ -29,6 +32,14 @@ func TestMain(m *testing.M) {
 	installerYamlBytes, err := ioutil.ReadFile("testdata/kyma-installer.yaml")
 	logAndExitOnError(err)
 	installerYamlContent = string(installerYamlBytes)
+
+	tillerUpgradeYamlBytes, err := ioutil.ReadFile("testdata/tiller-upgrade.yaml")
+	logAndExitOnError(err)
+	upgradeTillerYamlContent = string(tillerUpgradeYamlBytes)
+
+	installerUpgradeYamlBytes, err := ioutil.ReadFile("testdata/kyma-installer-upgrade.yaml")
+	logAndExitOnError(err)
+	upgradeInstallerYamlContent = string(installerUpgradeYamlBytes)
 
 	resourcesSchema, err = scheme.DefaultScheme()
 	logAndExitOnError(err)
