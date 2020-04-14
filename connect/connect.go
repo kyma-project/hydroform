@@ -192,7 +192,6 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 	}
 
 	url := c.CsrInfo.API.MetadataUrl + "/" + id
-	log.Println(string(jsonBytes[:]))
 	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(jsonBytes))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -205,7 +204,7 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		log.Printf("Successfully registered service with")
+		log.Printf("Successfully registered service")
 	} else {
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)
 		bodyString := string(bodyBytes)
