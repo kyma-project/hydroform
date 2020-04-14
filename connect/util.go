@@ -19,11 +19,7 @@ import (
 	"strings"
 )
 
-type writerInterface interface {
-	writeToFile(string, []byte) error
-}
-
-func (c *KymaConnector) getCsrInfo(configurationUrl string) error {
+func (c *KymaConnector) GetCsrInfo(configurationUrl string) error {
 	url, _ := url.Parse(configurationUrl)
 
 	resp, err := http.Get(url.String())
@@ -52,7 +48,7 @@ func (c *KymaConnector) getCsrInfo(configurationUrl string) error {
 	}
 
 	c.CsrInfo = &csrInfo
-	err = c.writeToFile("config.json", response)
+	err = c.StorageInterface.WriteData("config.json", response)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -60,7 +56,44 @@ func (c *KymaConnector) getCsrInfo(configurationUrl string) error {
 	return err
 }
 
-func (c *KymaConnector) getCertSigningRequest() error {
+func (c *KymaConnector) PopulateInfo() error {
+
+	resp, err := c.SecureClient.Get(c.CsrInfo.API.InfoUrl)
+
+	if err != nil {
+		return fmt.Errorf("error trying to get info : '%s'", err.Error())
+	}
+	if resp == nil {
+		return fmt.Errorf("did not recieve a response from info URL")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("recieved non OK status code from info URL")
+	}
+
+	//unmarshal response json and store in csrInfo
+	response, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error trying to parse JSON : '%s'", err.Error())
+	}
+
+	info := types.Info{}
+	err = json.Unmarshal(response, &info)
+	if err != nil {
+		return fmt.Errorf("error trying to get CSR Information : '%s'", err.Error())
+	}
+
+	c.Info = &info
+
+	err = c.StorageInterface.WriteData("info.json", response)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	return err
+}
+
+func (c *KymaConnector) GetCertSigningRequest() error {
 	keys, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return fmt.Errorf(err.Error())
@@ -88,8 +121,6 @@ func (c *KymaConnector) getCertSigningRequest() error {
 		}
 	}
 
-	c.AppName = appName
-
 	pkixName := pkix.Name{
 		Organization:       []string{org},
 		OrganizationalUnit: []string{orgUnit},
@@ -97,13 +128,13 @@ func (c *KymaConnector) getCertSigningRequest() error {
 		StreetAddress:      []string{street},
 		Country:            []string{country},
 		CommonName:         appName,
-		Province:           []string{"Waldorf"}, // KAVYA - gives error if empty string provided / string not provided, should be returned in subject field ideally with other data?
+		Province:           []string{"Waldorf"},
 	}
 
 	// create CSR
 	var csrTemplate = x509.CertificateRequest{
 		Subject:            pkixName,
-		SignatureAlgorithm: x509.SHA256WithRSA, // KAVYA - add extensions
+		SignatureAlgorithm: x509.SHA256WithRSA,
 	}
 
 	csrCertificate, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, keys)
@@ -127,7 +158,7 @@ func (c *KymaConnector) getCertSigningRequest() error {
 	return err
 }
 
-func (c *KymaConnector) getClientCert() error {
+func (c *KymaConnector) GetClientCert() error {
 
 	// encode CSR to base64
 	encodedCsr := base64.StdEncoding.EncodeToString([]byte(c.Ca.Csr))
@@ -176,23 +207,23 @@ func (c *KymaConnector) getClientCert() error {
 	return err
 }
 
-func (c *KymaConnector) writeClientCertificateToFile(w writerInterface) error {
+func (c *KymaConnector) WriteClientCertificateToFile() error {
 	if c.Ca.Csr != "" {
-		err := w.writeToFile("generated.csr", []byte(c.Ca.Csr))
+		err := c.StorageInterface.WriteData("generated.csr", []byte(c.Ca.Csr))
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
 	}
 
 	if c.Ca.PublicKey != "" {
-		err := w.writeToFile("generated.crt", []byte(c.Ca.PublicKey))
+		err := c.StorageInterface.WriteData("generated.crt", []byte(c.Ca.PublicKey))
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
 	}
 
 	if c.Ca.PrivateKey != "" {
-		err := w.writeToFile("generated.key", []byte(c.Ca.PrivateKey))
+		err := c.StorageInterface.WriteData("generated.key", []byte(c.Ca.PrivateKey))
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
@@ -200,14 +231,10 @@ func (c *KymaConnector) writeClientCertificateToFile(w writerInterface) error {
 	return nil
 }
 
-func (c *KymaConnector) readService(path string, s *Service) error {
-	_, err := os.Stat(path)
-	if err != nil {
-		log.Println("No service config available")
-		return err
-	}
+func (c *KymaConnector) ReadService(path string, s *Service) error {
+	path = path + ".json"
 
-	b, err := ioutil.ReadFile(path)
+	b, err := c.StorageInterface.ReadData(path)
 	if err != nil {
 		log.Println("Failed to read file")
 		return err
@@ -222,18 +249,14 @@ func (c *KymaConnector) readService(path string, s *Service) error {
 	return nil
 }
 
-func (c *KymaConnector) getRawJsonFromDoc(doc string) (m json.RawMessage, err error) {
-	bytes, err := ioutil.ReadFile(doc)
+func (c *KymaConnector) GetRawJsonFromDoc(doc string) (m json.RawMessage, err error) {
+	bytes, err := c.StorageInterface.ReadData(doc)
 	if err != nil {
-		log.Println("Read error on API Docs")
-		return
+		log.Println("Read error")
+		return nil, fmt.Errorf(err.Error())
 	}
 	m = json.RawMessage(string(bytes[:]))
 	return
-}
-
-func (c *KymaConnector) writeToFile(fileName string, data []byte) error {
-	return ioutil.WriteFile(fileName, data, 0644)
 }
 
 func (c *KymaConnector) populateClient() (err error) {
@@ -241,57 +264,41 @@ func (c *KymaConnector) populateClient() (err error) {
 	return err
 }
 
-func (c *KymaConnector) populateAppName() {
-	parts := strings.Split(c.CsrInfo.Certificate.Subject, ",")
-	for i := range parts {
-		subjectTitle := strings.Split(parts[i], "=")
-		switch subjectTitle[0] {
-		case "CN":
-			c.AppName = subjectTitle[1]
-		}
-	}
-}
 func (c *KymaConnector) loadConfig() error {
-
-	_, err := os.Stat("config.json")
-	if err == nil {
-		config, err := ioutil.ReadFile("config.json")
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-
-		csrInfo := &types.CSRInfo{}
-		json.Unmarshal(config, csrInfo)
-		c.CsrInfo = csrInfo
+	config, err := c.StorageInterface.ReadData("config.json")
+	if err != nil {
+		return fmt.Errorf(err.Error())
 	}
+	csrInfo := &types.CSRInfo{}
+	json.Unmarshal(config, csrInfo)
+	c.CsrInfo = csrInfo
 
-	_, err = os.Stat("generated.csr")
-	if err == nil {
-		csr, err := ioutil.ReadFile("generated.csr")
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-		c.Ca.Csr = string(csr[:])
+	_, err = os.Stat("info.json")
+	info, err := c.StorageInterface.ReadData("info.json")
+	if err != nil {
+		return fmt.Errorf(err.Error())
 	}
+	infoObj := &types.Info{}
+	json.Unmarshal(info, infoObj)
+	c.Info = infoObj
 
-	_, err = os.Stat("generated.crt")
-	if err == nil {
-		crt, err := ioutil.ReadFile("generated.crt")
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-		c.Ca.PublicKey = string(crt[:])
+	csr, err := c.StorageInterface.ReadData("generated.csr")
+	if err != nil {
+		return fmt.Errorf(err.Error())
 	}
+	c.Ca.Csr = string(csr[:])
 
-	_, err = os.Stat("generated.key")
-	if err == nil {
-		key, err := ioutil.ReadFile("generated.key")
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-		c.Ca.PrivateKey = string(key[:])
+	crt, err := c.StorageInterface.ReadData("generated.crt")
+	if err != nil {
+		return fmt.Errorf(err.Error())
 	}
+	c.Ca.PublicKey = string(crt[:])
 
-	c.populateAppName()
+	key, err := c.StorageInterface.ReadData("generated.key")
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+	c.Ca.PrivateKey = string(key[:])
+
 	return err
 }

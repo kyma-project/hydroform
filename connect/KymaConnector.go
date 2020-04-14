@@ -7,10 +7,16 @@ import (
 )
 
 type KymaConnector struct {
-	CsrInfo      *types.CSRInfo
-	AppName      string
-	Ca           *types.ClientCertificate
-	SecureClient *http.Client
+	CsrInfo          *types.CSRInfo
+	Ca               *types.ClientCertificate
+	Info             *types.Info
+	SecureClient     *http.Client
+	StorageInterface WriterInterface
+}
+
+type WriterInterface interface {
+	WriteData(string, []byte) error
+	ReadData(string) ([]byte, error)
 }
 
 // Service kyma service struct

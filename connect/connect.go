@@ -13,41 +13,36 @@ import (
 	"net/http"
 )
 
-type KymaInterface interface {
-	getCsrInfo(string) error
-	getCertSigningRequest() error
-	getClientCert() error
-	populateClient() error
-	writeClientCertificateToFile(writerInterface) error
-	writeToFile(string, []byte) error
-	getRawJsonFromDoc(string) (json.RawMessage, error)
-	readService(string, *Service) error
-}
-
 func (c *KymaConnector) Connect(configurationUrl string) error {
 
-	err := c.getCsrInfo(configurationUrl)
+	err := c.GetCsrInfo(configurationUrl)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
-	err = c.getCertSigningRequest()
+	err = c.GetCertSigningRequest()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
-	err = c.getClientCert()
+	err = c.GetClientCert()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
-	//err = c.populateClient()
+	if c.SecureClient == nil {
+		err = c.populateClient()
+		if err != nil {
+			return fmt.Errorf(err.Error())
+		}
+	}
 
-	/*	if err != nil {
+	err = c.PopulateInfo()
+	if err != nil {
 		return fmt.Errorf(err.Error())
-	}*/
+	}
 
-	err = c.writeClientCertificateToFile(c)
+	err = c.WriteClientCertificateToFile()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -59,20 +54,20 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	serviceDescription := new(Service)
 
 	serviceDescription.Documentation = new(ServiceDocumentation)
-	serviceDescription.Documentation.DisplayName = "Kavya's Service"
-	serviceDescription.Documentation.Description = "Kavya's decsription"
+	serviceDescription.Documentation.DisplayName = "Kyma Service"
+	serviceDescription.Documentation.Description = "Default description"
 	serviceDescription.Documentation.Tags = []string{"Tag0", "Tag1"}
-	serviceDescription.Documentation.Type = "Kavya's Type"
+	serviceDescription.Documentation.Type = "Service Type"
 
-	serviceDescription.Description = "Kavya's API Description"
-	serviceDescription.ShortDescription = "Kavya's API Short Description"
+	serviceDescription.Description = "Default API Description"
+	serviceDescription.ShortDescription = "Default API Short Description"
 
-	serviceDescription.Provider = "Kavya provider"
-	serviceDescription.Name = "Kavya name"
+	serviceDescription.Provider = "Default provider"
+	serviceDescription.Name = "Default service name"
 
 	if serviceConfig != "" {
 		log.Println("Read Service Config")
-		err := c.readService(serviceConfig, serviceDescription)
+		err := c.ReadService(serviceConfig, serviceDescription)
 		if err != nil {
 			log.Printf("Failed to read service config: %s", serviceConfig)
 			return err
@@ -86,7 +81,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 			serviceDescription.API.TargetURL = "http://localhost:8080/"
 		}
 
-		serviceDescription.API.Spec, err = c.getRawJsonFromDoc(apiDocs)
+		serviceDescription.API.Spec, err = c.GetRawJsonFromDoc(apiDocs)
 		if err != nil {
 			return err
 		}
@@ -94,7 +89,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 
 	if eventDocs != "" {
 		serviceDescription.Events = new(ServiceEvent)
-		serviceDescription.Events.Spec, err = c.getRawJsonFromDoc(eventDocs)
+		serviceDescription.Events.Spec, err = c.GetRawJsonFromDoc(eventDocs)
 		if err != nil {
 			return err
 		}
@@ -137,7 +132,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	}
 
 	id := &struct {
-		ID string `json: "id"`
+		Id string `json: "id"`
 	}{}
 
 	err = json.Unmarshal(bodyBytes, id)
@@ -147,15 +142,15 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	}
 
 	log.Printf("%v", id)
-	serviceDescription.id = id.ID
+	serviceDescription.id = id.Id
 	serviceDescriptionString, err := json.Marshal(serviceDescription)
-	c.writeToFile(id.ID+".json", serviceDescriptionString)
+	c.StorageInterface.WriteData(id.Id+".json", serviceDescriptionString)
 	return err
 }
 
 func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs string) error {
 	serviceDescription := new(Service)
-	err := c.readService(id+".json", serviceDescription)
+	err := c.ReadService(id, serviceDescription)
 	if err != nil {
 		log.Printf("Failed to read service config: %s", id+".json")
 		return err
@@ -167,7 +162,7 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 			serviceDescription.API.TargetURL = "http://localhost:8080/"
 		}
 
-		serviceDescription.API.Spec, err = c.getRawJsonFromDoc(apiDocs)
+		serviceDescription.API.Spec, err = c.GetRawJsonFromDoc(apiDocs)
 		if err != nil {
 			return err
 		}
@@ -178,7 +173,7 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 
 		serviceDescription.Events = new(ServiceEvent)
 
-		serviceDescription.Events.Spec, err = c.getRawJsonFromDoc(eventDocs)
+		serviceDescription.Events.Spec, err = c.GetRawJsonFromDoc(eventDocs)
 		if err != nil {
 			return err
 		}
@@ -273,7 +268,7 @@ func (c *KymaConnector) AddEvent(event types.Event) error {
 	return err
 }
 
-func (c *KymaConnector) GetSubscribedEvents() ([]types.Event, error) {
+func (c *KymaConnector) GetSubscribedEvents() ([]types.EventResponse, error) {
 
 	resp, err := c.SecureClient.Get(c.CsrInfo.API.EventsInfoUrl)
 
@@ -288,44 +283,26 @@ func (c *KymaConnector) GetSubscribedEvents() ([]types.Event, error) {
 		return nil, fmt.Errorf(err.Error())
 	}
 
-	var eventsArr []types.Event
-	err = json.Unmarshal(response, &eventsArr)
-	if err != nil {
-		log.Println("Failed to parse registration response")
-		return nil, err
+	type eventsInfoStruct struct {
+		EventsInfo []types.EventResponse `json:"eventsInfo"`
 	}
-	log.Print(string(response))
-	return eventsArr, err
+
+	eventsInfoObj := eventsInfoStruct{}
+	err = json.Unmarshal(response, &eventsInfoObj)
+	return eventsInfoObj.EventsInfo, err
 }
 
-func GetBlankKymaConnector() *KymaConnector {
+func GetKymaConnector(writerInterface WriterInterface) *KymaConnector {
 	c := &KymaConnector{
-		CsrInfo:      &types.CSRInfo{},
-		AppName:      "",
-		Ca:           &types.ClientCertificate{},
-		SecureClient: nil,
+		CsrInfo:          &types.CSRInfo{},
+		Ca:               &types.ClientCertificate{},
+		Info:             &types.Info{},
+		StorageInterface: writerInterface,
 	}
 
 	c.loadConfig()
-
 	c.populateClient()
-	// are we supposed to load config here -- maybe certificates need to be populated from file??
 	return c
-}
-
-func GetKymaConnector(kymaInterface KymaInterface) *KymaConnector {
-	//c  := kymaInterface.(*KymaConnector)
-	switch kymaInterface.(type) {
-	case *KymaConnector:
-		c := kymaInterface.(*KymaConnector)
-		c.CsrInfo = &types.CSRInfo{}
-		c.AppName = ""
-		c.Ca = &types.ClientCertificate{}
-		return c
-		/*case *MockConnect :
-		return kymaInterface.(*MockConnect)*/
-	}
-	return nil
 }
 
 func (c *KymaConnector) GetSecureClient() (*http.Client, error) {
@@ -363,7 +340,7 @@ func (c *KymaConnector) RenewCertificateSigningRequest() error {
 		return fmt.Errorf(err.Error())
 	}
 
-	resp, err := c.SecureClient.Post(c.CsrInfo.API.CertificatesUrl, "application/json", bytes.NewBuffer(jsonBytes))
+	resp, err := c.SecureClient.Post(c.Info.URLs.RenewCertUrl, "application/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -390,17 +367,16 @@ func (c *KymaConnector) RenewCertificateSigningRequest() error {
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
-	if err != nil {
-		return fmt.Errorf(err.Error())
-	}
 
 	c.Ca.PublicKey = string(decodedCert)
-	return err
 
+	c.WriteClientCertificateToFile()
+
+	return err
 }
 
 func (c *KymaConnector) RevokeCertificate() error {
-	resp, err := c.SecureClient.Post(c.CsrInfo.API.CertificatesUrl+"/revocations", "application/json", nil)
+	resp, err := c.SecureClient.Post(c.Info.URLs.RevokeCertUrl, "application/json", nil)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}

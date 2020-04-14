@@ -8,14 +8,15 @@ import (
 	"testing"
 )
 
-func TestKymaConnector_getCsrInfo(t *testing.T) {
-
-	getCsrInfoServer := getCsrInfoServer(t, "test.com/csrurl")
+func TestKymaConnector_GetCsrInfo(t *testing.T) {
+	mockWriter := &MockWriter{}
+	getCsrInfoServer := getCsrInfoServer(t, "test.com/csrurl", "test.com/infourl")
 	type fields struct {
-		CsrInfo      *types.CSRInfo
-		AppName      string
-		Ca           *types.ClientCertificate
-		SecureClient *http.Client
+		CsrInfo          *types.CSRInfo
+		AppName          string
+		Ca               *types.ClientCertificate
+		SecureClient     *http.Client
+		StorageInterface WriterInterface
 	}
 	type args struct {
 		configurationUrl string
@@ -37,7 +38,8 @@ func TestKymaConnector_getCsrInfo(t *testing.T) {
 					PublicKey:  "",
 					Csr:        "",
 				},
-				SecureClient: nil,
+				SecureClient:     nil,
+				StorageInterface: mockWriter,
 			},
 			args: args{configurationUrl: getCsrInfoServer.URL},
 			want: &types.CSRInfo{
@@ -65,9 +67,10 @@ func TestKymaConnector_getCsrInfo(t *testing.T) {
 					API:         nil,
 					Certificate: nil,
 				},
-				AppName:      "",
-				Ca:           nil,
-				SecureClient: nil,
+				AppName:          "",
+				Ca:               nil,
+				SecureClient:     nil,
+				StorageInterface: mockWriter,
 			},
 			args: args{configurationUrl: "incorrectConfigurationUrl"},
 			want: &types.CSRInfo{
@@ -85,9 +88,10 @@ func TestKymaConnector_getCsrInfo(t *testing.T) {
 					API:         nil,
 					Certificate: nil,
 				},
-				AppName:      "",
-				Ca:           nil,
-				SecureClient: nil,
+				AppName:          "",
+				Ca:               nil,
+				SecureClient:     nil,
+				StorageInterface: mockWriter,
 			},
 			args: args{configurationUrl: ""},
 			want: &types.CSRInfo{
@@ -101,13 +105,13 @@ func TestKymaConnector_getCsrInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &KymaConnector{
-				CsrInfo:      tt.fields.CsrInfo,
-				AppName:      tt.fields.AppName,
-				Ca:           tt.fields.Ca,
-				SecureClient: tt.fields.SecureClient,
+				CsrInfo:          tt.fields.CsrInfo,
+				Ca:               tt.fields.Ca,
+				SecureClient:     tt.fields.SecureClient,
+				StorageInterface: tt.fields.StorageInterface,
 			}
 
-			err := c.getCsrInfo(tt.args.configurationUrl)
+			err := c.GetCsrInfo(tt.args.configurationUrl)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getCsrInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -120,7 +124,7 @@ func TestKymaConnector_getCsrInfo(t *testing.T) {
 	}
 }
 
-func TestKymaConnector_getCertSigningRequest(t *testing.T) {
+func TestKymaConnector_GetCertSigningRequest(t *testing.T) {
 	type fields struct {
 		CsrInfo      *types.CSRInfo
 		AppName      string
@@ -165,11 +169,10 @@ func TestKymaConnector_getCertSigningRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &KymaConnector{
 				CsrInfo:      tt.fields.CsrInfo,
-				AppName:      tt.fields.AppName,
 				Ca:           tt.fields.Ca,
 				SecureClient: tt.fields.SecureClient,
 			}
-			if err := c.getCertSigningRequest(); (err != nil) != tt.wantErr {
+			if err := c.GetCertSigningRequest(); (err != nil) != tt.wantErr {
 				t.Errorf("getCertSigningRequest() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !strings.HasPrefix(c.Ca.Csr, "-----BEGIN CERTIFICATE REQUEST-----") {
@@ -182,12 +185,15 @@ func TestKymaConnector_getCertSigningRequest(t *testing.T) {
 	}
 }
 
-func TestKymaConnector_getClientCert(t *testing.T) {
+func TestKymaConnector_GetClientCert(t *testing.T) {
 
 	sendCsrToKymaServer := sendCsrToKymaServer(t)
 	defer sendCsrToKymaServer.Close()
 
-	getCsrInfoServer := getCsrInfoServer(t, sendCsrToKymaServer.URL)
+	getInfoServer := getInfoServer(t)
+	defer getInfoServer.Close()
+
+	getCsrInfoServer := getCsrInfoServer(t, sendCsrToKymaServer.URL, getInfoServer.URL)
 	defer getCsrInfoServer.Close()
 
 	type fields struct {
@@ -260,11 +266,10 @@ func TestKymaConnector_getClientCert(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &KymaConnector{
 				CsrInfo:      tt.fields.CsrInfo,
-				AppName:      tt.fields.AppName,
 				Ca:           tt.fields.Ca,
 				SecureClient: tt.fields.SecureClient,
 			}
-			if err := c.getClientCert(); (err != nil) != tt.wantErr {
+			if err := c.GetClientCert(); (err != nil) != tt.wantErr {
 				t.Errorf("getClientCert() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
@@ -275,11 +280,59 @@ func TestKymaConnector_getClientCert(t *testing.T) {
 	}
 }
 
+/*
 func TestWriteClientCertificateToFile(t *testing.T) {
 
-	c := GetBlankKymaConnector()
-	err := c.writeClientCertificateToFile(c)
+	mockWriter := &MockWriter{}
+	c := GetKymaConnector(mockWriter)
+	err := c.WriteClientCertificateToFile()
 	if err != nil {
 		t.Errorf("Error in connect")
+	}
+}
+*/
+func TestKymaConnector_WriteClientCertificateToFile(t *testing.T) {
+	mockWriter := &MockWriter{}
+	type fields struct {
+		CsrInfo          *types.CSRInfo
+		Ca               *types.ClientCertificate
+		Info             *types.Info
+		SecureClient     *http.Client
+		StorageInterface WriterInterface
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			name: "correct",
+			fields: fields{
+				CsrInfo: &types.CSRInfo{},
+				Ca: &types.ClientCertificate{
+					PrivateKey: "testPrivKey",
+					PublicKey:  "testPubKey",
+					Csr:        "testCsr",
+				},
+				Info:             &types.Info{},
+				SecureClient:     nil,
+				StorageInterface: mockWriter,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &KymaConnector{
+				CsrInfo:          tt.fields.CsrInfo,
+				Ca:               tt.fields.Ca,
+				Info:             tt.fields.Info,
+				SecureClient:     tt.fields.SecureClient,
+				StorageInterface: tt.fields.StorageInterface,
+			}
+			if err := c.WriteClientCertificateToFile(); (err != nil) != tt.wantErr {
+				t.Errorf("WriteClientCertificateToFile() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }

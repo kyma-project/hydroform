@@ -1,33 +1,37 @@
 package main
 
 import (
+	"fmt"
 	"github.com/kyma-incubator/hydroform/connect"
+	"io/ioutil"
 	"log"
+	"os"
 )
 
 func main() {
 
-	c := connect.GetBlankKymaConnector()
-
-	c.RenewCertificateSigningRequest()
-
-	c.RevokeCertificate()
-
-	/*configUrl := "https://connector-service.kyma.kum1oij6gw.i317204kym.shoot.canary.k8s-hana.ondemand.com/v1/applications/signingRequests/info?token=r_rFrXgzgQfPSoVETTsxXaPo7sYgVPlmVB3tOlvee0KoVq6HFEQE4_5_jzfIc9EOlHl1n4EMAmO49cvBzmQJFA=="
+	storeObj := store{}
+	c := connect.GetKymaConnector(storeObj)
+	configUrl := "https://connector-service.kyma.cuzqfh0pmp.i317204kym.shoot.canary.k8s-hana.ondemand.com/v1/applications/signingRequests/info?token=VdHUBHKNk-Bjlc3CWhC0PsjVEmYStLx9lxL57NxRHsvHdq8p4EOskWyC58kJU0FWQnDvkRapUY5ZqssWv33Otg=="
 
 	err := c.Connect(configUrl)
+
 	if err != nil {
-		log.Println(err.Error())
+		log.Print(err.Error())
 		return
 	}
-	*/
-	//c.RegisterService("api-docs.json", "event-docs.json", "")
-	//err = c.UpdateService("ff54f2d0-99b2-414a-ba50-dc025e2a9d5f", "api-docs.json", "event-docs.json")
-	/*
-		if err != nil {
-			log.Println(err.Error())
-			return
-		}*/
+}
 
-	log.Println("Success.")
+type store struct{}
+
+func (s store) ReadData(filename string) ([]byte, error) {
+	_, err := os.Stat(filename)
+	if err != nil {
+		return nil, fmt.Errorf(err.Error())
+	}
+	return ioutil.ReadFile(filename)
+}
+
+func (s store) WriteData(fileName string, data []byte) error {
+	return ioutil.WriteFile(fileName, data, 0644)
 }
