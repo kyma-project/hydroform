@@ -50,7 +50,7 @@ func (c *KymaConnector) Connect(configurationUrl string) error {
 	return err
 }
 
-func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, serviceConfig string) (serviceId string, err error) {
+func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, serviceConfigPath string) (serviceId string, err error) {
 	serviceDescription := new(Service)
 
 	serviceDescription.Documentation = new(ServiceDocumentation)
@@ -65,8 +65,17 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	serviceDescription.Provider = "Default provider"
 	serviceDescription.Name = "Default service name"
 
-	if serviceConfig != "" {
-		err := c.readService(serviceConfig, serviceDescription)
+	if serviceConfigPath != "" {
+		serviceBytes, err := c.getRawJsonFromDoc(serviceConfigPath)
+		if err != nil {
+			return "", fmt.Errorf(err.Error())
+		}
+
+		err = json.Unmarshal(serviceBytes, serviceDescription)
+		if err != nil {
+			return "", fmt.Errorf(err.Error())
+		}
+
 		if err != nil {
 			return "", fmt.Errorf(err.Error())
 		}
@@ -137,7 +146,12 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 
 func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs string) error {
 	serviceDescription := new(Service)
-	err := c.readService(id, serviceDescription)
+	serviceBytes, err := c.StorageInterface.ReadService(id)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	json.Unmarshal(serviceBytes, serviceDescription)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}

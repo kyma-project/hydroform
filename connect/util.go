@@ -48,7 +48,7 @@ func (c *KymaConnector) populateCsrInfo(configurationUrl string) error {
 	}
 
 	c.CsrInfo = &csrInfo
-	err = c.StorageInterface.WriteData("config.json", response)
+	err = c.StorageInterface.WriteConfig(response)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -85,7 +85,7 @@ func (c *KymaConnector) populateInfo() error {
 
 	c.Info = &info
 
-	err = c.StorageInterface.WriteData("info.json", response)
+	err = c.StorageInterface.WriteInfo(response)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -209,43 +209,25 @@ func (c *KymaConnector) populateClientCert() error {
 
 func (c *KymaConnector) persistCertificate() error {
 	if c.Ca.Csr != "" {
-		err := c.StorageInterface.WriteData("generated.csr", []byte(c.Ca.Csr))
+		err := c.StorageInterface.WriteCSR([]byte(c.Ca.Csr))
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
 	}
 
 	if c.Ca.PublicKey != "" {
-		err := c.StorageInterface.WriteData("generated.crt", []byte(c.Ca.PublicKey))
+		err := c.StorageInterface.WriteCert([]byte(c.Ca.PublicKey))
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
 	}
 
 	if c.Ca.PrivateKey != "" {
-		err := c.StorageInterface.WriteData("generated.key", []byte(c.Ca.PrivateKey))
+		err := c.StorageInterface.WritePrivateKey([]byte(c.Ca.PrivateKey))
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
 	}
-	return nil
-}
-
-func (c *KymaConnector) readService(path string, s *Service) error {
-	path = path + ".json"
-
-	b, err := c.StorageInterface.ReadData(path)
-	if err != nil {
-		log.Println("Failed to read file")
-		return err
-	}
-
-	err = json.Unmarshal(b, s)
-	if err != nil {
-		log.Println("Failed to parse json")
-		return err
-	}
-
 	return nil
 }
 
@@ -265,7 +247,7 @@ func (c *KymaConnector) populateClient() (err error) {
 }
 
 func (c *KymaConnector) loadConfig() error {
-	config, err := c.StorageInterface.ReadData("config.json")
+	config, err := c.StorageInterface.ReadConfig()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -274,7 +256,7 @@ func (c *KymaConnector) loadConfig() error {
 	c.CsrInfo = csrInfo
 
 	_, err = os.Stat("info.json")
-	info, err := c.StorageInterface.ReadData("info.json")
+	info, err := c.StorageInterface.ReadInfo()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -282,19 +264,19 @@ func (c *KymaConnector) loadConfig() error {
 	json.Unmarshal(info, infoObj)
 	c.Info = infoObj
 
-	csr, err := c.StorageInterface.ReadData("generated.csr")
+	csr, err := c.StorageInterface.ReadCSR()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 	c.Ca.Csr = string(csr[:])
 
-	crt, err := c.StorageInterface.ReadData("generated.crt")
+	crt, err := c.StorageInterface.ReadCert()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 	c.Ca.PublicKey = string(crt[:])
 
-	key, err := c.StorageInterface.ReadData("generated.key")
+	key, err := c.StorageInterface.ReadPrivateKey()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
