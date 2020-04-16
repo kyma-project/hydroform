@@ -3,6 +3,7 @@ package installation
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"strings"
 	"time"
 
@@ -56,6 +57,7 @@ const (
 
 type Installer interface {
 	PrepareInstallation(installation Installation) error
+	PrepareUpgrade(artifacts Installation) error
 	StartInstallation(context context.Context) (<-chan InstallationState, <-chan error, error)
 }
 
@@ -203,12 +205,12 @@ type KymaInstaller struct {
 func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 	k.infof("Preparing Kyma Installation...")
 
-	err := k.installTiller(artifacts.TillerYaml)
+	err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.CreateResources)
 	if err != nil {
 		return err
 	}
 
-	err = k.deployInstaller(artifacts.InstallerYaml)
+	err = k.deployInstallerForIstallation(artifacts.InstallerYaml)
 	if err != nil {
 		return err
 	}
@@ -219,6 +221,28 @@ func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 	}
 
 	k.infof("Ready to start installation.")
+	return nil
+}
+
+func (k KymaInstaller) PrepareUpgrade(artifacts Installation) error {
+	k.infof("Preparing Kyma Upgrade...")
+
+	err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.ApplyResources)
+	if err != nil {
+		return err
+	}
+
+	err = k.deployInstallerForUpgrade(artifacts.InstallerYaml)
+	if err != nil {
+		return err
+	}
+
+	err = k.applyConfiguration(artifacts.Configuration)
+	if err != nil {
+		return err
+	}
+
+	k.infof("Ready to start upgrade.")
 	return nil
 }
 
@@ -253,7 +277,7 @@ func checkContextNotCanceled(ctx context.Context) error {
 	}
 }
 
-func (k KymaInstaller) installTiller(tillerYaml string) error {
+func (k KymaInstaller) installTiller(tillerYaml string, createFunction func([]k8s.K8sObject) ([]*unstructured.Unstructured, error)) error {
 	k.infof("Preparing Tiller installation...")
 	k8sTillerObjects, err := k8s.ParseYamlToK8sObjects(k.decoder, tillerYaml)
 	if err != nil {
@@ -261,7 +285,7 @@ func (k KymaInstaller) installTiller(tillerYaml string) error {
 	}
 
 	k.infof("Deploying Tiller...")
-	err = k.k8sGenericClient.ApplyResources(k8sTillerObjects)
+	_, err = createFunction(k8sTillerObjects)
 	if err != nil {
 		return fmt.Errorf("failed to apply Tiller resources: %w", err)
 	}
@@ -277,7 +301,15 @@ func (k KymaInstaller) installTiller(tillerYaml string) error {
 	return nil
 }
 
-func (k KymaInstaller) deployInstaller(installerYaml string) error {
+func (k KymaInstaller) deployInstallerForIstallation(installerYaml string) error {
+	return k.deployInstaller(installerYaml, k.k8sGenericClient.CreateResources)
+}
+
+func (k KymaInstaller) deployInstallerForUpgrade(installerYaml string) error {
+	return k.deployInstaller(installerYaml, k.k8sGenericClient.ApplyResources)
+}
+
+func (k KymaInstaller) deployInstaller(installerYaml string, createResourcesFunc func(resources []k8s.K8sObject) ([]*unstructured.Unstructured, error)) error {
 	k.infof("Deploying Installer...")
 
 	k8sInstallerObjects, err := k8s.ParseYamlToK8sObjects(k.decoder, installerYaml)
@@ -296,7 +328,7 @@ func (k KymaInstaller) deployInstaller(installerYaml string) error {
 		delete(installationCR.Labels, installationActionLabel)
 	}
 
-	err = k.k8sGenericClient.ApplyResources(k8sInstallerObjects)
+	_, err = createResourcesFunc(k8sInstallerObjects)
 	if err != nil {
 		return fmt.Errorf("failed to apply Installer resources: %w", err)
 	}
@@ -337,7 +369,14 @@ func (k KymaInstaller) applyInstallationCR(installationCR *v1alpha1.Installation
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
 			k.infof("installation %s already exists, trying to update...", installationCR.Name)
-			_, err := k.installationClient.Update(installationCR)
+			get, err := k.installationClient.Get(installationCR.Name, metav1.GetOptions{})
+			if err != nil {
+				return fmt.Errorf("installation CR already exists, failed to get installation CR: %w", err)
+			}
+
+			installationCR.ResourceVersion = get.ResourceVersion
+
+			_, err = k.installationClient.Update(installationCR)
 			if err != nil {
 				return fmt.Errorf("installation CR already exists, failed to updated installation CR: %w", err)
 			}
