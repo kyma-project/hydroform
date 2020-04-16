@@ -175,7 +175,7 @@ func TestKymaConnector_RegisterService(t *testing.T) {
 				SecureClient:     tt.fields.SecureClient,
 				StorageInterface: tt.fields.StorageInterface,
 			}
-			if err := c.RegisterService(tt.args.apiDocs, tt.args.eventDocs, tt.args.serviceConfig); (err != nil) != tt.wantErr {
+			if _, err := c.RegisterService(tt.args.apiDocs, tt.args.eventDocs, tt.args.serviceConfig); (err != nil) != tt.wantErr {
 				t.Errorf("RegisterService() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

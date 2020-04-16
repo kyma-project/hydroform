@@ -19,7 +19,7 @@ import (
 	"strings"
 )
 
-func (c *KymaConnector) GetCsrInfo(configurationUrl string) error {
+func (c *KymaConnector) populateCsrInfo(configurationUrl string) error {
 	url, _ := url.Parse(configurationUrl)
 
 	resp, err := http.Get(url.String())
@@ -93,7 +93,7 @@ func (c *KymaConnector) PopulateInfo() error {
 	return err
 }
 
-func (c *KymaConnector) GetCertSigningRequest() error {
+func (c *KymaConnector) populateCertSigningRequest() error {
 	keys, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return fmt.Errorf(err.Error())
@@ -158,7 +158,7 @@ func (c *KymaConnector) GetCertSigningRequest() error {
 	return err
 }
 
-func (c *KymaConnector) GetClientCert() error {
+func (c *KymaConnector) populateClientCert() error {
 
 	// encode CSR to base64
 	encodedCsr := base64.StdEncoding.EncodeToString([]byte(c.Ca.Csr))
@@ -207,7 +207,7 @@ func (c *KymaConnector) GetClientCert() error {
 	return err
 }
 
-func (c *KymaConnector) WriteClientCertificateToFile() error {
+func (c *KymaConnector) persistCertificate() error {
 	if c.Ca.Csr != "" {
 		err := c.StorageInterface.WriteData("generated.csr", []byte(c.Ca.Csr))
 		if err != nil {

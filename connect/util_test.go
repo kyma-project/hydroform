@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestKymaConnector_GetCsrInfo(t *testing.T) {
+func TestKymaConnector_populateCsrInfo(t *testing.T) {
 	mockWriter := &MockWriter{}
 	getCsrInfoServer := getCsrInfoServer(t, "test.com/csrurl", "test.com/infourl")
 	type fields struct {
@@ -29,7 +29,7 @@ func TestKymaConnector_GetCsrInfo(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "testGetCsrInfo",
+			name: "testPopulateCsrInfo",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{},
 				AppName: "testClient",
@@ -60,7 +60,7 @@ func TestKymaConnector_GetCsrInfo(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "testGetCsrInfo_incorrectUrl",
+			name: "testPopulateCsrInfo_incorrectUrl",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{
 					CSRUrl:      "",
@@ -81,7 +81,7 @@ func TestKymaConnector_GetCsrInfo(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "testGetCsrInfo_blankUrl",
+			name: "testPopulateCsrInfo_blankUrl",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{
 					CSRUrl:      "",
@@ -111,20 +111,20 @@ func TestKymaConnector_GetCsrInfo(t *testing.T) {
 				StorageInterface: tt.fields.StorageInterface,
 			}
 
-			err := c.GetCsrInfo(tt.args.configurationUrl)
+			err := c.populateCsrInfo(tt.args.configurationUrl)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getCsrInfo() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("populateCsrInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
 			if c.CsrInfo != nil && !reflect.DeepEqual(c.CsrInfo, tt.want) {
-				t.Errorf("getCsrInfo() got = %v, want %v", c.CsrInfo, tt.want)
+				t.Errorf("populateCsrInfo() got = %v, want %v", c.CsrInfo, tt.want)
 			}
 		})
 	}
 }
 
-func TestKymaConnector_GetCertSigningRequest(t *testing.T) {
+func TestKymaConnector_populateCertSigningRequest(t *testing.T) {
 	type fields struct {
 		CsrInfo      *types.CSRInfo
 		AppName      string
@@ -137,7 +137,7 @@ func TestKymaConnector_GetCertSigningRequest(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "testGetCert",
+			name: "testPopulateCert",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{
 					CSRUrl: "test.com/csrurl",
@@ -172,20 +172,20 @@ func TestKymaConnector_GetCertSigningRequest(t *testing.T) {
 				Ca:           tt.fields.Ca,
 				SecureClient: tt.fields.SecureClient,
 			}
-			if err := c.GetCertSigningRequest(); (err != nil) != tt.wantErr {
-				t.Errorf("getCertSigningRequest() error = %v, wantErr %v", err, tt.wantErr)
+			if err := c.populateCertSigningRequest(); (err != nil) != tt.wantErr {
+				t.Errorf("populateCertSigningRequest() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !strings.HasPrefix(c.Ca.Csr, "-----BEGIN CERTIFICATE REQUEST-----") {
-				t.Errorf("getCertSigningRequest() Invalid CSR: %v", c.Ca.Csr)
+				t.Errorf("populateCertSigningRequest() Invalid CSR: %v", c.Ca.Csr)
 			}
 			if !strings.HasPrefix(c.Ca.PrivateKey, "-----BEGIN RSA PRIVATE KEY-----") {
-				t.Errorf("getCertSigningRequest() Invalid key: %v", c.Ca.PrivateKey)
+				t.Errorf("populateCertSigningRequest() Invalid key: %v", c.Ca.PrivateKey)
 			}
 		})
 	}
 }
 
-func TestKymaConnector_GetClientCert(t *testing.T) {
+func TestKymaConnector_populateClientCert(t *testing.T) {
 
 	sendCsrToKymaServer := sendCsrToKymaServer(t)
 	defer sendCsrToKymaServer.Close()
@@ -209,7 +209,7 @@ func TestKymaConnector_GetClientCert(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "testGetClientCert",
+			name: "testPopulateClientCert",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{
 					CSRUrl: sendCsrToKymaServer.URL,
@@ -269,18 +269,18 @@ func TestKymaConnector_GetClientCert(t *testing.T) {
 				Ca:           tt.fields.Ca,
 				SecureClient: tt.fields.SecureClient,
 			}
-			if err := c.GetClientCert(); (err != nil) != tt.wantErr {
-				t.Errorf("getClientCert() error = %v, wantErr %v", err, tt.wantErr)
+			if err := c.populateClientCert(); (err != nil) != tt.wantErr {
+				t.Errorf("populateClientCert() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if c.Ca.PublicKey != tt.want {
-				t.Errorf("getClientCert() got = %v, want = %v", c.Ca.PublicKey, tt.want)
+				t.Errorf("populateClientCert() got = %v, want = %v", c.Ca.PublicKey, tt.want)
 			}
 		})
 	}
 }
 
-func TestKymaConnector_WriteClientCertificateToFile(t *testing.T) {
+func TestKymaConnector_persistCertificate(t *testing.T) {
 	mockWriter := &MockWriter{}
 	type fields struct {
 		CsrInfo          *types.CSRInfo
@@ -295,7 +295,7 @@ func TestKymaConnector_WriteClientCertificateToFile(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "testWriteClientCertToFile",
+			name: "testPersistCertificate",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{},
 				Ca: &types.ClientCertificate{
@@ -319,8 +319,8 @@ func TestKymaConnector_WriteClientCertificateToFile(t *testing.T) {
 				SecureClient:     tt.fields.SecureClient,
 				StorageInterface: tt.fields.StorageInterface,
 			}
-			if err := c.WriteClientCertificateToFile(); (err != nil) != tt.wantErr {
-				t.Errorf("WriteClientCertificateToFile() error = %v, wantErr %v", err, tt.wantErr)
+			if err := c.persistCertificate(); (err != nil) != tt.wantErr {
+				t.Errorf("persistCertificate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

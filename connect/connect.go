@@ -15,17 +15,17 @@ import (
 
 func (c *KymaConnector) Connect(configurationUrl string) error {
 
-	err := c.GetCsrInfo(configurationUrl)
+	err := c.populateCsrInfo(configurationUrl)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
-	err = c.GetCertSigningRequest()
+	err = c.populateCertSigningRequest()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
-	err = c.GetClientCert()
+	err = c.populateClientCert()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -42,7 +42,7 @@ func (c *KymaConnector) Connect(configurationUrl string) error {
 		return fmt.Errorf(err.Error())
 	}
 
-	err = c.WriteClientCertificateToFile()
+	err = c.persistCertificate()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -50,7 +50,7 @@ func (c *KymaConnector) Connect(configurationUrl string) error {
 	return err
 }
 
-func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, serviceConfig string) (err error) {
+func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, serviceConfig string) (serviceId string, err error) {
 	serviceDescription := new(Service)
 
 	serviceDescription.Documentation = new(ServiceDocumentation)
@@ -70,7 +70,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 		err := c.ReadService(serviceConfig, serviceDescription)
 		if err != nil {
 			log.Printf("Failed to read service config: %s", serviceConfig)
-			return err
+			return "", err
 		}
 	}
 
@@ -83,7 +83,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 
 		serviceDescription.API.Spec, err = c.GetRawJsonFromDoc(apiDocs)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
@@ -91,7 +91,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 		serviceDescription.Events = new(ServiceEvent)
 		serviceDescription.Events.Spec, err = c.GetRawJsonFromDoc(eventDocs)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
@@ -110,7 +110,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	resp, err := c.SecureClient.Post(c.CsrInfo.API.MetadataUrl, "application/json", bytes.NewBuffer(jsonBytes))
 
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return "", fmt.Errorf(err.Error())
 	}
 
 	defer resp.Body.Close()
@@ -127,7 +127,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 		log.Printf("Successfully registered service with %s", bodyString)
 	} else {
 		log.Printf("Status: %d >%s< \n on URL: %s", resp.StatusCode, bodyString, c.CsrInfo.API.MetadataUrl)
-		return errors.New("Failed to register")
+		return "", errors.New("Failed to register service")
 	}
 
 	id := &struct {
@@ -137,13 +137,9 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	err = json.Unmarshal(bodyBytes, id)
 	if err != nil {
 		log.Println("Failed to parse registration response")
-		return err
+		return "", err
 	}
-
-	serviceDescription.id = id.Id
-	serviceDescriptionString, err := json.Marshal(serviceDescription)
-	c.StorageInterface.WriteData(id.Id+".json", serviceDescriptionString)
-	return err
+	return id.Id, err
 }
 
 func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs string) error {
@@ -364,7 +360,7 @@ func (c *KymaConnector) RenewCertificateSigningRequest() error {
 
 	c.Ca.PublicKey = string(decodedCert)
 
-	c.WriteClientCertificateToFile()
+	c.persistCertificate()
 
 	return err
 }
