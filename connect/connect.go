@@ -124,8 +124,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		log.Printf("Successfully registered service with")
-		log.Printf(bodyString)
+		log.Printf("Successfully registered service with %s", bodyString)
 	} else {
 		log.Printf("Status: %d >%s< \n on URL: %s", resp.StatusCode, bodyString, c.CsrInfo.API.MetadataUrl)
 		return errors.New("Failed to register")
@@ -141,7 +140,6 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 		return err
 	}
 
-	log.Printf("%v", id)
 	serviceDescription.id = id.Id
 	serviceDescriptionString, err := json.Marshal(serviceDescription)
 	c.StorageInterface.WriteData(id.Id+".json", serviceDescriptionString)
@@ -170,14 +168,11 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 	}
 
 	if eventDocs != "" {
-
 		serviceDescription.Events = new(ServiceEvent)
-
 		serviceDescription.Events.Spec, err = c.GetRawJsonFromDoc(eventDocs)
 		if err != nil {
 			return err
 		}
-
 	}
 
 	jsonBytes, err := json.Marshal(serviceDescription)

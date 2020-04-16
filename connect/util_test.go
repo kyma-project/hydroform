@@ -29,7 +29,7 @@ func TestKymaConnector_GetCsrInfo(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "correct",
+			name: "testGetCsrInfo",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{},
 				AppName: "testClient",
@@ -60,7 +60,7 @@ func TestKymaConnector_GetCsrInfo(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "incorrectUrl",
+			name: "testGetCsrInfo_incorrectUrl",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{
 					CSRUrl:      "",
@@ -81,7 +81,7 @@ func TestKymaConnector_GetCsrInfo(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "blankUrl",
+			name: "testGetCsrInfo_blankUrl",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{
 					CSRUrl:      "",
@@ -137,7 +137,7 @@ func TestKymaConnector_GetCertSigningRequest(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "correct",
+			name: "testGetCert",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{
 					CSRUrl: "test.com/csrurl",
@@ -209,7 +209,7 @@ func TestKymaConnector_GetClientCert(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "correct",
+			name: "testGetClientCert",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{
 					CSRUrl: sendCsrToKymaServer.URL,
@@ -280,17 +280,6 @@ func TestKymaConnector_GetClientCert(t *testing.T) {
 	}
 }
 
-/*
-func TestWriteClientCertificateToFile(t *testing.T) {
-
-	mockWriter := &MockWriter{}
-	c := GetKymaConnector(mockWriter)
-	err := c.WriteClientCertificateToFile()
-	if err != nil {
-		t.Errorf("Error in connect")
-	}
-}
-*/
 func TestKymaConnector_WriteClientCertificateToFile(t *testing.T) {
 	mockWriter := &MockWriter{}
 	type fields struct {
@@ -306,7 +295,7 @@ func TestKymaConnector_WriteClientCertificateToFile(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "correct",
+			name: "testWriteClientCertToFile",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{},
 				Ca: &types.ClientCertificate{
