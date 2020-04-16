@@ -15,7 +15,7 @@ type KymaConnector struct {
 }
 
 type WriterInterface interface {
-	ReadData(string) ([]byte, error)
+	ReadFile(string) ([]byte, error)
 	ReadService(string) ([]byte, error)
 	ReadCSR() ([]byte, error)
 	WriteCSR([]byte) error

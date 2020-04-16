@@ -232,7 +232,7 @@ func (c *KymaConnector) persistCertificate() error {
 }
 
 func (c *KymaConnector) getRawJsonFromDoc(doc string) (m json.RawMessage, err error) {
-	bytes, err := c.StorageInterface.ReadData(doc)
+	bytes, err := c.StorageInterface.ReadFile(doc)
 	if err != nil {
 		log.Println("Read error")
 		return nil, fmt.Errorf(err.Error())

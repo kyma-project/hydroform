@@ -12,38 +12,65 @@ import (
 
 type MockWriter struct{}
 
-func (m *MockWriter) WriteData(string, []byte) error {
-	return nil
-}
-
-func (m *MockWriter) ReadData(filename string) ([]byte, error) {
+func (m *MockWriter) ReadFile(filename string) ([]byte, error) {
 	if filename == "testEvent" {
 		eventJson := "{\"asyncapi\":\"1.0.0\",\"info\":{\"title\":\"PetStore Events\",\"version\":\"1.0.0\",\"description\":\"Description of all the events\"},\"baseTopic\":\"stage.com.some.company.system\",\"topics\":{\"petCreated.v1\":{\"subscribe\":{\"summary\":\"test event\",\"payload\":{\"type\":\"object\",\"properties\":{\"pet\":{\"type\":\"object\",\"required\":[\"id\",\"name\"],\"example\":{\"id\":\"4caad296-e0c5-491e-98ac-0ed118f9474e\",\"category\":\"mammal\",\"name\":\"doggie\"},\"properties\":{\"id\":{\"title\":\"Id\",\"description\":\"Resource identifier\",\"type\":\"string\"},\"name\":{\"title\":\"Name\",\"description\":\"Pet name\",\"type\":\"string\"},\"category\":{\"title\":\"Category\",\"description\":\"Animal category\",\"type\":\"string\"}}}}}}}}}"
 		return []byte(eventJson), nil
 	} else if filename == "testAPI" {
 		apiJson := "{\"swagger\":\"2.0\",\"info\":{\"version\":\"1.0.0\",\"title\":\"Default title here\",\"description\":\"A simple test API\",\"contact\":{\"name\":\"Kavya Kathuria\"},\"license\":{\"name\":\"Apache 2.0\"}},\"host\":\"localhost\",\"basePath\":\"/\",\"schemes\":[\"http\"],\"consumes\":[\"application/json\"],\"produces\":[\"application/json\"],\"paths\":{\"/start\":{\"post\":{\"description\":\"Start tells driver to get ready to do work\",\"operationId\":\"startDrone\",\"responses\":{\"204\":{\"description\":\"Drone started\"},\"default\":{\"description\":\"unexpected error\",\"schema\":{\"$ref\":\"#/definitions/ErrorModel\"}}}}}},\"definitions\":{\"ValueModel\":{\"type\":\"object\",\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"integer\",\"format\":\"int32\",\"minimum\":0,\"maximum\":100}}}}}"
 		return []byte(apiJson), nil
-	} else if filename == "testService.json" {
-		serviceJson := "{\"provider\":\"Default provider\",\"name\":\"Default name\",\"description\":\"Default API Description\",\"shortDescription\":\"Default API Short Description\",\"events\":{\"spec\":{\"asyncapi\":\"1.0.0\",\"info\":{\"title\":\"PetStore Events\",\"version\":\"1.0.0\",\"description\":\"Description of all the events\"},\"baseTopic\":\"stage.com.some.company.system\",\"topics\":{\"petCreated.v1\":{\"subscribe\":{\"summary\":\"test event\",\"payload\":{\"type\":\"object\",\"properties\":{\"pet\":{\"type\":\"object\",\"required\":[\"id\",\"name\"],\"example\":{\"id\":\"4caad296-e0c5-491e-98ac-0ed118f9474e\",\"category\":\"mammal\",\"name\":\"doggie\"},\"properties\":{\"id\":{\"title\":\"Id\",\"description\":\"Resource identifier\",\"type\":\"string\"},\"name\":{\"title\":\"Name\",\"description\":\"Pet name\",\"type\":\"string\"},\"category\":{\"title\":\"Category\",\"description\":\"Animal category\",\"type\":\"string\"}}}}}}}}}},\"documentation\":{\"displayName\":\"Default Service\",\"description\":\"Default description\",\"type\":\"Default Type\",\"tags\":[\"Tag0\",\"Tag1\"]}}"
-		return []byte(serviceJson), nil
-	} else if filename == "config.json" {
-		configJson := "{\"csrUrl\":\"test.com/csrUrl\",\"api\":{\"eventsInfoUrl\":\"test.com/eventsinfourl\",\"eventsUrl\":\"test.com/eventsurl\",\"metadataUrl\":\"test.com/metadataurl\",\"infoUrl\":\"test.com/infourl\",\"certificatesUrl\":\"test.com/certificatesurl\"},\"certificate\":{\"subject\":\"O=Organization,OU=OrgUnit,L=Waldorf,ST=Waldorf,C=DE,CN=testApp\",\"extensions\":\"\",\"key-algorithm\":\"rsa2048\"}}"
-		return []byte(configJson), nil
-	} else if filename == "info.json" {
-		infoJson := "{\"clientIdentity\":{\"application\":\"testApp\"},\"urls\":{\"eventsInfoUrl\":\"test.com/eventsinfourl\",\"eventsUrl\":\"test.com/eventsurl\",\"metadataUrl\":\"test.com/metadataurl\",\"renewCertUrl\":\"test.com/renewcerturl\",\"revokeCertUrl\":\"test.com/revokecerturl\"}}"
-		return []byte(infoJson), nil
-	} else if filename == "generated.csr" {
-		key := "testCsr"
-		return []byte(key), nil
-	} else if filename == "generated.crt" {
-		key := "testPublicKey"
-		return []byte(key), nil
-	} else if filename == "generated.key" {
-		key := "testPrivateKey"
-		return []byte(key), nil
-	} else {
-		return []byte(""), nil
 	}
+	return []byte(""), nil
+}
+
+func (m *MockWriter) ReadService(string) ([]byte, error) {
+	serviceJson := "{\"provider\":\"Default provider\",\"name\":\"Default name\",\"description\":\"Default API Description\",\"shortDescription\":\"Default API Short Description\",\"events\":{\"spec\":{\"asyncapi\":\"1.0.0\",\"info\":{\"title\":\"PetStore Events\",\"version\":\"1.0.0\",\"description\":\"Description of all the events\"},\"baseTopic\":\"stage.com.some.company.system\",\"topics\":{\"petCreated.v1\":{\"subscribe\":{\"summary\":\"test event\",\"payload\":{\"type\":\"object\",\"properties\":{\"pet\":{\"type\":\"object\",\"required\":[\"id\",\"name\"],\"example\":{\"id\":\"4caad296-e0c5-491e-98ac-0ed118f9474e\",\"category\":\"mammal\",\"name\":\"doggie\"},\"properties\":{\"id\":{\"title\":\"Id\",\"description\":\"Resource identifier\",\"type\":\"string\"},\"name\":{\"title\":\"Name\",\"description\":\"Pet name\",\"type\":\"string\"},\"category\":{\"title\":\"Category\",\"description\":\"Animal category\",\"type\":\"string\"}}}}}}}}}},\"documentation\":{\"displayName\":\"Default Service\",\"description\":\"Default description\",\"type\":\"Default Type\",\"tags\":[\"Tag0\",\"Tag1\"]}}"
+	return []byte(serviceJson), nil
+}
+
+func (m *MockWriter) ReadCSR() ([]byte, error) {
+	key := "testCsr"
+	return []byte(key), nil
+}
+
+func (m *MockWriter) WriteCSR([]byte) error {
+	return nil
+}
+
+func (m *MockWriter) ReadCert() ([]byte, error) {
+	key := "testPublicKey"
+	return []byte(key), nil
+}
+
+func (m *MockWriter) WriteCert([]byte) error {
+	return nil
+}
+
+func (m *MockWriter) ReadPrivateKey() ([]byte, error) {
+	key := "testPrivateKey"
+	return []byte(key), nil
+}
+
+func (m *MockWriter) WritePrivateKey([]byte) error {
+	return nil
+}
+
+func (m *MockWriter) ReadConfig() ([]byte, error) {
+	configJson := "{\"csrUrl\":\"test.com/csrUrl\",\"api\":{\"eventsInfoUrl\":\"test.com/eventsinfourl\",\"eventsUrl\":\"test.com/eventsurl\",\"metadataUrl\":\"test.com/metadataurl\",\"infoUrl\":\"test.com/infourl\",\"certificatesUrl\":\"test.com/certificatesurl\"},\"certificate\":{\"subject\":\"O=Organization,OU=OrgUnit,L=Waldorf,ST=Waldorf,C=DE,CN=testApp\",\"extensions\":\"\",\"key-algorithm\":\"rsa2048\"}}"
+	return []byte(configJson), nil
+}
+
+func (m *MockWriter) WriteConfig([]byte) error {
+	return nil
+}
+
+func (m *MockWriter) ReadInfo() ([]byte, error) {
+	infoJson := "{\"clientIdentity\":{\"application\":\"testApp\"},\"urls\":{\"eventsInfoUrl\":\"test.com/eventsinfourl\",\"eventsUrl\":\"test.com/eventsurl\",\"metadataUrl\":\"test.com/metadataurl\",\"renewCertUrl\":\"test.com/renewcerturl\",\"revokeCertUrl\":\"test.com/revokecerturl\"}}"
+	return []byte(infoJson), nil
+}
+
+func (m *MockWriter) WriteInfo([]byte) error {
+	return nil
 }
 
 func TestKymaConnector_Connect(t *testing.T) {
@@ -736,6 +763,7 @@ func sendCsrToKymaServer(t *testing.T) *httptest.Server {
 	}))
 	return sendCsrToKymaServer
 }
+
 func getCsrInfoServer(t *testing.T, csrUrl string, infoUrl string) *httptest.Server {
 	getCsrInfoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -770,6 +798,7 @@ func getCsrInfoServer(t *testing.T, csrUrl string, infoUrl string) *httptest.Ser
 
 	return getCsrInfoServer
 }
+
 func getInfoServer(t *testing.T) *httptest.Server {
 	getInfoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -798,6 +827,7 @@ func getInfoServer(t *testing.T) *httptest.Server {
 
 	return getInfoServer
 }
+
 func registerServiceServer(t *testing.T) *httptest.Server {
 	registerServiceServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -824,6 +854,7 @@ func registerServiceServer(t *testing.T) *httptest.Server {
 
 	return registerServiceServer
 }
+
 func deleteServiceServer(t *testing.T) *httptest.Server {
 	deleteServiceServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
@@ -834,6 +865,7 @@ func deleteServiceServer(t *testing.T) *httptest.Server {
 
 	return deleteServiceServer
 }
+
 func updateServiceServer(t *testing.T) *httptest.Server {
 	updateServiceServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -844,6 +876,7 @@ func updateServiceServer(t *testing.T) *httptest.Server {
 
 	return updateServiceServer
 }
+
 func addEventServer(t *testing.T) *httptest.Server {
 	addEventServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -868,6 +901,7 @@ func addEventServer(t *testing.T) *httptest.Server {
 	}))
 	return addEventServer
 }
+
 func getEventsInfoServer(t *testing.T) *httptest.Server {
 	getInfoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -882,6 +916,7 @@ func getEventsInfoServer(t *testing.T) *httptest.Server {
 
 	return getInfoServer
 }
+
 func renewCertServer(t *testing.T) *httptest.Server {
 	renewCertServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
@@ -915,6 +950,7 @@ func renewCertServer(t *testing.T) *httptest.Server {
 	}))
 	return renewCertServer
 }
+
 func revokeCertServer(t *testing.T) *httptest.Server {
 	renewCertServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)

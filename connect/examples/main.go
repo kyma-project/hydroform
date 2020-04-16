@@ -24,7 +24,7 @@ func main() {
 
 type store struct{}
 
-func (s store) ReadData(filename string) ([]byte, error) {
+func (s store) ReadFile(filename string) ([]byte, error) {
 	_, err := os.Stat(filename)
 	if err != nil {
 		return nil, fmt.Errorf(err.Error())
