@@ -56,7 +56,7 @@ func (c *KymaConnector) populateCsrInfo(configurationUrl string) error {
 	return err
 }
 
-func (c *KymaConnector) PopulateInfo() error {
+func (c *KymaConnector) populateInfo() error {
 
 	resp, err := c.SecureClient.Get(c.CsrInfo.API.InfoUrl)
 
@@ -231,7 +231,7 @@ func (c *KymaConnector) persistCertificate() error {
 	return nil
 }
 
-func (c *KymaConnector) ReadService(path string, s *Service) error {
+func (c *KymaConnector) readService(path string, s *Service) error {
 	path = path + ".json"
 
 	b, err := c.StorageInterface.ReadData(path)
@@ -249,7 +249,7 @@ func (c *KymaConnector) ReadService(path string, s *Service) error {
 	return nil
 }
 
-func (c *KymaConnector) GetRawJsonFromDoc(doc string) (m json.RawMessage, err error) {
+func (c *KymaConnector) getRawJsonFromDoc(doc string) (m json.RawMessage, err error) {
 	bytes, err := c.StorageInterface.ReadData(doc)
 	if err != nil {
 		log.Println("Read error")

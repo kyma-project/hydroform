@@ -37,7 +37,7 @@ func (c *KymaConnector) Connect(configurationUrl string) error {
 		}
 	}
 
-	err = c.PopulateInfo()
+	err = c.populateInfo()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -66,11 +66,9 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	serviceDescription.Name = "Default service name"
 
 	if serviceConfig != "" {
-		log.Println("Read Service Config")
-		err := c.ReadService(serviceConfig, serviceDescription)
+		err := c.readService(serviceConfig, serviceDescription)
 		if err != nil {
-			log.Printf("Failed to read service config: %s", serviceConfig)
-			return "", err
+			return "", fmt.Errorf(err.Error())
 		}
 	}
 
@@ -81,15 +79,15 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 			serviceDescription.API.TargetURL = "http://localhost:8080/"
 		}
 
-		serviceDescription.API.Spec, err = c.GetRawJsonFromDoc(apiDocs)
+		serviceDescription.API.Spec, err = c.getRawJsonFromDoc(apiDocs)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf(err.Error())
 		}
 	}
 
 	if eventDocs != "" {
 		serviceDescription.Events = new(ServiceEvent)
-		serviceDescription.Events.Spec, err = c.GetRawJsonFromDoc(eventDocs)
+		serviceDescription.Events.Spec, err = c.getRawJsonFromDoc(eventDocs)
 		if err != nil {
 			return "", err
 		}
@@ -97,13 +95,11 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 
 	jsonBytes, err := json.Marshal(serviceDescription)
 	if err != nil {
-		log.Printf("JSON marshal failed: %s", err)
-		return
+		return "", fmt.Errorf(err.Error())
 	}
 
 	if c.CsrInfo == nil || c.CsrInfo.API.MetadataUrl == "" {
-		log.Printf("%s", fmt.Errorf("metadata url is missing, cannot proceed"))
-		return
+		return "", fmt.Errorf(err.Error())
 	}
 
 	//	client, err := c.GetSecureClient()
@@ -119,14 +115,12 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	bodyString := string(bodyBytes)
 
 	if err != nil {
-		log.Printf("could not dump response: %v", err)
-		return
+		return "", fmt.Errorf(err.Error())
 	}
 
 	if resp.StatusCode == http.StatusOK {
 		log.Printf("Successfully registered service with %s", bodyString)
 	} else {
-		log.Printf("Status: %d >%s< \n on URL: %s", resp.StatusCode, bodyString, c.CsrInfo.API.MetadataUrl)
 		return "", errors.New("Failed to register service")
 	}
 
@@ -136,18 +130,16 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 
 	err = json.Unmarshal(bodyBytes, id)
 	if err != nil {
-		log.Println("Failed to parse registration response")
-		return "", err
+		return "", fmt.Errorf(err.Error())
 	}
 	return id.Id, err
 }
 
 func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs string) error {
 	serviceDescription := new(Service)
-	err := c.ReadService(id, serviceDescription)
+	err := c.readService(id, serviceDescription)
 	if err != nil {
-		log.Printf("Failed to read service config: %s", id+".json")
-		return err
+		return fmt.Errorf(err.Error())
 	}
 
 	if apiDocs != "" {
@@ -156,30 +148,28 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 			serviceDescription.API.TargetURL = "http://localhost:8080/"
 		}
 
-		serviceDescription.API.Spec, err = c.GetRawJsonFromDoc(apiDocs)
+		serviceDescription.API.Spec, err = c.getRawJsonFromDoc(apiDocs)
 		if err != nil {
-			return err
+			return fmt.Errorf(err.Error())
 		}
 
 	}
 
 	if eventDocs != "" {
 		serviceDescription.Events = new(ServiceEvent)
-		serviceDescription.Events.Spec, err = c.GetRawJsonFromDoc(eventDocs)
+		serviceDescription.Events.Spec, err = c.getRawJsonFromDoc(eventDocs)
 		if err != nil {
-			return err
+			return fmt.Errorf(err.Error())
 		}
 	}
 
 	jsonBytes, err := json.Marshal(serviceDescription)
 	if err != nil {
-		log.Printf("JSON marshal failed: %s", err)
-		return err
+		return fmt.Errorf(err.Error())
 	}
 
 	if c.CsrInfo == nil || c.CsrInfo.API.MetadataUrl == "" {
-		log.Printf("%s", fmt.Errorf("metadata url is missing, cannot proceed"))
-		return err
+		return fmt.Errorf(err.Error())
 	}
 
 	url := c.CsrInfo.API.MetadataUrl + "/" + id
@@ -188,19 +178,15 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 
 	resp, err := c.SecureClient.Do(req)
 	if err != nil {
-		log.Printf("Couldn't register service: %s", err)
-		return err
+		return fmt.Errorf(err.Error())
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		log.Printf("Successfully registered service")
+		log.Printf("Successfully updated service")
 	} else {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		bodyString := string(bodyBytes)
-		log.Printf("Status: %d >%s<\n on URL: %s", resp.StatusCode, bodyString, url)
-		return errors.New("Failed to Update")
+		return errors.New("failed to update service")
 	}
 	return err
 }
@@ -212,8 +198,7 @@ func (c *KymaConnector) DeleteService(id string) error {
 
 	resp, err := c.SecureClient.Do(req)
 	if err != nil {
-		log.Printf("Couldn't delete service: %s", err)
-		return err
+		return fmt.Errorf(err.Error())
 	}
 
 	defer resp.Body.Close()
@@ -222,7 +207,7 @@ func (c *KymaConnector) DeleteService(id string) error {
 		log.Printf("Successfully deleted service")
 		return nil
 	} else {
-		return errors.New("Failed to delete")
+		return errors.New("failed to delete")
 	}
 }
 
@@ -243,18 +228,15 @@ func (c *KymaConnector) AddEvent(event types.Event) error {
 	if resp.StatusCode == http.StatusOK {
 		log.Printf("Successfully registered event")
 	} else {
-		log.Print("Incorrect response")
-		return err
+		return fmt.Errorf(err.Error())
 	}
 
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 
 	log.Print(string(bodyBytes))
 	if err != nil {
-		log.Println("Failed to parse registration response")
-		return err
+		return fmt.Errorf(err.Error())
 	}
-
 	return err
 }
 
@@ -298,8 +280,7 @@ func GetKymaConnector(writerInterface WriterInterface) *KymaConnector {
 func (c *KymaConnector) GetSecureClient() (*http.Client, error) {
 	cert, err := tls.X509KeyPair([]byte(c.Ca.PublicKey), []byte(c.Ca.PrivateKey))
 	if err != nil {
-		log.Println("Can't load certificates")
-		return nil, err
+		return nil, fmt.Errorf(err.Error())
 	}
 
 	tlsConfig := &tls.Config{
@@ -340,8 +321,7 @@ func (c *KymaConnector) RenewCertificateSigningRequest() error {
 	if resp.StatusCode == http.StatusCreated {
 		log.Printf("Successfully renewed certificate")
 	} else {
-		log.Printf("error in renewing csr")
-		return errors.New("Failed to renew")
+		return errors.New("Failed to renew certificate")
 	}
 
 	certificates, err := ioutil.ReadAll(resp.Body)
@@ -376,8 +356,7 @@ func (c *KymaConnector) RevokeCertificate() error {
 	if resp.StatusCode == http.StatusCreated {
 		log.Print("Successfully revoked certificate for client")
 	} else {
-		log.Print("Error in trying to revoke certificate")
-		return errors.New("error in trying to revoke certificate")
+		return errors.New("Error in trying to revoke certificate")
 	}
 	return err
 }
