@@ -15,7 +15,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -255,7 +254,6 @@ func (c *KymaConnector) loadConfig() error {
 	json.Unmarshal(config, csrInfo)
 	c.CsrInfo = csrInfo
 
-	_, err = os.Stat("info.json")
 	info, err := c.StorageInterface.ReadInfo()
 	if err != nil {
 		return fmt.Errorf(err.Error())
