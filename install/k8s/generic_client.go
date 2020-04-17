@@ -106,35 +106,76 @@ func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) 
 	return nil
 }
 
-func (c GenericClient) ApplyResources(resources []K8sObject) error {
+func (c GenericClient) CreateResources(resources []K8sObject) ([]*unstructured.Unstructured, error) {
+	return c.createResources(resources, c.createObject)
+}
+
+func (c GenericClient) ApplyResources(resources []K8sObject) ([]*unstructured.Unstructured, error) {
+	return c.createResources(resources, c.applyObject)
+}
+
+func (c GenericClient) createResources(resources []K8sObject,
+	createObjectFunction func(dynamic.ResourceInterface, *unstructured.Unstructured) (*unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
+	var createdResources []*unstructured.Unstructured
 	for _, resource := range resources {
 		unstructuredObjRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(resource.Object)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		unstructuredObject := &unstructured.Unstructured{Object: unstructuredObjRaw}
 
 		client, err := c.clientForResource(unstructuredObject, resource.GVK)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		err = c.applyObject(client, unstructuredObject)
+		created, err := createObjectFunction(client, unstructuredObject)
 		if err != nil {
-			return fmt.Errorf("failed to apply resource: %s", err.Error())
+			return nil, fmt.Errorf("failed to apply resource: %s", err.Error())
 		}
+		createdResources = append(createdResources, created)
 	}
 
-	return nil
+	return createdResources, nil
 }
 
-func (c GenericClient) applyObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) error {
-	_, err := client.Create(unstructuredObject, v1.CreateOptions{})
+func (c GenericClient) createObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	created, err := client.Create(unstructuredObject, v1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to create object %s of kind %s: %s", unstructuredObject.GetName(), unstructuredObject.GetKind(), err.Error())
+		return nil, fmt.Errorf("failed to create object %s of kind %s: %s", unstructuredObject.GetName(), unstructuredObject.GetKind(), err.Error())
 	}
 
-	return nil
+	return created, nil
+}
+
+func (c GenericClient) applyObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	created, err := client.Create(unstructuredObject, v1.CreateOptions{})
+	if err != nil {
+		if k8serrors.IsAlreadyExists(err) {
+			updated, err := c.updateObject(client, unstructuredObject)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create update %s of kind %s: %s", unstructuredObject.GetName(), unstructuredObject.GetKind(), err.Error())
+			}
+			return updated, nil
+		}
+		return nil, fmt.Errorf("failed to create object %s of kind %s: %s", unstructuredObject.GetName(), unstructuredObject.GetKind(), err.Error())
+	}
+
+	return created, nil
+}
+
+func (c GenericClient) updateObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	get, err := client.Get(unstructuredObject.GetName(), v1.GetOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	merged := MergeMaps(unstructuredObject.Object, get.Object)
+
+	newObject := &unstructured.Unstructured{Object: merged}
+
+	return client.Update(newObject, v1.UpdateOptions{})
 }
 
 func (c GenericClient) clientForResource(unstructuredObject *unstructured.Unstructured, gvk *schema.GroupVersionKind) (dynamic.ResourceInterface, error) {

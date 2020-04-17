@@ -28,13 +28,17 @@ func (l logger) Infof(format string, a ...interface{}) {
 }
 
 const (
-	tillerYamlUrl    = "https://raw.githubusercontent.com/kyma-project/kyma/release-1.7/installation/resources/tiller.yaml"
-	installerYamlUrl = "https://github.com/kyma-project/kyma/releases/download/1.7.0/kyma-installer-local.yaml"
-	configYamlUrl    = "https://github.com/kyma-project/kyma/releases/download/1.7.0/kyma-config-local.yaml"
+	tillerYamlUrl    = "https://raw.githubusercontent.com/kyma-project/kyma/release-1.10/installation/resources/tiller.yaml"
+	installerYamlUrl = "https://github.com/kyma-project/kyma/releases/download/1.10.0/kyma-installer-local.yaml"
+	configYamlUrl    = "https://github.com/kyma-project/kyma/releases/download/1.10.0/kyma-config-local.yaml"
+
+	upgradeTillerYamlUrl    = "https://raw.githubusercontent.com/kyma-project/kyma/release-1.11/installation/resources/tiller.yaml"
+	upgradeInstallerYamlUrl = "https://github.com/kyma-project/kyma/releases/download/1.11.0/kyma-installer-local.yaml"
+	upgradeConfigYamlUrl    = "https://github.com/kyma-project/kyma/releases/download/1.11.0/kyma-config-local.yaml"
 )
 
 func main() {
-	minikubeIp := flag.String("minikubeIP", "", "IP of Minikube instance")
+	minikubeIp := flag.String("minikubeIP", "192.168.64.5", "IP of Minikube instance")
 	flag.Parse()
 
 	if minikubeIp == nil || *minikubeIp == "" {
@@ -57,6 +61,7 @@ func main() {
 
 	log.Printf("Fetching Kyma Config file...")
 	kymaConfigYamlContent, err := fetchFile(configYamlUrl)
+	logAndExitOnError(err)
 	decoder, err := scheme.DefaultDecoder()
 	logAndExitOnError(err)
 	configuration, err := config.YAMLToConfiguration(decoder, kymaConfigYamlContent)
@@ -86,6 +91,43 @@ func main() {
 	waitForInstallation(stateChannel, errorChannel)
 
 	log.Printf("Installation finished!")
+
+	log.Printf("Fetching upgraded Tiller config file...")
+	tillerYamlContentUpg, err := fetchFile(upgradeTillerYamlUrl)
+	logAndExitOnError(err)
+
+	log.Printf("Fetching upgraded Kyma Installer config files...")
+	installerYamlContentUpg, err := fetchFile(upgradeInstallerYamlUrl)
+	logAndExitOnError(err)
+
+	log.Printf("Fetching upgraded Kyma Config file...")
+	kymaConfigYamlContentUpg, err := fetchFile(upgradeConfigYamlUrl)
+	logAndExitOnError(err)
+
+	configuration, err = config.YAMLToConfiguration(decoder, kymaConfigYamlContentUpg)
+	logAndExitOnError(err)
+
+	configuration.Configuration.Set("global.minikubeIP", *minikubeIp, false)
+
+	artifacts = installation.Installation{
+		TillerYaml:    tillerYamlContentUpg,
+		InstallerYaml: installerYamlContentUpg,
+		Configuration: configuration,
+	}
+
+	log.Printf("Preparing upgrade...")
+
+	err = installer.PrepareUpgrade(artifacts)
+	logAndExitOnError(err)
+
+	log.Printf("Starting upgrade...")
+	stateChannel, errorChannel, err = installer.StartInstallation(context.Background())
+	logAndExitOnError(err)
+
+	log.Printf("Waiting for upgrade to finish...")
+	waitForInstallation(stateChannel, errorChannel)
+
+	log.Printf("Upgrade finished!")
 }
 
 func logAndExitOnError(err error) {
