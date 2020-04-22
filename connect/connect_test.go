@@ -12,64 +12,57 @@ import (
 
 type MockWriter struct{}
 
-func (m *MockWriter) ReadFile(filename string) ([]byte, error) {
-	if filename == "testEvent" {
-		eventJson := "{\"asyncapi\":\"1.0.0\",\"info\":{\"title\":\"PetStore Events\",\"version\":\"1.0.0\",\"description\":\"Description of all the events\"},\"baseTopic\":\"stage.com.some.company.system\",\"topics\":{\"petCreated.v1\":{\"subscribe\":{\"summary\":\"test event\",\"payload\":{\"type\":\"object\",\"properties\":{\"pet\":{\"type\":\"object\",\"required\":[\"id\",\"name\"],\"example\":{\"id\":\"4caad296-e0c5-491e-98ac-0ed118f9474e\",\"category\":\"mammal\",\"name\":\"doggie\"},\"properties\":{\"id\":{\"title\":\"Id\",\"description\":\"Resource identifier\",\"type\":\"string\"},\"name\":{\"title\":\"Name\",\"description\":\"Pet name\",\"type\":\"string\"},\"category\":{\"title\":\"Category\",\"description\":\"Animal category\",\"type\":\"string\"}}}}}}}}}"
-		return []byte(eventJson), nil
-	} else if filename == "testAPI" {
-		apiJson := "{\"swagger\":\"2.0\",\"info\":{\"version\":\"1.0.0\",\"title\":\"Default title here\",\"description\":\"A simple test API\",\"contact\":{\"name\":\"Kavya Kathuria\"},\"license\":{\"name\":\"Apache 2.0\"}},\"host\":\"localhost\",\"basePath\":\"/\",\"schemes\":[\"http\"],\"consumes\":[\"application/json\"],\"produces\":[\"application/json\"],\"paths\":{\"/start\":{\"post\":{\"description\":\"Start tells driver to get ready to do work\",\"operationId\":\"startDrone\",\"responses\":{\"204\":{\"description\":\"Drone started\"},\"default\":{\"description\":\"unexpected error\",\"schema\":{\"$ref\":\"#/definitions/ErrorModel\"}}}}}},\"definitions\":{\"ValueModel\":{\"type\":\"object\",\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"integer\",\"format\":\"int32\",\"minimum\":0,\"maximum\":100}}}}}"
-		return []byte(apiJson), nil
+func (m *MockWriter) WriteClientCert(*types.ClientCertificate) error {
+	return nil
+}
+
+func (m *MockWriter) ReadClientCert() (*types.ClientCertificate, error) {
+	cert := &types.ClientCertificate{
+		PrivateKey: "testPrivateKey",
+		PublicKey:  "testPublicKey",
 	}
-	return []byte(""), nil
+	return cert, nil
 }
 
-func (m *MockWriter) ReadService(string) ([]byte, error) {
-	serviceJson := "{\"provider\":\"Default provider\",\"name\":\"Default name\",\"description\":\"Default API Description\",\"shortDescription\":\"Default API Short Description\",\"events\":{\"spec\":{\"asyncapi\":\"1.0.0\",\"info\":{\"title\":\"PetStore Events\",\"version\":\"1.0.0\",\"description\":\"Description of all the events\"},\"baseTopic\":\"stage.com.some.company.system\",\"topics\":{\"petCreated.v1\":{\"subscribe\":{\"summary\":\"test event\",\"payload\":{\"type\":\"object\",\"properties\":{\"pet\":{\"type\":\"object\",\"required\":[\"id\",\"name\"],\"example\":{\"id\":\"4caad296-e0c5-491e-98ac-0ed118f9474e\",\"category\":\"mammal\",\"name\":\"doggie\"},\"properties\":{\"id\":{\"title\":\"Id\",\"description\":\"Resource identifier\",\"type\":\"string\"},\"name\":{\"title\":\"Name\",\"description\":\"Pet name\",\"type\":\"string\"},\"category\":{\"title\":\"Category\",\"description\":\"Animal category\",\"type\":\"string\"}}}}}}}}}},\"documentation\":{\"displayName\":\"Default Service\",\"description\":\"Default description\",\"type\":\"Default Type\",\"tags\":[\"Tag0\",\"Tag1\"]}}"
-	return []byte(serviceJson), nil
+func (m *MockWriter) ReadConfig() (*types.CSRInfo, error) {
+	//configJson := "{\"csrUrl\":\"test.com/csrUrl\",\"api\":{\"eventsInfoUrl\":\"test.com/eventsinfourl\",\"eventsUrl\":\"test.com/eventsurl\",\"metadataUrl\":\"test.com/metadataurl\",\"infoUrl\":\"test.com/infourl\",\"certificatesUrl\":\"test.com/certificatesurl\"},\"certificate\":{\"subject\":\"O=Organization,OU=OrgUnit,L=Waldorf,ST=Waldorf,C=DE,CN=testApp\",\"extensions\":\"\",\"key-algorithm\":\"rsa2048\"}}"
+	config := &types.CSRInfo{
+		CSRUrl: "test.com/csrUrl",
+		API: &types.API{
+			MetadataUrl:     "test.com/metadataurl",
+			EventsUrl:       "test.com/eventsurl",
+			EventsInfoUrl:   "test.com/eventsinfourl",
+			InfoUrl:         "test.com/infourl",
+			CertificatesUrl: "test.com/certificatesurl",
+		},
+		Certificate: &types.Certificate{
+			Subject:      "O=Organization,OU=OrgUnit,L=Waldorf,ST=Waldorf,C=DE,CN=testApp",
+			Extensions:   "",
+			KeyAlgorithm: "rsa2048",
+		},
+	}
+
+	return config, nil
 }
 
-func (m *MockWriter) ReadCSR() ([]byte, error) {
-	key := "testCsr"
-	return []byte(key), nil
-}
-
-func (m *MockWriter) WriteCSR([]byte) error {
+func (m *MockWriter) WriteConfig(*types.CSRInfo) error {
 	return nil
 }
 
-func (m *MockWriter) ReadCert() ([]byte, error) {
-	key := "testPublicKey"
-	return []byte(key), nil
+func (m *MockWriter) ReadInfo() (*types.Info, error) {
+	info := &types.Info{
+		ClientIdentity: &types.ClientIdentity{AppName: "testApp"},
+		URLs: &types.URLs{
+			MetadataUrl:   "test.com/metadataurl",
+			EventsUrl:     "test.com/eventsurl",
+			RenewCertUrl:  "test.com/renewcerturl",
+			RevokeCertUrl: "test.com/revokecerturl",
+		},
+	}
+	return info, nil
 }
 
-func (m *MockWriter) WriteCert([]byte) error {
-	return nil
-}
-
-func (m *MockWriter) ReadPrivateKey() ([]byte, error) {
-	key := "testPrivateKey"
-	return []byte(key), nil
-}
-
-func (m *MockWriter) WritePrivateKey([]byte) error {
-	return nil
-}
-
-func (m *MockWriter) ReadConfig() ([]byte, error) {
-	configJson := "{\"csrUrl\":\"test.com/csrUrl\",\"api\":{\"eventsInfoUrl\":\"test.com/eventsinfourl\",\"eventsUrl\":\"test.com/eventsurl\",\"metadataUrl\":\"test.com/metadataurl\",\"infoUrl\":\"test.com/infourl\",\"certificatesUrl\":\"test.com/certificatesurl\"},\"certificate\":{\"subject\":\"O=Organization,OU=OrgUnit,L=Waldorf,ST=Waldorf,C=DE,CN=testApp\",\"extensions\":\"\",\"key-algorithm\":\"rsa2048\"}}"
-	return []byte(configJson), nil
-}
-
-func (m *MockWriter) WriteConfig([]byte) error {
-	return nil
-}
-
-func (m *MockWriter) ReadInfo() ([]byte, error) {
-	infoJson := "{\"clientIdentity\":{\"application\":\"testApp\"},\"urls\":{\"eventsInfoUrl\":\"test.com/eventsinfourl\",\"eventsUrl\":\"test.com/eventsurl\",\"metadataUrl\":\"test.com/metadataurl\",\"renewCertUrl\":\"test.com/renewcerturl\",\"revokeCertUrl\":\"test.com/revokecerturl\"}}"
-	return []byte(infoJson), nil
-}
-
-func (m *MockWriter) WriteInfo([]byte) error {
+func (m *MockWriter) WriteInfo(info *types.Info) error {
 	return nil
 }
 
@@ -149,9 +142,7 @@ func TestKymaConnector_RegisterService(t *testing.T) {
 		StorageInterface WriterInterface
 	}
 	type args struct {
-		apiDocs       string
-		eventDocs     string
-		serviceConfig string
+		serviceDescription Service
 	}
 	tests := []struct {
 		name    string
@@ -181,15 +172,27 @@ func TestKymaConnector_RegisterService(t *testing.T) {
 				Ca: &types.ClientCertificate{
 					PrivateKey: "",
 					PublicKey:  "",
-					Csr:        "",
 				},
 				SecureClient:     registerServiceServer.Client(),
 				StorageInterface: mockWriter,
 			},
 			args: args{
-				apiDocs:       "testAPI",
-				eventDocs:     "testEvent",
-				serviceConfig: "",
+				serviceDescription: Service{
+					id:               "testService",
+					Provider:         "testProvider",
+					Name:             "servTest",
+					Description:      "desc",
+					ShortDescription: "",
+					Labels:           nil,
+					API: &ServiceAPI{
+						TargetURL: "localhost:8080",
+						Spec:      []byte("{\"swagger\":\"2.0\",\"info\":{\"version\":\"1.0.0\",\"title\":\"Default title here\",\"description\":\"A simple test API\",\"contact\":{\"name\":\"Kavya Kathuria\"},\"license\":{\"name\":\"Apache 2.0\"}},\"host\":\"localhost\",\"basePath\":\"/\",\"schemes\":[\"http\"],\"consumes\":[\"application/json\"],\"produces\":[\"application/json\"],\"paths\":{\"/start\":{\"post\":{\"description\":\"Start tells driver to get ready to do work\",\"operationId\":\"startDrone\",\"responses\":{\"204\":{\"description\":\"Drone started\"},\"default\":{\"description\":\"unexpected error\",\"schema\":{\"$ref\":\"#/definitions/ErrorModel\"}}}}}},\"definitions\":{\"ValueModel\":{\"type\":\"object\",\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"integer\",\"format\":\"int32\",\"minimum\":0,\"maximum\":100}}}}}"),
+					},
+					Events: &ServiceEvent{
+						Spec: []byte("{\"asyncapi\":\"1.0.0\",\"info\":{\"title\":\"PetStore Events\",\"version\":\"1.0.0\",\"description\":\"Description of all the events\"},\"baseTopic\":\"stage.com.some.company.system\",\"topics\":{\"petCreated.v1\":{\"subscribe\":{\"summary\":\"test event\",\"payload\":{\"type\":\"object\",\"properties\":{\"pet\":{\"type\":\"object\",\"required\":[\"id\",\"name\"],\"example\":{\"id\":\"4caad296-e0c5-491e-98ac-0ed118f9474e\",\"category\":\"mammal\",\"name\":\"doggie\"},\"properties\":{\"id\":{\"title\":\"Id\",\"description\":\"Resource identifier\",\"type\":\"string\"},\"name\":{\"title\":\"Name\",\"description\":\"Pet name\",\"type\":\"string\"},\"category\":{\"title\":\"Category\",\"description\":\"Animal category\",\"type\":\"string\"}}}}}}}}}"),
+					},
+					Documentation: nil,
+				},
 			},
 			wantErr: false,
 		},
@@ -202,7 +205,7 @@ func TestKymaConnector_RegisterService(t *testing.T) {
 				SecureClient:     tt.fields.SecureClient,
 				StorageInterface: tt.fields.StorageInterface,
 			}
-			if _, err := c.RegisterService(tt.args.apiDocs, tt.args.eventDocs, tt.args.serviceConfig); (err != nil) != tt.wantErr {
+			if _, err := c.RegisterService(tt.args.serviceDescription); (err != nil) != tt.wantErr {
 				t.Errorf("RegisterService() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -221,9 +224,8 @@ func TestKymaConnector_UpdateService(t *testing.T) {
 		StorageInterface WriterInterface
 	}
 	type args struct {
-		id        string
-		apiDocs   string
-		eventDocs string
+		id                 string
+		serviceDescription Service
 	}
 	tests := []struct {
 		name    string
@@ -253,15 +255,28 @@ func TestKymaConnector_UpdateService(t *testing.T) {
 				Ca: &types.ClientCertificate{
 					PrivateKey: "",
 					PublicKey:  "",
-					Csr:        "",
 				},
 				SecureClient:     updateServiceServer.Client(),
 				StorageInterface: mockWriter,
 			},
 			args: args{
-				id:        "testService",
-				apiDocs:   "testAPI",
-				eventDocs: "testEvent",
+				id: "testService",
+				serviceDescription: Service{
+					id:               "testService",
+					Provider:         "testProvider",
+					Name:             "servTest",
+					Description:      "desc",
+					ShortDescription: "",
+					Labels:           nil,
+					API: &ServiceAPI{
+						TargetURL: "localhost:8080",
+						Spec:      []byte("{\"swagger\":\"2.0\",\"info\":{\"version\":\"1.0.0\",\"title\":\"Default title here\",\"description\":\"A simple test API\",\"contact\":{\"name\":\"Kavya Kathuria\"},\"license\":{\"name\":\"Apache 2.0\"}},\"host\":\"localhost\",\"basePath\":\"/\",\"schemes\":[\"http\"],\"consumes\":[\"application/json\"],\"produces\":[\"application/json\"],\"paths\":{\"/start\":{\"post\":{\"description\":\"Start tells driver to get ready to do work\",\"operationId\":\"startDrone\",\"responses\":{\"204\":{\"description\":\"Drone started\"},\"default\":{\"description\":\"unexpected error\",\"schema\":{\"$ref\":\"#/definitions/ErrorModel\"}}}}}},\"definitions\":{\"ValueModel\":{\"type\":\"object\",\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"integer\",\"format\":\"int32\",\"minimum\":0,\"maximum\":100}}}}}"),
+					},
+					Events: &ServiceEvent{
+						Spec: []byte("{\"asyncapi\":\"1.0.0\",\"info\":{\"title\":\"PetStore Events\",\"version\":\"1.0.0\",\"description\":\"Description of all the events\"},\"baseTopic\":\"stage.com.some.company.system\",\"topics\":{\"petCreated.v1\":{\"subscribe\":{\"summary\":\"test event\",\"payload\":{\"type\":\"object\",\"properties\":{\"pet\":{\"type\":\"object\",\"required\":[\"id\",\"name\"],\"example\":{\"id\":\"4caad296-e0c5-491e-98ac-0ed118f9474e\",\"category\":\"mammal\",\"name\":\"doggie\"},\"properties\":{\"id\":{\"title\":\"Id\",\"description\":\"Resource identifier\",\"type\":\"string\"},\"name\":{\"title\":\"Name\",\"description\":\"Pet name\",\"type\":\"string\"},\"category\":{\"title\":\"Category\",\"description\":\"Animal category\",\"type\":\"string\"}}}}}}}}}"),
+					},
+					Documentation: nil,
+				},
 			},
 			wantErr: false,
 		},
@@ -274,7 +289,7 @@ func TestKymaConnector_UpdateService(t *testing.T) {
 				SecureClient:     tt.fields.SecureClient,
 				StorageInterface: tt.fields.StorageInterface,
 			}
-			if err := c.UpdateService(tt.args.id, tt.args.apiDocs, tt.args.eventDocs); (err != nil) != tt.wantErr {
+			if err := c.UpdateService(tt.args.id, tt.args.serviceDescription); (err != nil) != tt.wantErr {
 				t.Errorf("UpdateService() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -321,7 +336,6 @@ func TestKymaConnector_DeleteService(t *testing.T) {
 				Ca: &types.ClientCertificate{
 					PrivateKey: "",
 					PublicKey:  "",
-					Csr:        "",
 				},
 				SecureClient: deleteServiceServer.Client(),
 			},
@@ -409,7 +423,6 @@ func TestKymaConnector_GetSecureClient(t *testing.T) {
 					"H4f9daIj0JuPM0z0zcrPQKgkiKn4Evn81xmKfrDs+2+YHxe8igWwbFnheLlDKOOU\n" +
 					"56q/TqpSCnYK7yQf2S/0KeaJ3w==\n" +
 					"-----END CERTIFICATE-----\n",
-				Csr: "test",
 			}},
 			wantErr: false,
 		},
@@ -428,8 +441,8 @@ func TestKymaConnector_GetSecureClient(t *testing.T) {
 	}
 }
 
-func TestKymaConnector_AddEvent(t *testing.T) {
-	addEventServer := addEventServer(t)
+func TestKymaConnector_SendEvent(t *testing.T) {
+	sendEventServer := sendEventServer(t)
 	type fields struct {
 		CsrInfo      *types.CSRInfo
 		AppName      string
@@ -446,13 +459,13 @@ func TestKymaConnector_AddEvent(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "testAddEvent",
+			name: "testSendEvent",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{
 					CSRUrl: "test.com/csrurl",
 					API: &types.API{
 						MetadataUrl:     "test.com/metadataurl",
-						EventsUrl:       addEventServer.URL,
+						EventsUrl:       sendEventServer.URL,
 						EventsInfoUrl:   "test.com/eventsinfourl",
 						InfoUrl:         "test.com/infourl",
 						CertificatesUrl: "test.com/certificatesurl",
@@ -467,9 +480,8 @@ func TestKymaConnector_AddEvent(t *testing.T) {
 				Ca: &types.ClientCertificate{
 					PrivateKey: "",
 					PublicKey:  "",
-					Csr:        "",
 				},
-				SecureClient: addEventServer.Client(),
+				SecureClient: sendEventServer.Client(),
 			},
 			args:    args{},
 			wantErr: false,
@@ -482,8 +494,8 @@ func TestKymaConnector_AddEvent(t *testing.T) {
 				Ca:           tt.fields.Ca,
 				SecureClient: tt.fields.SecureClient,
 			}
-			if err := c.AddEvent(tt.args.event); (err != nil) != tt.wantErr {
-				t.Errorf("AddEvent() error = %v, wantErr %v", err, tt.wantErr)
+			if err := c.SendEvent(tt.args.event); (err != nil) != tt.wantErr {
+				t.Errorf("SendEvent() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -590,7 +602,6 @@ func TestGetKymaConnector(t *testing.T) {
 				Ca: &types.ClientCertificate{
 					PrivateKey: "testPrivateKey",
 					PublicKey:  "testPublicKey",
-					Csr:        "testCsr",
 				},
 				Info: &types.Info{
 					ClientIdentity: &types.ClientIdentity{AppName: "testApp"},
@@ -636,11 +647,24 @@ func TestKymaConnector_RenewCertificateSigningRequest(t *testing.T) {
 		{
 			name: "testRenewCertSignReq",
 			fields: fields{
-				CsrInfo: &types.CSRInfo{},
+				CsrInfo: &types.CSRInfo{
+					CSRUrl: "test.com/csrUrl",
+					API: &types.API{
+						MetadataUrl:     "test.com/metadataurl",
+						EventsUrl:       "test.com/eventsurl",
+						EventsInfoUrl:   "test.com/eventsinfourl",
+						InfoUrl:         "test.com/infourl",
+						CertificatesUrl: "test.com/certificatesurl",
+					},
+					Certificate: &types.Certificate{
+						Subject:      "O=Organization,OU=OrgUnit,L=Waldorf,ST=Waldorf,C=DE,CN=testApp",
+						Extensions:   "",
+						KeyAlgorithm: "rsa2048",
+					},
+				},
 				Ca: &types.ClientCertificate{
 					PrivateKey: "testPrivKey",
 					PublicKey:  "testPubKey",
-					Csr:        "testCsr",
 				},
 				Info: &types.Info{
 					ClientIdentity: &types.ClientIdentity{AppName: "testApp"},
@@ -697,7 +721,6 @@ func TestKymaConnector_RevokeCertificate(t *testing.T) {
 				Ca: &types.ClientCertificate{
 					PrivateKey: "testPrivKey",
 					PublicKey:  "testPubKey",
-					Csr:        "testCsr",
 				},
 				Info: &types.Info{
 					ClientIdentity: &types.ClientIdentity{AppName: "testApp"},
@@ -877,7 +900,7 @@ func updateServiceServer(t *testing.T) *httptest.Server {
 	return updateServiceServer
 }
 
-func addEventServer(t *testing.T) *httptest.Server {
+func sendEventServer(t *testing.T) *httptest.Server {
 	addEventServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		if r.Method != "POST" {

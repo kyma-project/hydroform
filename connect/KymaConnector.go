@@ -15,18 +15,12 @@ type KymaConnector struct {
 }
 
 type WriterInterface interface {
-	ReadFile(string) ([]byte, error)
-	ReadService(string) ([]byte, error)
-	ReadCSR() ([]byte, error)
-	WriteCSR([]byte) error
-	ReadCert() ([]byte, error)
-	WriteCert([]byte) error
-	ReadPrivateKey() ([]byte, error)
-	WritePrivateKey([]byte) error
-	ReadConfig() ([]byte, error)
-	WriteConfig([]byte) error
-	ReadInfo() ([]byte, error)
-	WriteInfo([]byte) error
+	ReadClientCert() (*types.ClientCertificate, error)
+	WriteClientCert(*types.ClientCertificate) error
+	ReadConfig() (*types.CSRInfo, error)
+	WriteConfig(*types.CSRInfo) error
+	ReadInfo() (*types.Info, error)
+	WriteInfo(*types.Info) error
 }
 
 // Service kyma service struct

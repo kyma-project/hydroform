@@ -36,7 +36,6 @@ func TestKymaConnector_populateCsrInfo(t *testing.T) {
 				Ca: &types.ClientCertificate{
 					PrivateKey: "",
 					PublicKey:  "",
-					Csr:        "",
 				},
 				SecureClient:     nil,
 				StorageInterface: mockWriter,
@@ -111,7 +110,7 @@ func TestKymaConnector_populateCsrInfo(t *testing.T) {
 				StorageInterface: tt.fields.StorageInterface,
 			}
 
-			err := c.populateCsrInfo(tt.args.configurationUrl)
+			_, err := c.populateCsrInfo(tt.args.configurationUrl)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("populateCsrInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -125,6 +124,9 @@ func TestKymaConnector_populateCsrInfo(t *testing.T) {
 }
 
 func TestKymaConnector_populateCertSigningRequest(t *testing.T) {
+	sendCsrToKymaServer := sendCsrToKymaServer(t)
+	defer sendCsrToKymaServer.Close()
+
 	type fields struct {
 		CsrInfo      *types.CSRInfo
 		AppName      string
@@ -140,7 +142,7 @@ func TestKymaConnector_populateCertSigningRequest(t *testing.T) {
 			name: "testPopulateCert",
 			fields: fields{
 				CsrInfo: &types.CSRInfo{
-					CSRUrl: "test.com/csrurl",
+					CSRUrl: sendCsrToKymaServer.URL,
 					API: &types.API{
 						MetadataUrl:     "test.com/metadataurl",
 						EventsUrl:       "test.com/eventsurl",
@@ -158,7 +160,6 @@ func TestKymaConnector_populateCertSigningRequest(t *testing.T) {
 				Ca: &types.ClientCertificate{
 					PrivateKey: "",
 					PublicKey:  "",
-					Csr:        "",
 				},
 				SecureClient: nil,
 			},
@@ -172,14 +173,12 @@ func TestKymaConnector_populateCertSigningRequest(t *testing.T) {
 				Ca:           tt.fields.Ca,
 				SecureClient: tt.fields.SecureClient,
 			}
-			if err := c.populateCertSigningRequest(); (err != nil) != tt.wantErr {
-				t.Errorf("populateCertSigningRequest() error = %v, wantErr %v", err, tt.wantErr)
+			if _, err := c.populateClientCert(); (err != nil) != tt.wantErr {
+				t.Errorf("populateClientCert() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !strings.HasPrefix(c.Ca.Csr, "-----BEGIN CERTIFICATE REQUEST-----") {
-				t.Errorf("populateCertSigningRequest() Invalid CSR: %v", c.Ca.Csr)
-			}
+
 			if !strings.HasPrefix(c.Ca.PrivateKey, "-----BEGIN RSA PRIVATE KEY-----") {
-				t.Errorf("populateCertSigningRequest() Invalid key: %v", c.Ca.PrivateKey)
+				t.Errorf("populateClientCert() Invalid key: %v", c.Ca.PrivateKey)
 			}
 		})
 	}
@@ -230,7 +229,6 @@ func TestKymaConnector_populateClientCert(t *testing.T) {
 				Ca: &types.ClientCertificate{
 					PrivateKey: "",
 					PublicKey:  "",
-					Csr:        "",
 				},
 				SecureClient: nil,
 			},
@@ -269,58 +267,12 @@ func TestKymaConnector_populateClientCert(t *testing.T) {
 				Ca:           tt.fields.Ca,
 				SecureClient: tt.fields.SecureClient,
 			}
-			if err := c.populateClientCert(); (err != nil) != tt.wantErr {
+			if _, err := c.populateClientCert(); (err != nil) != tt.wantErr {
 				t.Errorf("populateClientCert() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if c.Ca.PublicKey != tt.want {
 				t.Errorf("populateClientCert() got = %v, want = %v", c.Ca.PublicKey, tt.want)
-			}
-		})
-	}
-}
-
-func TestKymaConnector_persistCertificate(t *testing.T) {
-	mockWriter := &MockWriter{}
-	type fields struct {
-		CsrInfo          *types.CSRInfo
-		Ca               *types.ClientCertificate
-		Info             *types.Info
-		SecureClient     *http.Client
-		StorageInterface WriterInterface
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
-	}{
-		{
-			name: "testPersistCertificate",
-			fields: fields{
-				CsrInfo: &types.CSRInfo{},
-				Ca: &types.ClientCertificate{
-					PrivateKey: "testPrivKey",
-					PublicKey:  "testPubKey",
-					Csr:        "testCsr",
-				},
-				Info:             &types.Info{},
-				SecureClient:     nil,
-				StorageInterface: mockWriter,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &KymaConnector{
-				CsrInfo:          tt.fields.CsrInfo,
-				Ca:               tt.fields.Ca,
-				Info:             tt.fields.Info,
-				SecureClient:     tt.fields.SecureClient,
-				StorageInterface: tt.fields.StorageInterface,
-			}
-			if err := c.persistCertificate(); (err != nil) != tt.wantErr {
-				t.Errorf("persistCertificate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

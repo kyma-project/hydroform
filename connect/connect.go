@@ -2,6 +2,8 @@ package connect
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -15,17 +17,12 @@ import (
 
 func (c *KymaConnector) Connect(configurationUrl string) error {
 
-	err := c.populateCsrInfo(configurationUrl)
+	_, err := c.populateCsrInfo(configurationUrl)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
-	err = c.populateCertSigningRequest()
-	if err != nil {
-		return fmt.Errorf(err.Error())
-	}
-
-	err = c.populateClientCert()
+	_, err = c.populateClientCert()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -37,12 +34,12 @@ func (c *KymaConnector) Connect(configurationUrl string) error {
 		}
 	}
 
-	err = c.populateInfo()
+	_, err = c.populateInfo()
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
-	err = c.persistCertificate()
+	err = c.StorageInterface.WriteClientCert(c.Ca)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -50,58 +47,7 @@ func (c *KymaConnector) Connect(configurationUrl string) error {
 	return err
 }
 
-func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, serviceConfigPath string) (serviceId string, err error) {
-	serviceDescription := new(Service)
-
-	serviceDescription.Documentation = new(ServiceDocumentation)
-	serviceDescription.Documentation.DisplayName = "Kyma Service"
-	serviceDescription.Documentation.Description = "Default description"
-	serviceDescription.Documentation.Tags = []string{"Tag0", "Tag1"}
-	serviceDescription.Documentation.Type = "Service Type"
-
-	serviceDescription.Description = "Default API Description"
-	serviceDescription.ShortDescription = "Default API Short Description"
-
-	serviceDescription.Provider = "Default provider"
-	serviceDescription.Name = "Default service name"
-
-	if serviceConfigPath != "" {
-		serviceBytes, err := c.getRawJsonFromDoc(serviceConfigPath)
-		if err != nil {
-			return "", fmt.Errorf(err.Error())
-		}
-
-		err = json.Unmarshal(serviceBytes, serviceDescription)
-		if err != nil {
-			return "", fmt.Errorf(err.Error())
-		}
-
-		if err != nil {
-			return "", fmt.Errorf(err.Error())
-		}
-	}
-
-	if apiDocs != "" {
-		if serviceDescription.API == nil {
-			log.Println("No Service Description")
-			serviceDescription.API = new(ServiceAPI)
-			serviceDescription.API.TargetURL = "http://localhost:8080/"
-		}
-
-		serviceDescription.API.Spec, err = c.getRawJsonFromDoc(apiDocs)
-		if err != nil {
-			return "", fmt.Errorf(err.Error())
-		}
-	}
-
-	if eventDocs != "" {
-		serviceDescription.Events = new(ServiceEvent)
-		serviceDescription.Events.Spec, err = c.getRawJsonFromDoc(eventDocs)
-		if err != nil {
-			return "", err
-		}
-	}
-
+func (c *KymaConnector) RegisterService(serviceDescription Service) (serviceId string, err error) {
 	jsonBytes, err := json.Marshal(serviceDescription)
 	if err != nil {
 		return "", fmt.Errorf(err.Error())
@@ -111,13 +57,10 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 		return "", fmt.Errorf(err.Error())
 	}
 
-	//	client, err := c.GetSecureClient()
 	resp, err := c.SecureClient.Post(c.CsrInfo.API.MetadataUrl, "application/json", bytes.NewBuffer(jsonBytes))
-
 	if err != nil {
 		return "", fmt.Errorf(err.Error())
 	}
-
 	defer resp.Body.Close()
 
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
@@ -144,38 +87,7 @@ func (c *KymaConnector) RegisterService(apiDocs string, eventDocs string, servic
 	return id.Id, err
 }
 
-func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs string) error {
-	serviceDescription := new(Service)
-	serviceBytes, err := c.StorageInterface.ReadService(id)
-	if err != nil {
-		return fmt.Errorf(err.Error())
-	}
-
-	json.Unmarshal(serviceBytes, serviceDescription)
-	if err != nil {
-		return fmt.Errorf(err.Error())
-	}
-
-	if apiDocs != "" {
-		if serviceDescription.API == nil {
-			serviceDescription.API = new(ServiceAPI)
-			serviceDescription.API.TargetURL = "http://localhost:8080/"
-		}
-
-		serviceDescription.API.Spec, err = c.getRawJsonFromDoc(apiDocs)
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-
-	}
-
-	if eventDocs != "" {
-		serviceDescription.Events = new(ServiceEvent)
-		serviceDescription.Events.Spec, err = c.getRawJsonFromDoc(eventDocs)
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-	}
+func (c *KymaConnector) UpdateService(id string, serviceDescription Service) error {
 
 	jsonBytes, err := json.Marshal(serviceDescription)
 	if err != nil {
@@ -202,11 +114,11 @@ func (c *KymaConnector) UpdateService(id string, apiDocs string, eventDocs strin
 	} else {
 		return errors.New("failed to update service")
 	}
+
 	return err
 }
 
 func (c *KymaConnector) DeleteService(id string) error {
-
 	url := c.CsrInfo.API.MetadataUrl + "/" + id
 	req, _ := http.NewRequest("DELETE", url, nil)
 
@@ -225,7 +137,7 @@ func (c *KymaConnector) DeleteService(id string) error {
 	}
 }
 
-func (c *KymaConnector) AddEvent(event types.Event) error {
+func (c *KymaConnector) SendEvent(event types.Event) error {
 
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
@@ -309,12 +221,16 @@ func (c *KymaConnector) GetSecureClient() (*http.Client, error) {
 }
 
 func (c *KymaConnector) RenewCertificateSigningRequest() error {
+	keys, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
 
+	csr, err := c.getCsr(keys)
 	type csrStruct struct {
 		Csr string `json:"csr"`
 	}
-
-	encodedCsr := base64.StdEncoding.EncodeToString([]byte(c.Ca.Csr))
+	encodedCsr := base64.StdEncoding.EncodeToString(csr)
 
 	requestBody := csrStruct{
 		Csr: encodedCsr,
@@ -354,7 +270,7 @@ func (c *KymaConnector) RenewCertificateSigningRequest() error {
 
 	c.Ca.PublicKey = string(decodedCert)
 
-	c.persistCertificate()
+	c.StorageInterface.WriteClientCert(c.Ca)
 
 	return err
 }

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/kyma-incubator/hydroform/connect"
+	"github.com/kyma-incubator/hydroform/connect/types"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,7 +14,7 @@ func main() {
 
 	storeObj := store{}
 	c := connect.GetKymaConnector(storeObj)
-	configUrl := "https://connector-service.kyma.cuzqfh0pmp.i317204kym.shoot.canary.k8s-hana.ondemand.com/v1/applications/signingRequests/info?token=E3dRK_QDz2V4MRphKgBJleNWlyZmzjbKuRX6CetSsNgSFKo_4HgX2MpqJWHFhuK1JcalPVQcmdb3dgbNbAcjmQ=="
+	configUrl := "https://connector-service.kyma.cuzqfh0pmp.i317204kym.shoot.canary.k8s-hana.ondemand.com/v1/applications/signingRequests/info?token=bdK9ob26ZHQN_C9byn6uk2ELUKSWORc8A6BniEmFZes60sP6BOLoArMCE8DbhHpkDDhOwpT8jisd3yUvtexoug=="
 
 	err := c.Connect(configUrl)
 
@@ -20,83 +22,93 @@ func main() {
 		log.Print(err.Error())
 		return
 	}
+
 }
 
 type store struct{}
 
-func (s store) ReadFile(filename string) ([]byte, error) {
-	_, err := os.Stat(filename)
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
-	}
-	return ioutil.ReadFile(filename)
-}
+func (s store) ReadConfig() (*types.CSRInfo, error) {
 
-func (s store) ReadService(serviceId string) ([]byte, error) {
-	path := serviceId + ".json"
-	_, err := os.Stat(path)
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
-	}
-	return ioutil.ReadFile(path)
-}
-
-func (s store) ReadCSR() ([]byte, error) {
-	_, err := os.Stat("generated.csr")
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
-	}
-	return ioutil.ReadFile("generated.csr")
-}
-
-func (s store) WriteCSR(data []byte) error {
-	return ioutil.WriteFile("generated.csr", data, 0644)
-}
-
-func (s store) ReadCert() ([]byte, error) {
-	_, err := os.Stat("generated.crt")
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
-	}
-	return ioutil.ReadFile("generated.crt")
-}
-
-func (s store) WriteCert(data []byte) error {
-	return ioutil.WriteFile("generated.crt", data, 0644)
-}
-
-func (s store) ReadPrivateKey() ([]byte, error) {
-	_, err := os.Stat("generated.key")
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
-	}
-	return ioutil.ReadFile("generated.key")
-}
-
-func (s store) WritePrivateKey(data []byte) error {
-	return ioutil.WriteFile("generated.key", data, 0644)
-}
-
-func (s store) ReadConfig() ([]byte, error) {
+	config := &types.CSRInfo{}
 	_, err := os.Stat("config.json")
 	if err != nil {
 		return nil, fmt.Errorf(err.Error())
 	}
-	return ioutil.ReadFile("config.json")
+	configBytes, err := ioutil.ReadFile("config.json")
+	if err != nil {
+		return nil, fmt.Errorf(err.Error())
+	}
+	err = json.Unmarshal(configBytes, config)
+	if err != nil {
+		return nil, fmt.Errorf(err.Error())
+	}
+
+	return config, err
 }
 
-func (s store) WriteConfig(data []byte) error {
-	return ioutil.WriteFile("config.json", data, 0644)
+func (s store) WriteConfig(config *types.CSRInfo) error {
+	configBytes, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+	return ioutil.WriteFile("config.json", configBytes, 0644)
 }
 
-func (s store) ReadInfo() ([]byte, error) {
+func (s store) ReadInfo() (*types.Info, error) {
+	info := &types.Info{}
 	_, err := os.Stat("info.json")
 	if err != nil {
 		return nil, fmt.Errorf(err.Error())
 	}
-	return ioutil.ReadFile("info.json")
+	infoBytes, err := ioutil.ReadFile("info.json")
+	if err != nil {
+		return nil, fmt.Errorf(err.Error())
+	}
+	err = json.Unmarshal(infoBytes, info)
+	if err != nil {
+		return nil, fmt.Errorf(err.Error())
+	}
+	return info, err
 }
 
-func (s store) WriteInfo(data []byte) error {
-	return ioutil.WriteFile("info.json", data, 0644)
+func (s store) WriteInfo(info *types.Info) error {
+	infoBytes, err := json.Marshal(info)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+	return ioutil.WriteFile("info.json", infoBytes, 0644)
+}
+
+func (s store) ReadClientCert() (*types.ClientCertificate, error) {
+
+	cert := &types.ClientCertificate{}
+	_, err := os.Stat("generated.crt")
+	if err != nil {
+		return nil, fmt.Errorf(err.Error())
+	}
+	publicKey, err := ioutil.ReadFile("generated.crt")
+	cert.PublicKey = string(publicKey[:])
+
+	_, err = os.Stat("generated.key")
+	if err != nil {
+		return nil, fmt.Errorf(err.Error())
+	}
+	privateKey, err := ioutil.ReadFile("generated.crt")
+	cert.PrivateKey = string(privateKey[:])
+
+	return cert, err
+
+}
+
+func (s store) WriteClientCert(cert *types.ClientCertificate) error {
+	err := ioutil.WriteFile("generated.crt", []byte(cert.PublicKey), 0644)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	err = ioutil.WriteFile("generated.key", []byte(cert.PrivateKey), 0644)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+	return err
 }
