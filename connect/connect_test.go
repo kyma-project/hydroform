@@ -432,8 +432,7 @@ func TestKymaConnector_GetSecureClient(t *testing.T) {
 			c := &KymaConnector{
 				Ca: tt.fields.Ca,
 			}
-			_, err := c.GetSecureClient()
-			if (err != nil) != tt.wantErr {
+			if _, err := c.GetSecureClient(); (err != nil) != tt.wantErr {
 				t.Errorf("GetSecureClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
@@ -762,12 +761,9 @@ func sendCsrToKymaServer(t *testing.T) *httptest.Server {
 		reqJson, err := ioutil.ReadAll(r.Body)
 
 		csrResponse := types.CSRResponse{}
-		err = json.Unmarshal(reqJson, &csrResponse)
-
-		if err != nil {
+		if err := json.Unmarshal(reqJson, &csrResponse); err != nil {
 			t.Errorf("Unexpected error in parsing JSON ")
 		}
-		//fmt.Print(csrResponse)
 
 		crtResponse := types.CRTResponse{
 			CRT:       "crtEncoded",
@@ -949,12 +945,9 @@ func renewCertServer(t *testing.T) *httptest.Server {
 		reqJson, err := ioutil.ReadAll(r.Body)
 
 		csrResponse := types.CSRResponse{}
-		err = json.Unmarshal(reqJson, &csrResponse)
-
-		if err != nil {
+		if err := json.Unmarshal(reqJson, &csrResponse); err != nil {
 			t.Errorf("Unexpected error in parsing JSON ")
 		}
-		//fmt.Print(csrResponse)
 
 		crtResponse := types.CRTResponse{
 			CRT:       "crtEncoded",
