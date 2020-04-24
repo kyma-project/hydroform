@@ -25,7 +25,7 @@ type WriterInterface interface {
 
 // Service kyma service struct
 type Service struct {
-	id               string
+	Id               string
 	Provider         string                `json:"provider,omitempty"`
 	Name             string                `json:"name,omitempty"`
 	Description      string                `json:"description,omitempty"`

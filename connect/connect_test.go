@@ -178,7 +178,7 @@ func TestKymaConnector_RegisterService(t *testing.T) {
 			},
 			args: args{
 				serviceDescription: Service{
-					id:               "testService",
+					Id:               "testService",
 					Provider:         "testProvider",
 					Name:             "servTest",
 					Description:      "desc",
@@ -205,7 +205,7 @@ func TestKymaConnector_RegisterService(t *testing.T) {
 				SecureClient:     tt.fields.SecureClient,
 				StorageInterface: tt.fields.StorageInterface,
 			}
-			if _, err := c.RegisterService(tt.args.serviceDescription); (err != nil) != tt.wantErr {
+			if _, err := c.RegisterService(&tt.args.serviceDescription); (err != nil) != tt.wantErr {
 				t.Errorf("RegisterService() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -262,7 +262,7 @@ func TestKymaConnector_UpdateService(t *testing.T) {
 			args: args{
 				id: "testService",
 				serviceDescription: Service{
-					id:               "testService",
+					Id:               "testService",
 					Provider:         "testProvider",
 					Name:             "servTest",
 					Description:      "desc",
@@ -289,7 +289,7 @@ func TestKymaConnector_UpdateService(t *testing.T) {
 				SecureClient:     tt.fields.SecureClient,
 				StorageInterface: tt.fields.StorageInterface,
 			}
-			if err := c.UpdateService(tt.args.id, tt.args.serviceDescription); (err != nil) != tt.wantErr {
+			if err := c.UpdateService(tt.args.id, &tt.args.serviceDescription); (err != nil) != tt.wantErr {
 				t.Errorf("UpdateService() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

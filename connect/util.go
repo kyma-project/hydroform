@@ -94,6 +94,9 @@ func (c *KymaConnector) populateInfo() (*types.Info, error) {
 func (c *KymaConnector) populateClientCert() (*types.ClientCertificate, error) {
 
 	certificate := &types.ClientCertificate{}
+	if c.Ca == nil {
+		c.Ca = certificate
+	}
 
 	keys, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -161,25 +164,16 @@ func (c *KymaConnector) populateClientCert() (*types.ClientCertificate, error) {
 }
 
 func (c *KymaConnector) populateClient() (err error) {
-	c.SecureClient, err = c.GetSecureClient()
+	if c.Ca != nil {
+		c.SecureClient, err = c.GetSecureClient()
+	}
 	return err
 }
 
 func (c *KymaConnector) loadConfig() (err error) {
 	c.CsrInfo, err = c.StorageInterface.ReadConfig()
-	if err != nil {
-		return fmt.Errorf(err.Error())
-	}
-
 	c.Info, err = c.StorageInterface.ReadInfo()
-	if err != nil {
-		return fmt.Errorf(err.Error())
-	}
-
 	c.Ca, err = c.StorageInterface.ReadClientCert()
-	if err != nil {
-		return fmt.Errorf(err.Error())
-	}
 
 	return err
 }

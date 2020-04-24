@@ -47,7 +47,7 @@ func (c *KymaConnector) Connect(configurationUrl string) error {
 	return err
 }
 
-func (c *KymaConnector) RegisterService(serviceDescription Service) (serviceId string, err error) {
+func (c *KymaConnector) RegisterService(serviceDescription *Service) (serviceId string, err error) {
 	jsonBytes, err := json.Marshal(serviceDescription)
 	if err != nil {
 		return "", fmt.Errorf(err.Error())
@@ -87,7 +87,7 @@ func (c *KymaConnector) RegisterService(serviceDescription Service) (serviceId s
 	return id.Id, err
 }
 
-func (c *KymaConnector) UpdateService(id string, serviceDescription Service) error {
+func (c *KymaConnector) UpdateService(id string, serviceDescription *Service) error {
 
 	jsonBytes, err := json.Marshal(serviceDescription)
 	if err != nil {
