@@ -17,8 +17,7 @@ import (
 
 func (c *KymaConnector) Connect(configurationUrl string) error {
 
-	_, err := c.populateCsrInfo(configurationUrl)
-	if err != nil {
+	if _, err := c.populateCsrInfo(configurationUrl); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
