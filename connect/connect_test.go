@@ -78,11 +78,11 @@ func TestKymaConnector_Connect(t *testing.T) {
 
 	mockWriter := &MockWriter{}
 	type fields struct {
-		CsrInfo          *types.CSRInfo
-		Ca               *types.ClientCertificate
-		Info             *types.Info
-		SecureClient     *http.Client
-		StorageInterface StorageProvider
+		CsrInfo      *types.CSRInfo
+		Ca           *types.ClientCertificate
+		Info         *types.Info
+		SecureClient *http.Client
+		Storage      StorageProvider
 	}
 	type args struct {
 		configurationUrl string
@@ -106,8 +106,8 @@ func TestKymaConnector_Connect(t *testing.T) {
 					ClientIdentity: &types.ClientIdentity{},
 					URLs:           &types.URLs{},
 				},
-				SecureClient:     getCsrInfoServer.Client(),
-				StorageInterface: mockWriter,
+				SecureClient: getCsrInfoServer.Client(),
+				Storage:      mockWriter,
 			},
 			args:    args{configurationUrl: getCsrInfoServer.URL},
 			wantErr: false,
@@ -116,11 +116,11 @@ func TestKymaConnector_Connect(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &KymaConnector{
-				CsrInfo:          tt.fields.CsrInfo,
-				Ca:               tt.fields.Ca,
-				Info:             tt.fields.Info,
-				SecureClient:     tt.fields.SecureClient,
-				StorageInterface: tt.fields.StorageInterface,
+				CsrInfo:      tt.fields.CsrInfo,
+				Ca:           tt.fields.Ca,
+				Info:         tt.fields.Info,
+				SecureClient: tt.fields.SecureClient,
+				Storage:      tt.fields.Storage,
 			}
 			if err := c.Connect(tt.args.configurationUrl); (err != nil) != tt.wantErr {
 				t.Errorf("Connect() error = %v, wantErr %v", err, tt.wantErr)
@@ -135,11 +135,11 @@ func TestKymaConnector_RegisterService(t *testing.T) {
 
 	registerServiceServer := registerServiceServer(t)
 	type fields struct {
-		CsrInfo          *types.CSRInfo
-		AppName          string
-		Ca               *types.ClientCertificate
-		SecureClient     *http.Client
-		StorageInterface StorageProvider
+		CsrInfo      *types.CSRInfo
+		AppName      string
+		Ca           *types.ClientCertificate
+		SecureClient *http.Client
+		Storage      StorageProvider
 	}
 	type args struct {
 		serviceDescription Service
@@ -173,8 +173,8 @@ func TestKymaConnector_RegisterService(t *testing.T) {
 					PrivateKey: "",
 					PublicKey:  "",
 				},
-				SecureClient:     registerServiceServer.Client(),
-				StorageInterface: mockWriter,
+				SecureClient: registerServiceServer.Client(),
+				Storage:      mockWriter,
 			},
 			args: args{
 				serviceDescription: Service{
@@ -200,10 +200,10 @@ func TestKymaConnector_RegisterService(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &KymaConnector{
-				CsrInfo:          tt.fields.CsrInfo,
-				Ca:               tt.fields.Ca,
-				SecureClient:     tt.fields.SecureClient,
-				StorageInterface: tt.fields.StorageInterface,
+				CsrInfo:      tt.fields.CsrInfo,
+				Ca:           tt.fields.Ca,
+				SecureClient: tt.fields.SecureClient,
+				Storage:      tt.fields.Storage,
 			}
 			if _, err := c.RegisterService(&tt.args.serviceDescription); (err != nil) != tt.wantErr {
 				t.Errorf("RegisterService() error = %v, wantErr %v", err, tt.wantErr)
@@ -217,11 +217,11 @@ func TestKymaConnector_UpdateService(t *testing.T) {
 	mockWriter := &MockWriter{}
 	updateServiceServer := updateServiceServer(t)
 	type fields struct {
-		CsrInfo          *types.CSRInfo
-		AppName          string
-		Ca               *types.ClientCertificate
-		SecureClient     *http.Client
-		StorageInterface StorageProvider
+		CsrInfo      *types.CSRInfo
+		AppName      string
+		Ca           *types.ClientCertificate
+		SecureClient *http.Client
+		Storage      StorageProvider
 	}
 	type args struct {
 		id                 string
@@ -256,8 +256,8 @@ func TestKymaConnector_UpdateService(t *testing.T) {
 					PrivateKey: "",
 					PublicKey:  "",
 				},
-				SecureClient:     updateServiceServer.Client(),
-				StorageInterface: mockWriter,
+				SecureClient: updateServiceServer.Client(),
+				Storage:      mockWriter,
 			},
 			args: args{
 				id: "testService",
@@ -284,10 +284,10 @@ func TestKymaConnector_UpdateService(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &KymaConnector{
-				CsrInfo:          tt.fields.CsrInfo,
-				Ca:               tt.fields.Ca,
-				SecureClient:     tt.fields.SecureClient,
-				StorageInterface: tt.fields.StorageInterface,
+				CsrInfo:      tt.fields.CsrInfo,
+				Ca:           tt.fields.Ca,
+				SecureClient: tt.fields.SecureClient,
+				Storage:      tt.fields.Storage,
 			}
 			if err := c.UpdateService(tt.args.id, &tt.args.serviceDescription); (err != nil) != tt.wantErr {
 				t.Errorf("UpdateService() error = %v, wantErr %v", err, tt.wantErr)
@@ -503,11 +503,11 @@ func TestKymaConnector_SendEvent(t *testing.T) {
 func TestKymaConnector_GetSubscribedEvents(t *testing.T) {
 	eventsInfoServer := getEventsInfoServer(t)
 	type fields struct {
-		CsrInfo          *types.CSRInfo
-		Ca               *types.ClientCertificate
-		Info             *types.Info
-		SecureClient     *http.Client
-		StorageInterface StorageProvider
+		CsrInfo      *types.CSRInfo
+		Ca           *types.ClientCertificate
+		Info         *types.Info
+		SecureClient *http.Client
+		Storage      StorageProvider
 	}
 	tests := []struct {
 		name    string
@@ -533,10 +533,10 @@ func TestKymaConnector_GetSubscribedEvents(t *testing.T) {
 						KeyAlgorithm: "rsa2048",
 					},
 				},
-				Ca:               nil,
-				Info:             nil,
-				SecureClient:     eventsInfoServer.Client(),
-				StorageInterface: nil,
+				Ca:           nil,
+				Info:         nil,
+				SecureClient: eventsInfoServer.Client(),
+				Storage:      nil,
 			},
 			want: []types.EventResponse{{
 				Name:    "event1",
@@ -551,11 +551,11 @@ func TestKymaConnector_GetSubscribedEvents(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &KymaConnector{
-				CsrInfo:          tt.fields.CsrInfo,
-				Ca:               tt.fields.Ca,
-				Info:             tt.fields.Info,
-				SecureClient:     tt.fields.SecureClient,
-				StorageInterface: tt.fields.StorageInterface,
+				CsrInfo:      tt.fields.CsrInfo,
+				Ca:           tt.fields.Ca,
+				Info:         tt.fields.Info,
+				SecureClient: tt.fields.SecureClient,
+				Storage:      tt.fields.Storage,
 			}
 			got, err := c.GetSubscribedEvents()
 			if (err != nil) != tt.wantErr {
@@ -611,8 +611,8 @@ func TestGetKymaConnector(t *testing.T) {
 						RevokeCertUrl: "test.com/revokecerturl",
 					},
 				},
-				SecureClient:     nil,
-				StorageInterface: mockWriter,
+				SecureClient: nil,
+				Storage:      mockWriter,
 			},
 		},
 	}
@@ -632,11 +632,11 @@ func TestKymaConnector_RenewCertificateSigningRequest(t *testing.T) {
 	mockWriter := &MockWriter{}
 
 	type fields struct {
-		CsrInfo          *types.CSRInfo
-		Ca               *types.ClientCertificate
-		Info             *types.Info
-		SecureClient     *http.Client
-		StorageInterface StorageProvider
+		CsrInfo      *types.CSRInfo
+		Ca           *types.ClientCertificate
+		Info         *types.Info
+		SecureClient *http.Client
+		Storage      StorageProvider
 	}
 	tests := []struct {
 		name    string
@@ -674,8 +674,8 @@ func TestKymaConnector_RenewCertificateSigningRequest(t *testing.T) {
 						RevokeCertUrl: "test.com/revokecerturl",
 					},
 				},
-				SecureClient:     renewCertServer.Client(),
-				StorageInterface: mockWriter,
+				SecureClient: renewCertServer.Client(),
+				Storage:      mockWriter,
 			},
 			wantErr: false,
 		},
@@ -683,11 +683,11 @@ func TestKymaConnector_RenewCertificateSigningRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &KymaConnector{
-				CsrInfo:          tt.fields.CsrInfo,
-				Ca:               tt.fields.Ca,
-				Info:             tt.fields.Info,
-				SecureClient:     tt.fields.SecureClient,
-				StorageInterface: tt.fields.StorageInterface,
+				CsrInfo:      tt.fields.CsrInfo,
+				Ca:           tt.fields.Ca,
+				Info:         tt.fields.Info,
+				SecureClient: tt.fields.SecureClient,
+				Storage:      tt.fields.Storage,
 			}
 			if err := c.RenewCertificateSigningRequest(); (err != nil) != tt.wantErr {
 				t.Errorf("RenewCertificateSigningRequest() error = %v, wantErr %v", err, tt.wantErr)
@@ -702,11 +702,11 @@ func TestKymaConnector_RevokeCertificate(t *testing.T) {
 
 	mockWriter := &MockWriter{}
 	type fields struct {
-		CsrInfo          *types.CSRInfo
-		Ca               *types.ClientCertificate
-		Info             *types.Info
-		SecureClient     *http.Client
-		StorageInterface StorageProvider
+		CsrInfo      *types.CSRInfo
+		Ca           *types.ClientCertificate
+		Info         *types.Info
+		SecureClient *http.Client
+		Storage      StorageProvider
 	}
 	tests := []struct {
 		name    string
@@ -730,8 +730,8 @@ func TestKymaConnector_RevokeCertificate(t *testing.T) {
 						RevokeCertUrl: revokeCertServer.URL,
 					},
 				},
-				SecureClient:     revokeCertServer.Client(),
-				StorageInterface: mockWriter,
+				SecureClient: revokeCertServer.Client(),
+				Storage:      mockWriter,
 			},
 			wantErr: false,
 		},
@@ -739,11 +739,11 @@ func TestKymaConnector_RevokeCertificate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &KymaConnector{
-				CsrInfo:          tt.fields.CsrInfo,
-				Ca:               tt.fields.Ca,
-				Info:             tt.fields.Info,
-				SecureClient:     tt.fields.SecureClient,
-				StorageInterface: tt.fields.StorageInterface,
+				CsrInfo:      tt.fields.CsrInfo,
+				Ca:           tt.fields.Ca,
+				Info:         tt.fields.Info,
+				SecureClient: tt.fields.SecureClient,
+				Storage:      tt.fields.Storage,
 			}
 			if err := c.RevokeCertificate(); (err != nil) != tt.wantErr {
 				t.Errorf("RevokeCertificate() error = %v, wantErr %v", err, tt.wantErr)

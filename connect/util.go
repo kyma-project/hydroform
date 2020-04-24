@@ -49,7 +49,7 @@ func (c *KymaConnector) populateCsrInfo(configurationUrl string) (*types.CSRInfo
 	}
 
 	c.CsrInfo = &csrInfo
-	if err := c.StorageInterface.WriteConfig(&csrInfo); err != nil {
+	if err := c.Storage.WriteConfig(&csrInfo); err != nil {
 		return nil, err
 	}
 
@@ -83,7 +83,7 @@ func (c *KymaConnector) populateInfo() (*types.Info, error) {
 	}
 
 	c.Info = &info
-	if err := c.StorageInterface.WriteInfo(&info); err != nil {
+	if err := c.Storage.WriteInfo(&info); err != nil {
 		return nil, err
 	}
 
@@ -176,16 +176,16 @@ func (c *KymaConnector) populateClient() (err error) {
 func (c *KymaConnector) loadConfig() {
 	err := errors.New("")
 
-	c.CsrInfo, err = c.StorageInterface.ReadConfig()
+	c.CsrInfo, err = c.Storage.ReadConfig()
 	if err != nil {
 		log.Printf("Could not find existing config stored")
 	}
-	c.Info, err = c.StorageInterface.ReadInfo()
+	c.Info, err = c.Storage.ReadInfo()
 	if err != nil {
 		log.Printf("Could not find existing info stored")
 	}
 
-	c.Ca, err = c.StorageInterface.ReadClientCert()
+	c.Ca, err = c.Storage.ReadClientCert()
 	if err != nil {
 		log.Printf("Could not find existing certificates stored")
 	}

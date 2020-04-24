@@ -7,11 +7,11 @@ import (
 )
 
 type KymaConnector struct {
-	CsrInfo          *types.CSRInfo
-	Ca               *types.ClientCertificate
-	Info             *types.Info
-	SecureClient     *http.Client
-	StorageInterface StorageProvider
+	CsrInfo      *types.CSRInfo
+	Ca           *types.ClientCertificate
+	Info         *types.Info
+	SecureClient *http.Client
+	Storage      StorageProvider
 }
 
 type StorageProvider interface {

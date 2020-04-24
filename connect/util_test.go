@@ -12,11 +12,11 @@ func TestKymaConnector_populateCsrInfo(t *testing.T) {
 	mockWriter := &MockWriter{}
 	getCsrInfoServer := getCsrInfoServer(t, "test.com/csrurl", "test.com/infourl")
 	type fields struct {
-		CsrInfo          *types.CSRInfo
-		AppName          string
-		Ca               *types.ClientCertificate
-		SecureClient     *http.Client
-		StorageInterface StorageProvider
+		CsrInfo      *types.CSRInfo
+		AppName      string
+		Ca           *types.ClientCertificate
+		SecureClient *http.Client
+		Storage      StorageProvider
 	}
 	type args struct {
 		configurationUrl string
@@ -37,8 +37,8 @@ func TestKymaConnector_populateCsrInfo(t *testing.T) {
 					PrivateKey: "",
 					PublicKey:  "",
 				},
-				SecureClient:     nil,
-				StorageInterface: mockWriter,
+				SecureClient: nil,
+				Storage:      mockWriter,
 			},
 			args: args{configurationUrl: getCsrInfoServer.URL},
 			want: &types.CSRInfo{
@@ -66,10 +66,10 @@ func TestKymaConnector_populateCsrInfo(t *testing.T) {
 					API:         nil,
 					Certificate: nil,
 				},
-				AppName:          "",
-				Ca:               nil,
-				SecureClient:     nil,
-				StorageInterface: mockWriter,
+				AppName:      "",
+				Ca:           nil,
+				SecureClient: nil,
+				Storage:      mockWriter,
 			},
 			args: args{configurationUrl: "incorrectConfigurationUrl"},
 			want: &types.CSRInfo{
@@ -87,10 +87,10 @@ func TestKymaConnector_populateCsrInfo(t *testing.T) {
 					API:         nil,
 					Certificate: nil,
 				},
-				AppName:          "",
-				Ca:               nil,
-				SecureClient:     nil,
-				StorageInterface: mockWriter,
+				AppName:      "",
+				Ca:           nil,
+				SecureClient: nil,
+				Storage:      mockWriter,
 			},
 			args: args{configurationUrl: ""},
 			want: &types.CSRInfo{
@@ -104,10 +104,10 @@ func TestKymaConnector_populateCsrInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &KymaConnector{
-				CsrInfo:          tt.fields.CsrInfo,
-				Ca:               tt.fields.Ca,
-				SecureClient:     tt.fields.SecureClient,
-				StorageInterface: tt.fields.StorageInterface,
+				CsrInfo:      tt.fields.CsrInfo,
+				Ca:           tt.fields.Ca,
+				SecureClient: tt.fields.SecureClient,
+				Storage:      tt.fields.Storage,
 			}
 
 			_, err := c.populateCsrInfo(tt.args.configurationUrl)

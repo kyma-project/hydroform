@@ -34,7 +34,7 @@ func (c *KymaConnector) Connect(configurationUrl string) error {
 		return errors.Wrap(err, "Error trying to populate client info")
 	}
 
-	if err := c.StorageInterface.WriteClientCert(c.Ca); err != nil {
+	if err := c.Storage.WriteClientCert(c.Ca); err != nil {
 		return errors.Wrap(err, "Error trying to write certificate data")
 	}
 
@@ -187,10 +187,10 @@ func (c *KymaConnector) GetSubscribedEvents() ([]types.EventResponse, error) {
 
 func GetKymaConnector(writerInterface StorageProvider) *KymaConnector {
 	c := &KymaConnector{
-		CsrInfo:          &types.CSRInfo{},
-		Ca:               &types.ClientCertificate{},
-		Info:             &types.Info{},
-		StorageInterface: writerInterface,
+		CsrInfo: &types.CSRInfo{},
+		Ca:      &types.ClientCertificate{},
+		Info:    &types.Info{},
+		Storage: writerInterface,
 	}
 
 	c.loadConfig()
@@ -269,7 +269,7 @@ func (c *KymaConnector) RenewCertificateSigningRequest() error {
 
 	c.Ca.PublicKey = string(decodedCert)
 
-	if err := c.StorageInterface.WriteClientCert(c.Ca); err != nil {
+	if err := c.Storage.WriteClientCert(c.Ca); err != nil {
 		return errors.Wrap(err, "Error trying to write certificate data")
 	}
 
