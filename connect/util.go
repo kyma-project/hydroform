@@ -9,86 +9,85 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"github.com/kyma-incubator/hydroform/connect/types"
+	"github.com/pkg/errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
 func (c *KymaConnector) populateCsrInfo(configurationUrl string) (*types.CSRInfo, error) {
-	url, _ := url.Parse(configurationUrl)
+	url, err := url.Parse(configurationUrl)
+	if err != nil {
+		return nil, err
+	}
 
 	resp, err := http.Get(url.String())
-
 	if err != nil {
-		return nil, fmt.Errorf("error trying to get CSR Information : '%s'", err.Error())
+		return nil, err
 	}
+
 	if resp == nil {
-		return nil, fmt.Errorf("did not recieve a response from configuration URL : '%s'", url)
+		return nil, errors.New("Did not receive a response from the config URL")
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("recieved non OK status code from configuration URL : '%s'", url)
+		return nil, errors.New("Received invalid response from config URL")
 	}
 
 	//unmarshal response json and store in csrInfo
 	response, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error trying to parse JSON : '%s'", err.Error())
+		return nil, err
 	}
 
 	csrInfo := types.CSRInfo{}
-	err = json.Unmarshal(response, &csrInfo)
-	if err != nil {
-		return nil, fmt.Errorf("error trying to get CSR Information : '%s'", err.Error())
+	if err := json.Unmarshal(response, &csrInfo); err != nil {
+		return nil, err
 	}
 
 	c.CsrInfo = &csrInfo
-	err = c.StorageInterface.WriteConfig(&csrInfo)
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+	if err := c.StorageInterface.WriteConfig(&csrInfo); err != nil {
+		return nil, err
 	}
 
-	return &csrInfo, err
+	return &csrInfo, nil
 }
 
 func (c *KymaConnector) populateInfo() (*types.Info, error) {
 
 	resp, err := c.SecureClient.Get(c.CsrInfo.API.InfoUrl)
-
 	if err != nil {
-		return nil, fmt.Errorf("error trying to get info : '%s'", err.Error())
+		return nil, err
 	}
+
 	if resp == nil {
-		return nil, fmt.Errorf("did not recieve a response from info URL")
+		return nil, errors.New("Did not receive a response from info URL")
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("recieved non OK status code from info URL")
+		return nil, errors.New("Received invalid response from info URL")
 	}
 
 	//unmarshal response json and store in csrInfo
 	response, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error trying to parse JSON : '%s'", err.Error())
+		return nil, err
 	}
 
 	info := types.Info{}
-	err = json.Unmarshal(response, &info)
-	if err != nil {
-		return nil, fmt.Errorf("error trying to get CSR Information : '%s'", err.Error())
+	if err := json.Unmarshal(response, &info); err != nil {
+		return nil, err
 	}
 
 	c.Info = &info
-
-	err = c.StorageInterface.WriteInfo(&info)
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+	if err := c.StorageInterface.WriteInfo(&info); err != nil {
+		return nil, err
 	}
 
-	return &info, err
+	return &info, nil
 }
 
 func (c *KymaConnector) populateClientCert() (*types.ClientCertificate, error) {
@@ -100,15 +99,16 @@ func (c *KymaConnector) populateClientCert() (*types.ClientCertificate, error) {
 
 	keys, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
 	}
 
 	csr, err := c.getCsr(keys)
-	var privateKey bytes.Buffer
-	err = pem.Encode(&privateKey, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(keys)})
-
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
+	}
+	var privateKey bytes.Buffer
+	if err := pem.Encode(&privateKey, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(keys)}); err != nil {
+		return nil, err
 	}
 
 	c.Ca.PrivateKey = privateKey.String()
@@ -125,57 +125,70 @@ func (c *KymaConnector) populateClientCert() (*types.ClientCertificate, error) {
 
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
 	}
 	body := bytes.NewReader(payloadBytes)
 
 	req, err := http.NewRequest("POST", c.CsrInfo.CSRUrl, body)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
 	}
 	defer resp.Body.Close()
+
 	certificates, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
 	}
+
 	crtResponse := types.CRTResponse{}
-	err = json.Unmarshal(certificates, &crtResponse)
-	if err != nil {
-		return nil, fmt.Errorf("JSON Error")
+
+	if err = json.Unmarshal(certificates, &crtResponse); err != nil {
+		return nil, err
 	}
+
 	decodedCert, err := base64.StdEncoding.DecodeString(crtResponse.ClientCRT)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
-	}
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
 	}
 
 	c.Ca.PublicKey = string(decodedCert)
-
 	certificate.PublicKey = string(decodedCert)
-	return certificate, err
+
+	return certificate, nil
 }
 
 func (c *KymaConnector) populateClient() (err error) {
 	if c.Ca != nil {
 		c.SecureClient, err = c.GetSecureClient()
+		if err != nil {
+			return err
+		}
 	}
-	return err
+	return nil
 }
 
-func (c *KymaConnector) loadConfig() (err error) {
-	c.CsrInfo, err = c.StorageInterface.ReadConfig()
-	c.Info, err = c.StorageInterface.ReadInfo()
-	c.Ca, err = c.StorageInterface.ReadClientCert()
+func (c *KymaConnector) loadConfig() {
+	err := errors.New("")
 
-	return err
+	c.CsrInfo, err = c.StorageInterface.ReadConfig()
+	if err != nil {
+		log.Printf("Could not find existing config stored")
+	}
+	c.Info, err = c.StorageInterface.ReadInfo()
+	if err != nil {
+		log.Printf("Could not find existing info stored")
+	}
+
+	c.Ca, err = c.StorageInterface.ReadClientCert()
+	if err != nil {
+		log.Printf("Could not find existing certificates stored")
+	}
 }
 
 func (c *KymaConnector) getCsr(keys *rsa.PrivateKey) ([]byte, error) {
@@ -219,11 +232,11 @@ func (c *KymaConnector) getCsr(keys *rsa.PrivateKey) ([]byte, error) {
 
 	csrCertificate, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, keys)
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
 	}
 
 	return pem.EncodeToMemory(&pem.Block{
 		Type: "CERTIFICATE REQUEST", Bytes: csrCertificate,
-	}), err
+	}), nil
 
 }

@@ -7,4 +7,5 @@ require (
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/pkg/errors v0.9.1
 )

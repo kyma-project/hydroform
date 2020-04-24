@@ -16,7 +16,7 @@ func TestKymaConnector_populateCsrInfo(t *testing.T) {
 		AppName          string
 		Ca               *types.ClientCertificate
 		SecureClient     *http.Client
-		StorageInterface WriterInterface
+		StorageInterface StorageProvider
 	}
 	type args struct {
 		configurationUrl string

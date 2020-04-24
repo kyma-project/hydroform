@@ -7,9 +7,8 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"github.com/kyma-incubator/hydroform/connect/types"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,92 +17,89 @@ import (
 func (c *KymaConnector) Connect(configurationUrl string) error {
 
 	if _, err := c.populateCsrInfo(configurationUrl); err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to get CSR Information")
 	}
 
-	_, err = c.populateClientCert()
-	if err != nil {
-		return fmt.Errorf(err.Error())
+	if _, err := c.populateClientCert(); err != nil {
+		return errors.Wrap(err, "Error trying to populate client certificates")
 	}
 
 	if c.SecureClient == nil {
-		err = c.populateClient()
-		if err != nil {
-			return fmt.Errorf(err.Error())
+		if err := c.populateClient(); err != nil {
+			return errors.Wrap(err, "Error trying to populate secure client")
 		}
 	}
 
-	_, err = c.populateInfo()
-	if err != nil {
-		return fmt.Errorf(err.Error())
+	if _, err := c.populateInfo(); err != nil {
+		return errors.Wrap(err, "Error trying to populate client info")
 	}
 
-	err = c.StorageInterface.WriteClientCert(c.Ca)
-	if err != nil {
-		return fmt.Errorf(err.Error())
+	if err := c.StorageInterface.WriteClientCert(c.Ca); err != nil {
+		return errors.Wrap(err, "Error trying to write certificate data")
 	}
 
-	return err
+	return nil
 }
 
 func (c *KymaConnector) RegisterService(serviceDescription *Service) (serviceId string, err error) {
 	jsonBytes, err := json.Marshal(serviceDescription)
 	if err != nil {
-		return "", fmt.Errorf(err.Error())
+		return "", errors.Wrap(err, "Error trying to register service  - Invalid format for Service object")
 	}
 
 	if c.CsrInfo == nil || c.CsrInfo.API.MetadataUrl == "" {
-		return "", fmt.Errorf(err.Error())
+		return "", errors.New("Error trying to register service - Client config not populated")
 	}
 
 	resp, err := c.SecureClient.Post(c.CsrInfo.API.MetadataUrl, "application/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		return "", fmt.Errorf(err.Error())
+		return "", errors.Wrap(err, "Error trying to register service - HTTP client is not secure")
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, _ := ioutil.ReadAll(resp.Body)
-	bodyString := string(bodyBytes)
-
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf(err.Error())
+		return "", err
 	}
+	bodyString := string(bodyBytes)
 
 	if resp.StatusCode == http.StatusOK {
 		log.Printf("Successfully registered service with %s", bodyString)
 	} else {
-		return "", errors.New("Failed to register service")
+		return "", errors.New("Failed to register service - Invalid response from server")
 	}
 
 	id := &struct {
 		Id string `json: "id"`
 	}{}
 
-	err = json.Unmarshal(bodyBytes, id)
-	if err != nil {
-		return "", fmt.Errorf(err.Error())
+	if err := json.Unmarshal(bodyBytes, id); err != nil {
+		return "", errors.Wrap(err, "Error trying to register service - Invalid response from server")
 	}
-	return id.Id, err
+
+	return id.Id, nil
 }
 
 func (c *KymaConnector) UpdateService(id string, serviceDescription *Service) error {
 
 	jsonBytes, err := json.Marshal(serviceDescription)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to update service  - Invalid format for Service object")
 	}
 
 	if c.CsrInfo == nil || c.CsrInfo.API.MetadataUrl == "" {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to update service - Client config not populated")
 	}
 
-	url := c.CsrInfo.API.MetadataUrl + "/" + id
-	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(jsonBytes))
+	req, err := http.NewRequest("PUT", c.CsrInfo.API.MetadataUrl+"/"+id, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return errors.Wrap(err, "Error trying to update service")
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.SecureClient.Do(req)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to update service - HTTP client is not secure")
 	}
 
 	defer resp.Body.Close()
@@ -111,41 +107,43 @@ func (c *KymaConnector) UpdateService(id string, serviceDescription *Service) er
 	if resp.StatusCode == http.StatusOK {
 		log.Printf("Successfully updated service")
 	} else {
-		return errors.New("failed to update service")
+		return errors.New("Failed to update service - Invalid response from server")
 	}
 
-	return err
+	return nil
 }
 
 func (c *KymaConnector) DeleteService(id string) error {
-	url := c.CsrInfo.API.MetadataUrl + "/" + id
-	req, _ := http.NewRequest("DELETE", url, nil)
-
+	req, err := http.NewRequest("DELETE", c.CsrInfo.API.MetadataUrl+"/"+id, nil)
+	if err != nil {
+		return errors.Wrap(err, "Error trying to delete service")
+	}
 	resp, err := c.SecureClient.Do(req)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to delete service - HTTP client is not secure")
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNoContent {
 		log.Printf("Successfully deleted service")
-		return nil
 	} else {
-		return errors.New("failed to delete")
+		return errors.New("Error trying to delete service - Invalid response from server")
 	}
+
+	return nil
 }
 
 func (c *KymaConnector) SendEvent(event types.Event) error {
 
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to send event  - Invalid format for Event object")
 	}
-	resp, err := c.SecureClient.Post(c.CsrInfo.API.EventsUrl, "application/json", bytes.NewBuffer(eventBytes))
 
+	resp, err := c.SecureClient.Post(c.CsrInfo.API.EventsUrl, "application/json", bytes.NewBuffer(eventBytes))
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to send event")
 	}
 
 	defer resp.Body.Close()
@@ -153,31 +151,26 @@ func (c *KymaConnector) SendEvent(event types.Event) error {
 	if resp.StatusCode == http.StatusOK {
 		log.Printf("Successfully registered event")
 	} else {
-		return fmt.Errorf(err.Error())
+		return errors.New("Error trying to send event - Invalid response from server")
 	}
 
-	bodyBytes, _ := ioutil.ReadAll(resp.Body)
-
-	log.Print(string(bodyBytes))
-	if err != nil {
-		return fmt.Errorf(err.Error())
-	}
-	return err
+	return nil
 }
 
 func (c *KymaConnector) GetSubscribedEvents() ([]types.EventResponse, error) {
 
 	resp, err := c.SecureClient.Get(c.CsrInfo.API.EventsInfoUrl)
-
+	if err != nil {
+		return nil, errors.Wrap(err, "Error trying to get subscribed events")
+	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf(err.Error())
+		return nil, errors.New("Error trying to get subscribed events - Invalid response from server")
 	}
 
-	//unmarshal response json and store in csrInfo
 	response, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, errors.Wrap(err, "Error trying to get subscribed events")
 	}
 
 	type eventsInfoStruct struct {
@@ -185,11 +178,14 @@ func (c *KymaConnector) GetSubscribedEvents() ([]types.EventResponse, error) {
 	}
 
 	eventsInfoObj := eventsInfoStruct{}
-	err = json.Unmarshal(response, &eventsInfoObj)
-	return eventsInfoObj.EventsInfo, err
+	if err := json.Unmarshal(response, &eventsInfoObj); err != nil {
+		return nil, errors.Wrap(err, "Error trying to get subscribed events - Could not parse server response")
+	}
+
+	return eventsInfoObj.EventsInfo, nil
 }
 
-func GetKymaConnector(writerInterface WriterInterface) *KymaConnector {
+func GetKymaConnector(writerInterface StorageProvider) *KymaConnector {
 	c := &KymaConnector{
 		CsrInfo:          &types.CSRInfo{},
 		Ca:               &types.ClientCertificate{},
@@ -198,14 +194,16 @@ func GetKymaConnector(writerInterface WriterInterface) *KymaConnector {
 	}
 
 	c.loadConfig()
-	c.populateClient()
+	if err := c.populateClient(); err != nil {
+		log.Print("GetKymaConnector - Could not populate secure client")
+	}
 	return c
 }
 
 func (c *KymaConnector) GetSecureClient() (*http.Client, error) {
 	cert, err := tls.X509KeyPair([]byte(c.Ca.PublicKey), []byte(c.Ca.PrivateKey))
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
 	}
 
 	tlsConfig := &tls.Config{
@@ -222,10 +220,13 @@ func (c *KymaConnector) GetSecureClient() (*http.Client, error) {
 func (c *KymaConnector) RenewCertificateSigningRequest() error {
 	keys, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to renew certificate - Could not generate new rsa key")
 	}
 
 	csr, err := c.getCsr(keys)
+	if err != nil {
+		return errors.Wrap(err, "Error trying to renew certificate  - Could not generate new CSR")
+	}
 	type csrStruct struct {
 		Csr string `json:"csr"`
 	}
@@ -237,12 +238,12 @@ func (c *KymaConnector) RenewCertificateSigningRequest() error {
 
 	jsonBytes, err := json.Marshal(requestBody)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to renew certificate  - Invalid CSR")
 	}
 
 	resp, err := c.SecureClient.Post(c.Info.URLs.RenewCertUrl, "application/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to renew certificate")
 	}
 
 	defer resp.Body.Close()
@@ -250,34 +251,35 @@ func (c *KymaConnector) RenewCertificateSigningRequest() error {
 	if resp.StatusCode == http.StatusCreated {
 		log.Printf("Successfully renewed certificate")
 	} else {
-		return errors.New("Failed to renew certificate")
+		return errors.New("Error trying to renew certificate - Invalid response from server")
 	}
 
 	certificates, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to renew certificate")
 	}
 	crtResponse := types.CRTResponse{}
-	err = json.Unmarshal(certificates, &crtResponse)
-	if err != nil {
-		return fmt.Errorf("JSON Error")
+	if err := json.Unmarshal(certificates, &crtResponse); err != nil {
+		return errors.Wrap(err, "Error trying to renew certificate - Invalid response from server")
 	}
 	decodedCert, err := base64.StdEncoding.DecodeString(crtResponse.ClientCRT)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to decode certificate")
 	}
 
 	c.Ca.PublicKey = string(decodedCert)
 
-	c.StorageInterface.WriteClientCert(c.Ca)
+	if err := c.StorageInterface.WriteClientCert(c.Ca); err != nil {
+		return errors.Wrap(err, "Error trying to write certificate data")
+	}
 
-	return err
+	return nil
 }
 
 func (c *KymaConnector) RevokeCertificate() error {
 	resp, err := c.SecureClient.Post(c.Info.URLs.RevokeCertUrl, "application/json", nil)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return errors.Wrap(err, "Error trying to revoke certificate")
 	}
 
 	defer resp.Body.Close()
@@ -285,7 +287,8 @@ func (c *KymaConnector) RevokeCertificate() error {
 	if resp.StatusCode == http.StatusCreated {
 		log.Print("Successfully revoked certificate for client")
 	} else {
-		return errors.New("Error in trying to revoke certificate")
+		return errors.New("Error trying to revoke certificate - Invalid response from server")
 	}
-	return err
+
+	return nil
 }

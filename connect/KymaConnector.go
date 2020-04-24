@@ -11,10 +11,10 @@ type KymaConnector struct {
 	Ca               *types.ClientCertificate
 	Info             *types.Info
 	SecureClient     *http.Client
-	StorageInterface WriterInterface
+	StorageInterface StorageProvider
 }
 
-type WriterInterface interface {
+type StorageProvider interface {
 	ReadClientCert() (*types.ClientCertificate, error)
 	WriteClientCert(*types.ClientCertificate) error
 	ReadConfig() (*types.CSRInfo, error)

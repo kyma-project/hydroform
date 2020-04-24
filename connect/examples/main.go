@@ -2,10 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/kyma-incubator/hydroform/connect"
 	"github.com/kyma-incubator/hydroform/connect/types"
 	"io/ioutil"
+	"log"
 	"os"
 )
 
@@ -13,9 +13,12 @@ func main() {
 
 	storeObj := store{}
 	c := connect.GetKymaConnector(storeObj)
-	configUrl := "https://connector-service.kyma.local/v1/applications/signingRequests/info?token=4xhTKhsqPB38jujewBhzjiV9XG44XhaHG4-7C7x22SV_SZUa0bUPn4s5uuIWaCUj31aCHQUApDj3HXxM94eKPw=="
+	configUrl := "https://connector-service.kyma.local/v1/applications/signingRequests/info?token=x0sEfJZFGxiJzpzEN86ENmOxCAoO2nhbOy6N8cxb6o8paWQgs5wZSG30X0y2DcpS7_dL0nH5SQcnWEDOqQOgTA=="
 
-	c.Connect(configUrl)
+	if err := c.Connect(configUrl); err != nil {
+		log.Print(err.Error())
+		return
+	}
 
 	testService := &connect.Service{
 		Id:               "testService",
@@ -34,101 +37,99 @@ func main() {
 		Documentation: nil,
 	}
 
-	serviceId, _ := c.RegisterService(testService)
+	serviceId, err := c.RegisterService(testService)
+	if err != nil {
+		log.Print(err.Error())
+		return
+	}
 
-	//	c.UpdateService(serviceId, testService)
-
-	c.DeleteService(serviceId)
-
-	//	c.RenewCertificateSigningRequest()
-
-	c.RevokeCertificate()
+	if err := c.DeleteService(serviceId); err != nil {
+		log.Print(err.Error())
+		return
+	}
 }
 
 type store struct{}
 
 func (s store) ReadConfig() (*types.CSRInfo, error) {
-
 	config := &types.CSRInfo{}
-	_, err := os.Stat("config.json")
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+	if _, err := os.Stat("config.json"); err != nil {
+		return nil, err
 	}
 	configBytes, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
 	}
-	err = json.Unmarshal(configBytes, config)
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+	if err = json.Unmarshal(configBytes, config); err != nil {
+		return nil, err
 	}
 
-	return config, err
+	return config, nil
 }
 
 func (s store) WriteConfig(config *types.CSRInfo) error {
 	configBytes, err := json.Marshal(config)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 	return ioutil.WriteFile("config.json", configBytes, 0644)
 }
 
 func (s store) ReadInfo() (*types.Info, error) {
 	info := &types.Info{}
-	_, err := os.Stat("info.json")
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+	if _, err := os.Stat("info.json"); err != nil {
+		return nil, err
 	}
 	infoBytes, err := ioutil.ReadFile("info.json")
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, err
 	}
-	err = json.Unmarshal(infoBytes, info)
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+	if err := json.Unmarshal(infoBytes, info); err != nil {
+		return nil, err
 	}
-	return info, err
+	return info, nil
 }
 
 func (s store) WriteInfo(info *types.Info) error {
 	infoBytes, err := json.Marshal(info)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 	return ioutil.WriteFile("info.json", infoBytes, 0644)
 }
 
 func (s store) ReadClientCert() (*types.ClientCertificate, error) {
-
 	cert := &types.ClientCertificate{}
-	_, err := os.Stat("generated.crt")
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+
+	if _, err := os.Stat("generated.crt"); err != nil {
+		return nil, err
 	}
 	publicKey, err := ioutil.ReadFile("generated.crt")
+	if err != nil {
+		return nil, err
+	}
 	cert.PublicKey = string(publicKey[:])
 
-	_, err = os.Stat("generated.key")
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+	if _, err = os.Stat("generated.key"); err != nil {
+		return nil, err
 	}
 	privateKey, err := ioutil.ReadFile("generated.key")
+	if err != nil {
+		return nil, err
+	}
 	cert.PrivateKey = string(privateKey[:])
 
-	return cert, err
-
+	return cert, nil
 }
 
 func (s store) WriteClientCert(cert *types.ClientCertificate) error {
-	err := ioutil.WriteFile("generated.crt", []byte(cert.PublicKey), 0644)
-	if err != nil {
-		return fmt.Errorf(err.Error())
+	if err := ioutil.WriteFile("generated.crt", []byte(cert.PublicKey), 0644); err != nil {
+		return err
 	}
 
-	err = ioutil.WriteFile("generated.key", []byte(cert.PrivateKey), 0644)
-	if err != nil {
-		return fmt.Errorf(err.Error())
+	if err := ioutil.WriteFile("generated.key", []byte(cert.PrivateKey), 0644); err != nil {
+		return err
 	}
-	return err
+
+	return nil
 }

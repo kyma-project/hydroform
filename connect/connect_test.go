@@ -82,7 +82,7 @@ func TestKymaConnector_Connect(t *testing.T) {
 		Ca               *types.ClientCertificate
 		Info             *types.Info
 		SecureClient     *http.Client
-		StorageInterface WriterInterface
+		StorageInterface StorageProvider
 	}
 	type args struct {
 		configurationUrl string
@@ -139,7 +139,7 @@ func TestKymaConnector_RegisterService(t *testing.T) {
 		AppName          string
 		Ca               *types.ClientCertificate
 		SecureClient     *http.Client
-		StorageInterface WriterInterface
+		StorageInterface StorageProvider
 	}
 	type args struct {
 		serviceDescription Service
@@ -221,7 +221,7 @@ func TestKymaConnector_UpdateService(t *testing.T) {
 		AppName          string
 		Ca               *types.ClientCertificate
 		SecureClient     *http.Client
-		StorageInterface WriterInterface
+		StorageInterface StorageProvider
 	}
 	type args struct {
 		id                 string
@@ -508,7 +508,7 @@ func TestKymaConnector_GetSubscribedEvents(t *testing.T) {
 		Ca               *types.ClientCertificate
 		Info             *types.Info
 		SecureClient     *http.Client
-		StorageInterface WriterInterface
+		StorageInterface StorageProvider
 	}
 	tests := []struct {
 		name    string
@@ -573,7 +573,7 @@ func TestKymaConnector_GetSubscribedEvents(t *testing.T) {
 func TestGetKymaConnector(t *testing.T) {
 	mockWriter := &MockWriter{}
 	type args struct {
-		writerInterface WriterInterface
+		writerInterface StorageProvider
 	}
 	tests := []struct {
 		name string
@@ -637,7 +637,7 @@ func TestKymaConnector_RenewCertificateSigningRequest(t *testing.T) {
 		Ca               *types.ClientCertificate
 		Info             *types.Info
 		SecureClient     *http.Client
-		StorageInterface WriterInterface
+		StorageInterface StorageProvider
 	}
 	tests := []struct {
 		name    string
@@ -707,7 +707,7 @@ func TestKymaConnector_RevokeCertificate(t *testing.T) {
 		Ca               *types.ClientCertificate
 		Info             *types.Info
 		SecureClient     *http.Client
-		StorageInterface WriterInterface
+		StorageInterface StorageProvider
 	}
 	tests := []struct {
 		name    string
