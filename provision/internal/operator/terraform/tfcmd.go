@@ -114,7 +114,11 @@ func tfApply(ops Options, p types.ProviderType, cfg map[string]interface{}, dir 
 			}
 
 			// try applying again
-			return tfApply(ops, p, cfg, dir)
+			if err := tfApply(ops, p, cfg, dir); err != nil {
+				return errors.Wrap(err, errList.Error())
+			} else {
+				return nil
+			}
 		}
 		return errList
 	}
