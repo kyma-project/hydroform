@@ -1,8 +1,9 @@
 package k8s
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMergeMaps(t *testing.T) {
@@ -53,4 +54,62 @@ func TestMergeMaps(t *testing.T) {
 		//then
 		assert.Equal(t, expectedMap, actual)
 	})
+}
+
+func TestMergeStringMaps(t *testing.T) {
+
+	t.Run("should merge maps", func(t *testing.T) {
+		//given
+		oldMap := map[string]string{
+			"key1": "old val 1",
+			"key2": "old val 2",
+		}
+
+		newMap := map[string]string{
+			"key1": "new val 1",
+			"key3": "new val 3",
+		}
+
+		expectedMap := map[string]string{
+			"key1": "new val 1",
+			"key2": "old val 2",
+			"key3": "new val 3",
+		}
+
+		// when
+		merged := MergeStringMaps(oldMap, newMap)
+
+		// then
+		assert.Equal(t, expectedMap, merged)
+	})
+
+}
+
+func TestMergeByteMaps(t *testing.T) {
+
+	t.Run("should merge maps", func(t *testing.T) {
+		//given
+		oldMap := map[string][]byte{
+			"key1": []byte("old val 1"),
+			"key2": []byte("old val 2"),
+		}
+
+		newMap := map[string][]byte{
+			"key1": []byte("new val 1"),
+			"key3": []byte("new val 3"),
+		}
+
+		expectedMap := map[string][]byte{
+			"key1": []byte("new val 1"),
+			"key2": []byte("old val 2"),
+			"key3": []byte("new val 3"),
+		}
+
+		// when
+		merged := MergeByteMaps(oldMap, newMap)
+
+		// then
+		assert.Equal(t, expectedMap, merged)
+	})
+
 }

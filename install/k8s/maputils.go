@@ -16,3 +16,19 @@ func MergeMaps(new, original map[string]interface{}) map[string]interface{} {
 	}
 	return new
 }
+
+func MergeStringMaps(old map[string]string, new map[string]string) map[string]string {
+	for k, v := range new {
+		old[k] = v
+	}
+
+	return old
+}
+
+func MergeByteMaps(old map[string][]byte, new map[string][]byte) map[string][]byte {
+	for k, v := range new {
+		old[k] = v
+	}
+
+	return old
+}
