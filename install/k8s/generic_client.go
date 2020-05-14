@@ -74,7 +74,7 @@ func (c GenericClient) ApplyConfigMaps(configMaps []*corev1.ConfigMap, namespace
 		_, err := client.Create(cm)
 		if err != nil {
 			if k8serrors.IsAlreadyExists(err) {
-				_, err := client.Update(cm)
+				err = c.updateConfigMap(client, cm)
 				if err != nil {
 					return fmt.Errorf("config map %s already exists, failed to updated config map: %s", cm.Name, err.Error())
 				}
@@ -86,6 +86,24 @@ func (c GenericClient) ApplyConfigMaps(configMaps []*corev1.ConfigMap, namespace
 	return nil
 }
 
+func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) error {
+	oldCM, err := client.Get(cm.Name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	mergedData := MergeStringMaps(oldCM.Data, cm.Data)
+
+	cm.Data = mergedData
+
+	_, err = client.Update(cm)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) error {
 	client := c.coreClient.Secrets(namespace)
 
@@ -93,7 +111,7 @@ func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) 
 		_, err := client.Create(sec)
 		if err != nil {
 			if k8serrors.IsAlreadyExists(err) {
-				_, err := client.Update(sec)
+				err = c.updateSecret(client, sec)
 				if err != nil {
 					return fmt.Errorf("secret %s already exists, failed to updated secret: %s", sec.Name, err.Error())
 				}
@@ -101,6 +119,24 @@ func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) 
 			}
 			return fmt.Errorf("failed to apply %s secret: %s", sec.Name, err.Error())
 		}
+	}
+
+	return nil
+}
+
+func (c GenericClient) updateSecret(client corev1Client.SecretInterface, secret *corev1.Secret) error {
+	oldSecret, err := client.Get(secret.Name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	mergedData := MergeByteMaps(oldSecret.Data, secret.Data)
+
+	secret.Data = mergedData
+
+	_, err = client.Update(secret)
+	if err != nil {
+		return err
 	}
 
 	return nil
