@@ -107,10 +107,10 @@ variable "zones"      				{}
 variable "workercidr"      			{
 	default = ""
 }
-{{ if eq (index . "target_provider") "gcp" }}
+{{ if eq (index .Cfg "target_provider") "gcp" }}
 variable "gcp_control_plane_zone"		{}
 {{ end }}
-{{ if eq (index . "target_provider") "azure" }}
+{{ if eq (index .Cfg "target_provider") "azure" }}
 variable "zoned"      				{}
 variable "service_endpoints"		{}
 {{ end }}
@@ -168,7 +168,7 @@ resource "gardener_shoot" "gardener_cluster" {
       }
       provider {
         type = "${var.target_provider}"
-		{{ if eq (index . "target_provider") "gcp" }}
+		{{ if eq (index .Cfg "target_provider") "gcp" }}
 			control_plane_config {
 				gcp {
 					zone = "${var.gcp_control_plane_zone}"
@@ -176,7 +176,7 @@ resource "gardener_shoot" "gardener_cluster" {
 			}
 		{{ end }}
         infrastructure_config {
-           {{ if eq (index . "target_provider") "azure" }}
+           {{ if eq (index .Cfg "target_provider") "azure" }}
 			  azure {
 				zoned = "${var.zoned}"
                 networks {
@@ -188,25 +188,25 @@ resource "gardener_shoot" "gardener_cluster" {
                 }
               }
            {{ end }}
-		   {{ if eq (index . "target_provider") "gcp" }}
+		   {{ if eq (index .Cfg "target_provider") "gcp" }}
 				gcp {
 					networks {
 						workers = "${var.workercidr}"
 					}
 				}
            {{ end }}
-		   {{ if eq (index . "target_provider") "aws" }}
+		   {{ if eq (index .Cfg "target_provider") "aws" }}
 				aws {
 					networks {
 						vpc {
 							cidr = "${var.vnetcidr}"
 						}
-						{{range $i, $z:= (index . "zones")}}
+						{{range $i, $z:= (index .Cfg "zones")}}
 						zones {
 							name = "{{ $z }}"
-							workers = "{{ (index (index $ "workerNets") $i) }}"
-							public = "{{ (index (index $ "publicNets") $i) }}"
-							internal = "{{ (index (index $ "internalNets") $i) }}"
+							workers = "{{index $.WorkerNets $i}}"
+							public = "{{index $.PublicNets $i}}"
+							internal = "{{index $.InternalNets $i}}"
 						}
 						{{end}}
 					}
@@ -438,6 +438,15 @@ func clusterDir(dataDir, project, cluster string, p types.ProviderType) (string,
 }
 
 func expandGardenerClusterTemplate(cfg map[string]interface{}) (string, error) {
+	tmpCfg := struct {
+		WorkerNets   []string
+		PublicNets   []string
+		InternalNets []string
+		Cfg          map[string]interface{}
+	}{}
+
+	tmpCfg.Cfg = cfg
+
 	funcs := template.FuncMap{
 		"seq": func(n int) []int {
 			r := make([]int, n)
@@ -452,7 +461,7 @@ func expandGardenerClusterTemplate(cfg map[string]interface{}) (string, error) {
 	if cfg["target_provider"] == string(types.AWS) {
 		// subnets for zones
 		var err error
-		cfg["workerNets"], cfg["publicNets"], cfg["internalNets"], err = generateGardenerAWSSubnets(cfg["vnetcidr"].(string), len(cfg["zones"].([]string)))
+		tmpCfg.WorkerNets, tmpCfg.PublicNets, tmpCfg.InternalNets, err = generateGardenerAWSSubnets(cfg["vnetcidr"].(string), len(cfg["zones"].([]string)))
 		if err != nil {
 			return "", errors.Wrap(err, "Error generating subnets for AWS zones")
 		}
@@ -460,7 +469,7 @@ func expandGardenerClusterTemplate(cfg map[string]interface{}) (string, error) {
 
 	t := template.Must(template.New("gardenerCluster").Funcs(funcs).Parse(gardenerClusterTemplate))
 	s := &strings.Builder{}
-	if err := t.Execute(s, cfg); err != nil {
+	if err := t.Execute(s, tmpCfg); err != nil {
 		return "", err
 	}
 	return s.String(), nil
