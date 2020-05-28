@@ -438,11 +438,11 @@ func clusterDir(dataDir, project, cluster string, p types.ProviderType) (string,
 }
 
 func expandGardenerClusterTemplate(cfg map[string]interface{}) (string, error) {
-	tmpCfg := struct{
-	    WorkerNets []string
-		PublicNets []string
+	tmpCfg := struct {
+		WorkerNets   []string
+		PublicNets   []string
 		InternalNets []string
-		Cfg map[string]interface{}
+		Cfg          map[string]interface{}
 	}{}
 
 	tmpCfg.Cfg = cfg
