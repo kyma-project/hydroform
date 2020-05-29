@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kyma-incubator/hydroform/install/util"
+
 	"github.com/kyma-incubator/hydroform/install/k8s"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -107,7 +109,76 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 		}
 
 		installation := Installation{
-			TillerYaml:    tillerYamlContent,
+			InstallerYaml: installerYamlContent,
+			Configuration: configuration,
+		}
+
+		// when
+		err := kymaInstaller.PrepareInstallation(installation)
+
+		// then
+		require.NoError(t, err)
+
+		assertInstallation(t, installationClientSet, installationComponents)
+		assertConfiguration(t, k8sClientSet, configuration.Configuration, "global", "")
+
+		for _, componentConfig := range configuration.ComponentConfiguration {
+			assertConfiguration(t, k8sClientSet, componentConfig.Configuration, componentConfig.Component, componentConfig.Component)
+		}
+
+		assertInstallerResources(t, dynamicClient)
+	})
+
+	t.Run("should prepare Kyma Installation with Tiller artifacts passed", func(t *testing.T) {
+		// given
+		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema)
+		k8sClientSet := fake.NewSimpleClientset(runningTillerPod)
+		installationClientSet := installationFake.NewSimpleClientset()
+
+		mapper := dummyRestMapper{}
+
+		kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
+
+		installationComponents := []v1alpha1.KymaComponent{
+			{Name: "application-connector", ReleaseName: "application-connector", Namespace: "kyma-integration"},
+		}
+
+		kymaInstaller.installationCRModificationFunc = func(installation *v1alpha1.Installation) {
+			installation.Spec.Components = installationComponents
+		}
+
+		configuration := Configuration{
+			Configuration: []ConfigEntry{
+				{
+					Key:   "global.test.key",
+					Value: "global-value",
+				},
+				{
+					Key:    "global.test.secret.key",
+					Value:  "global-secret-value",
+					Secret: true,
+				},
+			},
+			ComponentConfiguration: []ComponentConfiguration{
+				{
+					Component: "application-connector",
+					Configuration: []ConfigEntry{
+						{
+							Key:   "component.test.key",
+							Value: "component-value",
+						},
+						{
+							Key:    "component.test.secret.key",
+							Value:  "component-secret-value",
+							Secret: true,
+						},
+					},
+				},
+			},
+		}
+
+		installation := Installation{
+			TillerYaml:    &tillerYamlContent,
 			InstallerYaml: installerYamlContent,
 			Configuration: configuration,
 		}
@@ -146,7 +217,7 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 						Namespace: kubeSystemNamespace,
 					},
 				}},
-				installation:  Installation{TillerYaml: "invalid ", InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:  Installation{TillerYaml: util.StringPtr("invalid "), InstallerYaml: installerYamlContent, Configuration: Configuration{}},
 				errorContains: "failed to parse Tiller yaml",
 			},
 			{
@@ -157,24 +228,24 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 						Namespace: kubeSystemNamespace,
 					},
 				}},
-				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:  Installation{TillerYaml: &tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
 				errorContains: "failed to apply Tiller resources",
 			},
 			{
 				description:   "when Tiller pod is not running",
-				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:  Installation{TillerYaml: &tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
 				errorContains: "timeout waiting for Tiller to start",
 			},
 			{
 				description:         "when invalid Installer yaml content",
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
-				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "invalid yaml", Configuration: Configuration{}},
+				installation:        Installation{TillerYaml: &tillerYamlContent, InstallerYaml: "invalid yaml", Configuration: Configuration{}},
 				errorContains:       "failed to parse Installer yaml",
 			},
 			{
 				description:         "when Installation CR not present in installer YAML",
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
-				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "", Configuration: Configuration{}},
+				installation:        Installation{TillerYaml: &tillerYamlContent, InstallerYaml: "", Configuration: Configuration{}},
 				errorContains:       "installation object not found",
 			},
 			{
@@ -186,7 +257,7 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 					},
 				}},
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
-				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:        Installation{TillerYaml: &tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
 				errorContains:       "failed to apply Installer resources",
 			},
 		} {
@@ -227,7 +298,7 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 		kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
 
 		installation := Installation{
-			TillerYaml:    tillerYamlContent,
+			TillerYaml:    &tillerYamlContent,
 			InstallerYaml: installerYamlContent,
 			Configuration: Configuration{},
 		}
@@ -295,7 +366,6 @@ func TestKymaInstaller_PrepareUpgrade(t *testing.T) {
 		}
 
 		installation := Installation{
-			TillerYaml:    tillerYamlContent,
 			InstallerYaml: installerYamlContent,
 			Configuration: configuration,
 		}
@@ -308,7 +378,84 @@ func TestKymaInstaller_PrepareUpgrade(t *testing.T) {
 
 		//given
 		upgrade := Installation{
-			TillerYaml:    upgradeTillerYamlContent,
+			InstallerYaml: upgradeInstallerYamlContent,
+			Configuration: configuration,
+		}
+
+		//when
+		err = kymaInstaller.PrepareUpgrade(upgrade)
+
+		//then
+		require.NoError(t, err)
+
+		assertInstallerResources(t, dynamicClient)
+
+		assertDynamicResource(t, dynamicClient, serviceGVR, "kyma-upgrade-check", kymaInstallerNamespace)
+	})
+
+	t.Run("should prepare upgrade with Tiller", func(t *testing.T) {
+		// given
+		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema)
+		k8sClientSet := fake.NewSimpleClientset(runningTillerPod)
+		installationClientSet := installationFake.NewSimpleClientset()
+
+		mapper := dummyRestMapper{}
+
+		kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
+
+		installationComponents := []v1alpha1.KymaComponent{
+			{Name: "application-connector", ReleaseName: "application-connector", Namespace: "kyma-integration"},
+		}
+
+		kymaInstaller.installationCRModificationFunc = func(installation *v1alpha1.Installation) {
+			installation.Spec.Components = installationComponents
+		}
+
+		configuration := Configuration{
+			Configuration: []ConfigEntry{
+				{
+					Key:   "global.test.key",
+					Value: "global-value",
+				},
+				{
+					Key:    "global.test.secret.key",
+					Value:  "global-secret-value",
+					Secret: true,
+				},
+			},
+			ComponentConfiguration: []ComponentConfiguration{
+				{
+					Component: "application-connector",
+					Configuration: []ConfigEntry{
+						{
+							Key:   "component.test.key",
+							Value: "component-value",
+						},
+						{
+							Key:    "component.test.secret.key",
+							Value:  "component-secret-value",
+							Secret: true,
+						},
+					},
+				},
+			},
+		}
+
+		installation := Installation{
+			TillerYaml:    &tillerYamlContent,
+			InstallerYaml: installerYamlContent,
+			Configuration: configuration,
+		}
+
+		// when
+		err := kymaInstaller.PrepareInstallation(installation)
+
+		// then
+		require.NoError(t, err)
+
+		//given
+		upgrade := Installation{
+			TillerYaml:    &upgradeTillerYamlContent,
 			InstallerYaml: upgradeInstallerYamlContent,
 			Configuration: configuration,
 		}
@@ -344,24 +491,24 @@ func TestKymaInstaller_PrepareUpgrade(t *testing.T) {
 						Namespace: kubeSystemNamespace,
 					},
 				}},
-				installation:  Installation{TillerYaml: "invalid ", InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:  Installation{TillerYaml: util.StringPtr("invalid "), InstallerYaml: installerYamlContent, Configuration: Configuration{}},
 				errorContains: "failed to parse Tiller yaml",
 			},
 			{
 				description:   "when Tiller pod is not running",
-				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:  Installation{TillerYaml: &tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
 				errorContains: "timeout waiting for Tiller to start",
 			},
 			{
 				description:         "when invalid Installer yaml content",
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
-				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "invalid yaml", Configuration: Configuration{}},
+				installation:        Installation{TillerYaml: &tillerYamlContent, InstallerYaml: "invalid yaml", Configuration: Configuration{}},
 				errorContains:       "failed to parse Installer yaml",
 			},
 			{
 				description:         "when Installation CR not present in installer YAML",
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
-				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "", Configuration: Configuration{}},
+				installation:        Installation{TillerYaml: &tillerYamlContent, InstallerYaml: "", Configuration: Configuration{}},
 				errorContains:       "installation object not found",
 			},
 		} {

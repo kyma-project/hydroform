@@ -3,9 +3,10 @@ package installation
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/kyma-incubator/hydroform/install/scheme"
 
@@ -67,8 +68,10 @@ type Logger interface {
 
 // Installation provides configuration for Kyma installation
 type Installation struct {
+	// Deprecated
 	// TillerYaml is a content of yaml file with all resources related to Tiller which are required by Kyma
-	TillerYaml string
+	// New versions of Kyma use Helm 3 therefor do not need Tiller
+	TillerYaml *string
 	// InstallerYaml is a content of yaml file with all resources related to and required by Installer
 	InstallerYaml string
 	// Configuration specifies the configuration to be used for the installation
@@ -205,12 +208,15 @@ type KymaInstaller struct {
 func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 	k.infof("Preparing Kyma Installation...")
 
-	err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.CreateResources)
-	if err != nil {
-		return err
+	if artifacts.TillerYaml != nil {
+		k.infof("Tiller artifacts provided, using old Kyma version")
+		err := k.installTiller(*artifacts.TillerYaml, k.k8sGenericClient.CreateResources)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = k.deployInstallerForIstallation(artifacts.InstallerYaml)
+	err := k.deployInstallerForIstallation(artifacts.InstallerYaml)
 	if err != nil {
 		return err
 	}
@@ -227,12 +233,15 @@ func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 func (k KymaInstaller) PrepareUpgrade(artifacts Installation) error {
 	k.infof("Preparing Kyma Upgrade...")
 
-	err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.ApplyResources)
-	if err != nil {
-		return err
+	if artifacts.TillerYaml != nil {
+		k.infof("Tiller artifacts provided, using old Kyma version")
+		err := k.installTiller(*artifacts.TillerYaml, k.k8sGenericClient.ApplyResources)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = k.deployInstallerForUpgrade(artifacts.InstallerYaml)
+	err := k.deployInstallerForUpgrade(artifacts.InstallerYaml)
 	if err != nil {
 		return err
 	}
