@@ -74,7 +74,7 @@ func main() {
 	logAndExitOnError(err)
 
 	artifacts := installation.Installation{
-		TillerYaml:    &tillerYamlContent,
+		TillerYaml:    tillerYamlContent,
 		InstallerYaml: installerYamlContent,
 		Configuration: configuration,
 	}
@@ -110,7 +110,7 @@ func main() {
 	configuration.Configuration.Set("global.minikubeIP", *minikubeIp, false)
 
 	artifacts = installation.Installation{
-		TillerYaml:    &tillerYamlContentUpg,
+		TillerYaml:    tillerYamlContentUpg,
 		InstallerYaml: installerYamlContentUpg,
 		Configuration: configuration,
 	}

@@ -71,7 +71,7 @@ type Installation struct {
 	// Deprecated
 	// TillerYaml is a content of yaml file with all resources related to Tiller which are required by Kyma
 	// New versions of Kyma use Helm 3 therefor do not need Tiller
-	TillerYaml *string
+	TillerYaml string
 	// InstallerYaml is a content of yaml file with all resources related to and required by Installer
 	InstallerYaml string
 	// Configuration specifies the configuration to be used for the installation
@@ -208,9 +208,9 @@ type KymaInstaller struct {
 func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 	k.infof("Preparing Kyma Installation...")
 
-	if artifacts.TillerYaml != nil {
+	if artifacts.TillerYaml != "" {
 		k.infof("Tiller artifacts provided, using old Kyma version")
-		err := k.installTiller(*artifacts.TillerYaml, k.k8sGenericClient.CreateResources)
+		err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.CreateResources)
 		if err != nil {
 			return err
 		}
@@ -233,9 +233,9 @@ func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 func (k KymaInstaller) PrepareUpgrade(artifacts Installation) error {
 	k.infof("Preparing Kyma Upgrade...")
 
-	if artifacts.TillerYaml != nil {
+	if artifacts.TillerYaml != "" {
 		k.infof("Tiller artifacts provided, using old Kyma version")
-		err := k.installTiller(*artifacts.TillerYaml, k.k8sGenericClient.ApplyResources)
+		err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.ApplyResources)
 		if err != nil {
 			return err
 		}
