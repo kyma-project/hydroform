@@ -70,7 +70,7 @@ type Logger interface {
 type Installation struct {
 	// Deprecated
 	// TillerYaml is a content of yaml file with all resources related to Tiller which are required by Kyma
-	// New versions of Kyma use Helm 3 therefor do not need Tiller
+	// New versions of Kyma use Helm 3 therefore do not need Tiller
 	TillerYaml string
 	// InstallerYaml is a content of yaml file with all resources related to and required by Installer
 	InstallerYaml string
