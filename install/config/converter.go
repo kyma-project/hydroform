@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	corev1 "k8s.io/api/core/v1"
+	b64 "encoding/base64"
 )
 
 const (
@@ -50,11 +51,13 @@ func YAMLToConfiguration(decoder runtime.Decoder, yamlContent string) (installat
 		component, found := secret.Labels[installation.ComponentOverridesLabelKey]
 		if !found {
 			configuration.Configuration = addEntriesFromSecrets(configuration.Configuration, secret.Data)
+			configuration.Configuration = addEntriesFromSecretsStringData(configuration.Configuration, secret.StringData)
 			continue
 		}
 
 		componentConfig := getOrNewComponentConfig(configuration.ComponentConfiguration, component)
 		componentConfig.Configuration = addEntriesFromSecrets(componentConfig.Configuration, secret.Data)
+		componentConfig.Configuration = addEntriesFromSecretsStringData(componentConfig.Configuration, secret.StringData)
 
 		setComponentConfig(&configuration, componentConfig)
 	}
@@ -83,13 +86,24 @@ func setComponentConfig(configuration *installation.Configuration, config instal
 	configuration.ComponentConfiguration = append(configuration.ComponentConfiguration, config)
 }
 
+func addEntriesFromSecretsStringData(existing installation.ConfigEntries, newEntries map[string]string) []installation.ConfigEntry {
+	return addEntries(existing, newEntries, true)
+}
+
 func addEntriesFromConfigMap(existing installation.ConfigEntries, newEntries map[string]string) []installation.ConfigEntry {
+	return addEntries(existing, newEntries, false)
+}
+
+func addEntries(existing installation.ConfigEntries, newEntries map[string]string, isSecret bool) []installation.ConfigEntry {
 	if existing == nil {
 		existing = make([]installation.ConfigEntry, 0, len(newEntries))
 	}
 
 	for key, val := range newEntries {
-		existing.Set(key, val, false)
+		if isSecret {
+			val = b64.StdEncoding.EncodeToString([]byte(val))
+		}
+		existing.Set(key, val, isSecret)
 	}
 
 	return existing
