@@ -3,14 +3,11 @@ package config
 import (
 	"fmt"
 
-	"github.com/kyma-incubator/hydroform/install/k8s"
-
-	"github.com/kyma-incubator/hydroform/install/installation"
-
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	corev1 "k8s.io/api/core/v1"
-	b64 "encoding/base64"
+	"github.com/kyma-incubator/hydroform/install/installation"
+	"github.com/kyma-incubator/hydroform/install/k8s"
 )
 
 const (
@@ -100,9 +97,6 @@ func addEntries(existing installation.ConfigEntries, newEntries map[string]strin
 	}
 
 	for key, val := range newEntries {
-		if isSecret {
-			val = b64.StdEncoding.EncodeToString([]byte(val))
-		}
 		existing.Set(key, val, isSecret)
 	}
 
