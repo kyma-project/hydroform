@@ -899,6 +899,7 @@ func newKymaInstaller(mapper k8s.RESTMapper, dynamicInterface dynamic.Interface,
 		decoder:            decoder,
 		k8sGenericClient:   k8s.NewGenericClient(mapper, dynamicInterface, k8sClientSet),
 		installationClient: installationClientSet.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace),
+		deploymentClient:   k8sClientSet.AppsV1().Deployments(kymaInstallerNamespace),
 	}
 
 	return kymaInstaller
