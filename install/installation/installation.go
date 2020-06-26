@@ -3,9 +3,10 @@ package installation
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/kyma-incubator/hydroform/install/scheme"
 
@@ -71,6 +72,8 @@ type Installation struct {
 	TillerYaml string
 	// InstallerYaml is a content of yaml file with all resources related to and required by Installer
 	InstallerYaml string
+	// InstallerCRYaml is a content of yaml file with the list of the packages being installed
+	InstallerCRYaml string
 	// Configuration specifies the configuration to be used for the installation
 	Configuration Configuration
 }
@@ -215,6 +218,11 @@ func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 		return err
 	}
 
+	err = k.deployInstallerForIstallation(artifacts.InstallerCRYaml)
+	if err != nil {
+		return err
+	}
+
 	err = k.applyConfiguration(artifacts.Configuration)
 	if err != nil {
 		return err
@@ -233,6 +241,11 @@ func (k KymaInstaller) PrepareUpgrade(artifacts Installation) error {
 	}
 
 	err = k.deployInstallerForUpgrade(artifacts.InstallerYaml)
+	if err != nil {
+		return err
+	}
+
+	err = k.deployInstallerForUpgrade(artifacts.InstallerCRYaml)
 	if err != nil {
 		return err
 	}
@@ -301,45 +314,73 @@ func (k KymaInstaller) installTiller(tillerYaml string, createFunction func([]k8
 	return nil
 }
 
-func (k KymaInstaller) deployInstallerForIstallation(installerYaml string) error {
-	return k.deployInstaller(installerYaml, k.k8sGenericClient.CreateResources)
+func (k KymaInstaller) deployInstallerForIstallation(yamlFile string) error {
+	return k.deployInstaller(yamlFile, k.k8sGenericClient.CreateResources)
 }
 
-func (k KymaInstaller) deployInstallerForUpgrade(installerYaml string) error {
-	return k.deployInstaller(installerYaml, k.k8sGenericClient.ApplyResources)
+func (k KymaInstaller) deployInstallerForUpgrade(yamlFile string) error {
+	return k.deployInstaller(yamlFile, k.k8sGenericClient.ApplyResources)
 }
 
-func (k KymaInstaller) deployInstaller(installerYaml string, createResourcesFunc func(resources []k8s.K8sObject) ([]*unstructured.Unstructured, error)) error {
+func (k KymaInstaller) deployInstaller(yamlFile string, createResourcesFunc func(resources []k8s.K8sObject) ([]*unstructured.Unstructured, error)) error {
 	k.infof("Deploying Installer...")
 
-	k8sInstallerObjects, err := k8s.ParseYamlToK8sObjects(k.decoder, installerYaml)
+	k8sInstallerObjects, err := k8s.ParseYamlToK8sObjects(k.decoder, yamlFile)
 	if err != nil {
-		return fmt.Errorf("failed to parse Installer yaml file to Kubernetes dynamicClientObjects: %w", err)
+		return fmt.Errorf("failed to parse yaml file to Kubernetes dynamicClientObjects: %w", err)
 	}
 
-	var installationCR *v1alpha1.Installation
-	installationCR, k8sInstallerObjects, err = k.extractInstallationCR(k8sInstallerObjects)
-	if err != nil {
-		return fmt.Errorf("failed to get Installation CR: %w", err)
+	// Check if its InstallerCR or the InstallerYaml
+	if len(k8sInstallerObjects) == 1 {
+		if k8sInstallerObjects[0].GVK.Group == v1alpha1.Group && k8sInstallerObjects[0].GVK.Kind == "Installation" {
+			installationCR, ok := k8sInstallerObjects[0].Object.(*v1alpha1.Installation)
+			if !ok {
+				return fmt.Errorf("unexpected type of Installation object: %T, failed to cast to *Installation", k8sInstallerObjects[0].Object)
+			}
+			_, found := installationCR.Labels[installationActionLabel]
+			if found {
+				delete(installationCR.Labels, installationActionLabel)
+			}
+			k.infof("Applying Installation CR modifications...")
+			k.installationOptions.installationCRModificationFunc(installationCR)
+			k.infof("Applying Installation CR...")
+			err = k.applyInstallationCR(installationCR)
+			if err != nil {
+				return fmt.Errorf("failed to apply Installation resources: %w", err)
+			}
+		} else {
+			return fmt.Errorf("installation object not found in the objects slice")
+		}
+	} else {
+		_, err = createResourcesFunc(k8sInstallerObjects)
+		if err != nil {
+			return fmt.Errorf("failed to apply Installer resources: %w", err)
+		}
 	}
 
-	_, found := installationCR.Labels[installationActionLabel]
-	if found {
-		delete(installationCR.Labels, installationActionLabel)
-	}
+	// var installationCR *v1alpha1.Installation
+	// installationCR, k8sInstallerObjects, err = k.extractInstallationCR(k8sInstallerObjects)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get Installation CR: %w", err)
+	// }
 
-	_, err = createResourcesFunc(k8sInstallerObjects)
-	if err != nil {
-		return fmt.Errorf("failed to apply Installer resources: %w", err)
-	}
+	// _, found := installationCR.Labels[installationActionLabel]
+	// if found {
+	// 	delete(installationCR.Labels, installationActionLabel)
+	// }
 
-	k.infof("Applying Installation CR modifications...")
-	k.installationOptions.installationCRModificationFunc(installationCR)
-	k.infof("Applying Installation CR...")
-	err = k.applyInstallationCR(installationCR)
-	if err != nil {
-		return fmt.Errorf("failed to apply Installation resources: %w", err)
-	}
+	// _, err = createResourcesFunc(k8sInstallerObjects)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to apply Installer resources: %w", err)
+	// }
+
+	// k.infof("Applying Installation CR modifications...")
+	// k.installationOptions.installationCRModificationFunc(installationCR)
+	// k.infof("Applying Installation CR...")
+	// err = k.applyInstallationCR(installationCR)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to apply Installation resources: %w", err)
+	// }
 	k.infof("Installer deployed.")
 	return nil
 }
