@@ -348,6 +348,8 @@ func (k KymaInstaller) deployInstaller(yamlFile string, createResourcesFunc func
 			if err != nil {
 				return fmt.Errorf("failed to apply Installation resources: %w", err)
 			}
+			k.infof("Installer CR deployed.")
+
 		} else {
 			return fmt.Errorf("installation object not found in the objects slice")
 		}
@@ -356,32 +358,9 @@ func (k KymaInstaller) deployInstaller(yamlFile string, createResourcesFunc func
 		if err != nil {
 			return fmt.Errorf("failed to apply Installer resources: %w", err)
 		}
+		k.infof("Installer CRD deployed.")
 	}
 
-	// var installationCR *v1alpha1.Installation
-	// installationCR, k8sInstallerObjects, err = k.extractInstallationCR(k8sInstallerObjects)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get Installation CR: %w", err)
-	// }
-
-	// _, found := installationCR.Labels[installationActionLabel]
-	// if found {
-	// 	delete(installationCR.Labels, installationActionLabel)
-	// }
-
-	// _, err = createResourcesFunc(k8sInstallerObjects)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to apply Installer resources: %w", err)
-	// }
-
-	// k.infof("Applying Installation CR modifications...")
-	// k.installationOptions.installationCRModificationFunc(installationCR)
-	// k.infof("Applying Installation CR...")
-	// err = k.applyInstallationCR(installationCR)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to apply Installation resources: %w", err)
-	// }
-	k.infof("Installer deployed.")
 	return nil
 }
 
@@ -427,23 +406,6 @@ func (k KymaInstaller) applyInstallationCR(installationCR *v1alpha1.Installation
 	}
 
 	return nil
-}
-
-// extractInstallationCR finds and removes first Installation CR from the slice of K8sObjects and returns it
-func (k KymaInstaller) extractInstallationCR(k8sObjects []k8s.K8sObject) (*v1alpha1.Installation, []k8s.K8sObject, error) {
-	for i, k8sObject := range k8sObjects {
-		if k8sObject.GVK.Group == v1alpha1.Group && k8sObject.GVK.Kind == "Installation" {
-			installationCR, ok := k8sObject.Object.(*v1alpha1.Installation)
-			if !ok {
-				return nil, nil, fmt.Errorf("unexpected type of Installation object: %T, failed to cast to *Installation", k8sObject.Object)
-			}
-
-			k8sObjects = append(k8sObjects[:i], k8sObjects[i+1:]...)
-			return installationCR, k8sObjects, nil
-		}
-	}
-
-	return nil, k8sObjects, fmt.Errorf("installation object not found in the objects slice")
 }
 
 func (k KymaInstaller) triggerInstallation() error {
