@@ -178,9 +178,10 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 		}
 
 		installation := Installation{
-			TillerYaml:    tillerYamlContent,
-			InstallerYaml: installerYamlContent,
-			Configuration: configuration,
+			TillerYaml:      tillerYamlContent,
+			InstallerYaml:   installerYamlContent,
+			InstallerCRYaml: installerCRYamlContent,
+			Configuration:   configuration,
 		}
 
 		// when
