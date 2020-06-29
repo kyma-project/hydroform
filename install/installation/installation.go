@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	v1 "k8s.io/client-go/kubernetes/typed/apps/v1"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/kyma-incubator/hydroform/install/scheme"
@@ -190,6 +192,7 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*Kym
 		decoder:                           decoder,
 		k8sGenericClient:                  k8s.NewGenericClient(restMapper, dynamicClient, coreClient),
 		installationClient:                installationClient.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace),
+		deploymentClient:                  coreClient.AppsV1().Deployments(kymaInstallerNamespace),
 	}, nil
 }
 
@@ -200,6 +203,7 @@ type KymaInstaller struct {
 	decoder                           runtime.Decoder
 	k8sGenericClient                  *k8s.GenericClient
 	installationClient                installationTyped.InstallationInterface
+	deploymentClient                  v1.DeploymentInterface
 }
 
 // PrepareInstallation creates all the required resources for Kyma Installation.
@@ -241,7 +245,15 @@ func (k KymaInstaller) PrepareUpgrade(artifacts Installation) error {
 		}
 	}
 
-	err := k.deployInstallerForUpgrade(artifacts.InstallerYaml)
+	// Delete old Installer deployment
+	err := k.deploymentClient.Delete("kyma-installer", &metav1.DeleteOptions{})
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	err = k.deployInstallerForUpgrade(artifacts.InstallerYaml)
 	if err != nil {
 		return err
 	}
