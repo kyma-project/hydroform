@@ -126,6 +126,76 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 			assertConfiguration(t, k8sClientSet, componentConfig.Configuration, componentConfig.Component, componentConfig.Component)
 		}
 
+		assertInstallerResources(t, dynamicClient)
+	})
+
+	t.Run("should prepare Kyma Installation with Tiller artifacts passed", func(t *testing.T) {
+		// given
+		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema)
+		k8sClientSet := fake.NewSimpleClientset(runningTillerPod)
+		installationClientSet := installationFake.NewSimpleClientset()
+
+		mapper := dummyRestMapper{}
+
+		kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
+
+		installationComponents := []v1alpha1.KymaComponent{
+			{Name: "application-connector", ReleaseName: "application-connector", Namespace: "kyma-integration"},
+		}
+
+		kymaInstaller.installationCRModificationFunc = func(installation *v1alpha1.Installation) {
+			installation.Spec.Components = installationComponents
+		}
+
+		configuration := Configuration{
+			Configuration: []ConfigEntry{
+				{
+					Key:   "global.test.key",
+					Value: "global-value",
+				},
+				{
+					Key:    "global.test.secret.key",
+					Value:  "global-secret-value",
+					Secret: true,
+				},
+			},
+			ComponentConfiguration: []ComponentConfiguration{
+				{
+					Component: "application-connector",
+					Configuration: []ConfigEntry{
+						{
+							Key:   "component.test.key",
+							Value: "component-value",
+						},
+						{
+							Key:    "component.test.secret.key",
+							Value:  "component-secret-value",
+							Secret: true,
+						},
+					},
+				},
+			},
+		}
+
+		installation := Installation{
+			TillerYaml:    tillerYamlContent,
+			InstallerYaml: installerYamlContent,
+			Configuration: configuration,
+		}
+
+		// when
+		err := kymaInstaller.PrepareInstallation(installation)
+
+		// then
+		require.NoError(t, err)
+
+		assertInstallation(t, installationClientSet, installationComponents)
+		assertConfiguration(t, k8sClientSet, configuration.Configuration, "global", "")
+
+		for _, componentConfig := range configuration.ComponentConfiguration {
+			assertConfiguration(t, k8sClientSet, componentConfig.Configuration, componentConfig.Component, componentConfig.Component)
+		}
+
 		assertTillerResources(t, dynamicClient)
 		assertInstallerResources(t, dynamicClient)
 	})
@@ -248,6 +318,82 @@ func TestKymaInstaller_PrepareUpgrade(t *testing.T) {
 	}
 
 	t.Run("should prepare upgrade", func(t *testing.T) {
+		// given
+		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema)
+		k8sClientSet := fake.NewSimpleClientset(runningTillerPod)
+		installationClientSet := installationFake.NewSimpleClientset()
+
+		mapper := dummyRestMapper{}
+
+		kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
+
+		installationComponents := []v1alpha1.KymaComponent{
+			{Name: "application-connector", ReleaseName: "application-connector", Namespace: "kyma-integration"},
+		}
+
+		kymaInstaller.installationCRModificationFunc = func(installation *v1alpha1.Installation) {
+			installation.Spec.Components = installationComponents
+		}
+
+		configuration := Configuration{
+			Configuration: []ConfigEntry{
+				{
+					Key:   "global.test.key",
+					Value: "global-value",
+				},
+				{
+					Key:    "global.test.secret.key",
+					Value:  "global-secret-value",
+					Secret: true,
+				},
+			},
+			ComponentConfiguration: []ComponentConfiguration{
+				{
+					Component: "application-connector",
+					Configuration: []ConfigEntry{
+						{
+							Key:   "component.test.key",
+							Value: "component-value",
+						},
+						{
+							Key:    "component.test.secret.key",
+							Value:  "component-secret-value",
+							Secret: true,
+						},
+					},
+				},
+			},
+		}
+
+		installation := Installation{
+			InstallerYaml: installerYamlContent,
+			Configuration: configuration,
+		}
+
+		// when
+		err := kymaInstaller.PrepareInstallation(installation)
+
+		// then
+		require.NoError(t, err)
+
+		//given
+		upgrade := Installation{
+			InstallerYaml: upgradeInstallerYamlContent,
+			Configuration: configuration,
+		}
+
+		//when
+		err = kymaInstaller.PrepareUpgrade(upgrade)
+
+		//then
+		require.NoError(t, err)
+
+		assertInstallerResources(t, dynamicClient)
+
+		assertDynamicResource(t, dynamicClient, serviceGVR, "kyma-upgrade-check", kymaInstallerNamespace)
+	})
+
+	t.Run("should prepare upgrade with Tiller", func(t *testing.T) {
 		// given
 		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema)
 		k8sClientSet := fake.NewSimpleClientset(runningTillerPod)

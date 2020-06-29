@@ -55,6 +55,35 @@ func TestYAMLToConfiguration(t *testing.T) {
 			},
 		},
 		{
+			description: "should parse secrets correctly",
+			yamlContent: `---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-overrides
+  namespace: kyma-installer
+  labels:
+    installer: overrides
+    kyma-project.io/installation: ""
+    component: mycomponent
+data:
+  data: "c2VjcmV0MQ=="
+stringData:
+  stringData: howdy
+---`,
+			expectedConfig: installation.Configuration{
+				ComponentConfiguration: []installation.ComponentConfiguration{
+					{
+						Component: "mycomponent",
+						Configuration: []installation.ConfigEntry{
+							{Key: "data", Value: "secret1", Secret: true},
+							{Key: "stringData", Value: "howdy", Secret: true},
+						},
+					},
+				},
+			},
+		},
+		{
 			description: "should create empty config from empty yaml",
 			yamlContent: ``,
 			expectedConfig: installation.Configuration{
