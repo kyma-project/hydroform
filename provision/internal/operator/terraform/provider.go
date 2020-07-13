@@ -15,14 +15,26 @@ import (
 // TODO remove this file when the gardener provider is on the official terraform registry
 
 const (
-	providerURL     = "https://github.com/kyma-incubator/terraform-provider-gardener/releases/download/%s/terraform-provider-gardener-%s-%s"
-	providerName    = "terraform-provider-gardener"
-	providerVersion = "v0.0.9"
+	gardenerProviderURL     = "https://github.com/kyma-incubator/terraform-provider-gardener/releases/download/%s/terraform-provider-gardener-%s-%s"
+	gardenerProviderName    = "terraform-provider-gardener"
+	gardenerProviderVersion = "v0.0.9"
+
+	kindProviderURL     = "https://github.com/kyma-incubator/terraform-provider-kind/releases/download/%s/terraform-provider-kind-%s-%s"
+	kindProviderName    = "terraform-provider-kind"
+	kindProviderVersion = "v0.0.1"
 )
 
 // initGardenerProvider will check if the gardener provider is available and download it if not.
 
 func initGardenerProvider() error {
+	return initProvider(gardenerProviderName, gardenerProviderVersion, gardenerProviderURL)
+}
+func initKindProvider() error {
+	return nil
+	// return initProvider(kindProviderName, kindProviderVersion, kindProviderURL)
+}
+
+func initProvider(providerName, providerVersion, providerURL string) error {
 	pluginDirs, err := globalPluginDirs()
 	if err != nil {
 		return err

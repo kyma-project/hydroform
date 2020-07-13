@@ -50,6 +50,10 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 		if err := initGardenerProvider(); err != nil {
 			return nil, errors.Wrap(err, "could not initialize the gardener provider")
 		}
+	} else if p == types.Kind {
+		if err := initKindProvider(); err != nil {
+			return nil, errors.Wrap(err, "could not initialize the kind provider")
+		}
 	}
 	if err := tfInit(t.ops, p, cfg, clusterDir); err != nil {
 		return nil, err

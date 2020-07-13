@@ -9,7 +9,7 @@ To provision a Kind cluster you need Docker with memory settings configured to s
 
 ### Run the example
 
-1. To provision a new cluster on Azure, go to the `provision` directory and run:
+1. To provision a new kind cluster, go to the `provision` directory and run:
 
     ```bash
     go run ./examples/kind/main.go -p {project-name} -n {dockerhub/image:tag} --persist

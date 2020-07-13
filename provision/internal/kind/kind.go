@@ -1,7 +1,9 @@
 package kind
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"regexp"
 
 	"github.com/hashicorp/terraform/states/statefile"
@@ -9,8 +11,6 @@ import (
 	"github.com/kyma-incubator/hydroform/provision/internal/operator"
 	terraform_operator "github.com/kyma-incubator/hydroform/provision/internal/operator/terraform"
 	"github.com/kyma-incubator/hydroform/provision/types"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/pkg/errors"
 )
@@ -63,32 +63,22 @@ func (k *kindProvisioner) Credentials(cluster *types.Cluster, p *types.Provider)
 		return nil, errors.New(errs.EmptyClusterInfo)
 	}
 
-	userName := "cluster-user"
-	config := api.NewConfig()
+	// TODO find a better way to do this. Maybe this will be solved with the module way of doing things
+	attrs := cluster.ClusterInfo.InternalState.TerraformState.State.Modules[""].Resources["kind.kind-cluster"].Instances[nil].Current.AttrsJSON
 
-	// TODO check if there's a better way to read kubeconfig
-	// resources := cluster.ClusterInfo.InternalState.TerraformState.State.Modules[""].Resources["kind.kind-cluster"]
-	// fmt.Println(string(resources.Instances[nil].Current.AttrsJSON))
+	var obj interface{}
 
-	config.Clusters[cluster.Name] = &api.Cluster{
-		Server:                   fmt.Sprintf("https://%v", cluster.ClusterInfo.Endpoint),
-		CertificateAuthorityData: cluster.ClusterInfo.CertificateAuthorityData,
+	err := json.Unmarshal(attrs, &obj)
+	if err != nil {
+		return nil, err
 	}
 
-	config.Contexts[cluster.Name] = &api.Context{
-		Cluster:  cluster.Name,
-		AuthInfo: userName,
+	kubeconfigPath := obj.(map[string]interface{})["kubeconfig_path"]
+	kubeconfigBytes, err := ioutil.ReadFile(kubeconfigPath.(string))
+	if err != nil {
+		return nil, err
 	}
-
-	config.CurrentContext = cluster.Name
-
-	config.AuthInfos[userName] = &api.AuthInfo{
-		AuthProvider: &api.AuthProviderConfig{
-			Name: "kind",
-		},
-	}
-
-	return clientcmd.Write(*config)
+	return kubeconfigBytes, nil
 }
 
 // Deprovision requests deprovisioning of an existing cluster on Kind with the given configurations.
