@@ -107,8 +107,10 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 		}
 
 		installation := Installation{
-			InstallerYaml: installerYamlContent,
-			Configuration: configuration,
+			TillerYaml:      tillerYamlContent,
+			InstallerYaml:   installerYamlContent,
+			InstallerCRYaml: installerCRYamlContent,
+			Configuration:   configuration,
 		}
 
 		// when
@@ -176,9 +178,10 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 		}
 
 		installation := Installation{
-			TillerYaml:    tillerYamlContent,
-			InstallerYaml: installerYamlContent,
-			Configuration: configuration,
+			TillerYaml:      tillerYamlContent,
+			InstallerYaml:   installerYamlContent,
+			InstallerCRYaml: installerCRYamlContent,
+			Configuration:   configuration,
 		}
 
 		// when
@@ -215,7 +218,7 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 						Namespace: kubeSystemNamespace,
 					},
 				}},
-				installation:  Installation{TillerYaml: "invalid ", InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:  Installation{TillerYaml: "invalid ", InstallerYaml: installerYamlContent, InstallerCRYaml: installerCRYamlContent, Configuration: Configuration{}},
 				errorContains: "failed to parse Tiller yaml",
 			},
 			{
@@ -226,25 +229,25 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 						Namespace: kubeSystemNamespace,
 					},
 				}},
-				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, InstallerCRYaml: installerCRYamlContent, Configuration: Configuration{}},
 				errorContains: "failed to apply Tiller resources",
 			},
 			{
 				description:   "when Tiller pod is not running",
-				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, InstallerCRYaml: installerCRYamlContent, Configuration: Configuration{}},
 				errorContains: "timeout waiting for Tiller to start",
 			},
 			{
 				description:         "when invalid Installer yaml content",
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
-				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "invalid yaml", Configuration: Configuration{}},
+				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "invalid yaml", InstallerCRYaml: installerCRYamlContent, Configuration: Configuration{}},
 				errorContains:       "failed to parse Installer yaml",
 			},
 			{
 				description:         "when Installation CR not present in installer YAML",
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
-				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "", Configuration: Configuration{}},
-				errorContains:       "installation object not found",
+				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, InstallerCRYaml: "invalid.yaml", Configuration: Configuration{}},
+				errorContains:       "failed to parse InstallerCR yaml",
 			},
 			{
 				description: "when one of Installer resources already exists",
@@ -453,9 +456,10 @@ func TestKymaInstaller_PrepareUpgrade(t *testing.T) {
 
 		//given
 		upgrade := Installation{
-			TillerYaml:    upgradeTillerYamlContent,
-			InstallerYaml: upgradeInstallerYamlContent,
-			Configuration: configuration,
+			TillerYaml:      upgradeTillerYamlContent,
+			InstallerYaml:   upgradeInstallerYamlContent,
+			InstallerCRYaml: upgradeInstallerCRYamlContent,
+			Configuration:   configuration,
 		}
 
 		//when
@@ -489,25 +493,25 @@ func TestKymaInstaller_PrepareUpgrade(t *testing.T) {
 						Namespace: kubeSystemNamespace,
 					},
 				}},
-				installation:  Installation{TillerYaml: "invalid ", InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:  Installation{TillerYaml: "invalid ", InstallerYaml: installerYamlContent, InstallerCRYaml: upgradeInstallerCRYamlContent, Configuration: Configuration{}},
 				errorContains: "failed to parse Tiller yaml",
 			},
 			{
 				description:   "when Tiller pod is not running",
-				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
+				installation:  Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, InstallerCRYaml: upgradeInstallerCRYamlContent, Configuration: Configuration{}},
 				errorContains: "timeout waiting for Tiller to start",
 			},
 			{
 				description:         "when invalid Installer yaml content",
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
-				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "invalid yaml", Configuration: Configuration{}},
+				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "invalid yaml", InstallerCRYaml: upgradeInstallerCRYamlContent, Configuration: Configuration{}},
 				errorContains:       "failed to parse Installer yaml",
 			},
 			{
 				description:         "when Installation CR not present in installer YAML",
 				k8sClientsetObjects: []runtime.Object{runningTillerPod},
-				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: "", Configuration: Configuration{}},
-				errorContains:       "installation object not found",
+				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, InstallerCRYaml: "invalid yaml", Configuration: Configuration{}},
+				errorContains:       "failed to parse InstallerCR yaml",
 			},
 		} {
 			t.Run(testCase.description, func(t *testing.T) {

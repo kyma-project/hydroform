@@ -13,11 +13,13 @@ import (
 )
 
 var (
-	tillerYamlContent    string
-	installerYamlContent string
+	tillerYamlContent      string
+	installerYamlContent   string
+	installerCRYamlContent string
 
-	upgradeTillerYamlContent    string
-	upgradeInstallerYamlContent string
+	upgradeTillerYamlContent      string
+	upgradeInstallerYamlContent   string
+	upgradeInstallerCRYamlContent string
 
 	resourcesSchema *runtime.Scheme
 
@@ -33,6 +35,10 @@ func TestMain(m *testing.M) {
 	logAndExitOnError(err)
 	installerYamlContent = string(installerYamlBytes)
 
+	installerCRYamlBytes, err := ioutil.ReadFile("testdata/kyma-installer-cr.yaml")
+	logAndExitOnError(err)
+	installerCRYamlContent = string(installerCRYamlBytes)
+
 	tillerUpgradeYamlBytes, err := ioutil.ReadFile("testdata/tiller-upgrade.yaml")
 	logAndExitOnError(err)
 	upgradeTillerYamlContent = string(tillerUpgradeYamlBytes)
@@ -40,6 +46,10 @@ func TestMain(m *testing.M) {
 	installerUpgradeYamlBytes, err := ioutil.ReadFile("testdata/kyma-installer-upgrade.yaml")
 	logAndExitOnError(err)
 	upgradeInstallerYamlContent = string(installerUpgradeYamlBytes)
+
+	installerUpgradeCRYamlBytes, err := ioutil.ReadFile("testdata/kyma-installer-upgrade-cr.yaml")
+	logAndExitOnError(err)
+	upgradeInstallerCRYamlContent = string(installerUpgradeCRYamlBytes)
 
 	resourcesSchema, err = scheme.DefaultScheme()
 	logAndExitOnError(err)

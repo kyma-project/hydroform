@@ -28,17 +28,19 @@ func (l logger) Infof(format string, a ...interface{}) {
 }
 
 const (
-	tillerYamlUrl    = "https://raw.githubusercontent.com/kyma-project/kyma/release-1.10/installation/resources/tiller.yaml"
-	installerYamlUrl = "https://github.com/kyma-project/kyma/releases/download/1.10.0/kyma-installer-local.yaml"
-	configYamlUrl    = "https://github.com/kyma-project/kyma/releases/download/1.10.0/kyma-config-local.yaml"
+	tillerYamlUrl      = "https://raw.githubusercontent.com/kyma-project/kyma/release-1.12/installation/resources/tiller.yaml"
+	installerYamlUrl   = "https://raw.githubusercontent.com/kyma-project/kyma/1.12.0/installation/resources/installer-local.yaml"
+	configYamlUrl      = "https://raw.githubusercontent.com/kyma-project/kyma/1.12.0/installation/resources/installer-config-local.yaml.tpl"
+	installerCRYamlUrl = "https://raw.githubusercontent.com/kyma-project/kyma/1.12.0/installation/resources/installer-cr.yaml.tpl"
 
-	upgradeTillerYamlUrl    = "https://raw.githubusercontent.com/kyma-project/kyma/release-1.11/installation/resources/tiller.yaml"
-	upgradeInstallerYamlUrl = "https://github.com/kyma-project/kyma/releases/download/1.11.0/kyma-installer-local.yaml"
-	upgradeConfigYamlUrl    = "https://github.com/kyma-project/kyma/releases/download/1.11.0/kyma-config-local.yaml"
+	upgradeTillerYamlUrl      = "https://raw.githubusercontent.com/kyma-project/kyma/release-1.13/installation/resources/tiller.yaml"
+	upgradeInstallerYamlUrl   = "https://raw.githubusercontent.com/kyma-project/kyma/1.13.0/installation/resources/installer-local.yaml"
+	upgradeConfigYamlUrl      = "https://raw.githubusercontent.com/kyma-project/kyma/1.13.0/installation/resources/installer-config-local.yaml.tpl"
+	upgradeInstallerCRYamlUrl = "https://raw.githubusercontent.com/kyma-project/kyma/1.13.0/installation/resources/installer-cr.yaml.tpl"
 )
 
 func main() {
-	minikubeIp := flag.String("minikubeIP", "192.168.64.5", "IP of Minikube instance")
+	minikubeIp := flag.String("minikubeIP", "192.168.64.2	", "IP of Minikube instance")
 	flag.Parse()
 
 	if minikubeIp == nil || *minikubeIp == "" {
@@ -59,6 +61,10 @@ func main() {
 	installerYamlContent, err := fetchFile(installerYamlUrl)
 	logAndExitOnError(err)
 
+	log.Printf("Fetching Kyma Installer config files...")
+	installerCRYamlContent, err := fetchFile(installerCRYamlUrl)
+	logAndExitOnError(err)
+
 	log.Printf("Fetching Kyma Config file...")
 	kymaConfigYamlContent, err := fetchFile(configYamlUrl)
 	logAndExitOnError(err)
@@ -74,9 +80,10 @@ func main() {
 	logAndExitOnError(err)
 
 	artifacts := installation.Installation{
-		TillerYaml:    tillerYamlContent,
-		InstallerYaml: installerYamlContent,
-		Configuration: configuration,
+		TillerYaml:      tillerYamlContent,
+		InstallerYaml:   installerYamlContent,
+		InstallerCRYaml: installerCRYamlContent,
+		Configuration:   configuration,
 	}
 
 	log.Printf("Preparing installation...")
@@ -100,6 +107,10 @@ func main() {
 	installerYamlContentUpg, err := fetchFile(upgradeInstallerYamlUrl)
 	logAndExitOnError(err)
 
+	log.Printf("Fetching upgraded Kyma Installer config files...")
+	installerCRYamlContentUpg, err := fetchFile(upgradeInstallerCRYamlUrl)
+	logAndExitOnError(err)
+
 	log.Printf("Fetching upgraded Kyma Config file...")
 	kymaConfigYamlContentUpg, err := fetchFile(upgradeConfigYamlUrl)
 	logAndExitOnError(err)
@@ -110,9 +121,10 @@ func main() {
 	configuration.Configuration.Set("global.minikubeIP", *minikubeIp, false)
 
 	artifacts = installation.Installation{
-		TillerYaml:    tillerYamlContentUpg,
-		InstallerYaml: installerYamlContentUpg,
-		Configuration: configuration,
+		TillerYaml:      tillerYamlContentUpg,
+		InstallerYaml:   installerYamlContentUpg,
+		InstallerCRYaml: installerCRYamlContentUpg,
+		Configuration:   configuration,
 	}
 
 	log.Printf("Preparing upgrade...")
