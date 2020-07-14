@@ -45,8 +45,8 @@ func main() {
 			"worker_max_unavailable": 1,
 			"worker_maximum":         4,
 			"worker_minimum":         2,
-			"machine_image_name":     "coreos",
-			"machine_image_version":  "2303.3.0",
+			"machine_image_name":     "gardenlinux",
+			"machine_image_version":  "27.1.0",
 			"networking_type":        "calico",
 		},
 	}
