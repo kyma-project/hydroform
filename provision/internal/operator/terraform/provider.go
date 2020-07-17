@@ -30,8 +30,7 @@ func initGardenerProvider() error {
 	return initProvider(gardenerProviderName, gardenerProviderVersion, gardenerProviderURL)
 }
 func initKindProvider() error {
-	return nil
-	// return initProvider(kindProviderName, kindProviderVersion, kindProviderURL)
+	return initProvider(kindProviderName, kindProviderVersion, kindProviderURL)
 }
 
 func initProvider(providerName, providerVersion, providerURL string) error {
