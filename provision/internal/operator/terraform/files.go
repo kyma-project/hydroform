@@ -300,7 +300,8 @@ func initClusterFiles(dataDir string, p types.ProviderType, cfg map[string]inter
 
 	// create vars file
 	var vars strings.Builder
-	for k, v := range cfg {
+	filtered := filterVars(cfg, p)
+	for k, v := range filtered {
 		switch t := v.(type) {
 		case int:
 			if _, err := vars.WriteString(fmt.Sprintf("%s = \"%d\"\n", k, t)); err != nil {
