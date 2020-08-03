@@ -23,13 +23,18 @@ func azureFilter(key string, value interface{}) bool {
 	return true
 }
 
+func awsFilter(key string, value interface{}) bool {
+	// by default all keys stay in the vars for AWS
+	return true
+}
+
 func gardenerFilter(key string, value interface{}) bool {
-	// by default all keys stay in the vars for GCP
+	// by default all keys stay in the vars for Gardener
 	return true
 }
 
 func kindFilter(key string, value interface{}) bool {
-	// by default all keys stay in the vars for GCP
+	// by default all keys stay in the vars for kind
 	return true
 }
 
@@ -46,7 +51,7 @@ func filterVars(cfg map[string]interface{}, p types.ProviderType) map[string]int
 	case types.Azure:
 		f = azureFilter
 	case types.AWS:
-		f = nil // not supported yet
+		f = awsFilter // not supported yet
 	case types.Kind:
 		f = kindFilter
 	}

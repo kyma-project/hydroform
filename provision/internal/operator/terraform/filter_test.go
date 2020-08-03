@@ -27,6 +27,10 @@ func TestFilterVars(t *testing.T) {
 	r = filterVars(cfg, types.Azure)
 	require.Equal(t, expected, r, "Azure should filter out variables")
 
+	// filter AWS
+	r = filterVars(cfg, types.AWS)
+	require.Equal(t, cfg, r, "AWS should not filter out any variables")
+
 	// filter Gardener
 	r = filterVars(cfg, types.Gardener)
 	require.Equal(t, cfg, r, "Gardener should not filter out any variables")
