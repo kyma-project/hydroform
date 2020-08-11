@@ -249,18 +249,6 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, InstallerCRYaml: "invalid.yaml", Configuration: Configuration{}},
 				errorContains:       "failed to parse InstallerCR yaml",
 			},
-			{
-				description: "when one of Installer resources already exists",
-				dynamicClientObjects: []runtime.Object{&v12.ServiceAccount{
-					ObjectMeta: v1.ObjectMeta{
-						Name:      "helm-certs-job-sa",
-						Namespace: kymaInstallerNamespace,
-					},
-				}},
-				k8sClientsetObjects: []runtime.Object{runningTillerPod},
-				installation:        Installation{TillerYaml: tillerYamlContent, InstallerYaml: installerYamlContent, Configuration: Configuration{}},
-				errorContains:       "failed to apply Installer resources",
-			},
 		} {
 			t.Run(testCase.description, func(t *testing.T) {
 				// given
