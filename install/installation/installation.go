@@ -216,13 +216,13 @@ func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 
 	if artifacts.TillerYaml != "" {
 		k.infof("Tiller artifacts provided, using old Kyma version")
-		err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.CreateResources)
+		err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.ApplyResources)
 		if err != nil {
 			return err
 		}
 	}
 
-	err := k.deployInstallerForIstallation(artifacts.InstallerYaml)
+	err := k.deployInstallerForInstallation(artifacts.InstallerYaml)
 	if err != nil {
 		return err
 	}
@@ -338,8 +338,8 @@ func (k KymaInstaller) installTiller(tillerYaml string, createFunction func([]k8
 	return nil
 }
 
-func (k KymaInstaller) deployInstallerForIstallation(yamlFile string) error {
-	return k.deployInstaller(yamlFile, k.k8sGenericClient.CreateResources)
+func (k KymaInstaller) deployInstallerForInstallation(yamlFile string) error {
+	return k.deployInstaller(yamlFile, k.k8sGenericClient.ApplyResources)
 }
 
 func (k KymaInstaller) deployInstallerForUpgrade(yamlFile string) error {
