@@ -216,7 +216,7 @@ func (k KymaInstaller) PrepareInstallation(artifacts Installation) error {
 
 	if artifacts.TillerYaml != "" {
 		k.infof("Tiller artifacts provided, using old Kyma version")
-		err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.CreateResources)
+		err := k.installTiller(artifacts.TillerYaml, k.k8sGenericClient.ApplyResources)
 		if err != nil {
 			return err
 		}
