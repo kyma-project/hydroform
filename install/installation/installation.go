@@ -100,7 +100,7 @@ func CheckInstallationState(kubeconfig *rest.Config) (InstallationState, error) 
 	installationCR, err := installationClient.
 		InstallerV1alpha1().
 		Installations(defaultInstallationResourceNamespace).
-		Get(kymaInstallationName, metav1.GetOptions{})
+		Get(context.Background(), kymaInstallationName, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return InstallationState{
@@ -124,7 +124,7 @@ func TriggerUninstall(kubeconfig *rest.Config) error {
 	installationCR, err := installationClient.
 		InstallerV1alpha1().
 		Installations(defaultInstallationResourceNamespace).
-		Get(kymaInstallationName, metav1.GetOptions{})
+		Get(context.Background(), kymaInstallationName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("error getting Installation client: %s", err.Error())
 	}
@@ -137,7 +137,7 @@ func TriggerUninstall(kubeconfig *rest.Config) error {
 
 	_, err = installationClient.InstallerV1alpha1().
 		Installations(defaultInstallationResourceNamespace).
-		Update(installationCR)
+		Update(context.Background(), installationCR, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("error labeling Installation CR with action=uninstall label: %s", err.Error())
 	}
@@ -255,7 +255,7 @@ func (k KymaInstaller) PrepareUpgrade(artifacts Installation) error {
 	}
 
 	// Delete old Installer deployment
-	err := k.deploymentClient.Delete("kyma-installer", &metav1.DeleteOptions{})
+	err := k.deploymentClient.Delete(context.Background(), "kyma-installer", metav1.DeleteOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return err
@@ -452,18 +452,18 @@ func (k KymaInstaller) applyInstallationCR(installationCR *v1alpha1.Installation
 		installationCR.Namespace = defaultInstallationResourceNamespace
 	}
 
-	_, err := k.installationClient.Create(installationCR)
+	_, err := k.installationClient.Create(context.Background(), installationCR, metav1.CreateOptions{})
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
 			k.infof("installation %s already exists, trying to update...", installationCR.Name)
-			get, err := k.installationClient.Get(installationCR.Name, metav1.GetOptions{})
+			get, err := k.installationClient.Get(context.Background(), installationCR.Name, metav1.GetOptions{})
 			if err != nil {
 				return fmt.Errorf("installation CR already exists, failed to get installation CR: %w", err)
 			}
 
 			installationCR.ResourceVersion = get.ResourceVersion
 
-			_, err = k.installationClient.Update(installationCR)
+			_, err = k.installationClient.Update(context.Background(), installationCR, metav1.UpdateOptions{})
 			if err != nil {
 				return fmt.Errorf("installation CR already exists, failed to updated installation CR: %w", err)
 			}
@@ -476,7 +476,7 @@ func (k KymaInstaller) applyInstallationCR(installationCR *v1alpha1.Installation
 }
 
 func (k KymaInstaller) triggerInstallation() error {
-	installation, err := k.installationClient.Get(kymaInstallationName, metav1.GetOptions{})
+	installation, err := k.installationClient.Get(context.Background(), kymaInstallationName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -491,7 +491,7 @@ func (k KymaInstaller) triggerInstallation() error {
 
 	installation.Labels[installationActionLabel] = "install"
 
-	_, err = k.installationClient.Update(installation)
+	_, err = k.installationClient.Update(context.Background(), installation, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed label Installation CR: %w", err)
 	}
@@ -548,7 +548,7 @@ func (k KymaInstaller) waitForInstallation(context context.Context, stateChannel
 }
 
 func (k KymaInstaller) newInstallationWatcher(timeout int64) (watch.Interface, error) {
-	return k.installationClient.Watch(metav1.ListOptions{FieldSelector: fmt.Sprintf("%s=%s", "metadata.name", kymaInstallationName), TimeoutSeconds: &timeout})
+	return k.installationClient.Watch(context.Background(), metav1.ListOptions{FieldSelector: fmt.Sprintf("%s=%s", "metadata.name", kymaInstallationName), TimeoutSeconds: &timeout})
 }
 
 var installationObjectDeleted error = fmt.Errorf("installation object deleted")

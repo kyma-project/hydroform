@@ -645,7 +645,7 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 
 		go func() {
 			time.Sleep(3 * time.Second)
-			err := installationClient.Delete(kymaInstallationName, &v1.DeleteOptions{})
+			err := installationClient.Delete(context.Background(), kymaInstallationName, v1.DeleteOptions{})
 			assert.NoError(t, err)
 		}()
 
@@ -770,7 +770,7 @@ func updateInstallationStatusFunc(status *v1alpha1.InstallationStatus) installat
 func updateInstallationPeriodically(errChan chan<- error, installationClient v1alpha12.InstallationInterface, updateFunctions ...installationStatusUpdateFunc) {
 	for _, updateFunc := range updateFunctions {
 		time.Sleep(time.Second * 2)
-		installation, err := installationClient.Get(kymaInstallationName, v1.GetOptions{})
+		installation, err := installationClient.Get(context.Background(), kymaInstallationName, v1.GetOptions{})
 		if err != nil {
 			errChan <- err
 			return
@@ -788,7 +788,7 @@ func updateInstallationPeriodically(errChan chan<- error, installationClient v1a
 
 		updateFunc(&installation.Status)
 
-		_, err = installationClient.Update(installation)
+		_, err = installationClient.Update(context.Background(), installation, v1.UpdateOptions{})
 		if err != nil {
 			errChan <- err
 			return
@@ -797,7 +797,7 @@ func updateInstallationPeriodically(errChan chan<- error, installationClient v1a
 }
 
 func assertInstallation(t *testing.T, installationClientSet *installationFake.Clientset, components []v1alpha1.KymaComponent) {
-	kymaInstallation, err := installationClientSet.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace).Get(kymaInstallationName, v1.GetOptions{})
+	kymaInstallation, err := installationClientSet.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace).Get(context.Background(), kymaInstallationName, v1.GetOptions{})
 	require.NoError(t, err)
 	assert.Equal(t, components, kymaInstallation.Spec.Components)
 }
@@ -806,10 +806,10 @@ func assertConfiguration(t *testing.T, clientSet *fake.Clientset, configuration 
 	cmClient := clientSet.CoreV1().ConfigMaps(kymaInstallerNamespace)
 	secretsClient := clientSet.CoreV1().Secrets(kymaInstallerNamespace)
 
-	configMap, err := cmClient.Get(namePrefix+"-installer-config", v1.GetOptions{})
+	configMap, err := cmClient.Get(context.Background(), namePrefix+"-installer-config", v1.GetOptions{})
 	require.NoError(t, err)
 
-	secret, err := secretsClient.Get(namePrefix+"-installer-config", v1.GetOptions{})
+	secret, err := secretsClient.Get(context.Background(), namePrefix+"-installer-config", v1.GetOptions{})
 	require.NoError(t, err)
 
 	if component != "" {
@@ -865,7 +865,7 @@ func assertDynamicResource(t *testing.T, dynamicClient *dynamicFake.FakeDynamicC
 		client = dynamicClient.Resource(gvr)
 	}
 
-	object, err := client.Get(name, v1.GetOptions{})
+	object, err := client.Get(context.Background(), name, v1.GetOptions{})
 	require.NoError(t, err)
 
 	assert.Equal(t, name, object.GetName())
