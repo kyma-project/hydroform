@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"strings"
@@ -67,13 +68,13 @@ func TestGenericClient_WaitForPodByLabel(t *testing.T) {
 		podsClient := k8sClientSet.CoreV1().Pods(namespace)
 
 		go func() {
-			testPod, err := podsClient.Get("test", v12.GetOptions{})
+			testPod, err := podsClient.Get(context.Background(), "test", v12.GetOptions{})
 			require.NoError(t, err)
 
 			time.Sleep(waitForLabelChange)
 
 			testPod.Status = v1.PodStatus{Phase: v1.PodRunning}
-			_, err = podsClient.Update(testPod)
+			_, err = podsClient.Update(context.Background(), testPod, v12.UpdateOptions{})
 			require.NoError(t, err)
 		}()
 
@@ -85,7 +86,7 @@ func TestGenericClient_WaitForPodByLabel(t *testing.T) {
 		// then
 		require.NoError(t, err)
 
-		pod, err := podsClient.Get("test", v12.GetOptions{})
+		pod, err := podsClient.Get(context.Background(), "test", v12.GetOptions{})
 		require.NoError(t, err)
 		assert.Equal(t, v1.PodRunning, pod.Status.Phase)
 	})
@@ -157,10 +158,10 @@ func TestGenericClient_ApplyConfigMaps(t *testing.T) {
 		require.NoError(t, err)
 
 		cmClient := k8sClientSet.CoreV1().ConfigMaps(namespace)
-		cm, err := cmClient.Get("test1", v12.GetOptions{})
+		cm, err := cmClient.Get(context.Background(), "test1", v12.GetOptions{})
 		require.NoError(t, err)
 		assert.Equal(t, cmsToApply[0].Data, cm.Data)
-		cm2, err := cmClient.Get("test2", v12.GetOptions{})
+		cm2, err := cmClient.Get(context.Background(), "test2", v12.GetOptions{})
 		require.NoError(t, err)
 		assert.Equal(t, cmsToApply[1].Data, cm2.Data)
 	})
@@ -199,10 +200,10 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 		require.NoError(t, err)
 
 		secretClient := k8sClientSet.CoreV1().Secrets(namespace)
-		secret, err := secretClient.Get("test1", v12.GetOptions{})
+		secret, err := secretClient.Get(context.Background(), "test1", v12.GetOptions{})
 		require.NoError(t, err)
 		assert.Equal(t, secretsToApply[0].Data, secret.Data)
-		secret2, err := secretClient.Get("test2", v12.GetOptions{})
+		secret2, err := secretClient.Get(context.Background(), "test2", v12.GetOptions{})
 		require.NoError(t, err)
 		assert.Equal(t, secretsToApply[1].Data, secret2.Data)
 	})

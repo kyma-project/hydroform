@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/kyma-incubator/hydroform/install/util"
@@ -44,7 +45,7 @@ type GenericClient struct {
 
 func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desiredPhase corev1.PodPhase, timeout, checkInterval time.Duration) error {
 	return util.WaitFor(checkInterval, timeout, func() (bool, error) {
-		pods, err := c.coreClient.Pods(namespace).List(v1.ListOptions{LabelSelector: labelSelector})
+		pods, err := c.coreClient.Pods(namespace).List(context.Background(), v1.ListOptions{LabelSelector: labelSelector})
 		if err != nil {
 			return false, err
 		}
@@ -71,7 +72,7 @@ func (c GenericClient) ApplyConfigMaps(configMaps []*corev1.ConfigMap, namespace
 	client := c.coreClient.ConfigMaps(namespace)
 
 	for _, cm := range configMaps {
-		_, err := client.Create(cm)
+		_, err := client.Create(context.Background(), cm, v1.CreateOptions{})
 		if err != nil {
 			if k8serrors.IsAlreadyExists(err) {
 				err = c.updateConfigMap(client, cm)
@@ -87,7 +88,7 @@ func (c GenericClient) ApplyConfigMaps(configMaps []*corev1.ConfigMap, namespace
 }
 
 func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) error {
-	oldCM, err := client.Get(cm.Name, v1.GetOptions{})
+	oldCM, err := client.Get(context.Background(), cm.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -96,7 +97,7 @@ func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, c
 
 	cm.Data = mergedData
 
-	_, err = client.Update(cm)
+	_, err = client.Update(context.Background(), cm, v1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -108,7 +109,7 @@ func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) 
 	client := c.coreClient.Secrets(namespace)
 
 	for _, sec := range secrets {
-		_, err := client.Create(sec)
+		_, err := client.Create(context.Background(), sec, v1.CreateOptions{})
 		if err != nil {
 			if k8serrors.IsAlreadyExists(err) {
 				err = c.updateSecret(client, sec)
@@ -125,7 +126,7 @@ func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) 
 }
 
 func (c GenericClient) updateSecret(client corev1Client.SecretInterface, secret *corev1.Secret) error {
-	oldSecret, err := client.Get(secret.Name, v1.GetOptions{})
+	oldSecret, err := client.Get(context.Background(), secret.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -134,7 +135,7 @@ func (c GenericClient) updateSecret(client corev1Client.SecretInterface, secret 
 
 	secret.Data = mergedData
 
-	_, err = client.Update(secret)
+	_, err = client.Update(context.Background(), secret, v1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -176,7 +177,7 @@ func (c GenericClient) createResources(resources []K8sObject,
 }
 
 func (c GenericClient) createObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	created, err := client.Create(unstructuredObject, v1.CreateOptions{})
+	created, err := client.Create(context.Background(), unstructuredObject, v1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create object %s of kind %s: %s", unstructuredObject.GetName(), unstructuredObject.GetKind(), err.Error())
 	}
@@ -185,7 +186,7 @@ func (c GenericClient) createObject(client dynamic.ResourceInterface, unstructur
 }
 
 func (c GenericClient) applyObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	created, err := client.Create(unstructuredObject, v1.CreateOptions{})
+	created, err := client.Create(context.Background(), unstructuredObject, v1.CreateOptions{})
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
 			updated, err := c.updateObject(client, unstructuredObject)
@@ -201,7 +202,7 @@ func (c GenericClient) applyObject(client dynamic.ResourceInterface, unstructure
 }
 
 func (c GenericClient) updateObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	get, err := client.Get(unstructuredObject.GetName(), v1.GetOptions{})
+	get, err := client.Get(context.Background(), unstructuredObject.GetName(), v1.GetOptions{})
 
 	if err != nil {
 		return nil, err
@@ -211,7 +212,7 @@ func (c GenericClient) updateObject(client dynamic.ResourceInterface, unstructur
 
 	newObject := &unstructured.Unstructured{Object: merged}
 
-	return client.Update(newObject, v1.UpdateOptions{})
+	return client.Update(context.Background(), newObject, v1.UpdateOptions{})
 }
 
 func (c GenericClient) clientForResource(unstructuredObject *unstructured.Unstructured, gvk *schema.GroupVersionKind) (dynamic.ResourceInterface, error) {
