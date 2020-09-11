@@ -12,16 +12,17 @@ const (
 	triggerNameFormat = "%s-%s"
 )
 
-func NewTriggers(cfg workspace.Cfg) []unstructured.Unstructured {
+func NewTriggers(cfg workspace.Cfg, refs ...map[string]interface{}) ([]unstructured.Unstructured, error) {
 	var list []unstructured.Unstructured
 	for _, trigger := range cfg.Triggers {
 		out := unstructured.Unstructured{Object: map[string]interface{}{
 			"apiVersion": triggerApiVersion,
 			"kind":       "Trigger",
 			"metadata": map[string]interface{}{
-				"name":      fmt.Sprintf(triggerNameFormat, cfg.Name, trigger.Source),
-				"namespace": cfg.Namespace,
-				"labels":    cfg.Labels,
+				"name":            fmt.Sprintf(triggerNameFormat, cfg.Name, trigger.Source),
+				"namespace":       cfg.Namespace,
+				"labels":          cfg.Labels,
+				"ownerReferences": refs,
 			},
 			"spec": map[string]interface{}{
 				"broker": "default",
@@ -42,8 +43,14 @@ func NewTriggers(cfg workspace.Cfg) []unstructured.Unstructured {
 				},
 			},
 		}}
+
+		if len(refs) == 0 {
+			list = append(list, out)
+			continue
+		}
+
 		list = append(list, out)
 	}
 
-	return list
+	return list, nil
 }

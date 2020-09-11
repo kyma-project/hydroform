@@ -12,9 +12,9 @@ var _ file = &Cfg{}
 const CfgFilename = "config.yaml"
 
 type Cfg struct {
-	Name      string            `yaml:"name"`
-	Namespace string            `yaml:"namespace"`
-	Labels    map[string]string `yaml:"labels,omitempty"`
+	Name      string                 `yaml:"name"`
+	Namespace string                 `yaml:"namespace"`
+	Labels    map[string]interface{} `yaml:"labels,omitempty"`
 
 	Runtime    types.Runtime `yaml:"runtime"`
 	Git        bool          `yaml:"git,omitempty"`

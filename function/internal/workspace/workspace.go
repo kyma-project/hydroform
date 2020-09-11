@@ -1,57 +1,46 @@
 package workspace
 
 import (
-	"os"
-	"path"
-
 	"github.com/kyma-incubator/hydroform/function/internal/resources/types"
 	"github.com/pkg/errors"
+	"io"
+	"os"
 )
 
 type FileName string
 
 type workspace []file
 
-func (ws workspace) build(cfg Cfg, dirPath string) error {
+func (ws workspace) build(cfg Cfg, dirPath string, writerProvider WriterProvider) error {
 	workspaceFiles := append(ws, cfg)
 	for _, fileTemplate := range workspaceFiles {
-		if err := write(dirPath, fileTemplate, cfg); err != nil {
+		if err := writerProvider.write(dirPath, fileTemplate, cfg); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func write(destinationDirPath string, fileTemplate file, cfg Cfg) error {
-	outFilePath := path.Join(destinationDirPath, fileTemplate.fileName())
-
+var defaultWriterProvider = func(outFilePath string) (io.Writer, func() error, error) {
 	file, err := os.Create(outFilePath)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	defer func() {
-		err := file.Close()
-		if err != nil {
-			return
-		}
-	}()
-
-	err = fileTemplate.write(file, cfg)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return file, file.Close, nil
 }
 
 var errUnsupportedRuntime = errors.New("unsupported runtime")
 
 func Initialize(cfg Cfg, dirPath string) error {
+	return initialize(cfg, dirPath, defaultWriterProvider)
+}
+
+func initialize(cfg Cfg, dirPath string, writerProvider WriterProvider) error {
 	ws, err := fromRuntime(cfg.Runtime)
 	if err != nil {
 		return err
 	}
-	return ws.build(cfg, dirPath)
+	return ws.build(cfg, dirPath, writerProvider)
 }
 
 func fromRuntime(runtime types.Runtime) (workspace, error) {

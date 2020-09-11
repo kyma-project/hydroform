@@ -13,13 +13,18 @@ const (
 	functionApiVersion = "serverless.kyma-project.io/v1alpha1"
 )
 
-func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
+func NewFunction(cfg workspace.Cfg, refs ...map[string]interface{}) (unstructured.Unstructured, error) {
+	return newFunction(cfg, ioutil.ReadFile, refs...)
+}
+
+func newFunction(cfg workspace.Cfg, readFile ReadFile, refs ...map[string]interface{}) (unstructured.Unstructured, error) {
 	out := unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": functionApiVersion,
 		"kind":       "Function",
 		"metadata": map[string]interface{}{
-			"name":   cfg.Name,
-			"labels": cfg.Labels,
+			"name":            cfg.Name,
+			"labels":          cfg.Labels,
+			"ownerReferences": refs,
 		},
 		"spec": map[string]interface{}{
 			"runtime": cfg.Runtime,
@@ -29,7 +34,7 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 	spec := out.Object["spec"].(map[string]interface{})
 	for key, value := range runtimeMappings[cfg.Runtime] {
 		filePath := path.Join(cfg.SourcePath, string(value))
-		data, err := ioutil.ReadFile(filePath)
+		data, err := readFile(filePath)
 		if err != nil {
 			return unstructured.Unstructured{}, err
 		}
@@ -52,6 +57,9 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 	}
 	if resources != nil {
 		spec["resources"] = resources
+	}
+	if len(refs) == 0 {
+		return out, nil
 	}
 
 	return out, nil
