@@ -5,7 +5,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/docopt/docopt-go"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
@@ -14,6 +13,7 @@ import (
 	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -85,6 +85,27 @@ func getClient(cfg *config) dynamic.Interface {
 	return result
 }
 
+func statusLoggingCallback(e *log.Entry) func(client.StatusEntry, error) error {
+	return func(s client.StatusEntry, err error) error {
+		entryFromStatus(e, s).Debug(fmt.Sprintf("object %s", s.StatusType))
+		return err
+	}
+}
+
+func callbackIgnoreNotFound(_ client.StatusEntry, err error) error {
+	if !errors.IsNotFound(err) {
+		return err
+	}
+	return nil
+}
+
+func callbackStatusGetter(in *client.StatusEntry) func(client.StatusEntry, error) error {
+	return func(entry client.StatusEntry, err error) error {
+		*in = entry
+		return err
+	}
+}
+
 func main() {
 	// parse command arguments
 	cfg, err := newConfig()
@@ -115,101 +136,134 @@ func main() {
 		entry.Fatal(err)
 	}
 	configuration.SourcePath = cfg.Dir
+
 	entry = log.NewEntry(log.StandardLogger())
-	entryFromCfg(entry, configuration).Debug("creating function from configuration")
+
+	entryFromCfg(entry, configuration).Debug("generating function from configuration")
 	function, err := unstructfn.NewFunction(configuration)
 	if err != nil {
 		entry.Fatal(err)
 	}
-	entryFromUnstructured(entry, &function).Debug("function created")
+	entryFromUnstructured(entry, &function).Debug("function generated")
 
-	entryFromCfg(entry, configuration).Debug("creating triggers from configuration")
+	entryFromCfg(entry, configuration).Debug("generating triggers from configuration")
 	triggers, err := unstructfn.NewTriggers(configuration)
 	if err != nil {
 		entry.Fatal(err)
 	}
 	for _, trigger := range triggers {
-		entryFromUnstructured(entry, &trigger).Debug("trigger created")
+		entryFromUnstructured(entry, &trigger).Debug("trigger generated")
 	}
 
 	dynamicInterface := getClient(cfg)
-	parent, fnClient := newFunctionParentOperatorWithClient(function, dynamicInterface)
+	// Build function operator
+	fnOperator := newOperator(
+		operator.NewFunctionsOperator,
+		operator.GVKFunction,
+		configuration.Namespace,
+		dynamicInterface,
+		[]unstructured.Unstructured{function},
+	)
 
-	entryFromUnstructured(entry, &function).Debug("applying function")
-	status, err := parent.Apply(fnClient, operator.ApplyOptions{
-		DryRun: stages,
-	})
-	if err != nil {
-		entry.Fatal(err)
-	}
-	entryFromStatus(entry, status[0]).Debug(fmt.Sprintf("function %s", status[0].StatusType))
+	var functionStatusEntry client.StatusEntry
 
-	// WE NEED THAT IN HYDROFORM
-	resourceInterface := dynamicInterface.Resource(schema.GroupVersionResource{
-		Group:    "eventing.knative.dev",
-		Version:  "v1alpha1",
-		Resource: "triggers",
-	}).Namespace(configuration.Namespace)
-
-	ctx := context.Background()
-	list, err := resourceInterface.List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("ownerUID=%s", status[0].GetUID()),
-	})
-
-	if err != nil {
+	// Try to apply function
+	if err := fnOperator.Apply(
+		operator.ApplyOptions{DryRun: stages},
+		statusLoggingCallback(entry),
+		callbackStatusGetter(&functionStatusEntry),
+	); err != nil { // rollback if error
+		safeDelete(fnOperator, entry, stages)
 		entry.Fatal(err)
 	}
 
-	for _, item := range list.Items {
-		if !contains(triggers, item.GetName()) {
-			if err := resourceInterface.Delete(ctx, item.GetName(), metav1.DeleteOptions{
-				DryRun: stages,
-			}); err != nil {
-				entry.Fatal(err)
-			}
-			entryFromUnstructured(entry, &item).Debug("deleted")
-		}
-	}
+	// Build triggers operator
+	trOperator := newOperator(
+		operator.NewTriggersOperator,
+		operator.GVKTriggers,
+		configuration.Namespace,
+		dynamicInterface,
+		triggers,
+	)
 
-	entry.WithField("len", len(triggers)).Debug("applying triggers")
-	for _, trigger := range triggers {
-		resourceOperator, trClient := newTriggerResourceOperatorWithClient(trigger, dynamicInterface)
-		status, err := resourceOperator.Apply(trClient, operator.ApplyOptions{
-			DryRun:          stages,
-			OwnerReferences: status.GetOwnerReferences(),
-			Labels: map[string]string{
-				"ownerUID": string(status[0].GetUID()),
+	// Try to apply triggers
+	err = trOperator.Apply(
+		operator.ApplyOptions{
+			DryRun: stages,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: functionStatusEntry.GetAPIVersion(),
+					Kind:       functionStatusEntry.GetKind(),
+					Name:       functionStatusEntry.GetName(),
+					UID:        functionStatusEntry.GetUID(),
+				},
 			},
-		})
-
-		if err != nil {
-			entry = entryFromStatus(entry, status[0])
-			entry.Error(err)
-			entry.Error("wiping workspace")
-			status, err := parent.Delete(fnClient, operator.DeleteOptions{
-				DeletionPropagation: metav1.DeletePropagationForeground,
-			})
-			if err != nil {
-				entry.Fatal(err)
-			}
-			entryFromStatus(entry, status[0]).Info("function wiped")
-			break
-		}
-		entryFromUnstructured(entry, &trigger).
-			Debug(fmt.Sprintf("trigger %s", status[0].StatusType))
+		},
+		statusLoggingCallback(entry),
+	)
+	if err != nil {
+		safeDelete(fnOperator, entry, stages)
+		entry.Fatal(err)
 	}
+
+	// Synchronize triggers with current config state; DO WE NEED THAT IN HYDROFORM?!
+	//resourceInterface := dynamicInterface.Resource(gvrTriggers).Namespace(configuration.Namespace)
+	//
+	//list, err := resourceInterface.List(metav1.ListOptions{
+	//	LabelSelector: fmt.Sprintf("ownerUID=%s", status[0].GetUID()),
+	//})
+	//
+	//if err != nil {
+	//	// add purge
+	//	entry.Fatal(err)
+	//}
+	//
+	//for _, item := range list.Items {
+	//	if !contains(triggers, item.GetName()) {
+	//		if err := resourceInterface.Delete(item.GetName(), &metav1.DeleteOptions{
+	//			DryRun: stages,
+	//		}); err != nil {
+	//			entry.Fatal(err)
+	//		}
+	//		entryFromUnstructured(entry, &item).Debug("deleted")
+	//	}
+	//}
+	//
+	//entry.WithField("len", len(triggers)).Debug("applying triggers")
+	//for _, trigger := range triggers {
+	//	resourceOperator, trClient := newOperatorWithClient(gvrTriggers, trigger, dynamicInterface)
+	//	status, err := resourceOperator.Apply(trClient, operator.ApplyOptions{
+	//		DryRun:          stages,
+	//		OwnerReferences: status.GetOwnerReferences(),
+	//		Labels: map[string]string{
+	//			"ownerUID": string(status[0].GetUID()),
+	//		},
+	//	})
+	//
+	//	if err != nil {
+	//		entry = entryFromStatus(entry, status[0])
+	//		entry.Error(err)
+	//		entry.Error("wiping workspace")
+	//		status, err := parent.Delete(fnClient, operator.DeleteOptions{
+	//			DeletionPropagation: metav1.DeletePropagationForeground,
+	//		})
+	//		if err != nil {
+	//			entry.Fatal(err)
+	//		}
+	//		entryFromStatus(entry, status[0]).Info("function wiped")
+	//		break
+	//	}
+	//	entryFromUnstructured(entry, &trigger).
+	//		Debug(fmt.Sprintf("trigger %s", status[0].StatusType))
+	//}
 }
 
-func newFunctionParentOperatorWithClient(u unstructured.Unstructured, c dynamic.Interface) (operator.Parent, client.Client) {
-	parentOperator := operator.NewParentFunction(u)
-	resourceInterface := c.Resource(parentOperator.GetGroupVersionResource()).Namespace(u.GetNamespace())
-	return parentOperator, resourceInterface
-}
+type Provider = func(client.Client, ...unstructured.Unstructured) operator.Operator
 
-func newTriggerResourceOperatorWithClient(u unstructured.Unstructured, c dynamic.Interface) (operator.Resource, client.Client) {
-	resourceTrigger := operator.NewResourceTrigger(u)
-	resourceInterface := c.Resource(resourceTrigger.GetGroupVersionResource()).Namespace(u.GetNamespace())
-	return resourceTrigger, resourceInterface
+func newOperator(p Provider, gvr schema.GroupVersionResource, namespace string, dI dynamic.Interface, u []unstructured.Unstructured) operator.Operator {
+	fnClient := dI.Resource(gvr).Namespace(namespace)
+	fnOperator := p(fnClient, u...)
+	return fnOperator
 }
 
 func entryFromCfg(e *log.Entry, cfg workspace.Cfg) *log.Entry {
@@ -238,11 +292,12 @@ func entryFromStatus(e *log.Entry, s client.StatusEntry) *log.Entry {
 	})
 }
 
-func contains(s []unstructured.Unstructured, name string) bool {
-	for _, u := range s {
-		if u.GetName() == name {
-			return true
-		}
+func safeDelete(o operator.Operator, e *log.Entry, stages []string) {
+	deleteErr := o.Delete(
+		operator.DeleteOptions{DryRun: stages, DeletionPropagation: metav1.DeletePropagationForeground},
+		callbackIgnoreNotFound,
+	)
+	if deleteErr != nil {
+		e.Error(deleteErr)
 	}
-	return false
 }
