@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/function/internal/resources/types"
-	"github.com/kyma-incubator/hydroform/function/internal/workspace"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"github.com/onsi/gomega"
 )
 
@@ -42,7 +42,7 @@ func testPropertyDataSlice(cfg workspace.Cfg) []testPropertyData {
 	}
 }
 
-var readFileTestNode = func(filename string) ([]byte, error) {
+func readFileTestNode(filename string) ([]byte, error) {
 	_, realFilename := path.Split(filename)
 	switch workspace.FileName(realFilename) {
 	case workspace.FileNameHandlerPy:
@@ -126,8 +126,7 @@ func Test_NewFunctionError(t *testing.T) {
 func Test_NewFunction(t *testing.T) {
 	for _, cfg := range []workspace.Cfg{cfgTestFull, cfgTestJustLimits, cfgTestNoResources,
 		cfgTestNoResourcesAndLabels} {
-		ref := NewFunctionOwnerReference("test", "test")
-		result, err := newFunction(cfg, readFileTestNode, ref.Object)
+		result, err := newFunction(cfg, readFileTestNode)
 		gomega.NewWithT(t).Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		testDataSlice := testPropertyDataSlice(cfg)

@@ -4,27 +4,29 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/kyma-incubator/hydroform/function/internal/resources/types"
-	"github.com/kyma-incubator/hydroform/function/internal/workspace"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
+
+type ReadFile = func(filename string) ([]byte, error)
 
 const (
 	functionApiVersion = "serverless.kyma-project.io/v1alpha1"
 )
 
-func NewFunction(cfg workspace.Cfg, refs ...map[string]interface{}) (unstructured.Unstructured, error) {
-	return newFunction(cfg, ioutil.ReadFile, refs...)
+func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
+	return newFunction(cfg, ioutil.ReadFile)
 }
 
-func newFunction(cfg workspace.Cfg, readFile ReadFile, refs ...map[string]interface{}) (unstructured.Unstructured, error) {
+func newFunction(cfg workspace.Cfg, readFile ReadFile) (unstructured.Unstructured, error) {
 	out := unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": functionApiVersion,
 		"kind":       "Function",
 		"metadata": map[string]interface{}{
-			"name":            cfg.Name,
-			"labels":          cfg.Labels,
-			"ownerReferences": refs,
+			"name":      cfg.Name,
+			"namespace": cfg.Namespace,
+			"labels":    cfg.Labels,
 		},
 		"spec": map[string]interface{}{
 			"runtime": cfg.Runtime,
@@ -56,10 +58,7 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile, refs ...map[string]interf
 		resources["limits"] = cfg.Resources.Limits
 	}
 	if resources != nil {
-		spec["resources"] = resources
-	}
-	if len(refs) == 0 {
-		return out, nil
+		spec["resource"] = resources
 	}
 
 	return out, nil

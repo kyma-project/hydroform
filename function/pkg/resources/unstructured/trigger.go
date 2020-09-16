@@ -3,7 +3,7 @@ package unstructured
 import (
 	"fmt"
 
-	"github.com/kyma-incubator/hydroform/function/internal/workspace"
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -12,17 +12,16 @@ const (
 	triggerNameFormat = "%s-%s"
 )
 
-func NewTriggers(cfg workspace.Cfg, refs ...map[string]interface{}) ([]unstructured.Unstructured, error) {
+func NewTriggers(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
 	var list []unstructured.Unstructured
 	for _, trigger := range cfg.Triggers {
 		out := unstructured.Unstructured{Object: map[string]interface{}{
 			"apiVersion": triggerApiVersion,
 			"kind":       "Trigger",
 			"metadata": map[string]interface{}{
-				"name":            fmt.Sprintf(triggerNameFormat, cfg.Name, trigger.Source),
-				"namespace":       cfg.Namespace,
-				"labels":          cfg.Labels,
-				"ownerReferences": refs,
+				"name":      fmt.Sprintf(triggerNameFormat, cfg.Name, trigger.Source),
+				"namespace": cfg.Namespace,
+				"labels":    cfg.Labels,
 			},
 			"spec": map[string]interface{}{
 				"broker": "default",
@@ -43,12 +42,6 @@ func NewTriggers(cfg workspace.Cfg, refs ...map[string]interface{}) ([]unstructu
 				},
 			},
 		}}
-
-		if len(refs) == 0 {
-			list = append(list, out)
-			continue
-		}
-
 		list = append(list, out)
 	}
 

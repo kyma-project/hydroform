@@ -2,7 +2,7 @@ package unstructured
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/function/internal/workspace"
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"strings"
@@ -21,8 +21,7 @@ var (
 
 func Test_NewTrigger(t *testing.T) {
 	for _, cfg := range []workspace.Cfg{cfgTestTriggersFull} {
-		ref := NewFunctionOwnerReference("test", "test")
-		result, err := newFunction(cfg, readFileTestNode, ref.Object)
+		result, err := newFunction(cfg, readFileTestNode)
 		gomega.NewWithT(t).Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		testDataSlice := testPropertyDataSlice(cfg)

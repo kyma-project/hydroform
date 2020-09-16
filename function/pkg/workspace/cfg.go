@@ -1,10 +1,9 @@
 package workspace
 
 import (
-	"io"
-
-	"github.com/kyma-incubator/hydroform/function/internal/resources/types"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"gopkg.in/yaml.v3"
+	"io"
 )
 
 var _ file = &Cfg{}
@@ -23,7 +22,7 @@ type Cfg struct {
 	Resources struct {
 		Limits   ResourceList `yaml:"limits"`
 		Requests ResourceList `yaml:"requests"`
-	} `yaml:"resources,omitempty"`
+	} `yaml:"resource,omitempty"`
 
 	Triggers []struct {
 		EventTypeVersion string `yaml:"eventTypeVersion"`

@@ -1,7 +1,7 @@
 package workspace
 
 import (
-	"github.com/kyma-incubator/hydroform/function/internal/resources/types"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
 	"io"
 	"os"
