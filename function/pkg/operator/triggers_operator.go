@@ -8,6 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+const message = "functionUID"
+
 type triggersOperator struct {
 	items []unstructured.Unstructured
 	client.Client
@@ -25,7 +27,7 @@ var errNotFound = errors.New("not found")
 func (t triggersOperator) Apply(opts ApplyOptions, c ...Callback) error {
 	functionUID, found := findFunctionUID(opts.OwnerReferences)
 	if !found {
-		return errors.Wrap(errNotFound, "functionUID")
+		return errors.Wrap(errNotFound, message)
 	}
 	if err := t.wipeRemoved(functionUID, opts, c...); err != nil {
 		return err
@@ -34,7 +36,7 @@ func (t triggersOperator) Apply(opts ApplyOptions, c ...Callback) error {
 	for _, u := range t.items {
 		u.SetOwnerReferences(opts.OwnerReferences)
 		newLabels := mergeMap(u.GetLabels(), map[string]string{
-			"functionUID": functionUID,
+			message: functionUID,
 		})
 		u.SetLabels(newLabels)
 		new1, statusEntry, err := applyObject(t.Client, u, opts.DryRun)
