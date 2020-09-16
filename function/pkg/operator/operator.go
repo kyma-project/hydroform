@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"fmt"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,6 +29,7 @@ func applyObject(c client.Client, u unstructured.Unstructured, stages []string) 
 	// If object is up to date return
 	var equal bool
 	if objFound {
+		//FIXME this fails for function unstructured - investigate
 		equal = equality.Semantic.DeepDerivative(u.Object["spec"], response.Object["spec"])
 	}
 
@@ -81,7 +83,15 @@ func deleteObject(i client.Client, u unstructured.Unstructured, ops DeleteOption
 
 func fireCallbacks(e client.StatusEntry, err error, c []Callback) error {
 	for _, callback := range c {
-		callbackErr := callback(e, err)
+		var callbackErr error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					callbackErr = fmt.Errorf("%v", r)
+				}
+			}()
+			callbackErr = callback(e, err)
+		}()
 		if callbackErr != nil {
 			return callbackErr
 		}

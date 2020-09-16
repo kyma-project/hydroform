@@ -205,57 +205,6 @@ func main() {
 		safeDelete(fnOperator, entry, stages)
 		entry.Fatal(err)
 	}
-
-	// Synchronize triggers with current config state; DO WE NEED THAT IN HYDROFORM?!
-	//resourceInterface := dynamicInterface.Resource(gvrTriggers).Namespace(configuration.Namespace)
-	//
-	//list, err := resourceInterface.List(metav1.ListOptions{
-	//	LabelSelector: fmt.Sprintf("ownerUID=%s", status[0].GetUID()),
-	//})
-	//
-	//if err != nil {
-	//	// add purge
-	//	entry.Fatal(err)
-	//}
-	//
-	//for _, item := range list.Items {
-	//	if !contains(triggers, item.GetName()) {
-	//		if err := resourceInterface.Delete(item.GetName(), &metav1.DeleteOptions{
-	//			DryRun: stages,
-	//		}); err != nil {
-	//			entry.Fatal(err)
-	//		}
-	//		entryFromUnstructured(entry, &item).Debug("deleted")
-	//	}
-	//}
-	//
-	//entry.WithField("len", len(triggers)).Debug("applying triggers")
-	//for _, trigger := range triggers {
-	//	resourceOperator, trClient := newOperatorWithClient(gvrTriggers, trigger, dynamicInterface)
-	//	status, err := resourceOperator.Apply(trClient, operator.ApplyOptions{
-	//		DryRun:          stages,
-	//		OwnerReferences: status.GetOwnerReferences(),
-	//		Labels: map[string]string{
-	//			"ownerUID": string(status[0].GetUID()),
-	//		},
-	//	})
-	//
-	//	if err != nil {
-	//		entry = entryFromStatus(entry, status[0])
-	//		entry.Error(err)
-	//		entry.Error("wiping workspace")
-	//		status, err := parent.Delete(fnClient, operator.DeleteOptions{
-	//			DeletionPropagation: metav1.DeletePropagationForeground,
-	//		})
-	//		if err != nil {
-	//			entry.Fatal(err)
-	//		}
-	//		entryFromStatus(entry, status[0]).Info("function wiped")
-	//		break
-	//	}
-	//	entryFromUnstructured(entry, &trigger).
-	//		Debug(fmt.Sprintf("trigger %s", status[0].StatusType))
-	//}
 }
 
 type Provider = func(client.Client, ...unstructured.Unstructured) operator.Operator
