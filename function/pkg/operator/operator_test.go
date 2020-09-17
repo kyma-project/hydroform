@@ -15,12 +15,18 @@ import (
 
 var (
 	testObj = unstructured.Unstructured{Object: map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name": "test-obj",
+		},
 		"spec": map[string]interface{}{
 			"test": "me",
 		},
 	}}
 	testObj2 = unstructured.Unstructured{
 		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"name": "test-obj2",
+			},
 			"spec": map[string]interface{}{
 				"test": "me2",
 			},

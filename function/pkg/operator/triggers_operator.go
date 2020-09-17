@@ -111,9 +111,9 @@ func contains(s []unstructured.Unstructured, name string) bool {
 	return false
 }
 
-func mergeMap(labels map[string]string, extra map[string]string) map[string]string {
-	for k, v := range extra {
-		labels[k] = v
+func mergeMap(l map[string]string, r map[string]string) map[string]string {
+	for k, v := range r {
+		l[k] = v
 	}
-	return labels
+	return l
 }
