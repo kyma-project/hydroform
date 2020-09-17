@@ -66,7 +66,7 @@ func (t triggersOperator) wipeRemoved(functionUID string, opts ApplyOptions, c .
 		return err
 	}
 
-	policy := v1.DeletePropagationForeground
+	policy := v1.DeletePropagationBackground
 
 	// delete all removed triggers
 	for _, item := range list.Items {

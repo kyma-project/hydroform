@@ -16,7 +16,5 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor i
 
 Follow the links to view the [usage examples](./examples/README.md).
 
-!!!!!!!!!! ADD OWNER REFERENCE !!!!!!!!!!
 - apply --hard
 
-wersjonowanie unstructured
