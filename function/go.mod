@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/Azure/go-autorest/autorest v0.11.6 // indirect
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
+	github.com/golang/mock v1.4.4
 	github.com/gophercloud/gophercloud v0.12.0 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/onsi/gomega v1.7.0

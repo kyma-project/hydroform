@@ -96,5 +96,5 @@ func fireCallbacks(e client.StatusEntry, err error, c []Callback) error {
 			return callbackErr
 		}
 	}
-	return nil
+	return err
 }
