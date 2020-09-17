@@ -124,6 +124,18 @@ func Test_mergeMap(t *testing.T) {
 			want: nil,
 		},
 		{
+			name: "nil check #2",
+			args: args{
+				l: nil,
+				r: map[string]string{
+					"test": "me",
+				},
+			},
+			want: map[string]string{
+				"test": "me",
+			},
+		},
+		{
 			name: "override",
 			args: args{
 				l: map[string]string{"a": "a1", "b": "b1"},
@@ -219,13 +231,87 @@ func Test_triggersOperator_Apply(t *testing.T) {
 
 					result.EXPECT().
 						List(gomock.Any()).
-						Return(nil, fmt.Errorf("list error")).
+						Return(&unstructured.UnstructuredList{}, nil).
+						Times(1)
+
+					result.EXPECT().
+						Get(gomock.Any(), gomock.Any()).
+						Return(nil, fmt.Errorf("get error")).
 						Times(1)
 
 					return result
 				}(),
 			},
 			wantErr: true,
+		},
+		{
+			name: "callback error",
+			args: args{
+				opts: ApplyOptions{
+					OwnerReferences: []v1.OwnerReference{
+						{
+							Kind: "Function",
+							UID:  "123",
+						},
+					},
+				},
+				c: []Callback{
+					func(_ client.StatusEntry, _ error) error {
+						return fmt.Errorf("test error")
+					},
+				},
+			},
+			fields: fields{
+				items: []unstructured.Unstructured{testObj},
+				Client: func() client.Client {
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						List(gomock.Any()).
+						Return(&unstructured.UnstructuredList{}, nil).
+						Times(1)
+
+					result.EXPECT().
+						Get(gomock.Any(), gomock.Any()).
+						Return(testObj.DeepCopy(), nil).
+						Times(1)
+
+					return result
+				}(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "apply",
+			args: args{
+				opts: ApplyOptions{
+					OwnerReferences: []v1.OwnerReference{
+						{
+							Kind: "Function",
+							UID:  "123",
+						},
+					},
+				},
+			},
+			fields: fields{
+				items: []unstructured.Unstructured{testObj},
+				Client: func() client.Client {
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						List(gomock.Any()).
+						Return(&unstructured.UnstructuredList{}, nil).
+						Times(1)
+
+					result.EXPECT().
+						Get(gomock.Any(), gomock.Any()).
+						Return(testObj.DeepCopy(), nil).
+						Times(1)
+
+					return result
+				}(),
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
