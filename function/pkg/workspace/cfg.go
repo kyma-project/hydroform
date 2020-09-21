@@ -1,9 +1,10 @@
 package workspace
 
 import (
+	"io"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"gopkg.in/yaml.v3"
-	"io"
 )
 
 var _ file = &Cfg{}

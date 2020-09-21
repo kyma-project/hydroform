@@ -5,16 +5,21 @@ import (
 	"path"
 )
 
-type WriterProvider func(path string) (io.Writer, func() error, error)
+type Cancel = func() error
+
+type WriterProvider func(path string) (io.Writer, Cancel, error)
 
 func (p WriterProvider) write(destinationDirPath string, fileTemplate file, cfg Cfg) error {
 	outFilePath := path.Join(destinationDirPath, fileTemplate.fileName())
 	writer, closeFn, err := p(outFilePath)
+	if err != nil {
+		return err
+	}
 	defer func() {
-		err := closeFn()
-		if err != nil {
+		if closeFn == nil {
 			return
 		}
+		closeFn()
 	}()
 
 	err = fileTemplate.write(writer, cfg)

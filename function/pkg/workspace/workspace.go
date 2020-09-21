@@ -1,10 +1,11 @@
 package workspace
 
 import (
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
-	"github.com/pkg/errors"
 	"io"
 	"os"
+
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/pkg/errors"
 )
 
 type FileName string
