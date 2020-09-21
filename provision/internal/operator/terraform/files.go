@@ -42,26 +42,26 @@ const (
   variable "delete_timeout" 	{}
 
   provider "google" {
-    	credentials   = "${file("${var.credentials_file_path}")}"
-		project       = "${var.project}"
+    	credentials   = file("${var.credentials_file_path}")
+		project       = var.project
   }
 
   resource "google_container_cluster" "gke_cluster" {
-    	name               = "${var.cluster_name}"
-    	location 	       = "${var.location}"
-    	initial_node_count = "${var.node_count}"
-    	min_master_version = "${var.kubernetes_version}"
-    	node_version       = "${var.kubernetes_version}"
+    	name               = var.cluster_name
+    	location 	       = var.location
+    	initial_node_count = var.node_count
+    	min_master_version = var.kubernetes_version
+    	node_version       = var.kubernetes_version
     
     node_config {
-      	machine_type = "${var.machine_type}"
-		disk_size_gb = "${var.disk_size}"
+      	machine_type = var.machine_type
+		disk_size_gb = var.disk_size
     }
 
 	timeouts {
-		create = "${var.create_timeout}"
-		update = "${var.update_timeout}"
-		delete = "${var.delete_timeout}"
+		create = var.create_timeout
+		update = var.update_timeout
+		delete = var.delete_timeout
 	}
 
     maintenance_policy {
@@ -72,11 +72,11 @@ const (
   }
 
   output "endpoint" {
-    value = "${google_container_cluster.gke_cluster.endpoint}"
+    value = google_container_cluster.gke_cluster.endpoint
   }
 
   output "cluster_ca_certificate" {
-    value = "${google_container_cluster.gke_cluster.master_auth.0.cluster_ca_certificate}"
+    value = google_container_cluster.gke_cluster.master_auth.0.cluster_ca_certificate
   }
 `
 
@@ -130,31 +130,31 @@ variable "machine_image_version"	{}
 
 
 provider "gardener" {
-	kube_file          = "${file("${var.credentials_file_path}")}"
+	kube_file          = file("${var.credentials_file_path}")
 }
 
 resource "gardener_shoot" "gardener_cluster" {
 	metadata {
-	  name      = "${var.cluster_name}"
-	  namespace = "${var.namespace}"
+	  name      = var.cluster_name
+	  namespace = var.namespace
   
 	}
 
 	timeouts {
-		create = "${var.create_timeout}"
-		update = "${var.update_timeout}"
-		delete = "${var.delete_timeout}"
+		create = var.create_timeout
+		update = var.update_timeout
+		delete = var.delete_timeout
 	}
 
 	spec {
-       cloud_profile_name = "${var.target_profile}"
-       region  = "${var.location}"
-	   secret_binding_name = "${var.target_secret}"
+       cloud_profile_name = var.target_profile
+       region  = var.location
+	   secret_binding_name = var.target_secret
        networking {
-         nodes = "${var.networking_nodes}"
-         pods = "${var.networking_pods}"
-         services = "${var.networking_services}"
-	     type = "${var.networking_type}"
+         nodes = var.networking_nodes
+         pods = var.networking_pods
+         services = var.networking_services
+	     type = var.networking_type
        }
       maintenance {
         auto_update {
@@ -167,31 +167,31 @@ resource "gardener_shoot" "gardener_cluster" {
         }
       }
       provider {
-        type = "${var.target_provider}"
+        type = var.target_provider
 		{{ if eq (index .Cfg "target_provider") "gcp" }}
 			control_plane_config {
 				gcp {
-					zone = "${var.gcp_control_plane_zone}"
+					zone = var.gcp_control_plane_zone
  				}
 			}
 		{{ end }}
         infrastructure_config {
            {{ if eq (index .Cfg "target_provider") "azure" }}
 			  azure {
-				zoned = "${var.zoned}"
+				zoned = var.zoned
                 networks {
                   vnet {
-					cidr = "${var.vnetcidr}"
+					cidr = var.vnetcidr
                   }
-				  workers = "${var.workercidr}"
-                  service_endpoints = "${var.service_endpoints}"
+				  workers = var.workercidr
+                  service_endpoints = var.service_endpoints
                 }
               }
            {{ end }}
 		   {{ if eq (index .Cfg "target_provider") "gcp" }}
 				gcp {
 					networks {
-						workers = "${var.workercidr}"
+						workers = var.workercidr
 					}
 				}
            {{ end }}
@@ -199,7 +199,7 @@ resource "gardener_shoot" "gardener_cluster" {
 				aws {
 					networks {
 						vpc {
-							cidr = "${var.vnetcidr}"
+							cidr = var.vnetcidr
 						}
 						{{range $i, $z:= (index .Cfg "zones")}}
 						zones {
@@ -215,28 +215,28 @@ resource "gardener_shoot" "gardener_cluster" {
         }
         worker {
          name = "cpu-worker"
-		 zones = "${var.zones}"
-         max_surge = "${var.worker_max_surge}"
-		 max_unavailable = "${var.worker_max_unavailable}"
-		 maximum = "${var.worker_maximum}"
-         minimum = "${var.worker_minimum}"
+		 zones = var.zones
+         max_surge = var.worker_max_surge
+		 max_unavailable = var.worker_max_unavailable
+		 maximum = var.worker_maximum
+         minimum = var.worker_minimum
 		 volume {
            size = "${var.disk_size}Gi"
-  		   type = "${var.disk_type}"
+  		   type = var.disk_type
          }
 		 machine {
 		   image {
- 			 name = "${var.machine_image_name}"
-			 version = "${var.machine_image_version}"
+ 			 name = var.machine_image_name
+			 version = var.machine_image_version
 		   }
-           type = "${var.machine_type}"
+           type = var.machine_type
 		 }
         }
       }
   
 	  kubernetes {
 		allow_privileged_containers = true
-		version = "${var.kubernetes_version}"
+		version = var.kubernetes_version
 	  }
   }
 }

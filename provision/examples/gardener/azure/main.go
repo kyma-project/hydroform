@@ -25,7 +25,7 @@ func main() {
 
 	cluster := &types.Cluster{
 		CPU:               1,
-		KubernetesVersion: "1.17.4",
+		KubernetesVersion: "1.18.8",
 		Name:              "hydro-azure",
 		DiskSizeGB:        35,
 		NodeCount:         2,

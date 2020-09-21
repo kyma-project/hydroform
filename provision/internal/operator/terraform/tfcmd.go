@@ -23,6 +23,12 @@ func tfInit(ops Options, p types.ProviderType, cfg map[string]interface{}, dir s
 		Meta: ops.Meta,
 	}
 
+	if p == types.Gardener {
+		// on gardener we manage the provider download ourselves
+		// verification will fail but we know it is fine
+		os.Setenv(command.ProviderSkipVerifyEnvVar, "1")
+	}
+
 	if e := i.Run(initArgs(p, cfg, dir)); e != 0 {
 		return checkUIErrors(ops.Ui)
 	}
