@@ -25,7 +25,7 @@ type functionOperator struct {
 }
 
 func NewFunctionsOperator(c client.Client, u ...unstructured.Unstructured) Operator {
-	return functionOperator{
+	return &functionOperator{
 		Client: c,
 		items:  u,
 	}

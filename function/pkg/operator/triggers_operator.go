@@ -16,7 +16,7 @@ type triggersOperator struct {
 }
 
 func NewTriggersOperator(c client.Client, u ...unstructured.Unstructured) Operator {
-	return triggersOperator{
+	return &triggersOperator{
 		Client: c,
 		items:  u,
 	}
