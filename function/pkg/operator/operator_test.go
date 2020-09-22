@@ -320,7 +320,7 @@ func Test_fireCallbacks(t *testing.T) {
 				e:   client.NewStatusEntryCreated(testObj),
 				err: nil,
 				c: []Callback{
-					func(entry client.StatusEntry, err error) error {
+					func(_ interface{}, err error) error {
 						panic("this is fine")
 					},
 				},
@@ -333,10 +333,14 @@ func Test_fireCallbacks(t *testing.T) {
 				e:   client.NewStatusEntryCreated(testObj),
 				err: nil,
 				c: []Callback{
-					func(_ client.StatusEntry, err error) error {
+					func(_ interface{}, err error) error {
 						return err
 					},
-					func(entry client.StatusEntry, err error) error {
+					func(v interface{}, err error) error {
+						entry, ok := v.(client.StatusEntry)
+						if !ok {
+							return fmt.Errorf("invalid callback argument type")
+						}
 						if err != nil || entry.StatusType == client.StatusTypeCreated {
 							return fmt.Errorf("this is not fine")
 						}
@@ -352,7 +356,7 @@ func Test_fireCallbacks(t *testing.T) {
 				e:   client.NewStatusEntryUpdated(testObj),
 				err: nil,
 				c: []Callback{
-					func(_ client.StatusEntry, err error) error {
+					func(_ interface{}, err error) error {
 						return err
 					},
 				},
@@ -362,7 +366,7 @@ func Test_fireCallbacks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := fireCallbacks(tt.args.e, tt.args.err, tt.args.c); (err != nil) != tt.wantErr {
+			if err := fireCallbacks(tt.args.e, tt.args.err); (err != nil) != tt.wantErr {
 				t.Errorf("fireCallbacks() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

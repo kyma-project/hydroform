@@ -256,7 +256,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 					},
 				},
 				c: []Callback{
-					func(_ client.StatusEntry, _ error) error {
+					func(_ interface{}, _ error) error {
 						return fmt.Errorf("test error")
 					},
 				},
@@ -317,7 +317,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
 			t := NewTriggersOperator(tt.fields.Client, tt.fields.items...)
-			if err := t.Apply(tt.args.opts, tt.args.c...); (err != nil) != tt.wantErr {
+			if err := t.Apply(tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Apply() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -381,7 +381,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 			},
 			args: args{
 				c: []Callback{
-					func(_ client.StatusEntry, _ error) error {
+					func(_ interface{}, _ error) error {
 						return fmt.Errorf("test error")
 					},
 				},
@@ -408,7 +408,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 			},
 			args: args{
 				c: []Callback{
-					func(_ client.StatusEntry, err error) error {
+					func(_ interface{}, err error) error {
 						return err
 					},
 				},
@@ -422,7 +422,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
 			t := NewTriggersOperator(tt.fields.Client, tt.fields.items...)
-			if err := t.Delete(tt.args.opts, tt.args.c...); (err != nil) != tt.wantErr {
+			if err := t.Delete(tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -522,7 +522,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 			},
 			args: args{
 				c: []Callback{
-					func(_ client.StatusEntry, _ error) error {
+					func(_ interface{}, _ error) error {
 						panic("it's fine")
 					},
 				},
@@ -561,7 +561,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 				items:  tt.fields.items,
 				Client: tt.fields.Client,
 			}
-			if err := t.wipeRemoved(tt.args.functionUID, tt.args.opts, tt.args.c...); (err != nil) != tt.wantErr {
+			if err := t.wipeRemoved(tt.args.functionUID, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("wipeRemoved() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

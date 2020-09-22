@@ -84,7 +84,7 @@ func Test_functionOperator_Apply(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := NewFunctionsOperator(tt.fields.Client, tt.fields.items...)
-			if err := p.Apply(tt.args.opts, tt.args.c...); (err != nil) != tt.wantErr {
+			if err := p.Apply(tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Apply() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -157,7 +157,7 @@ func Test_functionOperator_Delete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := NewFunctionsOperator(tt.fields.Client, tt.fields.items...)
-			if err := p.Delete(tt.args.opts, tt.args.c...); (err != nil) != tt.wantErr {
+			if err := p.Delete(tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

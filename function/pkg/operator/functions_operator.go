@@ -31,11 +31,16 @@ func NewFunctionsOperator(c client.Client, u ...unstructured.Unstructured) Opera
 	}
 }
 
-func (p functionOperator) Apply(opts ApplyOptions, c ...Callback) error {
+func (p functionOperator) Apply(opts ApplyOptions) error {
 	for _, u := range p.items {
 		u.SetOwnerReferences(opts.OwnerReferences)
+		// fire pre callbacks
+		if err := fireCallbacks(u, nil, opts.Pre...); err != nil {
+			return err
+		}
 		new1, statusEntry, err := applyObject(p.Client, u, opts.DryRun)
-		if err := fireCallbacks(statusEntry, err, c); err != nil {
+		// fire post callbacks
+		if err := fireCallbacks(statusEntry, err, opts.Callbacks.Post...); err != nil {
 			return err
 		}
 		u.SetUnstructuredContent(new1.Object)
@@ -43,10 +48,15 @@ func (p functionOperator) Apply(opts ApplyOptions, c ...Callback) error {
 	return nil
 }
 
-func (p functionOperator) Delete(opts DeleteOptions, c ...Callback) error {
+func (p functionOperator) Delete(opts DeleteOptions) error {
 	for _, u := range p.items {
+		// fire pre callbacks
+		if err := fireCallbacks(u, nil, opts.Pre...); err != nil {
+			return err
+		}
 		status, err := deleteObject(p.Client, u, opts)
-		if err := fireCallbacks(status, err, c); err != nil {
+		// fire post callbacks
+		if err := fireCallbacks(status, err, opts.Post...); err != nil {
 			return err
 		}
 	}

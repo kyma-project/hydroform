@@ -27,7 +27,7 @@ func (t StatusType) String() string {
 
 type StatusEntry struct {
 	StatusType
-	IdentifiedNamedKind
+	IdentifiedNamedKindVersion
 }
 
 func (e StatusEntry) toOwnerReference() v1.OwnerReference {
@@ -41,44 +41,48 @@ func (e StatusEntry) toOwnerReference() v1.OwnerReference {
 
 func NewStatusEntryFailed(u unstructured.Unstructured) StatusEntry {
 	return StatusEntry{
-		StatusType:          StatusTypeFailed,
-		IdentifiedNamedKind: &u,
+		StatusType:                 StatusTypeFailed,
+		IdentifiedNamedKindVersion: &u,
 	}
 }
 
 func NewStatusEntrySkipped(u unstructured.Unstructured) StatusEntry {
 	return StatusEntry{
-		StatusType:          StatusTypeSkipped,
-		IdentifiedNamedKind: &u,
+		StatusType:                 StatusTypeSkipped,
+		IdentifiedNamedKindVersion: &u,
 	}
 }
 
 func NewStatusEntryUpdated(u unstructured.Unstructured) StatusEntry {
 	return StatusEntry{
-		StatusType:          StatusTypeUpdated,
-		IdentifiedNamedKind: &u,
+		StatusType:                 StatusTypeUpdated,
+		IdentifiedNamedKindVersion: &u,
 	}
 }
 
 func NewStatusEntryCreated(u unstructured.Unstructured) StatusEntry {
 	return StatusEntry{
-		StatusType:          StatusTypeCreated,
-		IdentifiedNamedKind: &u,
+		StatusType:                 StatusTypeCreated,
+		IdentifiedNamedKindVersion: &u,
 	}
 }
 
 func NewStatusEntryDeleted(u unstructured.Unstructured) StatusEntry {
 	return StatusEntry{
-		StatusType:          StatusTypeDeleted,
-		IdentifiedNamedKind: &u,
+		StatusType:                 StatusTypeDeleted,
+		IdentifiedNamedKindVersion: &u,
 	}
 }
 
-type IdentifiedNamedKind interface {
+type NamedKindVersion interface {
 	GetKind() string
 	GetName() string
-	GetUID() types.UID
 	GetAPIVersion() string
+}
+
+type IdentifiedNamedKindVersion interface {
+	NamedKindVersion
+	GetUID() types.UID
 }
 
 type Status []StatusEntry

@@ -85,22 +85,30 @@ func getClient(cfg *config) dynamic.Interface {
 	return result
 }
 
-func statusLoggingCallback(e *log.Entry) func(client.StatusEntry, error) error {
-	return func(s client.StatusEntry, err error) error {
+func statusLoggingCallback(e *log.Entry) func(interface{}, error) error {
+	return func(v interface{}, err error) error {
+		s, ok := v.(client.StatusEntry)
+		if !ok {
+			return fmt.Errorf("invalid callback argument type")
+		}
 		entryFromStatus(e, s).Debug(fmt.Sprintf("object %s", s.StatusType))
 		return err
 	}
 }
 
-func callbackIgnoreNotFound(_ client.StatusEntry, err error) error {
+func callbackIgnoreNotFound(_ interface{}, err error) error {
 	if !errors.IsNotFound(err) {
 		return err
 	}
 	return nil
 }
 
-func callbackStatusGetter(in *client.StatusEntry) func(client.StatusEntry, error) error {
-	return func(entry client.StatusEntry, err error) error {
+func callbackStatusGetter(in *client.StatusEntry) func(interface{}, error) error {
+	return func(v interface{}, err error) error {
+		entry, ok := v.(client.StatusEntry)
+		if !ok {
+			return fmt.Errorf("invalid callback argument type")
+		}
 		*in = entry
 		return err
 	}
@@ -169,9 +177,16 @@ func main() {
 
 	// Try to apply function
 	if err := fnOperator.Apply(
-		operator.ApplyOptions{DryRun: stages},
-		statusLoggingCallback(entry),
-		callbackStatusGetter(&functionStatusEntry),
+		operator.ApplyOptions{
+			DryRun: stages,
+			Callbacks: operator.Callbacks{
+				Post: nil,
+				Pre: []operator.Callback{
+					statusLoggingCallback(entry),
+					callbackStatusGetter(&functionStatusEntry),
+				},
+			},
+		},
 	); err != nil { // rollback if error
 		safeDelete(fnOperator, entry, stages)
 		entry.Fatal(err)
@@ -198,8 +213,13 @@ func main() {
 					UID:        functionStatusEntry.GetUID(),
 				},
 			},
+			Callbacks: operator.Callbacks{
+				Pre: nil,
+				Post: []operator.Callback{
+					statusLoggingCallback(entry),
+				},
+			},
 		},
-		statusLoggingCallback(entry),
 	)
 	if err != nil {
 		safeDelete(fnOperator, entry, stages)
@@ -243,8 +263,13 @@ func entryFromStatus(e *log.Entry, s client.StatusEntry) *log.Entry {
 
 func safeDelete(o operator.Operator, e *log.Entry, stages []string) {
 	deleteErr := o.Delete(
-		operator.DeleteOptions{DryRun: stages, DeletionPropagation: metav1.DeletePropagationForeground},
-		callbackIgnoreNotFound,
+		operator.DeleteOptions{
+			DryRun:              stages,
+			DeletionPropagation: metav1.DeletePropagationForeground,
+			Callbacks: operator.Callbacks{
+				Post: []operator.Callback{callbackIgnoreNotFound},
+			},
+		},
 	)
 	if deleteErr != nil {
 		e.Error(deleteErr)

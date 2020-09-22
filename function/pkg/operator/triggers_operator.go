@@ -24,12 +24,12 @@ func NewTriggersOperator(c client.Client, u ...unstructured.Unstructured) Operat
 
 var errNotFound = errors.New("not found")
 
-func (t triggersOperator) Apply(opts ApplyOptions, c ...Callback) error {
+func (t triggersOperator) Apply(opts ApplyOptions) error {
 	functionUID, found := findFunctionUID(opts.OwnerReferences)
 	if !found {
 		return errors.Wrap(errNotFound, message)
 	}
-	if err := t.wipeRemoved(functionUID, opts, c...); err != nil {
+	if err := t.wipeRemoved(functionUID, opts); err != nil {
 		return err
 	}
 	// apply all triggers
@@ -39,8 +39,13 @@ func (t triggersOperator) Apply(opts ApplyOptions, c ...Callback) error {
 			message: functionUID,
 		})
 		u.SetLabels(newLabels)
+		// fire pre callbacks
+		if err := fireCallbacks(u, nil); err != nil {
+			return err
+		}
 		new1, statusEntry, err := applyObject(t.Client, u, opts.DryRun)
-		if err := fireCallbacks(statusEntry, err, c); err != nil {
+		// fire post callbacks
+		if err := fireCallbacks(statusEntry, err, opts.Post...); err != nil {
 			return err
 		}
 		u.SetUnstructuredContent(new1.Object)
@@ -48,17 +53,22 @@ func (t triggersOperator) Apply(opts ApplyOptions, c ...Callback) error {
 	return nil
 }
 
-func (t triggersOperator) Delete(opts DeleteOptions, c ...Callback) error {
+func (t triggersOperator) Delete(opts DeleteOptions) error {
 	for _, u := range t.items {
+		// fire pre callbacks
+		if err := fireCallbacks(u, nil, opts.Pre...); err != nil {
+			return err
+		}
 		state, err := deleteObject(t.Client, u, opts)
-		if err := fireCallbacks(state, err, c); err != nil {
+		// fire post callbacks
+		if err := fireCallbacks(state, err, opts.Post...); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (t triggersOperator) wipeRemoved(functionUID string, opts ApplyOptions, c ...Callback) error {
+func (t triggersOperator) wipeRemoved(functionUID string, opts ApplyOptions) error {
 	list, err := t.Client.List(v1.ListOptions{
 		LabelSelector: fmt.Sprintf("functionUID=%s", functionUID),
 	})
@@ -73,18 +83,22 @@ func (t triggersOperator) wipeRemoved(functionUID string, opts ApplyOptions, c .
 		if contains(t.items, item.GetName()) {
 			continue
 		}
+
+		if err := fireCallbacks(item, nil, opts.Pre...); err != nil {
+			return err
+		}
 		// delete trigger, delegate flow ctrl to caller
 		if err := t.Client.Delete(item.GetName(), &v1.DeleteOptions{
 			DryRun:            opts.DryRun,
 			PropagationPolicy: &policy,
 		}); err != nil {
 			statusEntryFailed := client.NewStatusEntryFailed(item)
-			if err := fireCallbacks(statusEntryFailed, err, c); err != nil {
+			if err := fireCallbacks(statusEntryFailed, err, opts.Post...); err != nil {
 				return err
 			}
 		}
 		statusEntryDeleted := client.NewStatusEntryDeleted(item)
-		if err := fireCallbacks(statusEntryDeleted, nil, c); err != nil {
+		if err := fireCallbacks(statusEntryDeleted, nil, opts.Post...); err != nil {
 			return err
 		}
 	}

@@ -10,11 +10,11 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-type Callback = func(entry client.StatusEntry, err error) error
+type Callback = func(interface{}, error) error
 
 type Operator interface {
-	Apply(ApplyOptions, ...Callback) error
-	Delete(DeleteOptions, ...Callback) error
+	Apply(ApplyOptions) error
+	Delete(DeleteOptions) error
 }
 
 func applyObject(c client.Client, u unstructured.Unstructured, stages []string) (*unstructured.Unstructured, client.StatusEntry, error) {
@@ -81,8 +81,8 @@ func deleteObject(i client.Client, u unstructured.Unstructured, ops DeleteOption
 	return statusEntryDeleted, nil
 }
 
-func fireCallbacks(e client.StatusEntry, err error, c []Callback) error {
-	for _, callback := range c {
+func fireCallbacks(v interface{}, err error, cbs ...Callback) error {
+	for _, callback := range cbs {
 		var callbackErr error
 		func() {
 			defer func() {
@@ -90,7 +90,7 @@ func fireCallbacks(e client.StatusEntry, err error, c []Callback) error {
 					callbackErr = fmt.Errorf("%v", r)
 				}
 			}()
-			callbackErr = callback(e, err)
+			callbackErr = callback(v, err)
 		}()
 		if callbackErr != nil {
 			return callbackErr
