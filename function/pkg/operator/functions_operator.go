@@ -35,7 +35,7 @@ func (p functionOperator) Apply(opts ApplyOptions) error {
 	for _, u := range p.items {
 		u.SetOwnerReferences(opts.OwnerReferences)
 		// fire pre callbacks
-		if err := fireCallbacks(u, nil, opts.Pre...); err != nil {
+		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
 		new1, statusEntry, err := applyObject(p.Client, u, opts.DryRun)
@@ -51,7 +51,7 @@ func (p functionOperator) Apply(opts ApplyOptions) error {
 func (p functionOperator) Delete(opts DeleteOptions) error {
 	for _, u := range p.items {
 		// fire pre callbacks
-		if err := fireCallbacks(u, nil, opts.Pre...); err != nil {
+		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
 		status, err := deleteObject(p.Client, u, opts)

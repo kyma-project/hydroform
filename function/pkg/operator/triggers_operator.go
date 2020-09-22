@@ -40,7 +40,7 @@ func (t triggersOperator) Apply(opts ApplyOptions) error {
 		})
 		u.SetLabels(newLabels)
 		// fire pre callbacks
-		if err := fireCallbacks(u, nil); err != nil {
+		if err := fireCallbacks(&u, nil); err != nil {
 			return err
 		}
 		new1, statusEntry, err := applyObject(t.Client, u, opts.DryRun)
@@ -56,7 +56,7 @@ func (t triggersOperator) Apply(opts ApplyOptions) error {
 func (t triggersOperator) Delete(opts DeleteOptions) error {
 	for _, u := range t.items {
 		// fire pre callbacks
-		if err := fireCallbacks(u, nil, opts.Pre...); err != nil {
+		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
 		state, err := deleteObject(t.Client, u, opts)
@@ -84,7 +84,7 @@ func (t triggersOperator) wipeRemoved(functionUID string, opts ApplyOptions) err
 			continue
 		}
 
-		if err := fireCallbacks(item, nil, opts.Pre...); err != nil {
+		if err := fireCallbacks(&item, nil, opts.Pre...); err != nil {
 			return err
 		}
 		// delete trigger, delegate flow ctrl to caller
