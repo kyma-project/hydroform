@@ -20,7 +20,7 @@ func main() {
 	log.SetOutput(ioutil.Discard)
 
 	cluster := &types.Cluster{
-		KubernetesVersion: "1.14",
+		KubernetesVersion: "1.16",
 		Name:              "hydro",
 		DiskSizeGB:        30,
 		NodeCount:         1,

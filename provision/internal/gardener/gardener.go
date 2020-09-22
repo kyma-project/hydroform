@@ -1,6 +1,7 @@
 package gardener
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -93,7 +94,7 @@ func (g *gardenerProvisioner) Credentials(cluster *types.Cluster, provider *type
 		return nil, err
 	}
 
-	s, err := k8s.CoreV1().Secrets(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
+	s, err := k8s.CoreV1().Secrets(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(context.Background(), fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
