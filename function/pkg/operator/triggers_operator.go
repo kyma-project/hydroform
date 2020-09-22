@@ -40,7 +40,7 @@ func (t triggersOperator) Apply(opts ApplyOptions) error {
 		})
 		u.SetLabels(newLabels)
 		// fire pre callbacks
-		if err := fireCallbacks(&u, nil); err != nil {
+		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
 		new1, statusEntry, err := applyObject(t.Client, u, opts.DryRun)
