@@ -21,7 +21,7 @@ func (t StatusType) String() string {
 	case StatusTypeUpdated:
 		return "updated"
 	default:
-		return "<unknown>"
+		return "unknown"
 	}
 }
 

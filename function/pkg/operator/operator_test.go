@@ -366,7 +366,7 @@ func Test_fireCallbacks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := fireCallbacks(tt.args.e, tt.args.err); (err != nil) != tt.wantErr {
+			if err := fireCallbacks(tt.args.e, tt.args.err, tt.args.c...); (err != nil) != tt.wantErr {
 				t.Errorf("fireCallbacks() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

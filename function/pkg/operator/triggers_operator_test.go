@@ -163,7 +163,6 @@ func Test_triggersOperator_Apply(t *testing.T) {
 	}
 	type args struct {
 		opts ApplyOptions
-		c    []Callback
 	}
 	tests := []struct {
 		name    string
@@ -254,10 +253,12 @@ func Test_triggersOperator_Apply(t *testing.T) {
 							UID:  "123",
 						},
 					},
-				},
-				c: []Callback{
-					func(_ interface{}, _ error) error {
-						return fmt.Errorf("test error")
+					Callbacks: Callbacks{
+						Post: []Callback{
+							func(_ interface{}, _ error) error {
+								return fmt.Errorf("test error")
+							},
+						},
 					},
 				},
 			},
@@ -324,17 +325,16 @@ func Test_triggersOperator_Apply(t *testing.T) {
 	}
 }
 
-func Test_triggersOperator_Delete(t *testing.T) {
+func
+Test_triggersOperator_Delete(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-
 	type fields struct {
 		items  []unstructured.Unstructured
 		Client client.Client
 	}
 	type args struct {
 		opts DeleteOptions
-		c    []Callback
 	}
 	tests := []struct {
 		name    string
@@ -380,13 +380,15 @@ func Test_triggersOperator_Delete(t *testing.T) {
 				items: []unstructured.Unstructured{testObj},
 			},
 			args: args{
-				c: []Callback{
-					func(_ interface{}, _ error) error {
-						return fmt.Errorf("test error")
-					},
-				},
 				opts: DeleteOptions{
 					DeletionPropagation: v1.DeletePropagationOrphan,
+					Callbacks: Callbacks{
+						Post: []Callback{
+							func(_ interface{}, _ error) error {
+								return fmt.Errorf("test error")
+							},
+						},
+					},
 				},
 			},
 			wantErr: true,
@@ -407,11 +409,6 @@ func Test_triggersOperator_Delete(t *testing.T) {
 				items: []unstructured.Unstructured{testObj},
 			},
 			args: args{
-				c: []Callback{
-					func(_ interface{}, err error) error {
-						return err
-					},
-				},
 				opts: DeleteOptions{
 					DeletionPropagation: v1.DeletePropagationOrphan,
 				},
@@ -429,10 +426,10 @@ func Test_triggersOperator_Delete(t *testing.T) {
 	}
 }
 
-func Test_triggersOperator_wipeRemoved(t *testing.T) {
+func
+Test_triggersOperator_wipeRemoved(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-
 	type fields struct {
 		items  []unstructured.Unstructured
 		Client client.Client
@@ -440,7 +437,6 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	type args struct {
 		functionUID string
 		opts        ApplyOptions
-		c           []Callback
 	}
 	tests := []struct {
 		name    string
@@ -521,9 +517,13 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 				items: []unstructured.Unstructured{testObj},
 			},
 			args: args{
-				c: []Callback{
-					func(_ interface{}, _ error) error {
-						panic("it's fine")
+				opts: ApplyOptions{
+					Callbacks: Callbacks{
+						Post: []Callback{
+							func(_ interface{}, _ error) error {
+								panic("it's fine")
+							},
+						},
 					},
 				},
 			},
