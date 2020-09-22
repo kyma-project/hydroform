@@ -244,7 +244,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "callback error",
+			name: "post callback error",
 			args: args{
 				opts: ApplyOptions{
 					OwnerReferences: []v1.OwnerReference{
@@ -275,6 +275,40 @@ func Test_triggersOperator_Apply(t *testing.T) {
 					result.EXPECT().
 						Get(gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil).
+						Times(1)
+
+					return result
+				}(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "pre callback error",
+			args: args{
+				opts: ApplyOptions{
+					OwnerReferences: []v1.OwnerReference{
+						{
+							Kind: "Function",
+							UID:  "123",
+						},
+					},
+					Callbacks: Callbacks{
+						Pre: []Callback{
+							func(_ interface{}, _ error) error {
+								return fmt.Errorf("pre callback error")
+							},
+						},
+					},
+				},
+			},
+			fields: fields{
+				items: []unstructured.Unstructured{testObj},
+				Client: func() client.Client {
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						List(gomock.Any()).
+						Return(&unstructured.UnstructuredList{}, nil).
 						Times(1)
 
 					return result
@@ -325,8 +359,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 	}
 }
 
-func
-Test_triggersOperator_Delete(t *testing.T) {
+func Test_triggersOperator_Delete(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	type fields struct {
@@ -365,7 +398,7 @@ Test_triggersOperator_Delete(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "callback error",
+			name: "post callback error",
 			fields: fields{
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
@@ -384,6 +417,25 @@ Test_triggersOperator_Delete(t *testing.T) {
 					DeletionPropagation: v1.DeletePropagationOrphan,
 					Callbacks: Callbacks{
 						Post: []Callback{
+							func(_ interface{}, _ error) error {
+								return fmt.Errorf("test error")
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "pre callback error",
+			fields: fields{
+				items: []unstructured.Unstructured{testObj},
+			},
+			args: args{
+				opts: DeleteOptions{
+					DeletionPropagation: v1.DeletePropagationOrphan,
+					Callbacks: Callbacks{
+						Pre: []Callback{
 							func(_ interface{}, _ error) error {
 								return fmt.Errorf("test error")
 							},
@@ -426,8 +478,7 @@ Test_triggersOperator_Delete(t *testing.T) {
 	}
 }
 
-func
-Test_triggersOperator_wipeRemoved(t *testing.T) {
+func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	type fields struct {
@@ -493,7 +544,7 @@ Test_triggersOperator_wipeRemoved(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "callbacks error",
+			name: "post callbacks error",
 			fields: fields{
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
@@ -520,6 +571,38 @@ Test_triggersOperator_wipeRemoved(t *testing.T) {
 				opts: ApplyOptions{
 					Callbacks: Callbacks{
 						Post: []Callback{
+							func(_ interface{}, _ error) error {
+								panic("it's fine")
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: " pre callbacks error",
+			fields: fields{
+				Client: func() client.Client {
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						List(gomock.Any()).
+						Return(&unstructured.UnstructuredList{
+							Items: []unstructured.Unstructured{
+								testObj2,
+							},
+						}, nil).
+						Times(1)
+
+					return result
+				}(),
+				items: []unstructured.Unstructured{testObj},
+			},
+			args: args{
+				opts: ApplyOptions{
+					Callbacks: Callbacks{
+						Pre: []Callback{
 							func(_ interface{}, _ error) error {
 								panic("it's fine")
 							},

@@ -22,7 +22,6 @@ func Test_functionOperator_Apply(t *testing.T) {
 	}
 	type args struct {
 		opts ApplyOptions
-		c    []Callback
 	}
 	tests := []struct {
 		name    string
@@ -31,7 +30,25 @@ func Test_functionOperator_Apply(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "apply error",
+			name: "pre callback error",
+			fields: fields{
+				items: []unstructured.Unstructured{testObj},
+			},
+			args: args{
+				opts: ApplyOptions{
+					Callbacks: Callbacks{
+						Pre: []Callback{
+							func(_ interface{}, _ error) error {
+								return fmt.Errorf("callback error")
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "post callback error",
 			fields: fields{
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
@@ -43,7 +60,7 @@ func Test_functionOperator_Apply(t *testing.T) {
 
 					result.EXPECT().
 						Create(gomock.Any(), gomock.Any()).
-						Return(nil, fmt.Errorf("create error")).
+						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
 					return result
@@ -51,12 +68,20 @@ func Test_functionOperator_Apply(t *testing.T) {
 				items: []unstructured.Unstructured{testObj},
 			},
 			args: args{
-				opts: ApplyOptions{},
+				opts: ApplyOptions{
+					Callbacks: Callbacks{
+						Post: []Callback{
+							func(_ interface{}, _ error) error {
+								return fmt.Errorf("callback error")
+							},
+						},
+					},
+				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "apply",
+			name: "apply error",
 			fields: fields{
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
@@ -77,6 +102,28 @@ func Test_functionOperator_Apply(t *testing.T) {
 			},
 			args: args{
 				opts: ApplyOptions{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "apply",
+			fields: fields{
+				Client: func() client.Client {
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						Get(gomock.Any(), gomock.Any()).
+						Return(nil, errors.NewNotFound(schema.GroupResource{}, "test error")).
+						Times(1)
+
+					result.EXPECT().
+						Create(gomock.Any(), gomock.Any()).
+						Return(testObj.DeepCopy(), nil).
+						Times(1)
+
+					return result
+				}(),
+				items: []unstructured.Unstructured{testObj},
 			},
 			wantErr: false,
 		},
@@ -109,6 +156,54 @@ func Test_functionOperator_Delete(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
+		{
+			name: "pre callback error",
+			fields: fields{
+				items: []unstructured.Unstructured{testObj},
+			},
+			args: args{
+				opts: DeleteOptions{
+					DeletionPropagation: v1.DeletePropagationForeground,
+					Callbacks: Callbacks{
+						Pre: []Callback{
+							func(_ interface{}, _ error) error {
+								return fmt.Errorf("pre callback error")
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "post callback error",
+			fields: fields{
+				Client: func() client.Client {
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						Delete(gomock.Any(), gomock.Any()).
+						Return(nil).
+						Times(1)
+
+					return result
+				}(),
+				items: []unstructured.Unstructured{testObj},
+			},
+			args: args{
+				opts: DeleteOptions{
+					DeletionPropagation: v1.DeletePropagationForeground,
+					Callbacks: Callbacks{
+						Post: []Callback{
+							func(_ interface{}, _ error) error {
+								return fmt.Errorf("post callback error")
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 		{
 			name: "delete error",
 			fields: fields{
