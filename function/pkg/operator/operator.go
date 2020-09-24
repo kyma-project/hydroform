@@ -13,6 +13,8 @@ import (
 
 type Callback = func(interface{}, error) error
 
+//go:generate mockgen -source=operator.go -destination=automock/operator.go
+
 type Operator interface {
 	Apply(context.Context, ApplyOptions) error
 	Delete(context.Context, DeleteOptions) error
