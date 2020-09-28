@@ -34,9 +34,9 @@ type Cfg struct {
 }
 
 type SourceInline struct {
-	BaseDir        string `yaml:"baseDir"`
-	SourceFileName string `yaml:"sourceFileName,omitempty"`
-	DepsFileName   string `yaml:"depsFileName,omitempty"`
+	BaseDir           string `yaml:"baseDir"`
+	SourceHandlerName string `yaml:"sourceHandlerName,omitempty"`
+	DepsHandlerName   string `yaml:"depsHandlerName,omitempty"`
 }
 
 type SourceGit struct {
