@@ -1,9 +1,10 @@
 package manager
 
 import (
+	"context"
 	"errors"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
-    "github.com/kyma-incubator/hydroform/function/pkg/operator"
+	"github.com/kyma-incubator/hydroform/function/pkg/operator"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -56,7 +57,7 @@ func (m *manager) useOperator(opr operator.Operator, options ManagerOptions, ref
 		OwnerReferences: references,
 		Callbacks:       m.ownerReferenceCallback(options.Callbacks, newRefs),
 	}
-	return newRefs.List, opr.Apply(applyOpts)
+	return newRefs.List, opr.Apply(context.Background(), applyOpts)
 }
 
 func (m *manager) purgeParents(options ManagerOptions) {
@@ -70,7 +71,7 @@ func (m *manager) purgeParents(options ManagerOptions) {
 		if opr == nil {
 			continue
 		}
-		_ = opr.Delete(deleteOptions)
+		_ = opr.Delete(context.Background(), deleteOptions)
 	}
 }
 
@@ -86,7 +87,7 @@ type OwnerReferenceList struct {
 	List []metav1.OwnerReference
 }
 
-func (m *manager) ownerReferenceCallback(callbacks operator.Callbacks,list *OwnerReferenceList) operator.Callbacks {
+func (m *manager) ownerReferenceCallback(callbacks operator.Callbacks, list *OwnerReferenceList) operator.Callbacks {
 	ownerReferenceCallback := func(v interface{}, err error) error {
 		entry, ok := v.(client.PostStatusEntry)
 		if !ok {

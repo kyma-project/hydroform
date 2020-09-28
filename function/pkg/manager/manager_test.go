@@ -599,8 +599,8 @@ func fixOperatorMock(ctrl *gomock.Controller, applyTimes, deleteTimes int) opera
 
 func fixOperatorMockWithError(ctrl *gomock.Controller, applyTimes, deleteTimes int, err error) operator.Operator {
 	opr := mock_operator.NewMockOperator(ctrl)
-	opr.EXPECT().Apply(gomock.Any()).Return(err).Times(applyTimes)
-	opr.EXPECT().Delete(gomock.Any()).Return(err).Times(deleteTimes)
+	opr.EXPECT().Apply(gomock.Any(), gomock.Any()).Return(err).Times(applyTimes)
+	opr.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(err).Times(deleteTimes)
 	return opr
 }
 
