@@ -2,6 +2,7 @@ package unstructured
 
 import (
 	"fmt"
+	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"path"
 
@@ -27,9 +28,20 @@ var (
 
 //FIXME readfile powinno być callbackiem
 func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstructured, err error) {
-	source, ok := cfg.Source.(workspace.SourceInline)
-	if !ok {
-		return unstructured.Unstructured{}, errInvalidSourceType
+	var source workspace.SourceInline
+	if err = mapstructure.Decode(cfg.Source, &source); err != nil {
+		return
+	}
+
+	sourceHandler, depsHandler, found := workspace.InlineFileNames(cfg.Runtime)
+	if !found {
+		return unstructured.Unstructured{}, fmt.Errorf("invalid runtime")
+	}
+	if source.SourceFileName != "" {
+		sourceHandler = source.SourceFileName
+	}
+	if source.DepsFileName != "" {
+		depsHandler = source.DepsFileName
 	}
 
 	decorators := []Decorate{
@@ -44,8 +56,8 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstruc
 		property property
 		filename string
 	}{
-		{property: propertySource, filename: source.SourceFileName},
-		{property: propertyDeps, filename: source.DepsFileName},
+		{property: propertySource, filename: sourceHandler},
+		{property: propertyDeps, filename: depsHandler},
 	} {
 		//FIXME to ma dawać callback
 		filePath := path.Join(source.BaseDir, item.filename)
@@ -56,7 +68,7 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstruc
 		if len(data) == 0 {
 			continue
 		}
-		decorateWithField(string(data), "spec", string(item.property))
+		decorators = append(decorators, decorateWithField(string(data), "spec", string(item.property)))
 	}
 
 	err = decorate(&out, decorators)

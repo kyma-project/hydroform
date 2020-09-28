@@ -144,18 +144,6 @@ func main() {
 		entry.Fatal(err)
 	}
 
-	sourceHandler, depsHandler, found := workspace.InlineFileNames(configuration.Runtime)
-
-	if !found {
-		log.Fatal(fmt.Errorf("unable to associate handlers for given runtime %s", configuration.Runtime))
-	}
-
-	configuration.Source = workspace.SourceInline{
-		BaseDir:        cfg.Dir,
-		SourceFileName: sourceHandler,
-		DepsFileName:   depsHandler,
-	}
-
 	entry = log.NewEntry(log.StandardLogger())
 
 	entryFromCfg(entry, configuration).Debug("generating function from configuration")
