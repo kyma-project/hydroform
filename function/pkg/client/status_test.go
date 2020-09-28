@@ -33,8 +33,8 @@ func TestNewStatusEntryCreated(t *testing.T) {
 				u: testData,
 			},
 			want: PostStatusEntry{
-				StatusType:                 StatusTypeCreated,
-				IdentifiedNamedKindVersion: &testData,
+				StatusType:   StatusTypeCreated,
+				Unstructured: testData,
 			},
 		},
 	}
@@ -62,8 +62,8 @@ func TestNewStatusEntryDeleted(t *testing.T) {
 				u: testData,
 			},
 			want: PostStatusEntry{
-				StatusType:                 StatusTypeDeleted,
-				IdentifiedNamedKindVersion: &testData,
+				StatusType:   StatusTypeDeleted,
+				Unstructured: testData,
 			},
 		},
 	}
@@ -91,8 +91,8 @@ func TestNewStatusEntryFailed(t *testing.T) {
 				u: testData,
 			},
 			want: PostStatusEntry{
-				StatusType:                 StatusTypeFailed,
-				IdentifiedNamedKindVersion: &testData,
+				StatusType:   StatusTypeFailed,
+				Unstructured: testData,
 			},
 		},
 	}
@@ -120,8 +120,8 @@ func TestNewStatusEntrySkipped(t *testing.T) {
 				u: testData,
 			},
 			want: PostStatusEntry{
-				StatusType:                 StatusTypeSkipped,
-				IdentifiedNamedKindVersion: &testData,
+				StatusType:   StatusTypeSkipped,
+				Unstructured: testData,
 			},
 		},
 	}
@@ -149,8 +149,8 @@ func TestNewStatusEntryUpdated(t *testing.T) {
 				u: testData,
 			},
 			want: PostStatusEntry{
-				StatusType:                 StatusTypeUpdated,
-				IdentifiedNamedKindVersion: &testData,
+				StatusType:   StatusTypeUpdated,
+				Unstructured: testData,
 			},
 		},
 	}
@@ -166,7 +166,7 @@ func TestNewStatusEntryUpdated(t *testing.T) {
 func TestStatusEntry_toOwnerReference(t *testing.T) {
 	type fields struct {
 		StatusType                 StatusType
-		IdentifiedNamedKindVersion IdentifiedNamedKindVersion
+		IdentifiedNamedKindVersion unstructured.Unstructured
 	}
 	tests := []struct {
 		name   string
@@ -177,7 +177,7 @@ func TestStatusEntry_toOwnerReference(t *testing.T) {
 			name: "happy path",
 			fields: fields{
 				StatusType:                 StatusTypeFailed,
-				IdentifiedNamedKindVersion: &testData,
+				IdentifiedNamedKindVersion: testData,
 			},
 			want: v1.OwnerReference{
 				APIVersion: testData.GetAPIVersion(),
@@ -190,8 +190,8 @@ func TestStatusEntry_toOwnerReference(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := PostStatusEntry{
-				StatusType:                 tt.fields.StatusType,
-				IdentifiedNamedKindVersion: tt.fields.IdentifiedNamedKindVersion,
+				StatusType:   tt.fields.StatusType,
+				Unstructured: tt.fields.IdentifiedNamedKindVersion,
 			}
 			if got := e.toOwnerReference(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("toOwnerReference() = %v, want %v", got, tt.want)

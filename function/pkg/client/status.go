@@ -25,56 +25,54 @@ func (t StatusType) String() string {
 	}
 }
 
-type Result = interface {}
-
-type PreStatusEntry = unstructured.Unstructured
+type Result = interface{}
 
 type PostStatusEntry struct {
 	StatusType
-	IdentifiedNamedKindVersion
+	unstructured.Unstructured
 }
 
 func (e PostStatusEntry) toOwnerReference() v1.OwnerReference {
 	return v1.OwnerReference{
-		APIVersion: e.GetAPIVersion(),
-		Kind:       e.GetKind(),
-		Name:       e.GetName(),
-		UID:        e.GetUID(),
+		APIVersion: e.Unstructured.GetAPIVersion(),
+		Kind:       e.Unstructured.GetKind(),
+		Name:       e.Unstructured.GetName(),
+		UID:        e.Unstructured.GetUID(),
 	}
 }
 
 func NewPostStatusEntryFailed(u unstructured.Unstructured) PostStatusEntry {
 	return PostStatusEntry{
-		StatusType:                 StatusTypeFailed,
-		IdentifiedNamedKindVersion: &u,
+		StatusType:   StatusTypeFailed,
+		Unstructured: u,
 	}
 }
 
 func NewPostStatusEntrySkipped(u unstructured.Unstructured) PostStatusEntry {
 	return PostStatusEntry{
-		StatusType:                 StatusTypeSkipped,
-		IdentifiedNamedKindVersion: &u,
+		StatusType:   StatusTypeSkipped,
+		Unstructured: u,
 	}
 }
 
 func NewPostStatusEntryUpdated(u unstructured.Unstructured) PostStatusEntry {
 	return PostStatusEntry{
-		StatusType:                 StatusTypeUpdated,
-		IdentifiedNamedKindVersion: &u,
+		StatusType:   StatusTypeUpdated,
+		Unstructured: u,
 	}
 }
 
 func NewStatusEntryCreated(u unstructured.Unstructured) PostStatusEntry {
 	return PostStatusEntry{
-		StatusType:                 StatusTypeCreated,
-		IdentifiedNamedKindVersion: &u,
+		StatusType:   StatusTypeCreated,
+		Unstructured: u,
 	}
 }
 
 func NewPostStatusEntryDeleted(u unstructured.Unstructured) PostStatusEntry {
 	return PostStatusEntry{
-		StatusType:                 StatusTypeDeleted,
-		IdentifiedNamedKindVersion: &u,
+		StatusType:   StatusTypeDeleted,
+		Unstructured: u,
 	}
 }
 
