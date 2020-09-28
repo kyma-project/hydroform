@@ -52,10 +52,14 @@ func (m *manager) useOperator(opr operator.Operator, options ManagerOptions, ref
 		return newRefs.List, nil
 	}
 
+	callbacks := options.Callbacks
+	if options.SetOwnerReferences {
+		callbacks = m.ownerReferenceCallback(options.Callbacks, newRefs)
+	}
 	applyOpts := operator.ApplyOptions{
 		DryRun:          m.getDryRunFlag(options.DryRun),
 		OwnerReferences: references,
-		Callbacks:       m.ownerReferenceCallback(options.Callbacks, newRefs),
+		Callbacks:       callbacks,
 	}
 	return newRefs.List, opr.Apply(context.Background(), applyOpts)
 }
