@@ -54,3 +54,18 @@ func fromRuntime(runtime types.Runtime) (workspace, error) {
 		return nil, errUnsupportedRuntime
 	}
 }
+
+type SourceFileName = string
+
+type DepsFileName = string
+
+func InlineFileNames(r types.Runtime) (SourceFileName, DepsFileName, bool) {
+	switch r {
+	case types.Nodejs10, types.Nodejs12:
+		return string(FileNameHandlerJs), string(FileNamePackageJSON), true
+	case types.Python38:
+		return string(FileNameHandlerPy), string(FileNameRequirementsTxt), true
+	default:
+		return "", "", false
+	}
+}

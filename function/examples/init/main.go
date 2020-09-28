@@ -45,12 +45,6 @@ func newConfig() (*config, error) {
 	if err = arguments.Bind(&cfg); err != nil {
 		return nil, err
 	}
-	if cfg.Dir == "" {
-		cfg.Dir, err = os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-	}
 	return &cfg, nil
 }
 
@@ -72,14 +66,29 @@ func main() {
 		cfg.Name = path.Base(cfg.Dir)
 	}
 
-	configuration := workspace.Cfg{
-		Runtime:    types.Runtime(cfg.Runtime),
-		Name:       cfg.Name,
-		Namespace:  "default",
-		SourcePath: cfg.Dir,
+	outputPath, err := func() (string, error) {
+		switch cfg.Dir {
+		case "":
+			return os.Getwd()
+		default:
+			return cfg.Dir, nil
+		}
+	}()
+
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	if err := workspace.Initialize(configuration, cfg.Dir); err != nil {
+	configuration := workspace.Cfg{
+		Name:      cfg.Name,
+		Namespace: "default",
+		Runtime:   types.Runtime(cfg.Runtime),
+		Source: workspace.SourceInline{
+			BaseDir: outputPath,
+		},
+	}
+
+	if err := workspace.Initialize(configuration, outputPath); err != nil {
 		entry.Fatal(err)
 	}
 	entry.Debug("workspace initialized")

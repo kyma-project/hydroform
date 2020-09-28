@@ -1,6 +1,6 @@
 package types
 
-type Runtime string
+type Runtime = string
 
 // List of supported runtimes
 const (

@@ -143,7 +143,18 @@ func main() {
 	if err := yaml.NewDecoder(file).Decode(&configuration); err != nil {
 		entry.Fatal(err)
 	}
-	configuration.SourcePath = cfg.Dir
+
+	sourceHandler, depsHandler, found := workspace.InlineFileNames(configuration.Runtime)
+
+	if !found {
+		log.Fatal(fmt.Errorf("unable to associate handlers for given runtime %s", configuration.Runtime))
+	}
+
+	configuration.Source = workspace.SourceInline{
+		BaseDir:        cfg.Dir,
+		SourceFileName: sourceHandler,
+		DepsFileName:   depsHandler,
+	}
 
 	entry = log.NewEntry(log.StandardLogger())
 
@@ -237,10 +248,14 @@ func newOperator(p Provider, gvr schema.GroupVersionResource, namespace string, 
 
 func entryFromCfg(e *log.Entry, cfg workspace.Cfg) *log.Entry {
 	return e.WithFields(map[string]interface{}{
-		"workspaceName":       cfg.Name,
-		"workspaceNamespace":  cfg.Namespace,
-		"workspaceSourcePath": cfg.SourcePath,
-		"workspaceIsGit":      cfg.Git,
+		"workspaceName":      cfg.Name,
+		"workspaceNamespace": cfg.Namespace,
+		"workspaceSourceType": func() string {
+			if _, ok := cfg.Source.(workspace.SourceGit); ok {
+				return "git"
+			}
+			return "inline"
+		}(),
 	})
 }
 

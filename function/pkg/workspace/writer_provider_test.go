@@ -38,15 +38,13 @@ func TestWriterProvider_write(t *testing.T) {
 				fileTemplate:       newTemplatedFile("test", "test"),
 				cfg: Cfg{
 					Name:      "test-name",
-					Git:       false,
-					Labels:    map[string]interface{}{},
+					Labels:    map[string]string{},
 					Namespace: "test-namespace",
 					Resources: struct {
 						Limits   ResourceList `yaml:"limits"`
 						Requests ResourceList `yaml:"requests"`
 					}{},
-					Runtime:    types.Nodejs10,
-					SourcePath: "this-is-a-test",
+					Runtime: types.Nodejs10,
 					Triggers: []struct {
 						EventTypeVersion string `yaml:"eventTypeVersion"`
 						Source           string `yaml:"source"`
@@ -68,15 +66,13 @@ func TestWriterProvider_write(t *testing.T) {
 				fileTemplate:       newTemplatedFile("test", "test"),
 				cfg: Cfg{
 					Name:      "test-name",
-					Git:       false,
-					Labels:    map[string]interface{}{},
+					Labels:    map[string]string{},
 					Namespace: "test-namespace",
 					Resources: struct {
 						Limits   ResourceList `yaml:"limits"`
 						Requests ResourceList `yaml:"requests"`
 					}{},
-					Runtime:    types.Nodejs10,
-					SourcePath: "this-is-a-test",
+					Runtime: types.Nodejs10,
 					Triggers: []struct {
 						EventTypeVersion string `yaml:"eventTypeVersion"`
 						Source           string `yaml:"source"`
@@ -96,15 +92,13 @@ func TestWriterProvider_write(t *testing.T) {
 				fileTemplate:       newTemplatedFile("test", "test"),
 				cfg: Cfg{
 					Name:      "test-name",
-					Git:       false,
-					Labels:    map[string]interface{}{},
+					Labels:    map[string]string{},
 					Namespace: "test-namespace",
 					Resources: struct {
 						Limits   ResourceList `yaml:"limits"`
 						Requests ResourceList `yaml:"requests"`
 					}{},
-					Runtime:    types.Nodejs10,
-					SourcePath: "this-is-a-test",
+					Runtime: types.Nodejs10,
 					Triggers: []struct {
 						EventTypeVersion string `yaml:"eventTypeVersion"`
 						Source           string `yaml:"source"`

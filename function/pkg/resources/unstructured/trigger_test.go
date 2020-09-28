@@ -23,11 +23,10 @@ func TestNewTriggers(t *testing.T) {
 				cfg: workspace.Cfg{
 					Name:      "test-name",
 					Namespace: "test-namespace",
-					Labels: map[string]interface{}{
+					Labels: map[string]string{
 						"test": "me",
 					},
 					Runtime: "python38",
-					Git:     false,
 					Triggers: []struct {
 						EventTypeVersion string `yaml:"eventTypeVersion"`
 						Source           string `yaml:"source"`
@@ -47,7 +46,7 @@ func TestNewTriggers(t *testing.T) {
 						"apiVersion": "eventing.knative.dev/v1alpha1",
 						"kind":       "Trigger",
 						"metadata": map[string]interface{}{
-							"labels": map[string]interface{}{
+							"labels": map[string]string{
 								"test": "me",
 							},
 							"name":      "test-name-b",

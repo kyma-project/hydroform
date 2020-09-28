@@ -25,6 +25,11 @@ func (t StatusType) String() string {
 	}
 }
 
+type Result = interface {}
+
+//FIXME change it
+type PreStatusEntry = unstructured.Unstructured
+
 type StatusEntry struct {
 	StatusType
 	IdentifiedNamedKindVersion

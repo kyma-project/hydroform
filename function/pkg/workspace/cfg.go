@@ -9,16 +9,17 @@ import (
 
 var _ file = &Cfg{}
 
+type Source = interface{}
+
 const CfgFilename = "config.yaml"
 
 type Cfg struct {
-	Name      string                 `yaml:"name"`
-	Namespace string                 `yaml:"namespace"`
-	Labels    map[string]interface{} `yaml:"labels,omitempty"`
+	Name      string            `yaml:"name"`
+	Namespace string            `yaml:"namespace"`
+	Labels    map[string]string `yaml:"labels,omitempty"`
 
-	Runtime    types.Runtime `yaml:"runtime"`
-	Git        bool          `yaml:"git,omitempty"`
-	SourcePath string        `yaml:"-"`
+	Runtime types.Runtime `yaml:"runtime"`
+	Source  Source        `yaml:"source"`
 
 	Resources struct {
 		Limits   ResourceList `yaml:"limits"`
@@ -32,13 +33,27 @@ type Cfg struct {
 	} `yaml:"triggers,omitempty"`
 }
 
-type ResourceList map[ResourceName]string
+type SourceInline struct {
+	BaseDir        string `yaml:"baseDir"`
+	SourceFileName string `yaml:"handlerFileName,omitempty"`
+	DepsFileName   string `yaml:"depsFileName,omitempty"`
+}
 
-type ResourceName string
+type SourceGit struct {
+	URL                   string `yaml:"url"`
+	Repository            string `yaml:"repository"`
+	Reference             string `yaml:"reference"`
+	BaseDir               string `yaml:"baseDir"`
+	CredentialsSecretName string `yaml:"credentialsSecretName"`
+}
+
+type ResourceList = map[ResourceName]interface{}
+
+type ResourceName = string
 
 const (
-	ResourceCPU    ResourceName = "cpu"
-	ResourceMemory ResourceName = "memory"
+	ResourceNameCPU    ResourceName = "cpu"
+	ResourceNameMemory ResourceName = "memory"
 )
 
 func (cfg Cfg) write(writer io.Writer, _ interface{}) error {

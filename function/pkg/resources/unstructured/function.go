@@ -1,6 +1,7 @@
 package unstructured
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path"
 
@@ -19,23 +20,35 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 	return newFunction(cfg, ioutil.ReadFile)
 }
 
-func newFunction(cfg workspace.Cfg, readFile ReadFile) (unstructured.Unstructured, error) {
-	out := unstructured.Unstructured{Object: map[string]interface{}{
-		"apiVersion": functionApiVersion,
-		"kind":       "Function",
-		"metadata": map[string]interface{}{
-			"name":      cfg.Name,
-			"namespace": cfg.Namespace,
-			"labels":    cfg.Labels,
-		},
-		"spec": map[string]interface{}{
-			"runtime": cfg.Runtime,
-		},
-	}}
+var (
+	//FIXME extend later
+	errInvalidSourceType = fmt.Errorf("invalid source type")
+)
 
-	spec := out.Object["spec"].(map[string]interface{})
-	for key, value := range runtimeMappings[cfg.Runtime] {
-		filePath := path.Join(cfg.SourcePath, string(value))
+//FIXME readfile powinno być callbackiem
+func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstructured, err error) {
+	source, ok := cfg.Source.(workspace.SourceInline)
+	if !ok {
+		return unstructured.Unstructured{}, errInvalidSourceType
+	}
+
+	decorators := []Decorate{
+		withFunction(cfg.Name, cfg.Namespace),
+		withLabels(cfg.Labels),
+		withRuntime(cfg.Runtime),
+		withLimits(cfg.Resources.Limits),
+		withRequests(cfg.Resources.Requests),
+	}
+
+	for _, item := range []struct {
+		property property
+		filename string
+	}{
+		{property: propertySource, filename: source.SourceFileName},
+		{property: propertyDeps, filename: source.DepsFileName},
+	} {
+		//FIXME to ma dawać callback
+		filePath := path.Join(source.BaseDir, item.filename)
 		data, err := readFile(filePath)
 		if err != nil {
 			return unstructured.Unstructured{}, err
@@ -43,25 +56,11 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile) (unstructured.Unstructure
 		if len(data) == 0 {
 			continue
 		}
-		spec[string(key)] = string(data)
+		decorateWithField(string(data), "spec", string(item.property))
 	}
 
-	var resources map[string]interface{}
-	if cfg.Resources.Requests != nil {
-		resources = map[string]interface{}{}
-		resources["requests"] = cfg.Resources.Requests
-	}
-	if cfg.Resources.Limits != nil {
-		if resources == nil {
-			resources = map[string]interface{}{}
-		}
-		resources["limits"] = cfg.Resources.Limits
-	}
-	if resources != nil {
-		spec["resource"] = resources
-	}
-
-	return out, nil
+	err = decorate(&out, decorators)
+	return
 }
 
 type property string
