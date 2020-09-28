@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
@@ -39,6 +40,7 @@ func Test_applyObject(t *testing.T) {
 	defer ctrl.Finish()
 
 	type args struct {
+		ctx    context.Context
 		c      client.Client
 		u      unstructured.Unstructured
 		stages []string
@@ -57,7 +59,7 @@ func Test_applyObject(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil, fmt.Errorf("get failed")).
 						Times(1)
 
@@ -76,7 +78,7 @@ func Test_applyObject(t *testing.T) {
 				c: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
@@ -95,12 +97,12 @@ func Test_applyObject(t *testing.T) {
 				c: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj2.DeepCopy(), nil).
 						Times(1)
 
 					result.EXPECT().
-						Update(gomock.Any(), gomock.Any()).
+						Update(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), fmt.Errorf("update failed")).
 						AnyTimes()
 
@@ -120,12 +122,12 @@ func Test_applyObject(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj2.DeepCopy(), nil).
 						Times(1)
 
 					result.EXPECT().
-						Update(gomock.Any(), gomock.Any()).
+						Update(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil).
 						AnyTimes()
 
@@ -145,14 +147,14 @@ func Test_applyObject(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(&testObj, fmt.Errorf("get failed, this should not stop the test")).
 						Times(4).
 						Return(testObj2.DeepCopy(), nil).
 						Times(1)
 
 					result.EXPECT().
-						Update(gomock.Any(), gomock.Any()).
+						Update(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil).
 						AnyTimes()
 
@@ -172,12 +174,12 @@ func Test_applyObject(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil, errors.NewNotFound(schema.GroupResource{}, "test error")).
 						Times(1)
 
 					result.EXPECT().
-						Create(gomock.Any(), gomock.Any()).
+						Create(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil, fmt.Errorf("create error"))
 
 					return result
@@ -196,12 +198,12 @@ func Test_applyObject(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil, errors.NewNotFound(schema.GroupResource{}, "test error")).
 						Times(1)
 
 					result.EXPECT().
-						Create(gomock.Any(), gomock.Any()).
+						Create(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil)
 
 					return result
@@ -216,7 +218,7 @@ func Test_applyObject(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := applyObject(tt.args.c, tt.args.u, tt.args.stages)
+			got, got1, err := applyObject(tt.args.ctx, tt.args.c, tt.args.u, tt.args.stages)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("applyObject() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -239,6 +241,7 @@ func Test_deleteObject(t *testing.T) {
 		i   client.Client
 		u   unstructured.Unstructured
 		ops DeleteOptions
+		ctx context.Context
 	}
 	tests := []struct {
 		name    string
@@ -257,7 +260,7 @@ func Test_deleteObject(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Delete(testObj.GetName(), gomock.Any()).
+						Delete(gomock.Any(), testObj.GetName(), gomock.Any()).
 						Return(fmt.Errorf("delete error")).
 						Times(1)
 
@@ -278,7 +281,7 @@ func Test_deleteObject(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Delete(testObj.GetName(), gomock.Any()).
+						Delete(gomock.Any(), testObj.GetName(), gomock.Any()).
 						Return(nil).
 						Times(1)
 
@@ -291,7 +294,7 @@ func Test_deleteObject(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := deleteObject(tt.args.i, tt.args.u, tt.args.ops)
+			got, err := deleteObject(tt.args.ctx, tt.args.i, tt.args.u, tt.args.ops)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("deleteObject() error = %v, wantErr %v", err, tt.wantErr)
 				return

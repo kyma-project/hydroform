@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
@@ -163,6 +164,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 	}
 	type args struct {
 		opts ApplyOptions
+		ctx  context.Context
 	}
 	tests := []struct {
 		name    string
@@ -202,7 +204,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						List(gomock.Any()).
+						List(gomock.Any(), gomock.Any()).
 						Return(nil, fmt.Errorf("list error")).
 						Times(1)
 
@@ -229,12 +231,12 @@ func Test_triggersOperator_Apply(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						List(gomock.Any()).
+						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{}, nil).
 						Times(1)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil, fmt.Errorf("get error")).
 						Times(1)
 
@@ -268,12 +270,12 @@ func Test_triggersOperator_Apply(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						List(gomock.Any()).
+						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{}, nil).
 						Times(1)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
@@ -307,7 +309,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						List(gomock.Any()).
+						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{}, nil).
 						Times(1)
 
@@ -334,12 +336,12 @@ func Test_triggersOperator_Apply(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						List(gomock.Any()).
+						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{}, nil).
 						Times(1)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
@@ -352,7 +354,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
 			t := NewTriggersOperator(tt.fields.Client, tt.fields.items...)
-			if err := t.Apply(tt.args.opts); (err != nil) != tt.wantErr {
+			if err := t.Apply(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Apply() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -368,6 +370,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 	}
 	type args struct {
 		opts DeleteOptions
+		ctx  context.Context
 	}
 	tests := []struct {
 		name    string
@@ -382,7 +385,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Delete(gomock.Any(), gomock.Any()).
+						Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(fmt.Errorf("delete error")).
 						Times(1)
 
@@ -404,7 +407,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Delete(gomock.Any(), gomock.Any()).
+						Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil).
 						Times(1)
 
@@ -452,7 +455,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Delete(gomock.Any(), gomock.Any()).
+						Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil).
 						Times(1)
 
@@ -471,7 +474,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
 			t := NewTriggersOperator(tt.fields.Client, tt.fields.items...)
-			if err := t.Delete(tt.args.opts); (err != nil) != tt.wantErr {
+			if err := t.Delete(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -488,6 +491,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	type args struct {
 		functionUID string
 		opts        ApplyOptions
+		ctx         context.Context
 	}
 	tests := []struct {
 		name    string
@@ -502,7 +506,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						List(gomock.Any()).
+						List(gomock.Any(), gomock.Any()).
 						Return(nil, fmt.Errorf("list error")).
 						Times(1)
 
@@ -520,7 +524,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						List(gomock.Any()).
+						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
 								testObj2,
@@ -529,7 +533,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 						Times(1)
 
 					result.EXPECT().
-						Delete(gomock.Any(), gomock.Any()).
+						Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(fmt.Errorf("delete error")).
 						Times(1)
 
@@ -550,7 +554,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						List(gomock.Any()).
+						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
 								testObj2,
@@ -559,7 +563,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 						Times(1)
 
 					result.EXPECT().
-						Delete(gomock.Any(), gomock.Any()).
+						Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil).
 						Times(1)
 
@@ -587,7 +591,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						List(gomock.Any()).
+						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
 								testObj2,
@@ -619,7 +623,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						List(gomock.Any()).
+						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
 								testObj,
@@ -644,7 +648,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 				items:  tt.fields.items,
 				Client: tt.fields.Client,
 			}
-			if err := t.wipeRemoved(tt.args.functionUID, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := t.wipeRemoved(tt.args.ctx, tt.args.functionUID, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("wipeRemoved() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

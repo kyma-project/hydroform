@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,14 +32,14 @@ func NewFunctionsOperator(c client.Client, u ...unstructured.Unstructured) Opera
 	}
 }
 
-func (p functionOperator) Apply(opts ApplyOptions) error {
+func (p functionOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	for _, u := range p.items {
 		u.SetOwnerReferences(opts.OwnerReferences)
 		// fire pre callbacks
 		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
-		new1, statusEntry, err := applyObject(p.Client, u, opts.DryRun)
+		new1, statusEntry, err := applyObject(ctx, p.Client, u, opts.DryRun)
 		// fire post callbacks
 		if err := fireCallbacks(statusEntry, err, opts.Callbacks.Post...); err != nil {
 			return err
@@ -48,13 +49,13 @@ func (p functionOperator) Apply(opts ApplyOptions) error {
 	return nil
 }
 
-func (p functionOperator) Delete(opts DeleteOptions) error {
+func (p functionOperator) Delete(ctx context.Context, opts DeleteOptions) error {
 	for _, u := range p.items {
 		// fire pre callbacks
 		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
-		status, err := deleteObject(p.Client, u, opts)
+		status, err := deleteObject(ctx, p.Client, u, opts)
 		// fire post callbacks
 		if err := fireCallbacks(status, err, opts.Post...); err != nil {
 			return err

@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/docopt/docopt-go"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
@@ -174,8 +175,12 @@ func main() {
 
 	var functionStatusEntry client.PostStatusEntry
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Try to apply function
 	if err := fnOperator.Apply(
+		ctx,
 		operator.ApplyOptions{
 			DryRun: stages,
 			Callbacks: operator.Callbacks{
@@ -187,7 +192,7 @@ func main() {
 			},
 		},
 	); err != nil { // rollback if error
-		safeDelete(fnOperator, entry, stages)
+		safeDelete(ctx, fnOperator, entry, stages)
 		entry.Fatal(err)
 	}
 
@@ -202,6 +207,7 @@ func main() {
 
 	// Try to apply triggers
 	err = trOperator.Apply(
+		ctx,
 		operator.ApplyOptions{
 			DryRun: stages,
 			OwnerReferences: []metav1.OwnerReference{
@@ -221,7 +227,7 @@ func main() {
 		},
 	)
 	if err != nil {
-		safeDelete(fnOperator, entry, stages)
+		safeDelete(ctx, fnOperator, entry, stages)
 		entry.Fatal(err)
 	}
 }
@@ -264,8 +270,9 @@ func entryFromStatus(e *log.Entry, s client.PostStatusEntry) *log.Entry {
 	})
 }
 
-func safeDelete(o operator.Operator, e *log.Entry, stages []string) {
+func safeDelete(ctx context.Context, o operator.Operator, e *log.Entry, stages []string) {
 	deleteErr := o.Delete(
+		ctx,
 		operator.DeleteOptions{
 			DryRun:              stages,
 			DeletionPropagation: metav1.DeletePropagationForeground,

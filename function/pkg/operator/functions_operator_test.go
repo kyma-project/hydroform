@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
@@ -21,6 +22,7 @@ func Test_functionOperator_Apply(t *testing.T) {
 		items  []unstructured.Unstructured
 	}
 	type args struct {
+		ctx  context.Context
 		opts ApplyOptions
 	}
 	tests := []struct {
@@ -54,12 +56,12 @@ func Test_functionOperator_Apply(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil, errors.NewNotFound(schema.GroupResource{}, "test error")).
 						Times(1)
 
 					result.EXPECT().
-						Create(gomock.Any(), gomock.Any()).
+						Create(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
@@ -87,12 +89,12 @@ func Test_functionOperator_Apply(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil, errors.NewNotFound(schema.GroupResource{}, "test error")).
 						Times(1)
 
 					result.EXPECT().
-						Create(gomock.Any(), gomock.Any()).
+						Create(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
@@ -112,12 +114,12 @@ func Test_functionOperator_Apply(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Get(gomock.Any(), gomock.Any()).
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil, errors.NewNotFound(schema.GroupResource{}, "test error")).
 						Times(1)
 
 					result.EXPECT().
-						Create(gomock.Any(), gomock.Any()).
+						Create(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
@@ -131,7 +133,7 @@ func Test_functionOperator_Apply(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := NewFunctionsOperator(tt.fields.Client, tt.fields.items...)
-			if err := p.Apply(tt.args.opts); (err != nil) != tt.wantErr {
+			if err := p.Apply(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Apply() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -147,6 +149,7 @@ func Test_functionOperator_Delete(t *testing.T) {
 		items  []unstructured.Unstructured
 	}
 	type args struct {
+		ctx  context.Context
 		opts DeleteOptions
 		c    []Callback
 	}
@@ -182,7 +185,7 @@ func Test_functionOperator_Delete(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Delete(gomock.Any(), gomock.Any()).
+						Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil).
 						Times(1)
 
@@ -211,7 +214,7 @@ func Test_functionOperator_Delete(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Delete(gomock.Any(), gomock.Any()).
+						Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(fmt.Errorf("delete error")).
 						Times(1)
 
@@ -233,7 +236,7 @@ func Test_functionOperator_Delete(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
-						Delete(gomock.Any(), gomock.Any()).
+						Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(nil).
 						Times(1)
 
@@ -252,7 +255,7 @@ func Test_functionOperator_Delete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := NewFunctionsOperator(tt.fields.Client, tt.fields.items...)
-			if err := p.Delete(tt.args.opts); (err != nil) != tt.wantErr {
+			if err := p.Delete(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

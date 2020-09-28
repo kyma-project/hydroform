@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/pkg/errors"
@@ -24,12 +25,12 @@ func NewTriggersOperator(c client.Client, u ...unstructured.Unstructured) Operat
 
 var errNotFound = errors.New("not found")
 
-func (t triggersOperator) Apply(opts ApplyOptions) error {
+func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	functionUID, found := findFunctionUID(opts.OwnerReferences)
 	if !found {
 		return errors.Wrap(errNotFound, message)
 	}
-	if err := t.wipeRemoved(functionUID, opts); err != nil {
+	if err := t.wipeRemoved(ctx, functionUID, opts); err != nil {
 		return err
 	}
 	// apply all triggers
@@ -43,7 +44,7 @@ func (t triggersOperator) Apply(opts ApplyOptions) error {
 		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
-		new1, statusEntry, err := applyObject(t.Client, u, opts.DryRun)
+		new1, statusEntry, err := applyObject(ctx, t.Client, u, opts.DryRun)
 		// fire post callbacks
 		if err := fireCallbacks(statusEntry, err, opts.Post...); err != nil {
 			return err
@@ -53,13 +54,13 @@ func (t triggersOperator) Apply(opts ApplyOptions) error {
 	return nil
 }
 
-func (t triggersOperator) Delete(opts DeleteOptions) error {
+func (t triggersOperator) Delete(ctx context.Context, opts DeleteOptions) error {
 	for _, u := range t.items {
 		// fire pre callbacks
 		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
-		state, err := deleteObject(t.Client, u, opts)
+		state, err := deleteObject(ctx, t.Client, u, opts)
 		// fire post callbacks
 		if err := fireCallbacks(state, err, opts.Post...); err != nil {
 			return err
@@ -68,8 +69,8 @@ func (t triggersOperator) Delete(opts DeleteOptions) error {
 	return nil
 }
 
-func (t triggersOperator) wipeRemoved(functionUID string, opts ApplyOptions) error {
-	list, err := t.Client.List(v1.ListOptions{
+func (t triggersOperator) wipeRemoved(ctx context.Context, functionUID string, opts ApplyOptions) error {
+	list, err := t.Client.List(ctx, v1.ListOptions{
 		LabelSelector: fmt.Sprintf("functionUID=%s", functionUID),
 	})
 	if err != nil {
@@ -88,7 +89,7 @@ func (t triggersOperator) wipeRemoved(functionUID string, opts ApplyOptions) err
 			return err
 		}
 		// delete trigger, delegate flow ctrl to caller
-		if err := t.Client.Delete(item.GetName(), &v1.DeleteOptions{
+		if err := t.Client.Delete(ctx, item.GetName(), v1.DeleteOptions{
 			DryRun:            opts.DryRun,
 			PropagationPolicy: &policy,
 		}); err != nil {

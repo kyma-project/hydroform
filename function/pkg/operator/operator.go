@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -13,13 +14,13 @@ import (
 type Callback = func(interface{}, error) error
 
 type Operator interface {
-	Apply(ApplyOptions) error
-	Delete(DeleteOptions) error
+	Apply(context.Context, ApplyOptions) error
+	Delete(context.Context, DeleteOptions) error
 }
 
-func applyObject(c client.Client, u unstructured.Unstructured, stages []string) (*unstructured.Unstructured, client.PostStatusEntry, error) {
+func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructured, stages []string) (*unstructured.Unstructured, client.PostStatusEntry, error) {
 	// Check if object exists
-	response, err := c.Get(u.GetName(), metav1.GetOptions{})
+	response, err := c.Get(ctx, u.GetName(), metav1.GetOptions{})
 	objFound := !errors.IsNotFound(err)
 	if err != nil && objFound {
 		statusEntryFailed := client.NewPostStatusEntryFailed(u)
@@ -42,7 +43,7 @@ func applyObject(c client.Client, u unstructured.Unstructured, stages []string) 
 	if objFound && !equal {
 		response.Object["spec"] = u.Object["spec"]
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() (err error) {
-			response, err = c.Update(response, metav1.UpdateOptions{
+			response, err = c.Update(ctx, response, metav1.UpdateOptions{
 				DryRun: stages,
 			})
 			return err
@@ -57,7 +58,7 @@ func applyObject(c client.Client, u unstructured.Unstructured, stages []string) 
 		return response, statusEntryUpdated, nil
 	}
 
-	response, err = c.Create(&u, metav1.CreateOptions{
+	response, err = c.Create(ctx, &u, metav1.CreateOptions{
 		DryRun: stages,
 	})
 	if err != nil {
@@ -69,8 +70,8 @@ func applyObject(c client.Client, u unstructured.Unstructured, stages []string) 
 	return response, statusEntryCreated, nil
 }
 
-func deleteObject(i client.Client, u unstructured.Unstructured, ops DeleteOptions) (client.PostStatusEntry, error) {
-	if err := i.Delete(u.GetName(), &metav1.DeleteOptions{
+func deleteObject(ctx context.Context, i client.Client, u unstructured.Unstructured, ops DeleteOptions) (client.PostStatusEntry, error) {
+	if err := i.Delete(ctx, u.GetName(), metav1.DeleteOptions{
 		DryRun:            ops.DryRun,
 		PropagationPolicy: &ops.DeletionPropagation,
 	}); err != nil {
