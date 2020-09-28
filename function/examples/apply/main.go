@@ -87,7 +87,7 @@ func getClient(cfg *config) dynamic.Interface {
 
 func statusLoggingCallback(e *log.Entry) func(interface{}, error) error {
 	return func(v interface{}, err error) error {
-		s, ok := v.(client.StatusEntry)
+		s, ok := v.(client.PostStatusEntry)
 		if !ok {
 			return fmt.Errorf("invalid callback argument type")
 		}
@@ -103,9 +103,9 @@ func callbackIgnoreNotFound(_ interface{}, err error) error {
 	return nil
 }
 
-func callbackStatusGetter(in *client.StatusEntry) func(interface{}, error) error {
+func callbackStatusGetter(in *client.PostStatusEntry) func(interface{}, error) error {
 	return func(v interface{}, err error) error {
-		entry, ok := v.(client.StatusEntry)
+		entry, ok := v.(client.PostStatusEntry)
 		if !ok {
 			return fmt.Errorf("invalid callback argument type")
 		}
@@ -184,7 +184,7 @@ func main() {
 		[]unstructured.Unstructured{function},
 	)
 
-	var functionStatusEntry client.StatusEntry
+	var functionStatusEntry client.PostStatusEntry
 
 	// Try to apply function
 	if err := fnOperator.Apply(
@@ -268,7 +268,7 @@ func entryFromUnstructured(e *log.Entry, u *unstructured.Unstructured) *log.Entr
 	})
 }
 
-func entryFromStatus(e *log.Entry, s client.StatusEntry) *log.Entry {
+func entryFromStatus(e *log.Entry, s client.PostStatusEntry) *log.Entry {
 	return e.WithFields(map[string]interface{}{
 		"name":       s.GetName(),
 		"uid":        s.GetUID(),

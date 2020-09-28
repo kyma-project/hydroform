@@ -92,12 +92,12 @@ func (t triggersOperator) wipeRemoved(functionUID string, opts ApplyOptions) err
 			DryRun:            opts.DryRun,
 			PropagationPolicy: &policy,
 		}); err != nil {
-			statusEntryFailed := client.NewStatusEntryFailed(item)
+			statusEntryFailed := client.NewPostStatusEntryFailed(item)
 			if err := fireCallbacks(statusEntryFailed, err, opts.Post...); err != nil {
 				return err
 			}
 		}
-		statusEntryDeleted := client.NewStatusEntryDeleted(item)
+		statusEntryDeleted := client.NewPostStatusEntryDeleted(item)
 		if err := fireCallbacks(statusEntryDeleted, nil, opts.Post...); err != nil {
 			return err
 		}

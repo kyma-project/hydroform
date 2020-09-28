@@ -27,15 +27,14 @@ func (t StatusType) String() string {
 
 type Result = interface {}
 
-//FIXME change it
 type PreStatusEntry = unstructured.Unstructured
 
-type StatusEntry struct {
+type PostStatusEntry struct {
 	StatusType
 	IdentifiedNamedKindVersion
 }
 
-func (e StatusEntry) toOwnerReference() v1.OwnerReference {
+func (e PostStatusEntry) toOwnerReference() v1.OwnerReference {
 	return v1.OwnerReference{
 		APIVersion: e.GetAPIVersion(),
 		Kind:       e.GetKind(),
@@ -44,36 +43,36 @@ func (e StatusEntry) toOwnerReference() v1.OwnerReference {
 	}
 }
 
-func NewStatusEntryFailed(u unstructured.Unstructured) StatusEntry {
-	return StatusEntry{
+func NewPostStatusEntryFailed(u unstructured.Unstructured) PostStatusEntry {
+	return PostStatusEntry{
 		StatusType:                 StatusTypeFailed,
 		IdentifiedNamedKindVersion: &u,
 	}
 }
 
-func NewStatusEntrySkipped(u unstructured.Unstructured) StatusEntry {
-	return StatusEntry{
+func NewPostStatusEntrySkipped(u unstructured.Unstructured) PostStatusEntry {
+	return PostStatusEntry{
 		StatusType:                 StatusTypeSkipped,
 		IdentifiedNamedKindVersion: &u,
 	}
 }
 
-func NewStatusEntryUpdated(u unstructured.Unstructured) StatusEntry {
-	return StatusEntry{
+func NewPostStatusEntryUpdated(u unstructured.Unstructured) PostStatusEntry {
+	return PostStatusEntry{
 		StatusType:                 StatusTypeUpdated,
 		IdentifiedNamedKindVersion: &u,
 	}
 }
 
-func NewStatusEntryCreated(u unstructured.Unstructured) StatusEntry {
-	return StatusEntry{
+func NewStatusEntryCreated(u unstructured.Unstructured) PostStatusEntry {
+	return PostStatusEntry{
 		StatusType:                 StatusTypeCreated,
 		IdentifiedNamedKindVersion: &u,
 	}
 }
 
-func NewStatusEntryDeleted(u unstructured.Unstructured) StatusEntry {
-	return StatusEntry{
+func NewPostStatusEntryDeleted(u unstructured.Unstructured) PostStatusEntry {
+	return PostStatusEntry{
 		StatusType:                 StatusTypeDeleted,
 		IdentifiedNamedKindVersion: &u,
 	}
@@ -90,7 +89,7 @@ type IdentifiedNamedKindVersion interface {
 	GetUID() types.UID
 }
 
-type Status []StatusEntry
+type Status []PostStatusEntry
 
 func (s Status) GetOwnerReferences() []v1.OwnerReference {
 	size := len(s)

@@ -25,14 +25,14 @@ func TestNewStatusEntryCreated(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want StatusEntry
+		want PostStatusEntry
 	}{
 		{
 			name: "happy path",
 			args: args{
 				u: testData,
 			},
-			want: StatusEntry{
+			want: PostStatusEntry{
 				StatusType:                 StatusTypeCreated,
 				IdentifiedNamedKindVersion: &testData,
 			},
@@ -54,14 +54,14 @@ func TestNewStatusEntryDeleted(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want StatusEntry
+		want PostStatusEntry
 	}{
 		{
 			name: "happy path",
 			args: args{
 				u: testData,
 			},
-			want: StatusEntry{
+			want: PostStatusEntry{
 				StatusType:                 StatusTypeDeleted,
 				IdentifiedNamedKindVersion: &testData,
 			},
@@ -69,8 +69,8 @@ func TestNewStatusEntryDeleted(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewStatusEntryDeleted(tt.args.u); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewStatusEntryDeleted() = %v, want %v", got, tt.want)
+			if got := NewPostStatusEntryDeleted(tt.args.u); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewPostStatusEntryDeleted() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -83,14 +83,14 @@ func TestNewStatusEntryFailed(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want StatusEntry
+		want PostStatusEntry
 	}{
 		{
 			name: "happy path",
 			args: args{
 				u: testData,
 			},
-			want: StatusEntry{
+			want: PostStatusEntry{
 				StatusType:                 StatusTypeFailed,
 				IdentifiedNamedKindVersion: &testData,
 			},
@@ -98,8 +98,8 @@ func TestNewStatusEntryFailed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewStatusEntryFailed(tt.args.u); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewStatusEntryFailed() = %v, want %v", got, tt.want)
+			if got := NewPostStatusEntryFailed(tt.args.u); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewPostStatusEntryFailed() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -112,14 +112,14 @@ func TestNewStatusEntrySkipped(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want StatusEntry
+		want PostStatusEntry
 	}{
 		{
 			name: "happy path",
 			args: args{
 				u: testData,
 			},
-			want: StatusEntry{
+			want: PostStatusEntry{
 				StatusType:                 StatusTypeSkipped,
 				IdentifiedNamedKindVersion: &testData,
 			},
@@ -127,8 +127,8 @@ func TestNewStatusEntrySkipped(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewStatusEntrySkipped(tt.args.u); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewStatusEntrySkipped() = %v, want %v", got, tt.want)
+			if got := NewPostStatusEntrySkipped(tt.args.u); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewPostStatusEntrySkipped() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -141,14 +141,14 @@ func TestNewStatusEntryUpdated(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want StatusEntry
+		want PostStatusEntry
 	}{
 		{
 			name: "happy path",
 			args: args{
 				u: testData,
 			},
-			want: StatusEntry{
+			want: PostStatusEntry{
 				StatusType:                 StatusTypeUpdated,
 				IdentifiedNamedKindVersion: &testData,
 			},
@@ -156,8 +156,8 @@ func TestNewStatusEntryUpdated(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewStatusEntryUpdated(tt.args.u); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewStatusEntryUpdated() = %v, want %v", got, tt.want)
+			if got := NewPostStatusEntryUpdated(tt.args.u); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewPostStatusEntryUpdated() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -189,7 +189,7 @@ func TestStatusEntry_toOwnerReference(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := StatusEntry{
+			e := PostStatusEntry{
 				StatusType:                 tt.fields.StatusType,
 				IdentifiedNamedKindVersion: tt.fields.IdentifiedNamedKindVersion,
 			}
@@ -259,7 +259,7 @@ func TestStatus_GetOwnerReferences(t *testing.T) {
 		},
 		{
 			name: "happy path",
-			s:    []StatusEntry{NewStatusEntryUpdated(testData)},
+			s:    []PostStatusEntry{NewPostStatusEntryUpdated(testData)},
 			want: []v1.OwnerReference{
 				{
 					APIVersion: testData.GetAPIVersion(),

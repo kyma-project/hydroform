@@ -17,12 +17,12 @@ type Operator interface {
 	Delete(DeleteOptions) error
 }
 
-func applyObject(c client.Client, u unstructured.Unstructured, stages []string) (*unstructured.Unstructured, client.StatusEntry, error) {
+func applyObject(c client.Client, u unstructured.Unstructured, stages []string) (*unstructured.Unstructured, client.PostStatusEntry, error) {
 	// Check if object exists
 	response, err := c.Get(u.GetName(), metav1.GetOptions{})
 	objFound := !errors.IsNotFound(err)
 	if err != nil && objFound {
-		statusEntryFailed := client.NewStatusEntryFailed(u)
+		statusEntryFailed := client.NewPostStatusEntryFailed(u)
 		return &u, statusEntryFailed, err
 	}
 
@@ -34,7 +34,7 @@ func applyObject(c client.Client, u unstructured.Unstructured, stages []string) 
 	}
 
 	if objFound && equal {
-		statusEntrySkipped := client.NewStatusEntrySkipped(*response)
+		statusEntrySkipped := client.NewPostStatusEntrySkipped(*response)
 		return response, statusEntrySkipped, nil
 	}
 
@@ -49,11 +49,11 @@ func applyObject(c client.Client, u unstructured.Unstructured, stages []string) 
 		})
 
 		if err != nil {
-			statusEntryFailed := client.NewStatusEntryFailed(*response)
+			statusEntryFailed := client.NewPostStatusEntryFailed(*response)
 			return &u, statusEntryFailed, err
 		}
 
-		statusEntryUpdated := client.NewStatusEntryUpdated(*response)
+		statusEntryUpdated := client.NewPostStatusEntryUpdated(*response)
 		return response, statusEntryUpdated, nil
 	}
 
@@ -61,7 +61,7 @@ func applyObject(c client.Client, u unstructured.Unstructured, stages []string) 
 		DryRun: stages,
 	})
 	if err != nil {
-		statusEntryFailed := client.NewStatusEntryFailed(u)
+		statusEntryFailed := client.NewPostStatusEntryFailed(u)
 		return &u, statusEntryFailed, err
 	}
 
@@ -69,15 +69,15 @@ func applyObject(c client.Client, u unstructured.Unstructured, stages []string) 
 	return response, statusEntryCreated, nil
 }
 
-func deleteObject(i client.Client, u unstructured.Unstructured, ops DeleteOptions) (client.StatusEntry, error) {
+func deleteObject(i client.Client, u unstructured.Unstructured, ops DeleteOptions) (client.PostStatusEntry, error) {
 	if err := i.Delete(u.GetName(), &metav1.DeleteOptions{
 		DryRun:            ops.DryRun,
 		PropagationPolicy: &ops.DeletionPropagation,
 	}); err != nil {
-		statusEntryFailed := client.NewStatusEntryFailed(u)
+		statusEntryFailed := client.NewPostStatusEntryFailed(u)
 		return statusEntryFailed, err
 	}
-	statusEntryDeleted := client.NewStatusEntryDeleted(u)
+	statusEntryDeleted := client.NewPostStatusEntryDeleted(u)
 	return statusEntryDeleted, nil
 }
 

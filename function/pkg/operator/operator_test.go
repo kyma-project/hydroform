@@ -47,7 +47,7 @@ func Test_applyObject(t *testing.T) {
 		name    string
 		args    args
 		want    *unstructured.Unstructured
-		want1   client.StatusEntry
+		want1   client.PostStatusEntry
 		wantErr bool
 	}{
 		{
@@ -67,7 +67,7 @@ func Test_applyObject(t *testing.T) {
 				stages: []string{},
 			},
 			want:    &unstructured.Unstructured{},
-			want1:   client.NewStatusEntryFailed(unstructured.Unstructured{}),
+			want1:   client.NewPostStatusEntryFailed(unstructured.Unstructured{}),
 			wantErr: true,
 		},
 		{
@@ -86,7 +86,7 @@ func Test_applyObject(t *testing.T) {
 				stages: []string{},
 			},
 			want:    &testObj,
-			want1:   client.NewStatusEntrySkipped(testObj),
+			want1:   client.NewPostStatusEntrySkipped(testObj),
 			wantErr: false,
 		},
 		{
@@ -110,7 +110,7 @@ func Test_applyObject(t *testing.T) {
 				stages: []string{},
 			},
 			want:    &testObj,
-			want1:   client.NewStatusEntryFailed(testObj),
+			want1:   client.NewPostStatusEntryFailed(testObj),
 			wantErr: true,
 		},
 		{
@@ -135,7 +135,7 @@ func Test_applyObject(t *testing.T) {
 				stages: []string{},
 			},
 			want:    &testObj,
-			want1:   client.NewStatusEntryUpdated(testObj),
+			want1:   client.NewPostStatusEntryUpdated(testObj),
 			wantErr: false,
 		},
 		{
@@ -162,7 +162,7 @@ func Test_applyObject(t *testing.T) {
 				stages: []string{},
 			},
 			want:    &testObj,
-			want1:   client.NewStatusEntryUpdated(testObj),
+			want1:   client.NewPostStatusEntryUpdated(testObj),
 			wantErr: false,
 		},
 		{
@@ -186,7 +186,7 @@ func Test_applyObject(t *testing.T) {
 				stages: []string{},
 			},
 			want:    &testObj,
-			want1:   client.NewStatusEntryFailed(testObj),
+			want1:   client.NewPostStatusEntryFailed(testObj),
 			wantErr: true,
 		},
 		{
@@ -243,7 +243,7 @@ func Test_deleteObject(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    client.StatusEntry
+		want    client.PostStatusEntry
 		wantErr bool
 	}{
 		{
@@ -264,7 +264,7 @@ func Test_deleteObject(t *testing.T) {
 					return result
 				}(),
 			},
-			want:    client.NewStatusEntryFailed(testObj),
+			want:    client.NewPostStatusEntryFailed(testObj),
 			wantErr: true,
 		},
 		{
@@ -285,7 +285,7 @@ func Test_deleteObject(t *testing.T) {
 					return result
 				}(),
 			},
-			want:    client.NewStatusEntryDeleted(testObj),
+			want:    client.NewPostStatusEntryDeleted(testObj),
 			wantErr: false,
 		},
 	}
@@ -305,7 +305,7 @@ func Test_deleteObject(t *testing.T) {
 
 func Test_fireCallbacks(t *testing.T) {
 	type args struct {
-		e   client.StatusEntry
+		e   client.PostStatusEntry
 		err error
 		c   []Callback
 	}
@@ -337,7 +337,7 @@ func Test_fireCallbacks(t *testing.T) {
 						return err
 					},
 					func(v interface{}, err error) error {
-						entry, ok := v.(client.StatusEntry)
+						entry, ok := v.(client.PostStatusEntry)
 						if !ok {
 							return fmt.Errorf("invalid callback argument type")
 						}
@@ -353,7 +353,7 @@ func Test_fireCallbacks(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				e:   client.NewStatusEntryUpdated(testObj),
+				e:   client.NewPostStatusEntryUpdated(testObj),
 				err: nil,
 				c: []Callback{
 					func(_ interface{}, err error) error {
