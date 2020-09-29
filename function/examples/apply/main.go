@@ -235,9 +235,9 @@ func main() {
 type Provider = func(client.Client, ...unstructured.Unstructured) operator.Operator
 
 func newOperator(p Provider, gvr schema.GroupVersionResource, namespace string, dI dynamic.Interface, u []unstructured.Unstructured) operator.Operator {
-	fnClient := dI.Resource(gvr).Namespace(namespace)
-	fnOperator := p(fnClient, u...)
-	return fnOperator
+	resourceInterface := dI.Resource(gvr).Namespace(namespace)
+	resourceOperator := p(resourceInterface, u...)
+	return resourceOperator
 }
 
 func entryFromCfg(e *log.Entry, cfg workspace.Cfg) *log.Entry {
@@ -245,7 +245,7 @@ func entryFromCfg(e *log.Entry, cfg workspace.Cfg) *log.Entry {
 		"workspaceName":      cfg.Name,
 		"workspaceNamespace": cfg.Namespace,
 		"workspaceSourceType": func() string {
-			if _, ok := cfg.Source.(workspace.SourceGit); ok {
+			if cfg.Source.Type() == workspace.SourceTypeGit {
 				return "git"
 			}
 			return "inline"

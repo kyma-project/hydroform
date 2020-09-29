@@ -18,6 +18,11 @@ var (
 		Version:  "v1alpha1",
 		Resource: "triggers",
 	}
+	GVRGitRepository = schema.GroupVersionResource{
+		Group:    "serverless.kyma-project.io",
+		Version:  "v1alpha1",
+		Resource: "gitrepositories",
+	}
 )
 
 type functionOperator struct {

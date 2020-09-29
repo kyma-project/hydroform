@@ -46,6 +46,9 @@ func decorateWithMap(value map[string]interface{}, field string, fields ...strin
 func withLimits(limits workspace.ResourceList) Decorate {
 	return decorateWithMap(limits, "spec", "resource", "limits")
 }
+func withRepository(value string) Decorate {
+	return decorateWithField(value, "spec", "source")
+}
 
 func withRequests(requests workspace.ResourceList) Decorate {
 	return decorateWithMap(requests, "spec", "resource", "requests")

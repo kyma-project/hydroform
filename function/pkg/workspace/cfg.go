@@ -9,7 +9,16 @@ import (
 
 var _ file = &Cfg{}
 
-type Source = interface{}
+type SourceType int
+
+const (
+	SourceTypeInline SourceType = iota + 1
+	SourceTypeGit
+)
+
+type Source interface {
+	Type() SourceType
+}
 
 const CfgFilename = "config.yaml"
 
@@ -37,6 +46,10 @@ type SourceInline struct {
 	BaseDir           string `yaml:"baseDir"`
 	SourceHandlerName string `yaml:"sourceHandlerName,omitempty"`
 	DepsHandlerName   string `yaml:"depsHandlerName,omitempty"`
+}
+
+func (s SourceInline) Type() SourceType {
+	return SourceTypeInline
 }
 
 type SourceGit struct {
