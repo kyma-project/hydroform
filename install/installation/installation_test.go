@@ -509,7 +509,6 @@ func TestKymaInstaller_PrepareUpgrade(t *testing.T) {
 				assert.Contains(t, err.Error(), testCase.errorContains)
 			})
 		}
-
 	})
 }
 
@@ -756,7 +755,106 @@ func TestKymaInstaller_StartInstallation(t *testing.T) {
 		// then
 		require.Error(t, err)
 	})
+}
 
+func TestCheckInstallationState(t *testing.T) {
+	t.Run("should return installation state", func(t *testing.T) {
+		//given
+		ctx := context.Background()
+		installationClient := installationFake.NewSimpleClientset().InstallerV1alpha1().Installations(defaultInstallationResourceNamespace)
+
+		installation := &v1alpha1.Installation{
+			ObjectMeta: v1.ObjectMeta{Name: kymaInstallationName},
+			Status: v1alpha1.InstallationStatus{
+				State: v1alpha1.StateInProgress,
+			},
+		}
+
+		_, err := installationClient.Create(ctx, installation, v1.CreateOptions{})
+		require.NoError(t, err)
+
+		kymaInstaller := KymaInstaller{
+			installationClient: installationClient,
+		}
+
+		//when
+		state, err := kymaInstaller.CheckInstallationState()
+
+		//then
+		require.NoError(t, err)
+		assert.Equal(t, string(v1alpha1.StateInProgress), state.State)
+	})
+
+	t.Run("should return error when in uknown state", func(t *testing.T) {
+		//given
+		ctx := context.Background()
+		installationClient := installationFake.NewSimpleClientset().InstallerV1alpha1().Installations(defaultInstallationResourceNamespace)
+
+		installation := &v1alpha1.Installation{
+			ObjectMeta: v1.ObjectMeta{Name: kymaInstallationName},
+			Status: v1alpha1.InstallationStatus{
+				State: NoInstallationState,
+			},
+		}
+
+		_, err := installationClient.Create(ctx, installation, v1.CreateOptions{})
+		require.NoError(t, err)
+
+		kymaInstaller := KymaInstaller{
+			installationClient: installationClient,
+		}
+
+		//when
+		_, err = kymaInstaller.CheckInstallationState()
+
+		//then
+		require.Error(t, err)
+	})
+}
+
+func TestTriggerUninstall(t *testing.T) {
+	t.Run("should label InstallationCR when uninstall triggered succesfully", func(t *testing.T) {
+		//given
+		ctx := context.Background()
+		installationClient := installationFake.NewSimpleClientset().InstallerV1alpha1().Installations(defaultInstallationResourceNamespace)
+
+		installation := &v1alpha1.Installation{
+			ObjectMeta: v1.ObjectMeta{Name: kymaInstallationName},
+		}
+
+		_, err := installationClient.Create(ctx, installation, v1.CreateOptions{})
+		require.NoError(t, err)
+
+		kymaInstaller := KymaInstaller{
+			installationClient: installationClient,
+		}
+
+		//when
+		err = kymaInstaller.TriggerUninstall()
+
+		//then
+		require.NoError(t, err)
+
+		installationCR, err := installationClient.Get(ctx, kymaInstallationName, v1.GetOptions{})
+
+		require.NoError(t, err)
+		assert.Equal(t, installationCR.Labels[installationActionLabel], "uninstall")
+	})
+
+	t.Run("should return error when InstallationCR is not present", func(t *testing.T) {
+		//given
+		installationClient := installationFake.NewSimpleClientset().InstallerV1alpha1().Installations(defaultInstallationResourceNamespace)
+
+		kymaInstaller := KymaInstaller{
+			installationClient: installationClient,
+		}
+
+		//when
+		err := kymaInstaller.TriggerUninstall()
+
+		//then
+		require.Error(t, err)
+	})
 }
 
 type installationStatusUpdateFunc func(installationStatus *v1alpha1.InstallationStatus)
