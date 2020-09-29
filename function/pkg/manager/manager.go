@@ -12,6 +12,7 @@ type manager struct {
 	operators map[operator.Operator][]operator.Operator
 }
 
+// FIXME export return type
 func NewManager(operators map[operator.Operator][]operator.Operator) manager {
 	return manager{
 		operators: operators,

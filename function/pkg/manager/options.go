@@ -9,6 +9,7 @@ const (
 	PurgeOnError
 )
 
+//TODO rename to Options after integration
 type ManagerOptions struct {
 	Callbacks          operator.Callbacks
 	OnError            OnError
