@@ -185,7 +185,7 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*Kym
 		return nil, err
 	}
 
-	installationClient, err := installationClientset.NewForConfig(kubeconfig)
+	installationClient, err := prepareInstallationClient(kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*Kym
 		installationWatcherTimeoutSeconds: defaultWatcherTimeoutSeconds,
 		decoder:                           decoder,
 		k8sGenericClient:                  k8s.NewGenericClient(restMapper, dynamicClient, coreClient),
-		installationClient:                installationClient.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace),
+		installationClient:                installationClient,
 		deploymentClient:                  coreClient.AppsV1().Deployments(kymaInstallerNamespace),
 	}, nil
 }
