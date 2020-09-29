@@ -27,14 +27,24 @@ func decorateWithField(value interface{}, field string, fields ...string) Decora
 	}
 }
 
-func withFunction(name, namespace string) Decorate {
+func withMetadata(name, namespace string) Decorate {
 	return func(u *unstructured.Unstructured) error {
-		u.SetAPIVersion(functionApiVersion)
-		u.SetKind("Function")
 		u.SetName(name)
 		u.SetNamespace(namespace)
 		return nil
 	}
+}
+
+var withFunction = func(u *unstructured.Unstructured) error {
+	u.SetAPIVersion(functionApiVersion)
+	u.SetKind("Function")
+	return nil
+}
+
+var withGitRepository = func(u *unstructured.Unstructured) error {
+	u.SetAPIVersion(gitRepositoryApiVersion)
+	u.SetKind("GitRepository")
+	return nil
 }
 
 func decorateWithMap(value map[string]interface{}, field string, fields ...string) Decorate {
@@ -46,6 +56,7 @@ func decorateWithMap(value map[string]interface{}, field string, fields ...strin
 func withLimits(limits workspace.ResourceList) Decorate {
 	return decorateWithMap(limits, "spec", "resource", "limits")
 }
+
 func withRepository(value string) Decorate {
 	return decorateWithField(value, "spec", "source")
 }
@@ -56,6 +67,10 @@ func withRequests(requests workspace.ResourceList) Decorate {
 
 func withRuntime(runtime types.Runtime) Decorate {
 	return decorateWithField(runtime, "spec", "runtime")
+}
+
+func withURL(URL string) Decorate {
+	return decorateWithField(URL, "spec", "url")
 }
 
 func decorate(u *unstructured.Unstructured, ds Decorators) (err error) {

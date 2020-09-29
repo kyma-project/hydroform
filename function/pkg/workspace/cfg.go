@@ -57,7 +57,11 @@ type SourceGit struct {
 	Repository            string `yaml:"repository"`
 	Reference             string `yaml:"reference"`
 	BaseDir               string `yaml:"baseDir"`
-	CredentialsSecretName string `yaml:"credentialsSecretName"`
+	CredentialsSecretName string `yaml:"credentialsSecretName,omitempty"`
+}
+
+func (s SourceGit) Type() SourceType {
+	return SourceTypeGit
 }
 
 type ResourceList = map[ResourceName]interface{}

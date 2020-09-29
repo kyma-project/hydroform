@@ -27,9 +27,10 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 	}
 }
 
-func decorators(cfg workspace.Cfg) []Decorate {
+func functionDecorators(cfg workspace.Cfg) []Decorate {
 	return []Decorate{
-		withFunction(cfg.Name, cfg.Namespace),
+		withFunction,
+		withMetadata(cfg.Name, cfg.Namespace),
 		withLabels(cfg.Labels),
 		withRuntime(cfg.Runtime),
 		withLimits(cfg.Resources.Limits),
@@ -43,7 +44,7 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 		return
 	}
 
-	decorators := append(decorators(cfg),
+	decorators := append(functionDecorators(cfg),
 		withRepository(source.Reference),
 	)
 	err = decorate(&out, decorators)
@@ -73,7 +74,7 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstruc
 		depsHandlerName = source.DepsHandlerName
 	}
 
-	decorators := decorators(cfg)
+	decorators := functionDecorators(cfg)
 
 	// read sources and dependencies
 	for _, item := range []struct {
