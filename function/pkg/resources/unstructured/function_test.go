@@ -1,148 +1,388 @@
 package unstructured
 
-//import (
-//	"fmt"
-//	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-//	"path"
-//	"strings"
-//	"testing"
-//
-//	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
-//	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
-//	"github.com/onsi/gomega"
-//)
-//
-//type testPropertyData struct {
-//	field    []string
-//	expected interface{}
-//}
-//
-//func testPropertyDataSlice(cfg workspace.Cfg) []testPropertyData {
-//	return []testPropertyData{
-//		{
-//			field:    []string{"metadata", "name"},
-//			expected: cfg.Name,
-//		},
-//		{
-//			field:    []string{"metadata", "labels"},
-//			expected: cfg.Labels,
-//		},
-//		{
-//			field:    []string{"apiVersion"},
-//			expected: "serverless.kyma-project.io/v1alpha1",
-//		},
-//		{
-//			field:    []string{"spec", "source"},
-//			expected: "test-js-handler",
-//		},
-//		{
-//			field:    []string{"spec", "runtime"},
-//			expected: cfg.Runtime,
-//		},
-//	}
-//}
-//
-//func readFileTestNode(filename string) ([]byte, error) {
-//	_, realFilename := path.Split(filename)
-//	switch workspace.FileName(realFilename) {
-//	case workspace.FileNameHandlerPy:
-//		return []byte("test-python-handler"), nil
-//	case workspace.FileNameRequirementsTxt:
-//		return []byte("test-python-requirements"), nil
-//	case workspace.FileNameHandlerJs:
-//		return []byte("test-js-handler"), nil
-//	case workspace.FileNamePackageJSON:
-//		return []byte("test-js-deps"), nil
-//	default:
-//		return []byte{}, nil
-//	}
-//}
-//
-//var (
-//	cfgTestFull = workspace.Cfg{
-//		Name:      "test",
-//		Namespace: "test",
-//		Labels: map[string]string{
-//			"test": "me",
-//		},
-//		Source: workspace.SourceInline{},
-//		Runtime: types.Nodejs10,
-//		Resources: struct {
-//			Limits   workspace.ResourceList `yaml:"limits"`
-//			Requests workspace.ResourceList `yaml:"requests"`
-//		}{
-//			Limits: map[workspace.ResourceName]interface{}{
-//				workspace.ResourceNameCPU:    "1",
-//				workspace.ResourceNameMemory: "10m",
-//			},
-//			Requests: map[workspace.ResourceName]interface{}{
-//				workspace.ResourceNameCPU:    "1",
-//				workspace.ResourceNameMemory: "10m",
-//			},
-//		},
-//	}
-//	cfgTestJustLimits = workspace.Cfg{
-//		Name:      "test",
-//		Namespace: "test",
-//		Labels: map[string]string{
-//			"test": "me",
-//		},
-//		Source: workspace.SourceInline{},
-//		Runtime: types.Nodejs10,
-//		Resources: struct {
-//			Limits   workspace.ResourceList `yaml:"limits"`
-//			Requests workspace.ResourceList `yaml:"requests"`
-//		}{
-//			Limits: map[workspace.ResourceName]interface{}{
-//				workspace.ResourceNameCPU:    "1",
-//				workspace.ResourceNameMemory: "10m",
-//			},
-//		},
-//	}
-//	cfgTestNoResources = workspace.Cfg{
-//		Name:      "test",
-//		Namespace: "test",
-//		Labels: map[string]string{
-//			"test": "me",
-//		},
-//		Runtime: types.Nodejs10,
-//		Source: workspace.SourceInline{},
-//	}
-//	cfgTestNoResourcesAndLabels = workspace.Cfg{
-//		Name:      "test",
-//		Namespace: "test",
-//		Runtime:   types.Nodejs10,
-//		Source: workspace.SourceInline{},
-//	}
-//)
-//
-//func Test_NewFunctionError(t *testing.T) {
-//	_, err := NewFunction(workspace.Cfg{
-//		Runtime: types.Nodejs12,
-//	})
-//	gomega.NewWithT(t).Expect(err).Should(gomega.HaveOccurred())
-//}
-//
-//func Test_NewFunction(t *testing.T) {
-//	for _, cfg := range []workspace.Cfg{
-//		cfgTestFull,
-//		cfgTestJustLimits,
-//		cfgTestNoResources,
-//		cfgTestNoResourcesAndLabels,
-//	} {
-//		result, err := newFunction(cfg, readFileTestNode)
-//		gomega.NewWithT(t).Expect(err).ShouldNot(gomega.HaveOccurred())
-//
-//		testDataSlice := testPropertyDataSlice(cfg)
-//		for _, prop := range testDataSlice {
-//			name := strings.Join(prop.field, ".")
-//			t.Run(fmt.Sprintf("%s should be correct", name), func(t *testing.T) {
-//				g := gomega.NewWithT(t)
-//				value, found, err := unstructured.NestedFieldNoCopy(result.Object, prop.field...)
-//				g.Expect(err).ShouldNot(gomega.HaveOccurred())
-//				g.Expect(found).To(gomega.BeTrue())
-//				g.Expect(value).To(gomega.Equal(prop.expected))
-//			})
-//		}
-//	}
-//}
+import (
+	"fmt"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"reflect"
+	"testing"
+)
+
+func Test_newFunction(t *testing.T) {
+	type args struct {
+		cfg      workspace.Cfg
+		readFile ReadFile
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantOut unstructured.Unstructured
+		wantErr bool
+	}{
+		{
+			name: "inline - OK",
+			args: args{
+				readFile: func(filename string) ([]byte, error) {
+					switch filename {
+					case "/test/path/test.my.source":
+						return []byte("test-source-content"), nil
+					case "/test/path/test.my.deps":
+						return []byte("test-deps-content"), nil
+					default:
+						return []byte{}, nil
+					}
+				},
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Labels: map[string]string{
+						"test": "me",
+					},
+					Resources: workspace.Resources{
+						Limits: workspace.ResourceList{
+							workspace.ResourceNameCPU:    "1",
+							workspace.ResourceNameMemory: "10M",
+						},
+						Requests: workspace.ResourceList{
+							workspace.ResourceNameCPU:    "1",
+							workspace.ResourceNameMemory: "10M",
+						},
+					},
+					Runtime: types.Python38,
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceInline: workspace.SourceInline{
+							SourcePath:        "/test/path",
+							SourceHandlerName: "test.my.source",
+							DepsHandlerName:   "test.my.deps",
+						},
+					},
+					Triggers: []workspace.Trigger{
+						{
+							EventTypeVersion: "test-trigger-etv",
+							Source:           "test-trigger-source",
+							Type:             "test-trigger-type",
+						},
+					},
+				},
+			},
+			wantOut: unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": functionApiVersion,
+					"kind":       "Function",
+					"metadata": map[string]interface{}{
+						"name":      "test-name",
+						"namespace": "test-ns",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
+					},
+					"spec": map[string]interface{}{
+						"runtime": "python38",
+						"resource": map[string]interface{}{
+							"limits": workspace.ResourceList{
+								workspace.ResourceNameCPU:    "1",
+								workspace.ResourceNameMemory: "10M",
+							},
+							"requests": workspace.ResourceList{
+								workspace.ResourceNameCPU:    "1",
+								workspace.ResourceNameMemory: "10M",
+							},
+						},
+						"source": "test-source-content",
+						"deps":   "test-deps-content",
+					},
+				},
+			},
+		},
+		{
+			name: "empty deps inline - OK",
+			args: args{
+				readFile: func(filename string) ([]byte, error) {
+					switch filename {
+					case "/test/path/test.my.source":
+						return []byte("test-source-content"), nil
+					default:
+						return []byte{}, nil
+					}
+				},
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Labels: map[string]string{
+						"test": "me",
+					},
+					Resources: workspace.Resources{
+						Limits: workspace.ResourceList{
+							workspace.ResourceNameCPU:    "1",
+							workspace.ResourceNameMemory: "10M",
+						},
+						Requests: workspace.ResourceList{
+							workspace.ResourceNameCPU:    "1",
+							workspace.ResourceNameMemory: "10M",
+						},
+					},
+					Runtime: types.Python38,
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceInline: workspace.SourceInline{
+							SourcePath:        "/test/path",
+							SourceHandlerName: "test.my.source",
+							DepsHandlerName:   "test.my.deps",
+						},
+					},
+					Triggers: []workspace.Trigger{
+						{
+							EventTypeVersion: "test-trigger-etv",
+							Source:           "test-trigger-source",
+							Type:             "test-trigger-type",
+						},
+					},
+				},
+			},
+			wantOut: unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": functionApiVersion,
+					"kind":       "Function",
+					"metadata": map[string]interface{}{
+						"name":      "test-name",
+						"namespace": "test-ns",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
+					},
+					"spec": map[string]interface{}{
+						"runtime": "python38",
+						"resource": map[string]interface{}{
+							"limits": workspace.ResourceList{
+								workspace.ResourceNameCPU:    "1",
+								workspace.ResourceNameMemory: "10M",
+							},
+							"requests": workspace.ResourceList{
+								workspace.ResourceNameCPU:    "1",
+								workspace.ResourceNameMemory: "10M",
+							},
+						},
+						"source": "test-source-content",
+					},
+				},
+			},
+		},
+		{
+			name: "inline - read err",
+			args: args{
+				readFile: func(filename string) ([]byte, error) {
+					return nil, fmt.Errorf("read error")
+				},
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Labels: map[string]string{
+						"test": "me",
+					},
+					Runtime: types.Python38,
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceInline: workspace.SourceInline{
+							SourcePath:        "/test/path",
+							SourceHandlerName: "test.my.source",
+							DepsHandlerName:   "test.my.deps",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "inline - unknown runtime err",
+			args: args{
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Labels: map[string]string{
+						"test": "me",
+					},
+					Runtime: "unknown",
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceInline: workspace.SourceInline{
+							SourcePath:        "/test/path",
+							SourceHandlerName: "test.my.source",
+							DepsHandlerName:   "test.my.deps",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotOut, err := newFunction(tt.args.cfg, tt.args.readFile)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("newFunction() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotOut, tt.wantOut) {
+				t.Errorf("newFunction() gotOut = %v, want %v", gotOut, tt.wantOut)
+			}
+		})
+	}
+}
+
+func Test_newGitFunction(t *testing.T) {
+	type args struct {
+		cfg workspace.Cfg
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantOut unstructured.Unstructured
+		wantErr bool
+	}{
+		{
+			name: "git - OK",
+			args: args{
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Labels: map[string]string{
+						"test": "me",
+					},
+					Resources: workspace.Resources{
+						Limits: workspace.ResourceList{
+							workspace.ResourceNameCPU:    "1",
+							workspace.ResourceNameMemory: "10M",
+						},
+						Requests: workspace.ResourceList{
+							workspace.ResourceNameCPU:    "1",
+							workspace.ResourceNameMemory: "10M",
+						},
+					},
+					Runtime: types.Python38,
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceGit: workspace.SourceGit{
+							URL:       "test-url",
+							Reference: "test-reference",
+							BaseDir:   "test-base-dir",
+						},
+					},
+					Triggers: []workspace.Trigger{
+						{
+							EventTypeVersion: "test-trigger-etv",
+							Source:           "test-trigger-source",
+							Type:             "test-trigger-type",
+						},
+					},
+				},
+			},
+			wantOut: unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": functionApiVersion,
+					"kind":       "Function",
+					"metadata": map[string]interface{}{
+						"name":      "test-name",
+						"namespace": "test-ns",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
+					},
+					"spec": map[string]interface{}{
+						"runtime": "python38",
+						"resource": map[string]interface{}{
+							"limits": workspace.ResourceList{
+								workspace.ResourceNameCPU:    "1",
+								workspace.ResourceNameMemory: "10M",
+							},
+							"requests": workspace.ResourceList{
+								workspace.ResourceNameCPU:    "1",
+								workspace.ResourceNameMemory: "10M",
+							},
+						},
+						"source": "test-name",
+					},
+				},
+			},
+		},
+		{
+			name: "override repository git - OK",
+			args: args{
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Labels: map[string]string{
+						"test": "me",
+					},
+					Resources: workspace.Resources{
+						Limits: workspace.ResourceList{
+							workspace.ResourceNameCPU:    "1",
+							workspace.ResourceNameMemory: "10M",
+						},
+						Requests: workspace.ResourceList{
+							workspace.ResourceNameCPU:    "1",
+							workspace.ResourceNameMemory: "10M",
+						},
+					},
+					Runtime: types.Python38,
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceGit: workspace.SourceGit{
+							URL:        "test-url",
+							Repository: "test-repository",
+							Reference:  "test-reference",
+							BaseDir:    "test-base-dir",
+						},
+					},
+					Triggers: []workspace.Trigger{
+						{
+							EventTypeVersion: "test-trigger-etv",
+							Source:           "test-trigger-source",
+							Type:             "test-trigger-type",
+						},
+					},
+				},
+			},
+			wantOut: unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": functionApiVersion,
+					"kind":       "Function",
+					"metadata": map[string]interface{}{
+						"name":      "test-name",
+						"namespace": "test-ns",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
+					},
+					"spec": map[string]interface{}{
+						"runtime": "python38",
+						"resource": map[string]interface{}{
+							"limits": workspace.ResourceList{
+								workspace.ResourceNameCPU:    "1",
+								workspace.ResourceNameMemory: "10M",
+							},
+							"requests": workspace.ResourceList{
+								workspace.ResourceNameCPU:    "1",
+								workspace.ResourceNameMemory: "10M",
+							},
+						},
+						"source": "test-repository",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotOut, err := newGitFunction(tt.args.cfg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("newGitFunction() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotOut, tt.wantOut) {
+				t.Errorf("newGitFunction() gotOut = %v, want %v", gotOut, tt.wantOut)
+			}
+		})
+	}
+}

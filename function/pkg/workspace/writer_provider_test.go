@@ -40,12 +40,9 @@ func TestWriterProvider_write(t *testing.T) {
 					Name:      "test-name",
 					Labels:    map[string]string{},
 					Namespace: "test-namespace",
-					Resources: struct {
-						Limits   ResourceList `yaml:"limits"`
-						Requests ResourceList `yaml:"requests"`
-					}{},
-					Runtime:  types.Nodejs10,
-					Triggers: []Trigger{},
+					Resources: Resources{},
+					Runtime:   types.Nodejs10,
+					Triggers:  []Trigger{},
 				},
 			},
 		},
@@ -64,12 +61,9 @@ func TestWriterProvider_write(t *testing.T) {
 					Name:      "test-name",
 					Labels:    map[string]string{},
 					Namespace: "test-namespace",
-					Resources: struct {
-						Limits   ResourceList `yaml:"limits"`
-						Requests ResourceList `yaml:"requests"`
-					}{},
-					Runtime:  types.Nodejs10,
-					Triggers: []Trigger{},
+					Resources: Resources{},
+					Runtime:   types.Nodejs10,
+					Triggers:  []Trigger{},
 				},
 			},
 		},
@@ -86,12 +80,9 @@ func TestWriterProvider_write(t *testing.T) {
 					Name:      "test-name",
 					Labels:    map[string]string{},
 					Namespace: "test-namespace",
-					Resources: struct {
-						Limits   ResourceList `yaml:"limits"`
-						Requests ResourceList `yaml:"requests"`
-					}{},
-					Runtime:  types.Nodejs10,
-					Triggers: []Trigger{},
+					Resources: Resources{},
+					Runtime:   types.Nodejs10,
+					Triggers:  []Trigger{},
 				},
 			},
 		},

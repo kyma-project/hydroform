@@ -8,19 +8,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type Manager interface {
+	Do(ctx context.Context, options Options) error
+}
+
 type manager struct {
 	operators map[operator.Operator][]operator.Operator
 }
 
-// FIXME export return type
-func NewManager(operators map[operator.Operator][]operator.Operator) manager {
+func NewManager(operators map[operator.Operator][]operator.Operator) Manager {
 	return manager{
 		operators: operators,
 	}
 }
 
-func (m manager) Do(options ManagerOptions) error {
-	err := m.manageOperators(options)
+func (m manager) Do(ctx context.Context, options Options) error {
+	err := m.manageOperators(ctx, options)
 	if err != nil {
 		if options.OnError == PurgeOnError {
 			m.purgeParents(options)
@@ -30,15 +33,15 @@ func (m manager) Do(options ManagerOptions) error {
 	return nil
 }
 
-func (m *manager) manageOperators(options ManagerOptions) error {
+func (m *manager) manageOperators(ctx context.Context, options Options) error {
 	for parent, children := range m.operators {
-		references, err := m.useOperator(parent, options, nil)
+		references, err := m.useOperator(ctx, parent, options, nil)
 		if err != nil {
 			return err
 		}
 
 		for _, resource := range children {
-			_, err := m.useOperator(resource, options, references)
+			_, err := m.useOperator(ctx, resource, options, references)
 			if err != nil {
 				return err
 			}
@@ -47,7 +50,7 @@ func (m *manager) manageOperators(options ManagerOptions) error {
 	return nil
 }
 
-func (m *manager) useOperator(opr operator.Operator, options ManagerOptions, references []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
+func (m *manager) useOperator(ctx context.Context, opr operator.Operator, options Options, references []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
 	newRefs := &OwnerReferenceList{}
 	if opr == nil {
 		return newRefs.List, nil
@@ -62,10 +65,10 @@ func (m *manager) useOperator(opr operator.Operator, options ManagerOptions, ref
 		OwnerReferences: references,
 		Callbacks:       callbacks,
 	}
-	return newRefs.List, opr.Apply(context.Background(), applyOpts)
+	return newRefs.List, opr.Apply(ctx, applyOpts)
 }
 
-func (m *manager) purgeParents(options ManagerOptions) {
+func (m *manager) purgeParents(options Options) {
 	deleteOptions := operator.DeleteOptions{
 		DryRun:              m.getDryRunFlag(options.DryRun),
 		DeletionPropagation: metav1.DeletePropagationForeground,

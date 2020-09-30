@@ -38,8 +38,12 @@ func functionDecorators(cfg workspace.Cfg) []Decorate {
 }
 
 func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
+	repository := cfg.Name
+	if cfg.Source.Repository != "" {
+		repository = cfg.Source.Repository
+	}
 	decorators := append(functionDecorators(cfg),
-		decorateWithField(cfg.Source.Reference, "spec", "source"),
+		decorateWithField(repository, "spec", "source"),
 	)
 	err = decorate(&out, decorators)
 

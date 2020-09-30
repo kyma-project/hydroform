@@ -34,21 +34,18 @@ func (t Trigger) Attributes() Attributes {
 }
 
 type Resources struct {
-	Limits   ResourceList `yaml:"limits"`
-	Requests ResourceList `yaml:"requests"`
+	Limits   ResourceList `yaml:"limits,omitempty"`
+	Requests ResourceList `yaml:"requests,omitempty"`
 }
 
 type Cfg struct {
 	Name      string            `yaml:"name"`
 	Namespace string            `yaml:"namespace"`
 	Labels    map[string]string `yaml:"labels,omitempty"`
-
-	Runtime types.Runtime `yaml:"runtime"`
-	Source  Source        `yaml:"source"`
-
-	Resources Resources `yaml:"resource,omitempty"`
-
-	Triggers []Trigger `yaml:"triggers,omitempty"`
+	Runtime   types.Runtime     `yaml:"runtime"`
+	Source    Source            `yaml:"source"`
+	Resources Resources         `yaml:"resource,omitempty"`
+	Triggers  []Trigger         `yaml:"triggers,omitempty"`
 }
 
 type Source struct {
