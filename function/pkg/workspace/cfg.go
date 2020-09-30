@@ -1,24 +1,19 @@
 package workspace
 
 import (
-	"io"
-
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"gopkg.in/yaml.v3"
+	"io"
 )
 
 var _ file = &Cfg{}
 
-type SourceType int
+type SourceType string
 
 const (
-	SourceTypeInline SourceType = iota + 1
-	SourceTypeGit
+	SourceTypeInline SourceType = "inline"
+	SourceTypeGit    SourceType = "git"
 )
-
-type Source interface {
-	Type() SourceType
-}
 
 const CfgFilename = "config.yaml"
 
@@ -42,8 +37,14 @@ type Cfg struct {
 	} `yaml:"triggers,omitempty"`
 }
 
+type Source struct {
+	Type         SourceType `yaml:"sourceType"`
+	SourceInline `yaml:",inline"`
+	SourceGit    `yaml:",inline"`
+}
+
 type SourceInline struct {
-	BaseDir           string `yaml:"baseDir"`
+	SourcePath        string `yaml:"sourcePath,omitempty"`
 	SourceHandlerName string `yaml:"sourceHandlerName,omitempty"`
 	DepsHandlerName   string `yaml:"depsHandlerName,omitempty"`
 }
@@ -53,10 +54,10 @@ func (s SourceInline) Type() SourceType {
 }
 
 type SourceGit struct {
-	URL                   string `yaml:"url"`
-	Repository            string `yaml:"repository"`
-	Reference             string `yaml:"reference"`
-	BaseDir               string `yaml:"baseDir"`
+	URL                   string `yaml:"url,omitempty"`
+	Repository            string `yaml:"repository,omitempty"`
+	Reference             string `yaml:"reference,omitempty"`
+	BaseDir               string `yaml:"baseDir,omitempty"`
 	CredentialsSecretName string `yaml:"credentialsSecretName,omitempty"`
 }
 

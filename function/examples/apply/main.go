@@ -147,6 +147,50 @@ func main() {
 
 	entry = log.NewEntry(log.StandardLogger())
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var statusEntry client.PostStatusEntry
+	var fnOwnerReferences []metav1.OwnerReference
+
+	dynamicInterface := getClient(cfg)
+
+	if configuration.Source.Type == workspace.SourceTypeGit {
+		gitRepository, err := unstructfn.NewPublicGitRepository(configuration)
+		if err != nil {
+			entry.Fatal(err)
+		}
+
+		gitRepositoryOperator := newOperator(
+			operator.GenericOperator,
+			operator.GVRGitRepository,
+			configuration.Namespace,
+			dynamicInterface, []unstructured.Unstructured{
+				gitRepository,
+			})
+
+		if err = gitRepositoryOperator.Apply(ctx, operator.ApplyOptions{
+			DryRun: stages,
+			Callbacks: operator.Callbacks{
+				Post: []operator.Callback{
+					statusLoggingCallback(entry),
+					callbackStatusGetter(&statusEntry),
+				},
+			},
+		}); err != nil {
+			entry.Fatal(err)
+		}
+
+		fnOwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: statusEntry.GetAPIVersion(),
+				Kind:       statusEntry.GetKind(),
+				Name:       statusEntry.GetName(),
+				UID:        statusEntry.GetUID(),
+			},
+		}
+	}
+
 	entryFromCfg(entry, configuration).Debug("generating function from configuration")
 	function, err := unstructfn.NewFunction(configuration)
 	if err != nil {
@@ -163,36 +207,29 @@ func main() {
 		entryFromUnstructured(entry, &trigger).Debug("trigger generated")
 	}
 
-	dynamicInterface := getClient(cfg)
 	// Build function operator
 	fnOperator := newOperator(
-		operator.NewFunctionsOperator,
+		operator.GenericOperator,
 		operator.GVKFunction,
 		configuration.Namespace,
 		dynamicInterface,
 		[]unstructured.Unstructured{function},
 	)
 
-	var functionStatusEntry client.PostStatusEntry
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	// Try to apply function
 	if err := fnOperator.Apply(
 		ctx,
 		operator.ApplyOptions{
-			DryRun: stages,
+			OwnerReferences: fnOwnerReferences,
+			DryRun:          stages,
 			Callbacks: operator.Callbacks{
-				Post: nil,
-				Pre: []operator.Callback{
+				Post: []operator.Callback{
 					statusLoggingCallback(entry),
-					callbackStatusGetter(&functionStatusEntry),
+					callbackStatusGetter(&statusEntry),
 				},
 			},
 		},
-	); err != nil { // rollback if error
-		safeDelete(ctx, fnOperator, entry, stages)
+	); err != nil {
 		entry.Fatal(err)
 	}
 
@@ -212,10 +249,10 @@ func main() {
 			DryRun: stages,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: functionStatusEntry.GetAPIVersion(),
-					Kind:       functionStatusEntry.GetKind(),
-					Name:       functionStatusEntry.GetName(),
-					UID:        functionStatusEntry.GetUID(),
+					APIVersion: statusEntry.GetAPIVersion(),
+					Kind:       statusEntry.GetKind(),
+					Name:       statusEntry.GetName(),
+					UID:        statusEntry.GetUID(),
 				},
 			},
 			Callbacks: operator.Callbacks{
@@ -226,10 +263,6 @@ func main() {
 			},
 		},
 	)
-	if err != nil {
-		safeDelete(ctx, fnOperator, entry, stages)
-		entry.Fatal(err)
-	}
 }
 
 type Provider = func(client.Client, ...unstructured.Unstructured) operator.Operator
@@ -245,7 +278,7 @@ func entryFromCfg(e *log.Entry, cfg workspace.Cfg) *log.Entry {
 		"workspaceName":      cfg.Name,
 		"workspaceNamespace": cfg.Namespace,
 		"workspaceSourceType": func() string {
-			if cfg.Source.Type() == workspace.SourceTypeGit {
+			if cfg.Source.Type == workspace.SourceTypeGit {
 				return "git"
 			}
 			return "inline"
@@ -268,20 +301,4 @@ func entryFromStatus(e *log.Entry, s client.PostStatusEntry) *log.Entry {
 		"uid":        s.GetUID(),
 		"apiVersion": s.GetAPIVersion(),
 	})
-}
-
-func safeDelete(ctx context.Context, o operator.Operator, e *log.Entry, stages []string) {
-	deleteErr := o.Delete(
-		ctx,
-		operator.DeleteOptions{
-			DryRun:              stages,
-			DeletionPropagation: metav1.DeletePropagationForeground,
-			Callbacks: operator.Callbacks{
-				Post: []operator.Callback{callbackIgnoreNotFound},
-			},
-		},
-	)
-	if deleteErr != nil {
-		e.Error(deleteErr)
-	}
 }

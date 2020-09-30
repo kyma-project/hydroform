@@ -24,9 +24,12 @@ func TestNewPublicGitRepository(t *testing.T) {
 			args: args{
 				cfg: workspace.Cfg{
 					Namespace: "test-ns",
-					Source: &workspace.SourceGit{
-						URL:        "test-url",
-						Repository: "test-repository",
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceGit: workspace.SourceGit{
+							URL:        "test-url",
+							Repository: "test-repository",
+						},
 					},
 				},
 			},

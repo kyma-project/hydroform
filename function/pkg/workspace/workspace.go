@@ -36,8 +36,11 @@ func Initialize(cfg Cfg, dirPath string) error {
 	return initialize(cfg, dirPath, defaultWriterProvider)
 }
 
-func initialize(cfg Cfg, dirPath string, writerProvider WriterProvider) error {
-	ws, err := fromRuntime(cfg.Runtime)
+func initialize(cfg Cfg, dirPath string, writerProvider WriterProvider) (err error) {
+	ws := workspace{}
+	if cfg.Source.Type != SourceTypeGit {
+		ws, err = fromRuntime(cfg.Runtime)
+	}
 	if err != nil {
 		return err
 	}

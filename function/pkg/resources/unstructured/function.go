@@ -2,7 +2,6 @@ package unstructured
 
 import (
 	"fmt"
-	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"path"
 
@@ -17,7 +16,7 @@ const functionApiVersion = "serverless.kyma-project.io/v1alpha1"
 var errUnsupportedSource = fmt.Errorf("unsupported source")
 
 func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
-	switch cfg.Source.Type() {
+	switch cfg.Source.Type {
 	case workspace.SourceTypeInline:
 		return newFunction(cfg, ioutil.ReadFile)
 	case workspace.SourceTypeGit:
@@ -39,13 +38,8 @@ func functionDecorators(cfg workspace.Cfg) []Decorate {
 }
 
 func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
-	var source workspace.SourceGit
-	if err = mapstructure.Decode(cfg.Source, &source); err != nil {
-		return
-	}
-
 	decorators := append(functionDecorators(cfg),
-		withRepository(source.Reference),
+		withRepository(cfg.Source.Reference),
 	)
 	err = decorate(&out, decorators)
 
@@ -53,11 +47,6 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 }
 
 func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstructured, err error) {
-	var source workspace.SourceInline
-	if err = mapstructure.Decode(cfg.Source, &source); err != nil {
-		return
-	}
-
 	// get default handler names
 	sourceHandlerName, depsHandlerName, found := workspace.InlineFileNames(cfg.Runtime)
 	if !found {
@@ -65,13 +54,13 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstruc
 	}
 
 	// apply source handler name overrides
-	if source.SourceHandlerName != "" {
-		sourceHandlerName = source.SourceHandlerName
+	if cfg.Source.SourceHandlerName != "" {
+		sourceHandlerName = cfg.Source.SourceHandlerName
 	}
 
 	// apply deps handler name overrides
-	if source.DepsHandlerName != "" {
-		depsHandlerName = source.DepsHandlerName
+	if cfg.Source.DepsHandlerName != "" {
+		depsHandlerName = cfg.Source.DepsHandlerName
 	}
 
 	decorators := functionDecorators(cfg)
@@ -84,7 +73,7 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstruc
 		{property: propertySource, filename: sourceHandlerName},
 		{property: propertyDeps, filename: depsHandlerName},
 	} {
-		filePath := path.Join(source.BaseDir, item.filename)
+		filePath := path.Join(cfg.Source.SourcePath, item.filename)
 		data, err := readFile(filePath)
 		if err != nil {
 			return unstructured.Unstructured{}, err

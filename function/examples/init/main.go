@@ -9,7 +9,6 @@ import (
 	"path"
 
 	"github.com/docopt/docopt-go"
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 
 	log "github.com/sirupsen/logrus"
@@ -19,9 +18,12 @@ const (
 	usage = `init description
 
 Usage:
-	init --runtime=<RUNTIME> [--dir=<DIR>] [options]
+	init --runtime=<RUNTIME> [ --url=<URL> ] [ --reference=<STRING> ] [ --base-dir=<PATH> ] [ --dir=<DIR> ] [ options ]
 
 Options:
+	--runtime				One of: python38, nodejs12, nodejs10 [ default: nodejs12 ]
+	--reference				Commit hash or branch name [ default: master ]
+	--base-dir				The directory of the in repository where source code is located [ default: / ]
 	--debug                 Enable verbose output.
 	-h --help               Show this screen.
 	--version               Show version.`
@@ -30,10 +32,13 @@ Options:
 )
 
 type config struct {
-	Name    string `docopt:"--name" json:"name"`
-	Debug   bool   `docopt:"--debug" json:"debug"`
-	Dir     string `docopt:"--dir"`
-	Runtime string `docopt:"--runtime" json:"runtime"`
+	Name      string `docopt:"--name" json:"name"`
+	Debug     bool   `docopt:"--debug" json:"debug"`
+	Dir       string `docopt:"--dir"`
+	Runtime   string `docopt:"--runtime" json:"runtime"`
+	URL       string `docopt:"--url" json:"url"`
+	Reference string `docopt:"--reference" json:"reference"`
+	BaseDir   string `docopt:"--base-dir" json:"baseDir"`
 }
 
 func newConfig() (*config, error) {
@@ -79,13 +84,31 @@ func main() {
 		log.Fatal(err)
 	}
 
+	var source workspace.Source
+	if cfg.URL != "" {
+		source = workspace.Source{
+			Type: workspace.SourceTypeGit,
+			SourceGit: workspace.SourceGit{
+				URL:        cfg.URL,
+				Repository: cfg.Name,
+				Reference:  cfg.Reference,
+				BaseDir:    cfg.BaseDir,
+			},
+		}
+	} else {
+		source = workspace.Source{
+			Type: workspace.SourceTypeInline,
+			SourceInline: workspace.SourceInline{
+				SourcePath: outputPath,
+			},
+		}
+	}
+
 	configuration := workspace.Cfg{
 		Name:      cfg.Name,
 		Namespace: "default",
-		Runtime:   types.Runtime(cfg.Runtime),
-		Source: workspace.SourceInline{
-			BaseDir: outputPath,
-		},
+		Runtime:   cfg.Runtime,
+		Source:    source,
 	}
 
 	if err := workspace.Initialize(configuration, outputPath); err != nil {

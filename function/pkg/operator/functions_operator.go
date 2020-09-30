@@ -30,7 +30,7 @@ type functionOperator struct {
 	items []unstructured.Unstructured
 }
 
-func NewFunctionsOperator(c client.Client, u ...unstructured.Unstructured) Operator {
+func GenericOperator(c client.Client, u ...unstructured.Unstructured) Operator {
 	return &functionOperator{
 		Client: c,
 		items:  u,
