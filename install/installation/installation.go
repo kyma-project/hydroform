@@ -62,6 +62,8 @@ type Installer interface {
 	PrepareInstallation(installation Installation) error
 	PrepareUpgrade(artifacts Installation) error
 	StartInstallation(context context.Context) (<-chan InstallationState, <-chan error, error)
+	CheckInstallationState(installationClient installationTyped.InstallationInterface) (InstallationState, error)
+	TriggerUninstall(installationClient installationTyped.InstallationInterface) error
 }
 
 type Logger interface {
@@ -91,15 +93,20 @@ type InstallationState struct {
 	Description string
 }
 
+/*
+Despite being part of Installer interface,
+this is also available as a standalone function as it is used without KymaInstaller struct
+*/
 func CheckInstallationState(kubeconfig *rest.Config) (InstallationState, error) {
-	installationClient, err := installationClientset.NewForConfig(kubeconfig)
+	client, err := prepareInstallationClient(kubeconfig)
 	if err != nil {
-		return InstallationState{}, err
+		return InstallationState{}, fmt.Errorf("error creating Installation client: %s", err.Error())
 	}
+	return checkInstallationState(client)
+}
 
+func checkInstallationState(installationClient installationTyped.InstallationInterface) (InstallationState, error) {
 	installationCR, err := installationClient.
-		InstallerV1alpha1().
-		Installations(defaultInstallationResourceNamespace).
 		Get(context.Background(), kymaInstallationName, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -115,18 +122,24 @@ func CheckInstallationState(kubeconfig *rest.Config) (InstallationState, error) 
 	return getInstallationState(*installationCR)
 }
 
+/*
+Despite being part of Installer interface,
+this is also available as a standalone function as it is used without KymaInstaller struct
+*/
 func TriggerUninstall(kubeconfig *rest.Config) error {
-	installationClient, err := installationClientset.NewForConfig(kubeconfig)
+	client, err := prepareInstallationClient(kubeconfig)
 	if err != nil {
 		return fmt.Errorf("error creating Installation client: %s", err.Error())
 	}
 
+	return triggerUninstall(client)
+}
+
+func triggerUninstall(installationClient installationTyped.InstallationInterface) error {
 	installationCR, err := installationClient.
-		InstallerV1alpha1().
-		Installations(defaultInstallationResourceNamespace).
 		Get(context.Background(), kymaInstallationName, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("error getting Installation client: %s", err.Error())
+		return fmt.Errorf("error getting Installation CR: %s", err.Error())
 	}
 
 	if installationCR.Labels == nil {
@@ -135,8 +148,7 @@ func TriggerUninstall(kubeconfig *rest.Config) error {
 
 	installationCR.Labels[installationActionLabel] = "uninstall"
 
-	_, err = installationClient.InstallerV1alpha1().
-		Installations(defaultInstallationResourceNamespace).
+	_, err = installationClient.
 		Update(context.Background(), installationCR, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("error labeling Installation CR with action=uninstall label: %s", err.Error())
@@ -173,7 +185,7 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*Kym
 		return nil, err
 	}
 
-	installationClient, err := installationClientset.NewForConfig(kubeconfig)
+	installationClient, err := prepareInstallationClient(kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +205,7 @@ func NewKymaInstaller(kubeconfig *rest.Config, opts ...InstallationOption) (*Kym
 		installationWatcherTimeoutSeconds: defaultWatcherTimeoutSeconds,
 		decoder:                           decoder,
 		k8sGenericClient:                  k8s.NewGenericClient(restMapper, dynamicClient, coreClient),
-		installationClient:                installationClient.InstallerV1alpha1().Installations(defaultInstallationResourceNamespace),
+		installationClient:                installationClient,
 		deploymentClient:                  coreClient.AppsV1().Deployments(kymaInstallerNamespace),
 	}, nil
 }
@@ -303,6 +315,13 @@ func (k KymaInstaller) StartInstallation(context context.Context) (<-chan Instal
 	go k.waitForInstallation(context, stateChannel, errorChannel)
 
 	return stateChannel, errorChannel, nil
+}
+
+func (k KymaInstaller) CheckInstallationState() (InstallationState, error) {
+	return checkInstallationState(k.installationClient)
+}
+func (k KymaInstaller) TriggerUninstall() error {
+	return triggerUninstall(k.installationClient)
 }
 
 func checkContextNotCanceled(ctx context.Context) error {
@@ -635,4 +654,14 @@ func (k KymaInstaller) infof(format string, a ...interface{}) {
 	if k.logger != nil {
 		k.logger.Infof(format, a...)
 	}
+}
+
+func prepareInstallationClient(kubeconfig *rest.Config) (installationTyped.InstallationInterface, error) {
+	installationClientSet, err := installationClientset.NewForConfig(kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return installationClientSet.InstallerV1alpha1().
+		Installations(defaultInstallationResourceNamespace), nil
 }
