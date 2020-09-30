@@ -27,11 +27,7 @@ func TestNewTriggers(t *testing.T) {
 						"test": "me",
 					},
 					Runtime: "python38",
-					Triggers: []struct {
-						EventTypeVersion string `yaml:"eventTypeVersion"`
-						Source           string `yaml:"source"`
-						Type             string `yaml:"type"`
-					}{
+					Triggers: []workspace.Trigger{
 						{
 							EventTypeVersion: "a",
 							Source:           "b",
@@ -46,7 +42,7 @@ func TestNewTriggers(t *testing.T) {
 						"apiVersion": "eventing.knative.dev/v1alpha1",
 						"kind":       "Trigger",
 						"metadata": map[string]interface{}{
-							"labels": map[string]string{
+							"labels": map[string]interface{}{
 								"test": "me",
 							},
 							"name":      "test-name-b",

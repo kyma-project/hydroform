@@ -11,7 +11,7 @@ func NewPublicGitRepository(cfg workspace.Cfg) (out unstructured.Unstructured, e
 	decorators := Decorators{
 		withLabels(cfg.Labels),
 		withMetadata(cfg.Source.Repository, cfg.Namespace),
-		withURL(cfg.Source.URL),
+		decorateWithField(cfg.Source.URL, "spec", "url"),
 		withGitRepository,
 	}
 

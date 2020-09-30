@@ -14,36 +14,40 @@ const (
 
 func NewTriggers(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
 	var list []unstructured.Unstructured
-	for _, trigger := range cfg.Triggers {
-		out := unstructured.Unstructured{Object: map[string]interface{}{
-			"apiVersion": triggerApiVersion,
-			"kind":       "Trigger",
-			"metadata": map[string]interface{}{
-				"name":      fmt.Sprintf(triggerNameFormat, cfg.Name, trigger.Source),
-				"namespace": cfg.Namespace,
-				"labels":    cfg.Labels,
-			},
-			"spec": map[string]interface{}{
-				"broker": "default",
-				"filter": map[string]interface{}{
-					"attributes": map[string]interface{}{
-						"eventtypeversion": trigger.EventTypeVersion,
-						"source":           trigger.Source,
-						"type":             trigger.Type,
-					},
-				},
-				"subscriber": map[string]interface{}{
-					"ref": map[string]interface{}{
-						"apiVersion": "v1",
-						"kind":       "Service",
-						"name":       cfg.Name,
-						"namespace":  cfg.Namespace,
-					},
-				},
-			},
-		}}
-		list = append(list, out)
-	}
 
+	for _, triggerInfo := range cfg.Triggers {
+		trigger := unstructured.Unstructured{
+			Object: map[string]interface{}{},
+		}
+		triggerName := fmt.Sprintf(triggerNameFormat, cfg.Name, triggerInfo.Source)
+		triggerAttributes := triggerInfo.Attributes()
+		subscriberRef := asSubscriberRef(cfg)
+
+		decorators := Decorators{
+			decorateWithField(triggerApiVersion, "apiVersion"),
+			decorateWithField("Trigger", "kind"),
+			withMetadata(triggerName, cfg.Namespace),
+			withLabels(cfg.Labels),
+			decorateWithField("default", "spec", "broker"),
+			decorateWithMap(triggerAttributes, "spec", "filter", "attributes"),
+			decorateWithMap(subscriberRef, "spec", "subscriber", "ref"),
+		}
+
+		if err := decorate(&trigger, decorators); err != nil {
+			return list, err
+		}
+		list = append(list, trigger)
+	}
 	return list, nil
+}
+
+type subscriberRef = map[string]interface{}
+
+func asSubscriberRef(cfg workspace.Cfg) subscriberRef {
+	return map[string]interface{}{
+		"apiVersion": "v1",
+		"kind":       "Service",
+		"name":       cfg.Name,
+		"namespace":  cfg.Namespace,
+	}
 }

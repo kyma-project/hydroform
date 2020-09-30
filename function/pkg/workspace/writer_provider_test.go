@@ -44,12 +44,8 @@ func TestWriterProvider_write(t *testing.T) {
 						Limits   ResourceList `yaml:"limits"`
 						Requests ResourceList `yaml:"requests"`
 					}{},
-					Runtime: types.Nodejs10,
-					Triggers: []struct {
-						EventTypeVersion string `yaml:"eventTypeVersion"`
-						Source           string `yaml:"source"`
-						Type             string `yaml:"type"`
-					}{},
+					Runtime:  types.Nodejs10,
+					Triggers: []Trigger{},
 				},
 			},
 		},
@@ -72,12 +68,8 @@ func TestWriterProvider_write(t *testing.T) {
 						Limits   ResourceList `yaml:"limits"`
 						Requests ResourceList `yaml:"requests"`
 					}{},
-					Runtime: types.Nodejs10,
-					Triggers: []struct {
-						EventTypeVersion string `yaml:"eventTypeVersion"`
-						Source           string `yaml:"source"`
-						Type             string `yaml:"type"`
-					}{},
+					Runtime:  types.Nodejs10,
+					Triggers: []Trigger{},
 				},
 			},
 		},
@@ -98,12 +90,8 @@ func TestWriterProvider_write(t *testing.T) {
 						Limits   ResourceList `yaml:"limits"`
 						Requests ResourceList `yaml:"requests"`
 					}{},
-					Runtime: types.Nodejs10,
-					Triggers: []struct {
-						EventTypeVersion string `yaml:"eventTypeVersion"`
-						Source           string `yaml:"source"`
-						Type             string `yaml:"type"`
-					}{},
+					Runtime:  types.Nodejs10,
+					Triggers: []Trigger{},
 				},
 			},
 		},

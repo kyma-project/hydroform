@@ -17,6 +17,22 @@ const (
 
 const CfgFilename = "config.yaml"
 
+type Attributes = map[string]interface{}
+
+type Trigger struct {
+	EventTypeVersion string `yaml:"eventTypeVersion"`
+	Source           string `yaml:"source"`
+	Type             string `yaml:"type"`
+}
+
+func (t Trigger) Attributes() Attributes {
+	return map[string]interface{}{
+		"eventtypeversion": t.EventTypeVersion,
+		"source":           t.Source,
+		"type":             t.Type,
+	}
+}
+
 type Cfg struct {
 	Name      string            `yaml:"name"`
 	Namespace string            `yaml:"namespace"`
@@ -30,11 +46,7 @@ type Cfg struct {
 		Requests ResourceList `yaml:"requests"`
 	} `yaml:"resource,omitempty"`
 
-	Triggers []struct {
-		EventTypeVersion string `yaml:"eventTypeVersion"`
-		Source           string `yaml:"source"`
-		Type             string `yaml:"type"`
-	} `yaml:"triggers,omitempty"`
+	Triggers []Trigger `yaml:"triggers,omitempty"`
 }
 
 type Source struct {

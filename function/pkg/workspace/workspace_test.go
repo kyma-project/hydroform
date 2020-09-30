@@ -77,11 +77,7 @@ func Test_initialize(t *testing.T) {
 			args: args{
 				cfg: Cfg{
 					Runtime: types.Python38,
-					Triggers: []struct {
-						EventTypeVersion string `yaml:"eventTypeVersion"`
-						Source           string `yaml:"source"`
-						Type             string `yaml:"type"`
-					}{
+					Triggers: []Trigger{
 						{
 							EventTypeVersion: "test-version",
 							Source:           "test-source",

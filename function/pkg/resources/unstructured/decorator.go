@@ -2,8 +2,6 @@ package unstructured
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
-	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -51,26 +49,6 @@ func decorateWithMap(value map[string]interface{}, field string, fields ...strin
 	return func(u *unstructured.Unstructured) error {
 		return unstructured.SetNestedMap(u.Object, value, append([]string{field}, fields...)...)
 	}
-}
-
-func withLimits(limits workspace.ResourceList) Decorate {
-	return decorateWithMap(limits, "spec", "resource", "limits")
-}
-
-func withRepository(value string) Decorate {
-	return decorateWithField(value, "spec", "source")
-}
-
-func withRequests(requests workspace.ResourceList) Decorate {
-	return decorateWithMap(requests, "spec", "resource", "requests")
-}
-
-func withRuntime(runtime types.Runtime) Decorate {
-	return decorateWithField(runtime, "spec", "runtime")
-}
-
-func withURL(URL string) Decorate {
-	return decorateWithField(URL, "spec", "url")
 }
 
 func decorate(u *unstructured.Unstructured, ds Decorators) (err error) {

@@ -31,15 +31,15 @@ func functionDecorators(cfg workspace.Cfg) []Decorate {
 		withFunction,
 		withMetadata(cfg.Name, cfg.Namespace),
 		withLabels(cfg.Labels),
-		withRuntime(cfg.Runtime),
-		withLimits(cfg.Resources.Limits),
-		withRequests(cfg.Resources.Requests),
+		decorateWithField(cfg.Runtime, "spec", "runtime"),
+		decorateWithMap(cfg.Resources.Limits, "spec", "resource", "limits"),
+		decorateWithMap(cfg.Resources.Requests, "spec", "resource", "requests"),
 	}
 }
 
 func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
 	decorators := append(functionDecorators(cfg),
-		withRepository(cfg.Source.Reference),
+		decorateWithField(cfg.Source.Reference, "spec", "source"),
 	)
 	err = decorate(&out, decorators)
 
