@@ -2,9 +2,8 @@
 
 ## Overview
 
-Hydroform is an infrastructure SDK you can use to create and manage Kubernetes clusters. Hydroform allows you to manage your clusters on the desired target provider and location.
+Hydroform is the Kyma Go SDK. It bundles together different [Go modules](https://golang.org/ref/mod) that provide libraries and APIs to create and manage Kyma clusters and its resources.
 
-Hydroform consists of two modules:
-
-- [Provision](./provision) which creates and manages clusters.
-- [Install](./install) which installs Kyma on clusters.
+Hydroform consists of the following modules:
+- [Provision](./provision) - provides an API to create, access, and delete Kubernetes clusters.
+- [Install](./install) - provides an API to install Kyma on Kubernetes clusters.
