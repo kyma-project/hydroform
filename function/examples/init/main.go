@@ -18,15 +18,12 @@ const (
 	usage = `init description
 
 Usage:
-	init --runtime=<RUNTIME> [ --url=<URL> ] [ --reference=<STRING> ] [ --base-dir=<PATH> ] [ --dir=<DIR> ] [ options ]
+	init --runtime=<RUNTIME> [ --url=<URL> ] [ --reference=<REFERENCE> ] [ --base-dir=<PATH> ] [ --dir=<DIR> ] [ options ]
 
 Options:
-	--runtime				One of: python38, nodejs12, nodejs10 [ default: nodejs12 ]
-	--reference				Commit hash or branch name [ default: master ]
-	--base-dir				The directory of the in repository where source code is located [ default: / ]
-	--debug                 Enable verbose output.
-	-h --help               Show this screen.
-	--version               Show version.`
+	--debug                   Enable verbose output.
+	-h --help                 Show this screen.
+	--version                 Show version.`
 
 	version = "0.0.1"
 )

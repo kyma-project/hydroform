@@ -31,7 +31,7 @@ const (
 	usage = `apply description
 
 Usage:
-	apply [ --dir=<DIR> --dry-run --kube-config=<FILE> ] [options]
+	apply [ --dir=<DIR> ] [ --dry-run ] [ --kube-config=<FILE> ] [options]
 
 Options:
 	--debug                 Enable verbose output.
