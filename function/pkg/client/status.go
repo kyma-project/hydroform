@@ -25,8 +25,6 @@ func (t StatusType) String() string {
 	}
 }
 
-type Result = interface{}
-
 type PostStatusEntry struct {
 	StatusType
 	unstructured.Unstructured
