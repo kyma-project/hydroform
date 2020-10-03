@@ -3,6 +3,8 @@ package operator
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	mockclient "github.com/kyma-incubator/hydroform/function/pkg/client/automock"
@@ -10,7 +12,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"testing"
 )
 
 func Test_functionOperator_Apply(t *testing.T) {
@@ -132,7 +133,7 @@ func Test_functionOperator_Apply(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := GenericOperator(tt.fields.Client, tt.fields.items...)
+			p := NewGenericOperator(tt.fields.Client, tt.fields.items...)
 			if err := p.Apply(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Apply() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -254,7 +255,7 @@ func Test_functionOperator_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := GenericOperator(tt.fields.Client, tt.fields.items...)
+			p := NewGenericOperator(tt.fields.Client, tt.fields.items...)
 			if err := p.Delete(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}

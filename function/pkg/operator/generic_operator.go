@@ -2,6 +2,7 @@ package operator
 
 import (
 	"context"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -30,7 +31,7 @@ type functionOperator struct {
 	items []unstructured.Unstructured
 }
 
-func GenericOperator(c client.Client, u ...unstructured.Unstructured) Operator {
+func NewGenericOperator(c client.Client, u ...unstructured.Unstructured) Operator {
 	return &functionOperator{
 		Client: c,
 		items:  u,

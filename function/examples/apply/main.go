@@ -7,6 +7,7 @@ package main
 import (
 	"context"
 	"fmt"
+
 	"github.com/docopt/docopt-go"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
@@ -19,12 +20,14 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+
 	//_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 	"os"
 	"path"
 	"path/filepath"
+
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 const (
@@ -162,7 +165,7 @@ func main() {
 		}
 
 		gitRepositoryOperator := newOperator(
-			operator.GenericOperator,
+			operator.NewGenericOperator,
 			operator.GVRGitRepository,
 			configuration.Namespace,
 			dynamicInterface, []unstructured.Unstructured{
@@ -209,7 +212,7 @@ func main() {
 
 	// Build function operator
 	fnOperator := newOperator(
-		operator.GenericOperator,
+		operator.NewGenericOperator,
 		operator.GVKFunction,
 		configuration.Namespace,
 		dynamicInterface,
