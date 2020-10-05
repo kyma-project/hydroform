@@ -32,8 +32,8 @@ func functionDecorators(cfg workspace.Cfg) []Decorate {
 		withMetadata(cfg.Name, cfg.Namespace),
 		withLabels(cfg.Labels),
 		decorateWithField(cfg.Runtime, "spec", "runtime"),
-		decorateWithMap(cfg.Resources.Limits, "spec", "resource", "limits"),
-		decorateWithMap(cfg.Resources.Requests, "spec", "resource", "requests"),
+		decorateWithMap(cfg.Resources.Limits, "spec", "resources", "limits"),
+		decorateWithMap(cfg.Resources.Requests, "spec", "resources", "requests"),
 	}
 }
 
