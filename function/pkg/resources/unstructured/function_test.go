@@ -2,11 +2,12 @@ package unstructured
 
 import (
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"reflect"
-	"testing"
 )
 
 func Test_newFunction(t *testing.T) {
@@ -80,7 +81,7 @@ func Test_newFunction(t *testing.T) {
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
-						"resource": map[string]interface{}{
+						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
 								workspace.ResourceNameMemory: "10M",
@@ -154,7 +155,7 @@ func Test_newFunction(t *testing.T) {
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
-						"resource": map[string]interface{}{
+						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
 								workspace.ResourceNameMemory: "10M",
@@ -291,7 +292,7 @@ func Test_newGitFunction(t *testing.T) {
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
-						"resource": map[string]interface{}{
+						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
 								workspace.ResourceNameMemory: "10M",
@@ -357,7 +358,7 @@ func Test_newGitFunction(t *testing.T) {
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
-						"resource": map[string]interface{}{
+						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
 								workspace.ResourceNameMemory: "10M",
