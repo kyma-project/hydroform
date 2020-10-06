@@ -26,19 +26,19 @@ var (
 	}
 )
 
-type functionOperator struct {
+type genericOperator struct {
 	client.Client
 	items []unstructured.Unstructured
 }
 
 func NewGenericOperator(c client.Client, u ...unstructured.Unstructured) Operator {
-	return &functionOperator{
+	return &genericOperator{
 		Client: c,
 		items:  u,
 	}
 }
 
-func (p functionOperator) Apply(ctx context.Context, opts ApplyOptions) error {
+func (p genericOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	for _, u := range p.items {
 		u.SetOwnerReferences(opts.OwnerReferences)
 		// fire pre callbacks
@@ -55,7 +55,7 @@ func (p functionOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	return nil
 }
 
-func (p functionOperator) Delete(ctx context.Context, opts DeleteOptions) error {
+func (p genericOperator) Delete(ctx context.Context, opts DeleteOptions) error {
 	for _, u := range p.items {
 		// fire pre callbacks
 		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {

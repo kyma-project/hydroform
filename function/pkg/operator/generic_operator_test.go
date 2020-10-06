@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func Test_functionOperator_Apply(t *testing.T) {
+func Test_genericOperator_Apply(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -141,7 +141,7 @@ func Test_functionOperator_Apply(t *testing.T) {
 	}
 }
 
-func Test_functionOperator_Delete(t *testing.T) {
+func Test_genericOperator_Delete(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
