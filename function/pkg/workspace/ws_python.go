@@ -1,6 +1,6 @@
 package workspace
 
-const handlerPython = `def foo(event, context):
+const handlerPython = `def main(event, context):
     return "hello world"`
 
 const (
