@@ -72,7 +72,7 @@ func (t triggersOperator) Delete(ctx context.Context, opts DeleteOptions) error 
 
 func (t triggersOperator) wipeRemoved(ctx context.Context, ownerID string, opts ApplyOptions) error {
 	list, err := t.Client.List(ctx, v1.ListOptions{
-		LabelSelector: fmt.Sprintf("ownerID=%s", ownerID),
+		LabelSelector: fmt.Sprintf("%s=%s", message, ownerID),
 	})
 	if err != nil {
 		return err
