@@ -88,10 +88,6 @@ type IdentifiedNamedKindVersion interface {
 type Status []PostStatusEntry
 
 func (s Status) GetOwnerReferences() []v1.OwnerReference {
-	size := len(s)
-	if size == 0 {
-		return nil
-	}
 	var result []v1.OwnerReference
 	for _, entry := range s {
 		result = append(result, entry.toOwnerReference())
