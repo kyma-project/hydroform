@@ -128,10 +128,6 @@ func contains(s []unstructured.Unstructured, name string) bool {
 }
 
 func mergeMap(l map[string]string, r map[string]string) map[string]string {
-	if r == nil {
-		return l
-	}
-
 	if l == nil {
 		return r
 	}
