@@ -3,13 +3,14 @@ package operator
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	mockclient "github.com/kyma-incubator/hydroform/function/pkg/client/automock"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"reflect"
-	"testing"
 )
 
 func Test_contains(t *testing.T) {
@@ -48,7 +49,7 @@ func Test_contains(t *testing.T) {
 	}
 }
 
-func Test_findFunctionUID(t *testing.T) {
+func Test_findOwnerID(t *testing.T) {
 	type args struct {
 		refs []v1.OwnerReference
 	}
@@ -95,12 +96,12 @@ func Test_findFunctionUID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := findFunctionUID(tt.args.refs)
+			got, got1 := findOwnerID(tt.args.refs)
 			if got != tt.want {
-				t.Errorf("findFunctionUID() got = %v, want %v", got, tt.want)
+				t.Errorf("findOwnerID() got = %v, want %v", got, tt.want)
 			}
 			if got1 != tt.want1 {
-				t.Errorf("findFunctionUID() got1 = %v, want %v", got1, tt.want1)
+				t.Errorf("findOwnerID() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
@@ -173,7 +174,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "functionUID not found",
+			name: "ownerID not found",
 			args: args{
 				opts: ApplyOptions{
 					OwnerReferences: []v1.OwnerReference{
@@ -489,9 +490,9 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 		Client client.Client
 	}
 	type args struct {
-		functionUID string
-		opts        ApplyOptions
-		ctx         context.Context
+		ownerID string
+		opts    ApplyOptions
+		ctx     context.Context
 	}
 	tests := []struct {
 		name    string
@@ -542,8 +543,8 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 				items: []unstructured.Unstructured{testObj},
 			},
 			args: args{
-				functionUID: "test-id",
-				opts:        ApplyOptions{},
+				ownerID: "test-id",
+				opts:    ApplyOptions{},
 			},
 			wantErr: true,
 		},
@@ -636,8 +637,8 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 				items: []unstructured.Unstructured{testObj},
 			},
 			args: args{
-				functionUID: "test-id",
-				opts:        ApplyOptions{},
+				ownerID: "test-id",
+				opts:    ApplyOptions{},
 			},
 			wantErr: false,
 		},
@@ -648,7 +649,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 				items:  tt.fields.items,
 				Client: tt.fields.Client,
 			}
-			if err := t.wipeRemoved(tt.args.ctx, tt.args.functionUID, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := t.wipeRemoved(tt.args.ctx, tt.args.ownerID, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("wipeRemoved() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

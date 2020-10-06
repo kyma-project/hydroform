@@ -3,13 +3,14 @@ package operator
 import (
 	"context"
 	"fmt"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-const message = "functionUID"
+const message = "ownerID"
 
 type triggersOperator struct {
 	items []unstructured.Unstructured
@@ -26,18 +27,18 @@ func NewTriggersOperator(c client.Client, u ...unstructured.Unstructured) Operat
 var errNotFound = errors.New("not found")
 
 func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
-	functionUID, found := findFunctionUID(opts.OwnerReferences)
+	ownerID, found := findOwnerID(opts.OwnerReferences)
 	if !found {
 		return errors.Wrap(errNotFound, message)
 	}
-	if err := t.wipeRemoved(ctx, functionUID, opts); err != nil {
+	if err := t.wipeRemoved(ctx, ownerID, opts); err != nil {
 		return err
 	}
 	// apply all triggers
 	for _, u := range t.items {
 		u.SetOwnerReferences(opts.OwnerReferences)
 		newLabels := mergeMap(u.GetLabels(), map[string]string{
-			message: functionUID,
+			message: ownerID,
 		})
 		u.SetLabels(newLabels)
 		// fire pre callbacks
@@ -69,9 +70,9 @@ func (t triggersOperator) Delete(ctx context.Context, opts DeleteOptions) error 
 	return nil
 }
 
-func (t triggersOperator) wipeRemoved(ctx context.Context, functionUID string, opts ApplyOptions) error {
+func (t triggersOperator) wipeRemoved(ctx context.Context, ownerID string, opts ApplyOptions) error {
 	list, err := t.Client.List(ctx, v1.ListOptions{
-		LabelSelector: fmt.Sprintf("functionUID=%s", functionUID),
+		LabelSelector: fmt.Sprintf("ownerID=%s", ownerID),
 	})
 	if err != nil {
 		return err
@@ -108,7 +109,7 @@ func (t triggersOperator) wipeRemoved(ctx context.Context, functionUID string, o
 }
 
 // seeks for uid of first Function kind or returns error
-func findFunctionUID(refs []v1.OwnerReference) (string, bool) {
+func findOwnerID(refs []v1.OwnerReference) (string, bool) {
 	for _, ref := range refs {
 		if ref.Kind == "Function" {
 			return string(ref.UID), true
