@@ -3,6 +3,9 @@ package manager
 import (
 	"context"
 	"errors"
+	"reflect"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
@@ -10,8 +13,6 @@ import (
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"reflect"
-	"testing"
 )
 
 func TestNewManager(t *testing.T) {
@@ -385,16 +386,14 @@ func Test_manager_run_ownerReferenceCallback(t *testing.T) {
 			givenError:  nil,
 			expectedErr: gomega.BeNil(),
 			expectedList: gomega.Equal(
-				OwnerReferenceList{
-					List: []metav1.OwnerReference{
-						{
-							APIVersion: "test_apiVersion",
-							Kind:       "test_kind",
-							Name:       "test_name",
-							UID:        "test_uid",
-						},
+				OwnerReferenceList([]metav1.OwnerReference{
+					{
+						APIVersion: "test_apiVersion",
+						Kind:       "test_kind",
+						Name:       "test_name",
+						UID:        "test_uid",
 					},
-				},
+				}),
 			),
 		},
 		{
@@ -532,7 +531,7 @@ func Test_manager_useOperator(t *testing.T) {
 				options:    Options{},
 				references: nil,
 			},
-			want:    nil,
+			want:    []metav1.OwnerReference{},
 			wantErr: false,
 		},
 		{
@@ -542,7 +541,7 @@ func Test_manager_useOperator(t *testing.T) {
 				options:    Options{},
 				references: nil,
 			},
-			want:    nil,
+			want:    []metav1.OwnerReference{},
 			wantErr: false,
 		},
 		{
@@ -563,7 +562,7 @@ func Test_manager_useOperator(t *testing.T) {
 				},
 				references: nil,
 			},
-			want:    nil,
+			want:    []metav1.OwnerReference{},
 			wantErr: false,
 		},
 		{
@@ -573,7 +572,7 @@ func Test_manager_useOperator(t *testing.T) {
 				options:    Options{},
 				references: nil,
 			},
-			want:    nil,
+			want:    []metav1.OwnerReference{},
 			wantErr: true,
 		},
 	}
@@ -582,14 +581,17 @@ func Test_manager_useOperator(t *testing.T) {
 			m := &manager{
 				operators: nil,
 			}
+			g := gomega.NewWithT(t)
 			got, err := m.useOperator(context.Background(), tt.args.opr, tt.args.options, tt.args.references)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("useOperator() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("useOperator() got = %v, want %v", got, tt.want)
-			}
+
+			g.Expect(got).Should(gomega.Equal(tt.want))
+			// if !reflect.DeepEqual(got, tt.want) {
+			// t.Errorf("useOperator() got = %v, want %v", got, tt.want)
+			// }
 		})
 	}
 }

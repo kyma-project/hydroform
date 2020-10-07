@@ -2,10 +2,10 @@ package manager
 
 import (
 	"context"
-	"errors"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -52,14 +52,14 @@ func (m *manager) manageOperators(ctx context.Context, options Options) error {
 }
 
 func (m *manager) useOperator(ctx context.Context, opr operator.Operator, options Options, references []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
-	newRefs := &OwnerReferenceList{}
+	newRefs := OwnerReferenceList{}
 	if opr == nil {
-		return newRefs.List, nil
+		return newRefs, nil
 	}
 
 	callbacks := options.Callbacks
 	if options.SetOwnerReferences {
-		callbacks = m.ownerReferenceCallback(options.Callbacks, newRefs)
+		callbacks = m.ownerReferenceCallback(options.Callbacks, &newRefs)
 	}
 	applyOpts := operator.ApplyOptions{
 		OwnerReferences: references,
@@ -68,7 +68,7 @@ func (m *manager) useOperator(ctx context.Context, opr operator.Operator, option
 			Callbacks: callbacks,
 		},
 	}
-	return newRefs.List, opr.Apply(ctx, applyOpts)
+	return newRefs, opr.Apply(ctx, applyOpts)
 }
 
 func (m *manager) purgeParents(options Options) {
@@ -96,18 +96,20 @@ func (m *manager) getDryRunFlag(dryRun bool) []string {
 	return flags
 }
 
-type OwnerReferenceList struct {
-	List []metav1.OwnerReference
-}
+type OwnerReferenceList []metav1.OwnerReference
 
 func (m *manager) ownerReferenceCallback(callbacks operator.Callbacks, list *OwnerReferenceList) operator.Callbacks {
+	if list == nil {
+		return callbacks
+	}
+
 	ownerReferenceCallback := func(v interface{}, err error) error {
 		entry, ok := v.(client.PostStatusEntry)
 		if !ok {
 			return errors.New("can't parse interface{} to StatusEntry interface")
 		}
 		if err == nil && entry.StatusType != client.StatusTypeFailed {
-			list.List = append(list.List, metav1.OwnerReference{
+			*list = append(*list, metav1.OwnerReference{
 				APIVersion: entry.GetAPIVersion(),
 				Kind:       entry.GetKind(),
 				Name:       entry.GetName(),
@@ -117,8 +119,6 @@ func (m *manager) ownerReferenceCallback(callbacks operator.Callbacks, list *Own
 		return err
 	}
 
-	if list != nil {
-		callbacks.Post = append(callbacks.Post, ownerReferenceCallback)
-	}
+	callbacks.Post = append(callbacks.Post, ownerReferenceCallback)
 	return callbacks
 }
