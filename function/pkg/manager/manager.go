@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"errors"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
