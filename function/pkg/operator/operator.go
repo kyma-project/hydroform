@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/util/retry"
 )
@@ -71,6 +72,46 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 
 	statusEntryCreated := client.NewStatusEntryCreated(*response)
 	return response, statusEntryCreated, nil
+}
+
+func wipeRemoved(ctx context.Context, i client.Client,
+	u []unstructured.Unstructured, ownerID string, opts Options) error {
+
+	list, err := i.List(ctx, v1.ListOptions{
+		LabelSelector: fmt.Sprintf("%s=%s", message, ownerID),
+	})
+	if err != nil {
+		return err
+	}
+
+	policy := v1.DeletePropagationBackground
+
+	// delete all removed triggers
+	for _, item := range list.Items {
+		if contains(u, item.GetName()) {
+			continue
+		}
+
+		if err := fireCallbacks(&item, nil, opts.Pre...); err != nil {
+			return err
+		}
+		// delete trigger, delegate flow ctrl to caller
+		if err := i.Delete(ctx, item.GetName(), v1.DeleteOptions{
+			DryRun:            opts.DryRun,
+			PropagationPolicy: &policy,
+		}); err != nil {
+			statusEntryFailed := client.NewPostStatusEntryFailed(item)
+			if err := fireCallbacks(statusEntryFailed, err, opts.Post...); err != nil {
+				return err
+			}
+		}
+		statusEntryDeleted := client.NewPostStatusEntryDeleted(item)
+		if err := fireCallbacks(statusEntryDeleted, nil, opts.Post...); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func deleteObject(ctx context.Context, i client.Client, u unstructured.Unstructured, ops DeleteOptions) (client.PostStatusEntry, error) {

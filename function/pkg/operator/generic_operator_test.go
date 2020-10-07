@@ -39,10 +39,12 @@ func Test_genericOperator_Apply(t *testing.T) {
 			},
 			args: args{
 				opts: ApplyOptions{
-					Callbacks: Callbacks{
-						Pre: []Callback{
-							func(_ interface{}, _ error) error {
-								return fmt.Errorf("callback error")
+					Options: Options{
+						Callbacks: Callbacks{
+							Pre: []Callback{
+								func(_ interface{}, _ error) error {
+									return fmt.Errorf("callback error")
+								},
 							},
 						},
 					},
@@ -72,10 +74,12 @@ func Test_genericOperator_Apply(t *testing.T) {
 			},
 			args: args{
 				opts: ApplyOptions{
-					Callbacks: Callbacks{
-						Post: []Callback{
-							func(_ interface{}, _ error) error {
-								return fmt.Errorf("callback error")
+					Options: Options{
+						Callbacks: Callbacks{
+							Post: []Callback{
+								func(_ interface{}, _ error) error {
+									return fmt.Errorf("callback error")
+								},
 							},
 						},
 					},
@@ -168,10 +172,12 @@ func Test_genericOperator_Delete(t *testing.T) {
 			args: args{
 				opts: DeleteOptions{
 					DeletionPropagation: v1.DeletePropagationForeground,
-					Callbacks: Callbacks{
-						Pre: []Callback{
-							func(_ interface{}, _ error) error {
-								return fmt.Errorf("pre callback error")
+					Options: Options{
+						Callbacks: Callbacks{
+							Pre: []Callback{
+								func(_ interface{}, _ error) error {
+									return fmt.Errorf("pre callback error")
+								},
 							},
 						},
 					},
@@ -197,10 +203,12 @@ func Test_genericOperator_Delete(t *testing.T) {
 			args: args{
 				opts: DeleteOptions{
 					DeletionPropagation: v1.DeletePropagationForeground,
-					Callbacks: Callbacks{
-						Post: []Callback{
-							func(_ interface{}, _ error) error {
-								return fmt.Errorf("post callback error")
+					Options: Options{
+						Callbacks: Callbacks{
+							Post: []Callback{
+								func(_ interface{}, _ error) error {
+									return fmt.Errorf("post callback error")
+								},
 							},
 						},
 					},

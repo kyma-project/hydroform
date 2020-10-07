@@ -9,14 +9,17 @@ type Callbacks struct {
 	Post []Callback
 }
 
-type ApplyOptions struct {
-	DryRun          []string
-	OwnerReferences []v1.OwnerReference
+type Options struct {
 	Callbacks
+	DryRun []string
+}
+
+type ApplyOptions struct {
+	Options
+	OwnerReferences []v1.OwnerReference
 }
 
 type DeleteOptions struct {
 	v1.DeletionPropagation
-	DryRun []string
-	Callbacks
+	Options
 }

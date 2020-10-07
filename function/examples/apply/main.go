@@ -173,11 +173,13 @@ func main() {
 			})
 
 		if err = gitRepositoryOperator.Apply(ctx, operator.ApplyOptions{
-			DryRun: stages,
-			Callbacks: operator.Callbacks{
-				Post: []operator.Callback{
-					statusLoggingCallback(entry),
-					callbackStatusGetter(&statusEntry),
+			Options: operator.Options{
+				DryRun: stages,
+				Callbacks: operator.Callbacks{
+					Post: []operator.Callback{
+						statusLoggingCallback(entry),
+						callbackStatusGetter(&statusEntry),
+					},
 				},
 			},
 		}); err != nil {
@@ -224,11 +226,13 @@ func main() {
 		ctx,
 		operator.ApplyOptions{
 			OwnerReferences: fnOwnerReferences,
-			DryRun:          stages,
-			Callbacks: operator.Callbacks{
-				Post: []operator.Callback{
-					statusLoggingCallback(entry),
-					callbackStatusGetter(&statusEntry),
+			Options: operator.Options{
+				DryRun: stages,
+				Callbacks: operator.Callbacks{
+					Post: []operator.Callback{
+						statusLoggingCallback(entry),
+						callbackStatusGetter(&statusEntry),
+					},
 				},
 			},
 		},
@@ -249,7 +253,6 @@ func main() {
 	err = trOperator.Apply(
 		ctx,
 		operator.ApplyOptions{
-			DryRun: stages,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: statusEntry.GetAPIVersion(),
@@ -258,10 +261,13 @@ func main() {
 					UID:        statusEntry.GetUID(),
 				},
 			},
-			Callbacks: operator.Callbacks{
-				Pre: nil,
-				Post: []operator.Callback{
-					statusLoggingCallback(entry),
+			Options: operator.Options{
+				DryRun: stages,
+				Callbacks: operator.Callbacks{
+					Pre: nil,
+					Post: []operator.Callback{
+						statusLoggingCallback(entry),
+					},
 				},
 			},
 		},

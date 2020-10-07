@@ -256,10 +256,12 @@ func Test_triggersOperator_Apply(t *testing.T) {
 							UID:  "123",
 						},
 					},
-					Callbacks: Callbacks{
-						Post: []Callback{
-							func(_ interface{}, _ error) error {
-								return fmt.Errorf("test error")
+					Options: Options{
+						Callbacks: Callbacks{
+							Post: []Callback{
+								func(_ interface{}, _ error) error {
+									return fmt.Errorf("test error")
+								},
 							},
 						},
 					},
@@ -295,10 +297,12 @@ func Test_triggersOperator_Apply(t *testing.T) {
 							UID:  "123",
 						},
 					},
-					Callbacks: Callbacks{
-						Pre: []Callback{
-							func(_ interface{}, _ error) error {
-								return fmt.Errorf("pre callback error")
+					Options: Options{
+						Callbacks: Callbacks{
+							Pre: []Callback{
+								func(_ interface{}, _ error) error {
+									return fmt.Errorf("pre callback error")
+								},
 							},
 						},
 					},
@@ -419,10 +423,12 @@ func Test_triggersOperator_Delete(t *testing.T) {
 			args: args{
 				opts: DeleteOptions{
 					DeletionPropagation: v1.DeletePropagationOrphan,
-					Callbacks: Callbacks{
-						Post: []Callback{
-							func(_ interface{}, _ error) error {
-								return fmt.Errorf("test error")
+					Options: Options{
+						Callbacks: Callbacks{
+							Post: []Callback{
+								func(_ interface{}, _ error) error {
+									return fmt.Errorf("test error")
+								},
 							},
 						},
 					},
@@ -438,10 +444,12 @@ func Test_triggersOperator_Delete(t *testing.T) {
 			args: args{
 				opts: DeleteOptions{
 					DeletionPropagation: v1.DeletePropagationOrphan,
-					Callbacks: Callbacks{
-						Pre: []Callback{
-							func(_ interface{}, _ error) error {
-								return fmt.Errorf("test error")
+					Options: Options{
+						Callbacks: Callbacks{
+							Pre: []Callback{
+								func(_ interface{}, _ error) error {
+									return fmt.Errorf("test error")
+								},
 							},
 						},
 					},
@@ -485,24 +493,21 @@ func Test_triggersOperator_Delete(t *testing.T) {
 func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	type fields struct {
-		items  []unstructured.Unstructured
-		Client client.Client
-	}
 	type args struct {
 		ownerID string
 		opts    ApplyOptions
 		ctx     context.Context
+		items   []unstructured.Unstructured
+		Client  client.Client
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		wantErr bool
 	}{
 		{
 			name: "list error",
-			fields: fields{
+			args: args{
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
 
@@ -515,12 +520,13 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 				}(),
 				items: []unstructured.Unstructured{testObj},
 			},
-			args:    args{},
 			wantErr: true,
 		},
 		{
 			name: "delete err",
-			fields: fields{
+			args: args{
+				ownerID: "test-id",
+				opts:    ApplyOptions{},
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
 
@@ -542,15 +548,11 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 				}(),
 				items: []unstructured.Unstructured{testObj},
 			},
-			args: args{
-				ownerID: "test-id",
-				opts:    ApplyOptions{},
-			},
 			wantErr: true,
 		},
 		{
 			name: "post callbacks error",
-			fields: fields{
+			args: args{
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
 
@@ -571,13 +573,13 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 					return result
 				}(),
 				items: []unstructured.Unstructured{testObj},
-			},
-			args: args{
 				opts: ApplyOptions{
-					Callbacks: Callbacks{
-						Post: []Callback{
-							func(_ interface{}, _ error) error {
-								panic("it's fine")
+					Options: Options{
+						Callbacks: Callbacks{
+							Post: []Callback{
+								func(_ interface{}, _ error) error {
+									panic("it's fine")
+								},
 							},
 						},
 					},
@@ -587,7 +589,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 		},
 		{
 			name: " pre callbacks error",
-			fields: fields{
+			args: args{
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
 
@@ -603,13 +605,13 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 					return result
 				}(),
 				items: []unstructured.Unstructured{testObj},
-			},
-			args: args{
 				opts: ApplyOptions{
-					Callbacks: Callbacks{
-						Pre: []Callback{
-							func(_ interface{}, _ error) error {
-								panic("it's fine")
+					Options: Options{
+						Callbacks: Callbacks{
+							Pre: []Callback{
+								func(_ interface{}, _ error) error {
+									panic("it's fine")
+								},
 							},
 						},
 					},
@@ -619,7 +621,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 		},
 		{
 			name: "no wipe",
-			fields: fields{
+			args: args{
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
 
@@ -634,9 +636,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
-			},
-			args: args{
+				items:   []unstructured.Unstructured{testObj},
 				ownerID: "test-id",
 				opts:    ApplyOptions{},
 			},
@@ -645,11 +645,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			t := triggersOperator{
-				items:  tt.fields.items,
-				Client: tt.fields.Client,
-			}
-			if err := t.wipeRemoved(tt.args.ctx, tt.args.ownerID, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := wipeRemoved(tt.args.ctx, tt.args.Client, tt.args.items, tt.args.ownerID, tt.args.opts.Options); (err != nil) != tt.wantErr {
 				t1.Errorf("wipeRemoved() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

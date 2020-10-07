@@ -62,18 +62,22 @@ func (m *manager) useOperator(ctx context.Context, opr operator.Operator, option
 		callbacks = m.ownerReferenceCallback(options.Callbacks, newRefs)
 	}
 	applyOpts := operator.ApplyOptions{
-		DryRun:          m.getDryRunFlag(options.DryRun),
 		OwnerReferences: references,
-		Callbacks:       callbacks,
+		Options: operator.Options{
+			DryRun:    m.getDryRunFlag(options.DryRun),
+			Callbacks: callbacks,
+		},
 	}
 	return newRefs.List, opr.Apply(ctx, applyOpts)
 }
 
 func (m *manager) purgeParents(options Options) {
 	deleteOptions := operator.DeleteOptions{
-		DryRun:              m.getDryRunFlag(options.DryRun),
 		DeletionPropagation: metav1.DeletePropagationForeground,
-		Callbacks:           options.Callbacks,
+		Options: operator.Options{
+			DryRun:    m.getDryRunFlag(options.DryRun),
+			Callbacks: options.Callbacks,
+		},
 	}
 
 	for opr := range m.operators {

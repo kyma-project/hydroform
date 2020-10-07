@@ -2,7 +2,6 @@ package operator
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/pkg/errors"
@@ -31,7 +30,7 @@ func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	if !found {
 		return errors.Wrap(errNotFound, message)
 	}
-	if err := t.wipeRemoved(ctx, ownerID, opts); err != nil {
+	if err := wipeRemoved(ctx, t.Client, t.items, ownerID, opts.Options); err != nil {
 		return err
 	}
 	// apply all triggers
@@ -67,44 +66,6 @@ func (t triggersOperator) Delete(ctx context.Context, opts DeleteOptions) error 
 			return err
 		}
 	}
-	return nil
-}
-
-func (t triggersOperator) wipeRemoved(ctx context.Context, ownerID string, opts ApplyOptions) error {
-	list, err := t.Client.List(ctx, v1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", message, ownerID),
-	})
-	if err != nil {
-		return err
-	}
-
-	policy := v1.DeletePropagationBackground
-
-	// delete all removed triggers
-	for _, item := range list.Items {
-		if contains(t.items, item.GetName()) {
-			continue
-		}
-
-		if err := fireCallbacks(&item, nil, opts.Pre...); err != nil {
-			return err
-		}
-		// delete trigger, delegate flow ctrl to caller
-		if err := t.Client.Delete(ctx, item.GetName(), v1.DeleteOptions{
-			DryRun:            opts.DryRun,
-			PropagationPolicy: &policy,
-		}); err != nil {
-			statusEntryFailed := client.NewPostStatusEntryFailed(item)
-			if err := fireCallbacks(statusEntryFailed, err, opts.Post...); err != nil {
-				return err
-			}
-		}
-		statusEntryDeleted := client.NewPostStatusEntryDeleted(item)
-		if err := fireCallbacks(statusEntryDeleted, nil, opts.Post...); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
