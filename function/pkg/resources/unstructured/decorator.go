@@ -2,6 +2,7 @@ package unstructured
 
 import (
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -9,7 +10,7 @@ type Decorate = func(*unstructured.Unstructured) error
 
 type Decorators = []Decorate
 
-func withLabels(ls map[string]string) Decorate {
+func decorateWithLabels(ls map[string]string) Decorate {
 	return func(u *unstructured.Unstructured) (err error) {
 		if u == nil {
 			return fmt.Errorf("invalid value nil")
@@ -25,7 +26,7 @@ func decorateWithField(value interface{}, field string, fields ...string) Decora
 	}
 }
 
-func withMetadata(name, namespace string) Decorate {
+func decorateWithMetadata(name, namespace string) Decorate {
 	return func(u *unstructured.Unstructured) error {
 		u.SetName(name)
 		u.SetNamespace(namespace)
@@ -33,13 +34,13 @@ func withMetadata(name, namespace string) Decorate {
 	}
 }
 
-var withFunction = func(u *unstructured.Unstructured) error {
+var decorateWithFunction = func(u *unstructured.Unstructured) error {
 	u.SetAPIVersion(functionApiVersion)
 	u.SetKind("Function")
 	return nil
 }
 
-var withGitRepository = func(u *unstructured.Unstructured) error {
+var decorateWithGitRepository = func(u *unstructured.Unstructured) error {
 	u.SetAPIVersion(gitRepositoryApiVersion)
 	u.SetKind("GitRepository")
 	return nil

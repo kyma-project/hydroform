@@ -9,10 +9,10 @@ const gitRepositoryApiVersion = "serverless.kyma-project.io/v1alpha1"
 
 func NewPublicGitRepository(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
 	decorators := Decorators{
-		withLabels(cfg.Labels),
-		withMetadata(cfg.Source.Repository, cfg.Namespace),
+		decorateWithLabels(cfg.Labels),
+		decorateWithMetadata(cfg.Source.Repository, cfg.Namespace),
 		decorateWithField(cfg.Source.URL, "spec", "url"),
-		withGitRepository,
+		decorateWithGitRepository,
 	}
 
 	err = decorate(&out, decorators)

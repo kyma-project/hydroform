@@ -28,9 +28,9 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 
 func functionDecorators(cfg workspace.Cfg) []Decorate {
 	return []Decorate{
-		withFunction,
-		withMetadata(cfg.Name, cfg.Namespace),
-		withLabels(cfg.Labels),
+		decorateWithFunction,
+		decorateWithMetadata(cfg.Name, cfg.Namespace),
+		decorateWithLabels(cfg.Labels),
 		decorateWithField(cfg.Runtime, "spec", "runtime"),
 		decorateWithMap(cfg.Resources.Limits, "spec", "resources", "limits"),
 		decorateWithMap(cfg.Resources.Requests, "spec", "resources", "requests"),

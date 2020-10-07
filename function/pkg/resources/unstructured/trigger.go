@@ -26,8 +26,8 @@ func NewTriggers(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
 		decorators := Decorators{
 			decorateWithField(triggerApiVersion, "apiVersion"),
 			decorateWithField("Trigger", "kind"),
-			withMetadata(triggerName, cfg.Namespace),
-			withLabels(cfg.Labels),
+			decorateWithMetadata(triggerName, cfg.Namespace),
+			decorateWithLabels(cfg.Labels),
 			decorateWithField("default", "spec", "broker"),
 			decorateWithMap(triggerAttributes, "spec", "filter", "attributes"),
 			decorateWithMap(subscriberRef, "spec", "subscriber", "ref"),
