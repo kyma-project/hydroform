@@ -27,7 +27,7 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	response, err := c.Get(ctx, u.GetName(), metav1.GetOptions{})
 	objFound := !errors.IsNotFound(err)
 	if err != nil && objFound {
-		statusEntryFailed := client.NewPostStatusEntryFailed(u)
+		statusEntryFailed := client.NewPostStatusEntryApplyFailed(u)
 		return &u, statusEntryFailed, err
 	}
 
@@ -54,7 +54,7 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 		})
 
 		if err != nil {
-			statusEntryFailed := client.NewPostStatusEntryFailed(*response)
+			statusEntryFailed := client.NewPostStatusEntryApplyFailed(*response)
 			return &u, statusEntryFailed, err
 		}
 
@@ -66,7 +66,7 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 		DryRun: stages,
 	})
 	if err != nil {
-		statusEntryFailed := client.NewPostStatusEntryFailed(u)
+		statusEntryFailed := client.NewPostStatusEntryApplyFailed(u)
 		return &u, statusEntryFailed, err
 	}
 
@@ -100,7 +100,7 @@ func wipeRemoved(ctx context.Context, i client.Client,
 			DryRun:            opts.DryRun,
 			PropagationPolicy: &policy,
 		}); err != nil {
-			statusEntryFailed := client.NewPostStatusEntryFailed(item)
+			statusEntryFailed := client.NewPostStatusEntryDeleteFailed(item)
 			if err := fireCallbacks(statusEntryFailed, err, opts.Post...); err != nil {
 				return err
 			}
@@ -119,7 +119,7 @@ func deleteObject(ctx context.Context, i client.Client, u unstructured.Unstructu
 		DryRun:            ops.DryRun,
 		PropagationPolicy: &ops.DeletionPropagation,
 	}); err != nil {
-		statusEntryFailed := client.NewPostStatusEntryFailed(u)
+		statusEntryFailed := client.NewPostStatusEntryDeleteFailed(u)
 		return statusEntryFailed, err
 	}
 	statusEntryDeleted := client.NewPostStatusEntryDeleted(u)

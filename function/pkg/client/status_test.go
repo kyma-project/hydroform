@@ -76,7 +76,7 @@ func TestNewStatusEntryDeleted(t *testing.T) {
 	}
 }
 
-func TestNewStatusEntryFailed(t *testing.T) {
+func TestNewStatusEntryApplyFailed(t *testing.T) {
 	type args struct {
 		u unstructured.Unstructured
 	}
@@ -91,15 +91,44 @@ func TestNewStatusEntryFailed(t *testing.T) {
 				u: testData,
 			},
 			want: PostStatusEntry{
-				StatusType:   StatusTypeFailed,
+				StatusType:   StatusTypeApplyFailed,
 				Unstructured: testData,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewPostStatusEntryFailed(tt.args.u); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewPostStatusEntryFailed() = %v, want %v", got, tt.want)
+			if got := NewPostStatusEntryApplyFailed(tt.args.u); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewPostStatusEntryApplyFailed() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewStatusEntryApplyDeleteFailed(t *testing.T) {
+	type args struct {
+		u unstructured.Unstructured
+	}
+	tests := []struct {
+		name string
+		args args
+		want PostStatusEntry
+	}{
+		{
+			name: "happy path",
+			args: args{
+				u: testData,
+			},
+			want: PostStatusEntry{
+				StatusType:   StatusTypeDeleteFailed,
+				Unstructured: testData,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewPostStatusEntryDeleteFailed(tt.args.u); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewPostStatusEntryDeleteFailed() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -176,7 +205,7 @@ func TestStatusEntry_toOwnerReference(t *testing.T) {
 		{
 			name: "happy path",
 			fields: fields{
-				StatusType:                 StatusTypeFailed,
+				StatusType:                 StatusTypeApplyFailed,
 				IdentifiedNamedKindVersion: testData,
 			},
 			want: v1.OwnerReference{
@@ -207,9 +236,14 @@ func TestStatusType_String(t *testing.T) {
 		want string
 	}{
 		{
-			name: "failed",
-			t:    StatusTypeFailed,
-			want: "failed",
+			name: "applyFailed",
+			t:    StatusTypeApplyFailed,
+			want: "applyFailed",
+		},
+		{
+			name: "deleteFailed",
+			t:    StatusTypeDeleteFailed,
+			want: "deleteFailed",
 		},
 		{
 			name: "updated",

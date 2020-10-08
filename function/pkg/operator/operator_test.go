@@ -3,6 +3,9 @@ package operator
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	mockclient "github.com/kyma-incubator/hydroform/function/pkg/client/automock"
@@ -10,8 +13,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"reflect"
-	"testing"
 )
 
 var (
@@ -69,7 +70,7 @@ func Test_applyObject(t *testing.T) {
 				stages: []string{},
 			},
 			want:    &unstructured.Unstructured{},
-			want1:   client.NewPostStatusEntryFailed(unstructured.Unstructured{}),
+			want1:   client.NewPostStatusEntryApplyFailed(unstructured.Unstructured{}),
 			wantErr: true,
 		},
 		{
@@ -112,7 +113,7 @@ func Test_applyObject(t *testing.T) {
 				stages: []string{},
 			},
 			want:    &testObj,
-			want1:   client.NewPostStatusEntryFailed(testObj),
+			want1:   client.NewPostStatusEntryApplyFailed(testObj),
 			wantErr: true,
 		},
 		{
@@ -188,7 +189,7 @@ func Test_applyObject(t *testing.T) {
 				stages: []string{},
 			},
 			want:    &testObj,
-			want1:   client.NewPostStatusEntryFailed(testObj),
+			want1:   client.NewPostStatusEntryApplyFailed(testObj),
 			wantErr: true,
 		},
 		{
@@ -267,7 +268,7 @@ func Test_deleteObject(t *testing.T) {
 					return result
 				}(),
 			},
-			want:    client.NewPostStatusEntryFailed(testObj),
+			want:    client.NewPostStatusEntryDeleteFailed(testObj),
 			wantErr: true,
 		},
 		{

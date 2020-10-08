@@ -108,7 +108,7 @@ func (m *manager) ownerReferenceCallback(callbacks operator.Callbacks, list *Own
 		if !ok {
 			return errors.New("can't parse interface{} to StatusEntry interface")
 		}
-		if err == nil && entry.StatusType != client.StatusTypeFailed {
+		if err == nil && entry.StatusType != client.StatusTypeApplyFailed && entry.StatusType != client.StatusTypeDeleteFailed {
 			*list = append(*list, metav1.OwnerReference{
 				APIVersion: entry.GetAPIVersion(),
 				Kind:       entry.GetKind(),

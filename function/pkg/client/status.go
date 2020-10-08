@@ -14,8 +14,10 @@ func (t StatusType) String() string {
 		return "deleted"
 	case StatusTypeSkipped:
 		return "skipped"
-	case StatusTypeFailed:
-		return "failed"
+	case StatusTypeApplyFailed:
+		return "applyFailed"
+	case StatusTypeDeleteFailed:
+		return "deleteFailed"
 	case StatusTypeCreated:
 		return "created"
 	case StatusTypeUpdated:
@@ -39,9 +41,16 @@ func (e PostStatusEntry) toOwnerReference() v1.OwnerReference {
 	}
 }
 
-func NewPostStatusEntryFailed(u unstructured.Unstructured) PostStatusEntry {
+func NewPostStatusEntryApplyFailed(u unstructured.Unstructured) PostStatusEntry {
 	return PostStatusEntry{
-		StatusType:   StatusTypeFailed,
+		StatusType:   StatusTypeApplyFailed,
+		Unstructured: u,
+	}
+}
+
+func NewPostStatusEntryDeleteFailed(u unstructured.Unstructured) PostStatusEntry {
+	return PostStatusEntry{
+		StatusType:   StatusTypeDeleteFailed,
 		Unstructured: u,
 	}
 }
@@ -99,6 +108,7 @@ const (
 	StatusTypeCreated StatusType = iota
 	StatusTypeUpdated
 	StatusTypeSkipped
-	StatusTypeFailed
+	StatusTypeApplyFailed
+	StatusTypeDeleteFailed
 	StatusTypeDeleted
 )
