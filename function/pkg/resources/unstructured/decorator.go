@@ -47,6 +47,11 @@ var decorateWithGitRepository = func(u *unstructured.Unstructured) error {
 }
 
 func decorateWithMap(value map[string]interface{}, field string, fields ...string) Decorate {
+	if len(value) == 0 {
+		return func(u *unstructured.Unstructured) error {
+			return nil
+		}
+	}
 	return func(u *unstructured.Unstructured) error {
 		return unstructured.SetNestedMap(u.Object, value, append([]string{field}, fields...)...)
 	}
