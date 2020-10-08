@@ -25,8 +25,9 @@ type Operator interface {
 func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructured, stages []string) (*unstructured.Unstructured, client.PostStatusEntry, error) {
 	// Check if object exists
 	response, err := c.Get(ctx, u.GetName(), metav1.GetOptions{})
-	objFound := !errors.IsNotFound(err)
-	if err != nil && objFound {
+	objFound := response != nil
+	isNotFoundErr := errors.IsNotFound(err)
+	if err != nil && !isNotFoundErr {
 		statusEntryFailed := client.NewPostStatusEntryApplyFailed(u)
 		return &u, statusEntryFailed, err
 	}
@@ -54,9 +55,6 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 		})
 
 		if err != nil {
-			if response == nil {
-				response = &u
-			}
 			statusEntryFailed := client.NewPostStatusEntryApplyFailed(*response)
 			return &u, statusEntryFailed, err
 		}
