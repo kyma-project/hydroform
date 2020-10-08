@@ -54,6 +54,9 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 		})
 
 		if err != nil {
+			if response == nil {
+				response = &u
+			}
 			statusEntryFailed := client.NewPostStatusEntryApplyFailed(*response)
 			return &u, statusEntryFailed, err
 		}
