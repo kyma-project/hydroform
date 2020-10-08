@@ -45,6 +45,8 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 	decorators := append(functionDecorators(cfg),
 		decorateWithField("git", "spec", "type"),
 		decorateWithField(repository, "spec", "source"),
+		decorateWithField(cfg.Source.Reference, "spec", "reference"),
+		decorateWithField(cfg.Source.BaseDir, "spec", "baseDir"),
 	)
 	err = decorate(&out, decorators)
 
