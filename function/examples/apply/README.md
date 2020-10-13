@@ -2,7 +2,7 @@
 
 ## Overview
 
-This example shows you how to apply serverless workspace using function api.
+This example shows how to apply the serverless workspace using the Function API.
 
 ### Usage
 
