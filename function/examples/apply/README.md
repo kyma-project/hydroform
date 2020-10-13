@@ -8,7 +8,7 @@ This example shows how to apply the serverless workspace using the Function API.
 
 ```bash
 Usage:
-	init --runtime=<RUNTIME> [ --url=<URL> ] [ --reference=<REFERENCE> ] [ --base-dir=<PATH> ] [ --dir=<DIR> ] [ options ]
+	init --runtime={RUNTIME} [ --url={URL} ] [ --reference={REFERENCE} ] [ --base-dir={PATH} ] [ --dir={DIR} ] [ options ]
 
 Options:
 	--base-dir <PATH>         The directory of the repository where source code is located [ default: / ]
