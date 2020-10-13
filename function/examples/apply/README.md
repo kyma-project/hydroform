@@ -13,6 +13,6 @@ Usage:
 Options:
 	--base-dir <PATH>         The directory of the repository where source code is located [ default: / ]
 	--debug                   Enable verbose output.
-	-h --help                 Show this screen.
+	-h --help                 Show available options.
 	--version                 Show version.    
 ```
