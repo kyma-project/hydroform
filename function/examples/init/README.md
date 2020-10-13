@@ -13,5 +13,5 @@ Usage:
 Options:
 	--debug                   Enable verbose output.
 	-h --help                 Show available options.
-	--version                 Show version.
+	--version                 Show the example's version. 
 ```
