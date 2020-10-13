@@ -8,7 +8,7 @@ This example shows how to initialize the serverless workspace using the Function
 
 ```bash
 Usage:
-	init --runtime={RUNTIME} [ --url=<URL> ] [ --reference={REFERENCE} ] [ --base-dir={PATH} ] [ --dir={DIR} ] [ options ]
+	init --runtime={RUNTIME} [ --url={URL} ] [ --reference={REFERENCE} ] [ --base-dir={PATH} ] [ --dir={DIR} ] [ options ]
 
 Options:
 	--debug                   Enable verbose output.
