@@ -2,7 +2,7 @@
 
 ## Overview
 
-This example shows you how to initialize serverless workspace using function api.
+This example shows how to initialize the serverless workspace using the Function API.
 
 ### Usage
 
