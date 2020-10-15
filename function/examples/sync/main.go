@@ -135,7 +135,6 @@ func main() {
 	}
 
 	function := &v1alpha1.Function{}
-	//kf-test-func kf-test-inline
 	err = restClient.Get().Resource(functions).Namespace(config.Namespace).Name(config.Name).Do(context.Background()).Into(function)
 	if err != nil {
 		panic(err.Error())

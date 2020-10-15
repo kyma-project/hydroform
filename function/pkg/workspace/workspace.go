@@ -97,6 +97,24 @@ func fromRuntime(runtime types.Runtime) (workspace, error) {
 
 func Synchronise(config Cfg, outputPath string, function v1alpha1.Function, restClient *rest.RESTClient) error {
 	var source Source
+
+	config.Labels = function.Labels
+	config.Runtime = types.Runtime(function.Spec.Runtime)
+
+	if function.Spec.Resources.Limits != nil {
+		config.Resources.Limits = make(map[ResourceName]interface{})
+		for name, quantity := range function.Spec.Resources.Limits {
+			config.Resources.Limits[ResourceName(name)] = quantity
+		}
+	}
+
+	if function.Spec.Resources.Requests != nil {
+		config.Resources.Requests = make(map[ResourceName]interface{})
+		for name, quantity := range function.Spec.Resources.Requests {
+			config.Resources.Requests[ResourceName(name)] = quantity
+		}
+	}
+
 	if function.Spec.Type == Git {
 		gitRepo := &v1alpha1.GitRepository{}
 
@@ -114,17 +132,12 @@ func Synchronise(config Cfg, outputPath string, function v1alpha1.Function, rest
 			},
 		}
 
-		config.Runtime = types.Runtime(function.Spec.Runtime)
-		config.Labels = function.Labels
 		config.Source = source
 
-		if err := Initialize(config, outputPath); err != nil {
+		if err := initialize(config, outputPath, defaultWriterProvider); err != nil {
 			return err
 		}
 	} else {
-
-		config.Labels = function.Labels
-		config.Runtime = types.Runtime(function.Spec.Runtime)
 		config.Source = Source{
 			Type: SourceTypeInline,
 			SourceInline: SourceInline{
@@ -132,21 +145,7 @@ func Synchronise(config Cfg, outputPath string, function v1alpha1.Function, rest
 			},
 		}
 
-		if function.Spec.Resources.Limits != nil {
-			config.Resources.Limits = make(map[ResourceName]interface{})
-			for name, quantity := range function.Spec.Resources.Limits {
-				config.Resources.Limits[ResourceName(name)] = quantity
-			}
-		}
-
-		if function.Spec.Resources.Requests != nil {
-			config.Resources.Requests = make(map[ResourceName]interface{})
-			for name, quantity := range function.Spec.Resources.Requests {
-				config.Resources.Requests[ResourceName(name)] = quantity
-			}
-		}
-
-		if err := InitializeFromFunction(function, config, outputPath); err != nil {
+		if err := initializeFromFunction(function, config, outputPath, defaultWriterProvider); err != nil {
 			return err
 		}
 	}
