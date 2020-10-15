@@ -119,19 +119,19 @@ var components = []Component{
 }
 
 func main() {
-	////pre-req for kyma
-	//err := installKymaComponent("cluster-essentials", "kyma-system")
-	//if err != nil {
-	//	log.Fatalf("Error: %v", err)
-	//}
-	//err = installKymaComponent("istio", "istio-system")
-	//if err != nil {
-	//	log.Fatalf("Error: %v", err)
-	//}
-	//err = installKymaComponent("xip-patch", "kyma-installer")
-	//if err != nil {
-	//	log.Fatalf("Error: %v", err)
-	//}
+	//pre-req for kyma
+	err := installKymaComponent("cluster-essentials", "kyma-system")
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	err = installKymaComponent("istio", "istio-system")
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	err = installKymaComponent("xip-patch", "kyma-installer")
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	//read overrides produced by xip-patch
 	config, err := getClientConfig(kubeconfig)
@@ -194,26 +194,26 @@ func main() {
 		panic(err)
 	}
 
-	// Install the rest of the components
-	//jobChan := make(chan Component, 30)
-	//for _, comp := range components {
-	//	if !enqueueJob(comp, jobChan) {
-	//		log.Printf("Max capacity reached, component dismissed: %s", comp.Name)
-	//	}
-	//}
-	//
-	//var wg sync.WaitGroup
-	//ctx, cancel := context.WithCancel(context.Background())
-	//
-	//for i := 0; i < 4; i++ {
-	//	wg.Add(1)
-	//	go worker(ctx, &wg, jobChan)
-	//}
-	//
-	//// to stop the workers, first close the job channel
-	//close(jobChan)
-	//wait(&wg, 10*time.Minute)
-	//cancel()
+	//Install the rest of the components
+	jobChan := make(chan Component, 30)
+	for _, comp := range components {
+		if !enqueueJob(comp, jobChan) {
+			log.Printf("Max capacity reached, component dismissed: %s", comp.Name)
+		}
+	}
+
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go worker(ctx, &wg, jobChan)
+	}
+
+	// to stop the workers, first close the job channel
+	close(jobChan)
+	wait(&wg, 10*time.Minute)
+	cancel()
 
 
 	time.Sleep(5000 * time.Millisecond)
