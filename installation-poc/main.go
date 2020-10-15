@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"path"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"context"
@@ -184,36 +186,78 @@ func main() {
 
 	}
 
+	unflatten := unflattenToMap(overrides)
+
 	//save to .yaml
-	overridesData, err := yaml.Marshal(overrides)
-	if err := ioutil.WriteFile(overridesFile, overridesData, 0644); err != nil {
+	unflattenData, err := yaml.Marshal(unflatten)
+	if err := ioutil.WriteFile(overridesFile, unflattenData, 0644); err != nil {
 		panic(err)
 	}
 
 	// Install the rest of the components
-	jobChan := make(chan Component, 30)
-	for _, comp := range components {
-		if !enqueueJob(comp, jobChan) {
-			log.Printf("Max capacity reached, component dismissed: %s", comp.Name)
-		}
-	}
-
-	var wg sync.WaitGroup
-	ctx, cancel := context.WithCancel(context.Background())
-
-	for i := 0; i < 4; i++ {
-		wg.Add(1)
-		go worker(ctx, &wg, jobChan)
-	}
-
-	// to stop the workers, first close the job channel
-	close(jobChan)
-	wait(&wg, 10*time.Minute)
-	cancel()
+	//jobChan := make(chan Component, 30)
+	//for _, comp := range components {
+	//	if !enqueueJob(comp, jobChan) {
+	//		log.Printf("Max capacity reached, component dismissed: %s", comp.Name)
+	//	}
+	//}
+	//
+	//var wg sync.WaitGroup
+	//ctx, cancel := context.WithCancel(context.Background())
+	//
+	//for i := 0; i < 4; i++ {
+	//	wg.Add(1)
+	//	go worker(ctx, &wg, jobChan)
+	//}
+	//
+	//// to stop the workers, first close the job channel
+	//close(jobChan)
+	//wait(&wg, 10*time.Minute)
+	//cancel()
 
 
 	time.Sleep(5000 * time.Millisecond)
 	fmt.Println("Kyma installed")
+}
+
+func unflattenToMap(sourceMap map[string]interface{}) map[string]interface{} {
+	mergedMap := map[string]interface{}{}
+	if len(sourceMap) == 0 {
+		return mergedMap
+	}
+
+	for key, value := range sourceMap {
+		keys := strings.Split(key, ".")
+		mergeIntoMap(keys, value.(string), mergedMap)
+	}
+
+	return mergedMap
+}
+
+func mergeIntoMap(keys []string, value string, dstMap map[string]interface{}) {
+	currentKey := keys[0]
+	//Last key points directly to string value
+	if len(keys) == 1 {
+
+		//Conversion to boolean to satisfy Helm requirements.yaml: "enable:true/false syntax"
+		var vv interface{} = value
+		if value == "true" || value == "false" {
+			vv, _ = strconv.ParseBool(value)
+		}
+
+		dstMap[currentKey] = vv
+		return
+	}
+
+	//All keys but the last one should point to a nested map
+	nestedMap, isMap := dstMap[currentKey].(map[string]interface{})
+
+	if !isMap {
+		nestedMap = map[string]interface{}{}
+		dstMap[currentKey] = nestedMap
+	}
+
+	mergeIntoMap(keys[1:], value, nestedMap)
 }
 
 func getClientConfig(kubeconfig string) (*rest.Config, error) {
