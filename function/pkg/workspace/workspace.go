@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
 	"io"
 	"os"
 
@@ -43,6 +44,33 @@ func initialize(cfg Cfg, dirPath string, writerProvider WriterProvider) (err err
 	}
 	if err != nil {
 		return err
+	}
+	return ws.build(cfg, dirPath, writerProvider)
+}
+
+func InitializeFromFunction(function v1alpha1.Function,cfg Cfg, dirPath string) error {
+	return initializeFromFunction(function,cfg, dirPath, defaultWriterProvider)
+}
+
+func initializeFromFunction(function v1alpha1.Function,cfg Cfg, dirPath string, writerProvider WriterProvider) (err error) {
+
+	var sourceFileName FileName
+	var depsFileName FileName
+
+	switch function.Spec.Runtime {
+	case v1alpha1.Nodejs12, v1alpha1.Nodejs10:
+		sourceFileName = FileNameHandlerJs
+		depsFileName = FileNamePackageJSON
+	case v1alpha1.Python38:
+		sourceFileName = FileNameHandlerPy
+		depsFileName = FileNameRequirementsTxt
+	default:
+		return errUnsupportedRuntime
+	}
+
+	ws := workspace{
+		newTemplatedFile(function.Spec.Source, sourceFileName),
+		newTemplatedFile(function.Spec.Deps, depsFileName),
 	}
 	return ws.build(cfg, dirPath, writerProvider)
 }
