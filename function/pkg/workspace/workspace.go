@@ -1,12 +1,21 @@
 package workspace
 
 import (
-	"github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
+	"context"
 	"io"
 	"os"
 
+	"github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
+	"k8s.io/client-go/rest"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
+)
+
+const (
+	functions       = "functions"
+	GitRepositories = "gitrepositories"
+	Git             = "git"
 )
 
 type FileName string
@@ -48,11 +57,11 @@ func initialize(cfg Cfg, dirPath string, writerProvider WriterProvider) (err err
 	return ws.build(cfg, dirPath, writerProvider)
 }
 
-func InitializeFromFunction(function v1alpha1.Function,cfg Cfg, dirPath string) error {
-	return initializeFromFunction(function,cfg, dirPath, defaultWriterProvider)
+func InitializeFromFunction(function v1alpha1.Function, cfg Cfg, dirPath string) error {
+	return initializeFromFunction(function, cfg, dirPath, defaultWriterProvider)
 }
 
-func initializeFromFunction(function v1alpha1.Function,cfg Cfg, dirPath string, writerProvider WriterProvider) (err error) {
+func initializeFromFunction(function v1alpha1.Function, cfg Cfg, dirPath string, writerProvider WriterProvider) (err error) {
 
 	var sourceFileName FileName
 	var depsFileName FileName
@@ -84,6 +93,64 @@ func fromRuntime(runtime types.Runtime) (workspace, error) {
 	default:
 		return nil, errUnsupportedRuntime
 	}
+}
+
+func Synchronise(config Cfg, outputPath string, function v1alpha1.Function, restClient *rest.RESTClient) error {
+	var source Source
+	if function.Spec.Type == Git {
+		gitRepo := &v1alpha1.GitRepository{}
+
+		err := restClient.Get().Resource(GitRepositories).Namespace(config.Namespace).Name(config.Name).Do(context.Background()).Into(gitRepo)
+		if err != nil {
+			return err
+		}
+
+		source = Source{
+			Type: SourceTypeGit,
+			SourceGit: SourceGit{
+				URL:       gitRepo.Spec.URL,
+				Reference: function.Spec.Reference,
+				BaseDir:   function.Spec.BaseDir,
+			},
+		}
+
+		config.Runtime = types.Runtime(function.Spec.Runtime)
+		config.Labels = function.Labels
+		config.Source = source
+
+		if err := Initialize(config, outputPath); err != nil {
+			return err
+		}
+	} else {
+
+		config.Labels = function.Labels
+		config.Runtime = types.Runtime(function.Spec.Runtime)
+		config.Source = Source{
+			Type: SourceTypeInline,
+			SourceInline: SourceInline{
+				SourcePath: outputPath,
+			},
+		}
+
+		if function.Spec.Resources.Limits != nil {
+			config.Resources.Limits = make(map[ResourceName]interface{})
+			for name, quantity := range function.Spec.Resources.Limits {
+				config.Resources.Limits[ResourceName(name)] = quantity
+			}
+		}
+
+		if function.Spec.Resources.Requests != nil {
+			config.Resources.Requests = make(map[ResourceName]interface{})
+			for name, quantity := range function.Spec.Resources.Requests {
+				config.Resources.Requests[ResourceName(name)] = quantity
+			}
+		}
+
+		if err := InitializeFromFunction(function, config, outputPath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type SourceFileName = string

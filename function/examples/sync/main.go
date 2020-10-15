@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/docopt/docopt-go"
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
@@ -33,13 +34,11 @@ Options:
 	version = "0.0.1"
 
 	functions = "functions"
-	gitrepositories = "gitrepositories"
-	git = "git"
 )
 
 type config struct {
-	Name      string `json:"name"`
-	Namespace string `docopt:"--namespace"`
+	Name       string `json:"name"`
+	Namespace  string `docopt:"--namespace"`
 	KubeConfig string `docopt:"--kubeconfig"`
 	OutputPath string `docopt:"--output"`
 	Debug      bool   `docopt:"--debug" json:"debug"`
@@ -57,7 +56,7 @@ func newConfig() (*config, error) {
 	return &cfg, nil
 }
 
-func prepareCrdConfig(config config) (*rest.Config, error){
+func prepareCrdConfig(config config) (*rest.Config, error) {
 	crdConfig, err := clientcmd.BuildConfigFromFlags("", config.KubeConfig)
 	if err != nil {
 		return nil, err
@@ -69,12 +68,12 @@ func prepareCrdConfig(config config) (*rest.Config, error){
 	return crdConfig, nil
 }
 
-func prepareWorkspace(config config, function v1alpha1.Function, restClient *rest.RESTClient) error{
+func prepareWorkspace(config config, function v1alpha1.Function, restClient *rest.RESTClient) error {
 	var source workspace.Source
-	if function.Spec.Type == git {
+	if function.Spec.Type == workspace.Git {
 		gitRepo := &v1alpha1.GitRepository{}
 
-		err := restClient.Get().Resource(gitrepositories).Namespace(config.Namespace).Name(config.Name).Do(context.Background()).Into(gitRepo)
+		err := restClient.Get().Resource(workspace.GitRepositories).Namespace(config.Namespace).Name(config.Name).Do(context.Background()).Into(gitRepo)
 		if err != nil {
 			return err
 		}
@@ -82,9 +81,9 @@ func prepareWorkspace(config config, function v1alpha1.Function, restClient *res
 		source = workspace.Source{
 			Type: workspace.SourceTypeGit,
 			SourceGit: workspace.SourceGit{
-				URL:        gitRepo.Spec.URL,
-				Reference:  function.Spec.Reference,
-				BaseDir:    function.Spec.BaseDir,
+				URL:       gitRepo.Spec.URL,
+				Reference: function.Spec.Reference,
+				BaseDir:   function.Spec.BaseDir,
 			},
 		}
 
@@ -107,12 +106,12 @@ func prepareWorkspace(config config, function v1alpha1.Function, restClient *res
 			Source: workspace.Source{
 				Type: workspace.SourceTypeInline,
 				SourceInline: workspace.SourceInline{
-					SourcePath:        config.OutputPath,
+					SourcePath: config.OutputPath,
 				},
 			},
 		}
 
-		if err := workspace.InitializeFromFunction(function,configuration, config.OutputPath); err != nil {
+		if err := workspace.InitializeFromFunction(function, configuration, config.OutputPath); err != nil {
 			return err
 		}
 	}
@@ -142,7 +141,12 @@ func main() {
 		panic(err.Error())
 	}
 
-	err = prepareWorkspace(*config,*function,restClient)
+	configuration := workspace.Cfg{
+		Name:      config.Name,
+		Namespace: config.Namespace,
+	}
+
+	err = workspace.Synchronise(configuration, config.OutputPath, *function, restClient)
 	if err != nil {
 		panic(err.Error())
 	}
