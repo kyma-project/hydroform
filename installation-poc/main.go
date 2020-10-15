@@ -24,8 +24,8 @@ import (
 
 var resources = "/Users/i304607/Yaas/go/src/github.com/kyma-project/kyma/resources"
 var overridesFile = "/Users/i304607/overrides.yaml"
-var kubeconfig = "/Users/i304607/.kube/config"
-//var kubeconfig = "/Users/$USER/Downloads/mst.yml"
+//var kubeconfig = "/Users/i304607/.kube/config"
+var kubeconfig = "/Users/i304607/Downloads/mst.yml"
 var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides"}
 
 type Component struct {
@@ -118,18 +118,18 @@ var components = []Component{
 
 func main() {
 	////pre-req for kyma
-	err := installKymaComponent("cluster-essentials", "kyma-system")
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-	err = installKymaComponent("istio", "istio-system")
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-	err = installKymaComponent("xip-patch", "kyma-installer")
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
+	//err := installKymaComponent("cluster-essentials", "kyma-system")
+	//if err != nil {
+	//	log.Fatalf("Error: %v", err)
+	//}
+	//err = installKymaComponent("istio", "istio-system")
+	//if err != nil {
+	//	log.Fatalf("Error: %v", err)
+	//}
+	//err = installKymaComponent("xip-patch", "kyma-installer")
+	//if err != nil {
+	//	log.Fatalf("Error: %v", err)
+	//}
 
 	//read overrides produced by xip-patch
 	config, err := getClientConfig(kubeconfig)
