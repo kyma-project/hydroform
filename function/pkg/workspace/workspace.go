@@ -3,12 +3,13 @@ package workspace
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
-	"io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"os"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
