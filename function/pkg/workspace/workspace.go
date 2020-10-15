@@ -16,6 +16,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
+const (
+	functions       = "functions"
+	GitRepositories = "gitrepositories"
+	Git             = "git"
+)
+
 type FileName string
 
 type workspace []file
