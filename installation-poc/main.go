@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/yaml"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/chartutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
@@ -28,12 +27,9 @@ var overridesFile = "/Users/i304607/overrides.yaml"
 var kubeconfig = "/Users/i304607/Downloads/mst.yml"
 var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides"}
 
-type Component struct {
-	Name      string
-	Namespace string
-}
-
-type InstallComponent interface {
+type Engine struct {
+	//components
+	//values.yaml
 }
 
 type Installation interface {
@@ -41,7 +37,48 @@ type Installation interface {
 	Install(components []Component) error
 }
 
-type Engine struct {
+type Component struct {
+	Name          string
+	Namespace     string
+	//overrides
+	//helm client?
+}
+
+type ComponentInstallation interface {
+	InstallComponent()error
+}
+
+type Overrides map[string]interface{}
+
+type OverridesProvider interface {
+	OverridesFor(component Component) Overrides
+}
+
+type Release struct{
+}
+
+type Helm interface{
+ InstallRelease(chartDir, namespace, name string, overrides Overrides) error
+}
+
+func (c *Component) InstallComponent() error {
+	chartDir := path.Join(resources, c.Name)
+	log.Printf("MST Installing %s in %s from %s", c.Name, c.Namespace, chartDir)
+
+	overrides := getOverrides()
+
+	//overrides := c.OverridesProvider.OverridesFor(c)
+
+	err := installRelease(chartDir, c.Namespace, c.Name, overrides)
+	if err != nil {
+		log.Printf("MST Error installing %s: %v", c.Name, err)
+		return err
+	}
+
+	log.Printf("MST Installed %s in %s", c.Name, c.Namespace)
+	return nil
+
+	return nil
 }
 
 func getComponents() []Component {
@@ -129,7 +166,7 @@ func getComponents() []Component {
 	}
 }
 
-func prepareOverrides() {
+func getOverrides() Overrides{
 	config, err := getClientConfig(kubeconfig)
 	if err != nil {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
@@ -189,18 +226,34 @@ func prepareOverrides() {
 	if err := ioutil.WriteFile(overridesFile, unflattenData, 0644); err != nil {
 		panic(err)
 	}
+
+	return unflatten
 }
 
 func (e *Engine) InstallPrerequisites() error {
-	err := installKymaComponent("cluster-essentials", "kyma-system")
+	clusterEssentials := &Component{
+		Name:"cluster-essentials",
+		Namespace: "kyma-system",
+	}
+	err := clusterEssentials.InstallComponent()
 	if err != nil {
 		return err
 	}
-	err = installKymaComponent("istio", "istio-system")
+
+	istio := &Component{
+		Name:"istio",
+		Namespace:"istio-system",
+	}
+	err = istio.InstallComponent()
 	if err != nil {
 		return err
 	}
-	err = installKymaComponent("xip-patch", "kyma-installer")
+
+	xipPatch := &Component{
+		Name:"xip-patch",
+		Namespace:"kyma-installer",
+	}
+	err = xipPatch.InstallComponent()
 	if err != nil {
 		return err
 	}
@@ -209,8 +262,6 @@ func (e *Engine) InstallPrerequisites() error {
 }
 
 func (e *Engine) Install(components []Component) error {
-	prepareOverrides()
-
 	//Install the rest of the components
 	jobChan := make(chan Component, 30)
 	for _, comp := range components {
@@ -313,7 +364,7 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan Component) {
 				return
 			}
 			if ok {
-				installKymaComponent(job.Name, job.Namespace)
+				job.InstallComponent()
 			}
 		}
 	}
@@ -343,7 +394,7 @@ func enqueueJob(job Component, jobChan chan<- Component) bool {
 	}
 }
 
-func installRelease(chartDir, namespace, name, overridesFile string) error {
+func installRelease(chartDir, namespace, name string, overrides Overrides) error {
 	cfg, err := newActionConfig(namespace)
 	if err != nil {
 		return err
@@ -361,31 +412,12 @@ func installRelease(chartDir, namespace, name, overridesFile string) error {
 	install.Wait = true
 	install.CreateNamespace = true
 
-	values, err := chartutil.ReadValuesFile(overridesFile)
-	if err != nil {
-		return err
-	}
-
-	_, err = install.Run(chart, values)
+	_, err = install.Run(chart, overrides)
 
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func installKymaComponent(name, namespace string) error {
-	chartDir := path.Join(resources, name)
-	log.Printf("MST Installing %s in %s from %s", name, namespace, chartDir)
-
-	err := installRelease(chartDir, namespace, name, overridesFile)
-	if err != nil {
-		log.Printf("MST Error installing %s: %v", name, err)
-		return err
-	}
-
-	log.Printf("MST Installed %s in %s", name, namespace)
 	return nil
 }
 
