@@ -27,7 +27,7 @@ Examples:
 
 ## Manager
 
-Manager allows to controll the hierarchy of the operators in `parent` - `children` relation. It handles the life cycle of objects created by the operators and tracks the references between the objects.
+The Manager allows you to control the hierarchy of the operators in the parent-children relation. It handles the life cycle of objects created by the operators and tracks the references between the objects.
 
 Example:
 * [Sibling-children owner references](./cmd/manager/main.go) 
