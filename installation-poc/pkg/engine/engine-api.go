@@ -5,11 +5,6 @@ import (
 	"time"
 )
 
-// Overrides are used to pass helm values to an Installation/Upgrade operation.
-// It's a generic structure, where the value of the map
-// can be any valid YAML type, including nested "Overrides" map.
-type Overrides map[string]interface{}
-
 // ComponentSource defines component's Helm chart location
 type ComponentSource struct {
 	URL string `json:"url"`
@@ -31,10 +26,20 @@ type Component struct {
 // A Set of components. Pointer is used because pointers can be map keys.
 type ComponentsSet map[*Component]struct{}
 
+// Overrides are used to pass helm values to an Installation/Upgrade operation.
+// It's a generic structure, where the value of the map
+// can be any valid YAML type, including nested "Overrides" map.
+type Overrides map[string]interface{}
+
+type OverridesProvider interface {
+	OverridesFor(componentMeta ComponentMeta) Overrides
+}
+
 // Common configuration for all operations
 type CommonConfig struct {
-	RetryCount     int `json:"retryCount"`
-	TimeoutSeconds int `json:"timeoutSeconds"`
+	RetryCount     int  `json:"retryCount"`
+	TimeoutSeconds int  `json:"timeoutSeconds"`
+	DryRun         bool `json:"dryRun"`
 }
 
 // Installation configuration
@@ -64,10 +69,10 @@ type UninstallationConfig struct {
 // Generic status object.
 // Timestamp denotes the moment the status was reached.
 type Status struct {
-	//TODO: We need a dictionary here, eg: "Pending", "Installing", "Installed", "Error"
-	value      string
-	errorValue error //error object, if status is "Error"
-	timestamp  time.Time
+	//TODO: We need a dictionary here, eg: "Scheduled", "Installing", "Installed", "Upgrading", "Upgraded", "Error"
+	Value      string
+	ErrorValue error //error object, if status is "Error"
+	Timestamp  time.Time
 }
 
 // Component status, describing what happened during operation
@@ -83,72 +88,49 @@ type OperationStatus struct {
 	PreviousStatus *Status //status before CurrentStatus was set, if any
 }
 
-// Registers notification function for component status changes
-type RegisterComponentStatusChangeNotification func(onChange OnComponentStatusChangeFunc) error
-
-// Registers notification function for operation status changes
-type RegisterOperationStatusChangeNotification func(onChange OnOperationStatusChangeFunc) error
-
-// Notification Function called by the engine when component status changes
-type OnComponentStatusChangeFunc func(component ComponentMeta)
-
-// Notification Function called by the engine when operation status changes
-type OnOperationStatusChangeFunc func()
-
-// Main interface
-type Installation interface {
-	// Returns immediately. Returned *Operation is used to actually start the process.
-	PrepareInstalllation(components ComponentsSet, overrides Overrides, config *InstallationConfig) (*Operation, error)
-}
-
-type Uninstallation interface {
-	// Returns immediately. Returned *Operation is used to actually start the process.
-	PrepareUninstallation(components ComponentsSet, config *UninstallationConfig) (*Operation, error)
-}
-
 //// Engine ////////////////////////////////////////////////////////////////////
 //
+//The internal functions are defined only to show engine's responsibilities.
 type Engine struct {
+	overridesProvider             OverridesProvider
+	registerComponentNotification func(onChange OnComponentStatusChangeFunc) error
+	registerOperationNotification func(onChange OnOperationStatusChangeFunc) error
+	startInstallation             func(components ComponentsSet, overrides Overrides, config *InstallationConfig) (*Operation, error)
+	startUninstallation           func(components ComponentsSet, config *UninstallationConfig) (*Operation, error)
 }
 
-//Returns new Engine
-func New() (*Engine, error) {
+//Creates new Engine
+func New(ovp OverridesProvider) (*Engine, error) {
 	//TODO: Implement
-	res := Engine{}
+	res := Engine{
+		overridesProvider:             ovp,
+		registerComponentNotification: nil,
+		registerOperationNotification: nil,
+		startInstallation:             nil,
+		startUninstallation:           nil,
+	}
 	return &res, nil
 }
 
-func (e *Engine) Initialize() *Bootstrap {
+// TODO: Consider if channel-based notifications are not better.
+func (e *Engine) RegisterOperationNotification(onChange OnOperationStatusChangeFunc) {
+	e.registerOperationNotification(onChange)
+}
+
+func (e *Engine) RegisterComponentNotification(onChange OnComponentStatusChangeFunc) {
+	e.registerComponentNotification(onChange)
+}
+
+// Does not block
+func (e *Engine) StartInstalllation(components ComponentsSet, config *InstallationConfig) (*Operation, error) {
 	//TODO: Implement
-	res := Bootstrap{
-		registerComponentNotification: nil,
-		registerOperationNotification: nil,
-		start:                         nil,
-	}
-
-	return &res
+	return nil, nil
 }
 
-//// Bootstrap /////////////////////////////////////////////////////////////////
-//
-// Allows to register status notifications and start the operation
-type Bootstrap struct {
-	registerComponentNotification RegisterComponentStatusChangeNotification
-	registerOperationNotification RegisterOperationStatusChangeNotification
-	start                         func() (*Operation, error) //Runs the operation.
-}
-
-func (b *Bootstrap) RegisterOperationNotification(onChange OnOperationStatusChangeFunc) {
-	b.registerOperationNotification(onChange)
-}
-
-func (b *Bootstrap) RegisterComponentNotification(onChange OnComponentStatusChangeFunc) {
-	b.registerComponentNotification(onChange)
-}
-
-// Starts the operation. Non-blocking.
-func (b *Bootstrap) Start() (*Operation, error) {
-	return b.start()
+// Does not block
+func (e *Engine) StartUninstallation(components ComponentsSet, config *UninstallationConfig) (*Operation, error) {
+	//TODO: Implement
+	return nil, nil
 }
 
 //// Operation /////////////////////////////////////////////////////////////////
@@ -156,7 +138,12 @@ func (b *Bootstrap) Start() (*Operation, error) {
 type Operation struct {
 	getOperationStatus func() (OperationStatus, error)
 	getComponentStatus func(component ComponentMeta) (ComponentStatus, error)
-	cancel             func() error
+}
+
+func NewOperation() (*Operation, error) {
+	//TODO: Implement
+	res := Operation{}
+	return &res, nil
 }
 
 func (o *Operation) GetOperationStatus() (OperationStatus, error) {
@@ -167,7 +154,10 @@ func (o *Operation) GetComponentStatus(component ComponentMeta) (ComponentStatus
 	return o.getComponentStatus(component)
 }
 
-func (o *Operation) Cancel() error {
-	//TODO: Implement
-	return nil
-}
+//// Notifications /////////////////////////////////////////////////////////////
+//
+// Notification Function called by the engine when component status changes
+type OnComponentStatusChangeFunc func(component ComponentMeta)
+
+// Notification Function called by the engine when operation status changes
+type OnOperationStatusChangeFunc func()
