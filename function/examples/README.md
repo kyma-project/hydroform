@@ -30,7 +30,7 @@ Examples:
 Manager allows to controll the hierarchy of the operators in `parent` - `children` relation. It handles the life cycle of objects created by the operators and tracks the references between the objects.
 
 Example:
-* [sibling-children owner references](./cmd/manager/main.go) 
+* [Sibling-children owner references](./cmd/manager/main.go) 
 
 ## Workspace initialization show case
 
