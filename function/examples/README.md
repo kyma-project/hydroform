@@ -13,7 +13,7 @@ The library contains two implementations of an operator interface: `GenericOpera
 
 Examples:
 
-* [apply operation](./cmd/operator/apply/main.go)
+* [Apply operation](./cmd/operator/apply/main.go)
 * [Delete operation](./cmd/operator/delete/main.go)
 
 ## Callbacks
