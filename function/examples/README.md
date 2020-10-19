@@ -7,7 +7,7 @@ This module contains examples showing how to use Function API.
 ## Operators
 
 Operators allow to perform two operations on given resources: `apply` and `delete`. 
-Both operations may accept callbacks that will be executed before and/or after each operation.
+Both operations can accept callbacks that will be executed before and/or after each operation.
 
 The library contains two implementations of operator interface: `GenericOperator` and `TriggersOperator`.
 
