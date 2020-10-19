@@ -95,7 +95,7 @@ type Engine struct {
 	overridesProvider             OverridesProvider
 	registerComponentNotification func(onChange OnComponentStatusChangeFunc) error
 	registerOperationNotification func(onChange OnOperationStatusChangeFunc) error
-	startInstallation             func(components ComponentsSet, overrides Overrides, config *InstallationConfig) (*Operation, error)
+	startInstallation             func(components ComponentsSet, config *InstallationConfig) (*Operation, error)
 	startUninstallation           func(components ComponentsSet, config *UninstallationConfig) (*Operation, error)
 }
 
