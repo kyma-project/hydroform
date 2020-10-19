@@ -22,7 +22,7 @@ Callbacks are optional functions provided by function API user to be executed be
 
 Examples:
 
-* [pre-operation](./cmd/callbacks/pre/main.go)
+* [Pre-operation](./cmd/callbacks/pre/main.go)
 * [Post-operation](./cmd/callbacks/pre/main.go)
 
 ## Manager
