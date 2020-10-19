@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,23 +11,20 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"context"
 
+	"sigs.k8s.io/yaml"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
-	"sigs.k8s.io/yaml"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var resources = "/Users/i304607/Yaas/go/src/github.com/kyma-project/kyma/resources"
 var overridesFile = "/Users/i304607/overrides.yaml"
-//var kubeconfig = "/Users/i304607/.kube/config"
 var kubeconfig = "/Users/i304607/Downloads/mst.yml"
 var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides"}
 
@@ -35,105 +33,103 @@ type Component struct {
 	Namespace string
 }
 
-var components = []Component{
-	Component{
-		Name:      "istio-kyma-patch",
-		Namespace: "istio-system",
-	},
-	Component{
-		Name:      "knative-serving",
-		Namespace: "knative-serving",
-	},
-	Component{
-		Name:      "knative-eventing",
-		Namespace: "knative-eventing",
-	},
-	Component{
-		Name:      "dex",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "ory",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "api-gateway",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "rafter",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "service-catalog",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "service-catalog-addons",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "nats-streaming",
-		Namespace: "natss",
-	},
-	Component{
-		Name:      "core",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "cluster-users",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "permission-controller",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "apiserver-proxy",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "iam-kubeconfig-service",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "serverless",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "knative-provisioner-natss",
-		Namespace: "knative-eventing",
-	},
-	Component{
-		Name:      "event-sources",
-		Namespace: "kyma-system",
-	},
-	Component{
-		Name:      "application-connector",
-		Namespace: "kyma-integration",
-	},
-	Component{
-		Name:      "console",
-		Namespace: "kyma-system",
-	},
+type InstallComponent interface {
 }
 
-func main() {
-	//pre-req for kyma
-	err := installKymaComponent("cluster-essentials", "kyma-system")
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-	err = installKymaComponent("istio", "istio-system")
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-	err = installKymaComponent("xip-patch", "kyma-installer")
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
+type Installation interface {
+	InstallPrerequisites() error
+	Install(components []Component) error
+}
 
-	//read overrides produced by xip-patch
+type Engine struct {
+}
+
+func getComponents() []Component {
+	return []Component{
+		Component{
+			Name:      "istio-kyma-patch",
+			Namespace: "istio-system",
+		},
+		Component{
+			Name:      "knative-serving",
+			Namespace: "knative-serving",
+		},
+		Component{
+			Name:      "knative-eventing",
+			Namespace: "knative-eventing",
+		},
+		Component{
+			Name:      "dex",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "ory",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "api-gateway",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "rafter",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "service-catalog",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "service-catalog-addons",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "nats-streaming",
+			Namespace: "natss",
+		},
+		Component{
+			Name:      "core",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "cluster-users",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "permission-controller",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "apiserver-proxy",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "iam-kubeconfig-service",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "serverless",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "knative-provisioner-natss",
+			Namespace: "knative-eventing",
+		},
+		Component{
+			Name:      "event-sources",
+			Namespace: "kyma-system",
+		},
+		Component{
+			Name:      "application-connector",
+			Namespace: "kyma-integration",
+		},
+		Component{
+			Name:      "console",
+			Namespace: "kyma-system",
+		},
+	}
+}
+
+func prepareOverrides() {
 	config, err := getClientConfig(kubeconfig)
 	if err != nil {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
@@ -193,6 +189,27 @@ func main() {
 	if err := ioutil.WriteFile(overridesFile, unflattenData, 0644); err != nil {
 		panic(err)
 	}
+}
+
+func (e *Engine) InstallPrerequisites() error {
+	err := installKymaComponent("cluster-essentials", "kyma-system")
+	if err != nil {
+		return err
+	}
+	err = installKymaComponent("istio", "istio-system")
+	if err != nil {
+		return err
+	}
+	err = installKymaComponent("xip-patch", "kyma-installer")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (e *Engine) Install(components []Component) error {
+	prepareOverrides()
 
 	//Install the rest of the components
 	jobChan := make(chan Component, 30)
@@ -215,8 +232,24 @@ func main() {
 	wait(&wg, 10*time.Minute)
 	cancel()
 
+	return nil
+}
 
-	time.Sleep(5000 * time.Millisecond)
+func main() {
+	engine := &Engine{}
+
+	err := engine.InstallPrerequisites()
+	if err != nil {
+		log.Fatalf("Kyma prerequisites installation fialed. Error: %v", err)
+	}
+
+	components := getComponents()
+
+	err = engine.Install(components)
+	if err != nil {
+		log.Fatalf("Kyma installation fialed. Error: %v", err)
+	}
+
 	fmt.Println("Kyma installed")
 }
 
@@ -310,7 +343,7 @@ func enqueueJob(job Component, jobChan chan<- Component) bool {
 	}
 }
 
-func installRelease(chartDir, namespace, name string) error {
+func installRelease(chartDir, namespace, name, overridesFile string) error {
 	cfg, err := newActionConfig(namespace)
 	if err != nil {
 		return err
@@ -346,7 +379,7 @@ func installKymaComponent(name, namespace string) error {
 	chartDir := path.Join(resources, name)
 	log.Printf("MST Installing %s in %s from %s", name, namespace, chartDir)
 
-	err :=installRelease(chartDir, namespace, name)
+	err := installRelease(chartDir, namespace, name, overridesFile)
 	if err != nil {
 		log.Printf("MST Error installing %s: %v", name, err)
 		return err
