@@ -18,7 +18,7 @@ Examples:
 
 ## Callbacks
 
-Callbacks are optional functions provided by function API user to be executed before and/or after each operation. User may chain callbacks by providing multiple functions.
+Callbacks are optional Functions that you can provide to execute them before and/or after each operation. You can chain callbacks by providing multiple Functions.
 
 Examples:
 
