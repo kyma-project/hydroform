@@ -1,4 +1,4 @@
-# function-examples
+# Function Examples
 
 ## Overview
 
