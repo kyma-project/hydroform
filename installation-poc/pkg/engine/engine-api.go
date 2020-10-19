@@ -37,7 +37,7 @@ type CommonConfig struct {
 	TimeoutSeconds int `json:"timeoutSeconds"`
 }
 
-// Install operation configuration
+// Installation configuration
 type InstallationConfig struct {
 	//Configuration common to all components
 	CommonConfig
@@ -52,7 +52,7 @@ type InstallationConfig struct {
 	Logger log.Logger
 }
 
-// Uninstall operation configuration
+// Uninstallation configuration
 type UninstallationConfig struct {
 	//Configuration common to all components
 	CommonConfig
@@ -81,43 +81,93 @@ type ComponentStatus struct {
 type OperationStatus struct {
 	CurrentStatus  Status
 	PreviousStatus *Status //status before CurrentStatus was set, if any
-	OperationError error   //Operation error, if any
 }
 
 // Registers notification function for component status changes
-type RegisterComponentStatusChangeNotification func(component ComponentMeta, onChange OnComponentStatusChangeFunc) error
+type RegisterComponentStatusChangeNotification func(onChange OnComponentStatusChangeFunc) error
 
 // Registers notification function for operation status changes
 type RegisterOperationStatusChangeNotification func(onChange OnOperationStatusChangeFunc) error
 
 // Notification Function called by the engine when component status changes
-type OnComponentStatusChangeFunc func(operationId string, component ComponentMeta)
+type OnComponentStatusChangeFunc func(component ComponentMeta)
 
 // Notification Function called by the engine when operation status changes
-type OnOperationStatusChangeFunc func(operationId string)
-
-type RunFunction func() error
-
-// Used to manage operations. Allows to register status notifications
-// TODO: Think about concurrency here. Should "Run" be blocking or non-blocking?
-//       What about notifications? Looks like Multiple goroutines should be used.
-type Operation struct {
-	Id                            string
-	RegisterComponentNotification RegisterComponentStatusChangeNotification
-	RegisterOperationNotification RegisterOperationStatusChangeNotification
-	Run                           func() error //Runs the operation.
-	//Stop() do we need such function? Maybe there should be
-	//        =some channel-based API for stopping?
-}
+type OnOperationStatusChangeFunc func()
 
 // Main interface
-type KymaOperation interface {
+type Installation interface {
 	// Returns immediately. Returned *Operation is used to actually start the process.
 	PrepareInstalllation(components ComponentsSet, overrides Overrides, config *InstallationConfig) (*Operation, error)
+}
+
+type Uninstallation interface {
 	// Returns immediately. Returned *Operation is used to actually start the process.
 	PrepareUninstallation(components ComponentsSet, config *UninstallationConfig) (*Operation, error)
+}
 
-	// Returns
-	GetComponentStatus(operationId string, component ComponentMeta) (ComponentStatus, error)
-	GetOperationStatus(operationId string) (OperationStatus, error)
+//// Engine ////////////////////////////////////////////////////////////////////
+//
+type Engine struct {
+}
+
+//Returns new Engine
+func New() (*Engine, error) {
+	//TODO: Implement
+	res := Engine{}
+	return &res, nil
+}
+
+func (e *Engine) Initialize() *Bootstrap {
+	//TODO: Implement
+	res := Bootstrap{
+		registerComponentNotification: nil,
+		registerOperationNotification: nil,
+		start:                         nil,
+	}
+
+	return &res
+}
+
+//// Bootstrap /////////////////////////////////////////////////////////////////
+//
+// Allows to register status notifications and start the operation
+type Bootstrap struct {
+	registerComponentNotification RegisterComponentStatusChangeNotification
+	registerOperationNotification RegisterOperationStatusChangeNotification
+	start                         func() (*Operation, error) //Runs the operation.
+}
+
+func (b *Bootstrap) RegisterOperationNotification(onChange OnOperationStatusChangeFunc) {
+	b.registerOperationNotification(onChange)
+}
+
+func (b *Bootstrap) RegisterComponentNotification(onChange OnComponentStatusChangeFunc) {
+	b.registerComponentNotification(onChange)
+}
+
+// Starts the operation. Non-blocking.
+func (b *Bootstrap) Start() (*Operation, error) {
+	return b.start()
+}
+
+//// Operation /////////////////////////////////////////////////////////////////
+//
+type Operation struct {
+	getOperationStatus func() (OperationStatus, error)
+	getComponentStatus func(component ComponentMeta) (ComponentStatus, error)
+	cancel             func() error
+}
+
+func (o *Operation) GetOperationStatus() (OperationStatus, error) {
+	return o.getOperationStatus()
+}
+
+func (o *Operation) GetComponentStatus(component ComponentMeta) (ComponentStatus, error) {
+	return o.getComponentStatus(component)
+}
+
+func (o *Operation) Cancel() error {
+	//TODO: Implement
+	return nil
 }
