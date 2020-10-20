@@ -28,48 +28,57 @@ var kubeconfig = "/Users/i304607/Downloads/mst.yml"
 var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides"}
 
 type Engine struct {
-	//components
+	componentsProvider ComponentsProvider
 	//values.yaml
 }
 
+func NewEngine(componentsProvider ComponentsProvider) *Engine {
+	return &Engine{
+		componentsProvider: componentsProvider,
+	}
+}
+
+type Components struct{}
+
+type ComponentsProvider interface {
+	GetComponents() []Component
+}
+
 type Installation interface {
-	InstallPrerequisites() error
 	Install(components []Component) error
 }
 
 type Component struct {
-	Name          string
-	Namespace     string
-	//overrides
-	//helm client?
+	Name              string
+	Namespace         string
+	OverridesProvider OverridesProvider
+	HelmClient        Helm
 }
 
 type ComponentInstallation interface {
-	InstallComponent()error
+	InstallComponent() error
 }
 
-type Overrides map[string]interface{}
+type Overrides struct{}
 
 type OverridesProvider interface {
-	OverridesFor(component Component) Overrides
+	OverridesFor() map[string]interface{}
 }
 
-type Release struct{
+type Release struct {
 }
 
-type Helm interface{
- InstallRelease(chartDir, namespace, name string, overrides Overrides) error
+type Helm interface {
+	InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error
 }
 
 func (c *Component) InstallComponent() error {
 	chartDir := path.Join(resources, c.Name)
 	log.Printf("MST Installing %s in %s from %s", c.Name, c.Namespace, chartDir)
 
-	overrides := getOverrides()
+	overrides := c.OverridesProvider.OverridesFor()
 
-	//overrides := c.OverridesProvider.OverridesFor(c)
-
-	err := installRelease(chartDir, c.Namespace, c.Name, overrides)
+	err := c.HelmClient.InstallRelease(chartDir, c.Namespace, c.Name, overrides)
 	if err != nil {
 		log.Printf("MST Error installing %s: %v", c.Name, err)
 		return err
@@ -81,92 +90,134 @@ func (c *Component) InstallComponent() error {
 	return nil
 }
 
-func getComponents() []Component {
+func (c *Components) GetComponents() []Component {
+	overridesProvider := &Overrides{}
+	helmClient := &Release{}
 	return []Component{
 		Component{
-			Name:      "istio-kyma-patch",
-			Namespace: "istio-system",
+			Name:              "istio-kyma-patch",
+			Namespace:         "istio-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "knative-serving",
-			Namespace: "knative-serving",
+			Name:              "knative-serving",
+			Namespace:         "knative-serving",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "knative-eventing",
-			Namespace: "knative-eventing",
+			Name:              "knative-eventing",
+			Namespace:         "knative-eventing",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "dex",
-			Namespace: "kyma-system",
+			Name:              "dex",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "ory",
-			Namespace: "kyma-system",
+			Name:              "ory",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "api-gateway",
-			Namespace: "kyma-system",
+			Name:              "api-gateway",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "rafter",
-			Namespace: "kyma-system",
+			Name:              "rafter",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "service-catalog",
-			Namespace: "kyma-system",
+			Name:              "service-catalog",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "service-catalog-addons",
-			Namespace: "kyma-system",
+			Name:              "service-catalog-addons",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "nats-streaming",
-			Namespace: "natss",
+			Name:              "nats-streaming",
+			Namespace:         "natss",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "core",
-			Namespace: "kyma-system",
+			Name:              "core",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "cluster-users",
-			Namespace: "kyma-system",
+			Name:              "cluster-users",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "permission-controller",
-			Namespace: "kyma-system",
+			Name:              "permission-controller",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "apiserver-proxy",
-			Namespace: "kyma-system",
+			Name:              "apiserver-proxy",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "iam-kubeconfig-service",
-			Namespace: "kyma-system",
+			Name:              "iam-kubeconfig-service",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "serverless",
-			Namespace: "kyma-system",
+			Name:              "serverless",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "knative-provisioner-natss",
-			Namespace: "knative-eventing",
+			Name:              "knative-provisioner-natss",
+			Namespace:         "knative-eventing",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "event-sources",
-			Namespace: "kyma-system",
+			Name:              "event-sources",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "application-connector",
-			Namespace: "kyma-integration",
+			Name:              "application-connector",
+			Namespace:         "kyma-integration",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 		Component{
-			Name:      "console",
-			Namespace: "kyma-system",
+			Name:              "console",
+			Namespace:         "kyma-system",
+			OverridesProvider: overridesProvider,
+			HelmClient:helmClient,
 		},
 	}
 }
 
-func getOverrides() Overrides{
+func (o *Overrides) OverridesFor() map[string]interface{} {
 	config, err := getClientConfig(kubeconfig)
 	if err != nil {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
@@ -230,10 +281,15 @@ func getOverrides() Overrides{
 	return unflatten
 }
 
-func (e *Engine) InstallPrerequisites() error {
+func installPrerequisites() error {
+	overridesProvider := &Overrides{}
+	helmClient := &Release{}
+
 	clusterEssentials := &Component{
-		Name:"cluster-essentials",
+		Name:      "cluster-essentials",
 		Namespace: "kyma-system",
+		OverridesProvider:overridesProvider,
+		HelmClient:helmClient,
 	}
 	err := clusterEssentials.InstallComponent()
 	if err != nil {
@@ -241,8 +297,10 @@ func (e *Engine) InstallPrerequisites() error {
 	}
 
 	istio := &Component{
-		Name:"istio",
-		Namespace:"istio-system",
+		Name:      "istio",
+		Namespace: "istio-system",
+		OverridesProvider:overridesProvider,
+		HelmClient:helmClient,
 	}
 	err = istio.InstallComponent()
 	if err != nil {
@@ -250,8 +308,10 @@ func (e *Engine) InstallPrerequisites() error {
 	}
 
 	xipPatch := &Component{
-		Name:"xip-patch",
-		Namespace:"kyma-installer",
+		Name:      "xip-patch",
+		Namespace: "kyma-installer",
+		OverridesProvider:overridesProvider,
+		HelmClient:helmClient,
 	}
 	err = xipPatch.InstallComponent()
 	if err != nil {
@@ -261,7 +321,14 @@ func (e *Engine) InstallPrerequisites() error {
 	return nil
 }
 
-func (e *Engine) Install(components []Component) error {
+func (e *Engine) Install() error {
+	err := installPrerequisites()
+	if err != nil {
+		return err
+	}
+
+	components := e.componentsProvider.GetComponents()
+
 	//Install the rest of the components
 	jobChan := make(chan Component, 30)
 	for _, comp := range components {
@@ -287,16 +354,11 @@ func (e *Engine) Install(components []Component) error {
 }
 
 func main() {
-	engine := &Engine{}
+	componentsProvider := &Components{}
 
-	err := engine.InstallPrerequisites()
-	if err != nil {
-		log.Fatalf("Kyma prerequisites installation fialed. Error: %v", err)
-	}
+	engine := NewEngine(componentsProvider)
 
-	components := getComponents()
-
-	err = engine.Install(components)
+	err := engine.Install()
 	if err != nil {
 		log.Fatalf("Kyma installation fialed. Error: %v", err)
 	}
@@ -394,7 +456,7 @@ func enqueueJob(job Component, jobChan chan<- Component) bool {
 	}
 }
 
-func installRelease(chartDir, namespace, name string, overrides Overrides) error {
+func (r *Release) InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error {
 	cfg, err := newActionConfig(namespace)
 	if err != nil {
 		return err
