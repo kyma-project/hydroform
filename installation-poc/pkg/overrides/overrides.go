@@ -1,11 +1,12 @@
 package overrides
 
 import (
-	"log"
 	"context"
+	"log"
+
 	"helm.sh/helm/v3/pkg/strvals"
-	"k8s.io/client-go/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, !component"}
@@ -24,7 +25,7 @@ type OverridesProvider interface {
 
 func New(client kubernetes.Interface) OverridesProvider {
 	res := Provider{
-		kubeClient:client,
+		kubeClient: client,
 	}
 
 	return &res

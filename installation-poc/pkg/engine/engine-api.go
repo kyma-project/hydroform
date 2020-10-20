@@ -122,7 +122,7 @@ func (e *Engine) RegisterComponentNotification(onChange OnComponentStatusChangeF
 }
 
 // Does not block
-func (e *Engine) StartInstalllation(components ComponentsSet, config *InstallationConfig) (*Operation, error) {
+func (e *Engine) StartInstallation(components ComponentsSet, config *InstallationConfig) (*Operation, error) {
 	//TODO: Implement
 	return nil, nil
 }

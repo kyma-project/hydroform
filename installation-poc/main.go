@@ -140,7 +140,7 @@ func main() {
 
 	err = engine.Install()
 	if err != nil {
-		log.Fatalf("Kyma installation fialed. Error: %v", err)
+		log.Fatalf("Kyma installation failed. Error: %v", err)
 	}
 
 	fmt.Println("Kyma installed")
