@@ -7,5 +7,5 @@ require (
 	k8s.io/apimachinery v0.18.8
 	k8s.io/cli-runtime v0.18.8
 	k8s.io/client-go v0.18.8
-	sigs.k8s.io/yaml v1.2.0
+	rsc.io/letsencrypt v0.0.3 // indirect
 )

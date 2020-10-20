@@ -3,18 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"sigs.k8s.io/yaml"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
@@ -22,10 +22,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var resources = "/Users/i304607/Yaas/go/src/github.com/kyma-project/kyma/resources"
-var overridesFile = "/Users/i304607/overrides.yaml"
-var kubeconfig = "/Users/i304607/Downloads/mst.yml"
-var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides"}
+var resourcesPath string
+var kubeconfigPath string
+var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, !component"}
+var componentListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, component"}
+var componentOverrides map[string]map[string]interface{}
+var globalOverrides map[string]interface{}
 
 type Engine struct {
 	componentsProvider ComponentsProvider
@@ -62,7 +64,76 @@ type ComponentInstallation interface {
 type Overrides struct{}
 
 type OverridesProvider interface {
-	OverridesFor() map[string]interface{}
+	OverridesFor(component *Component) map[string]interface{}
+}
+
+func (overrides *Overrides) OverridesFor(component *Component) map[string]interface{} {
+	if val, ok := componentOverrides[component.Name]; ok {
+		log.Printf("Overrides for %s: %v", component.Name, val)
+		return val
+	}
+	log.Printf("Overrides for %s: %v", component.Name, globalOverrides)
+	return globalOverrides
+}
+
+func readOverridesFromCluster() error {
+	config, err := getClientConfig(kubeconfigPath)
+	if err != nil {
+		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatalf("Unable to create internal client. Error: %v", err)
+	}
+
+	//Read global overrides
+	globalOverrideCMs, err := kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), commonListOpts)
+
+	var globalValues []string
+	for _, cm := range globalOverrideCMs.Items {
+		log.Printf("%s data %v", cm.Name, cm.Data)
+		for k, v := range cm.Data {
+			globalValues = append(globalValues, k+"="+v)
+		}
+	}
+
+	globalOverrides = make(map[string]interface{})
+	for _, value := range globalValues {
+		if err := strvals.ParseInto(value, globalOverrides); err != nil {
+			log.Printf("Error parsing global overrides: %v", err)
+			return err
+		}
+	}
+
+	//Read component overrides
+	componentOverrides = make(map[string]map[string]interface{})
+
+	componentOverrideCMs, err := kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), componentListOpts)
+
+	for _, cm := range componentOverrideCMs.Items {
+		log.Printf("%s data %v", cm.Name, cm.Data)
+		var componentValues []string
+		name := cm.Labels["component"]
+
+		for k, v := range cm.Data {
+			componentValues = append(componentValues, k+"="+v)
+		}
+
+		//Merge global overrides to component overrides for each component
+		componentValues = append(globalValues, componentValues...)
+
+		componentOverrides[name] = make(map[string]interface{})
+		for _, value := range componentValues {
+			if err := strvals.ParseInto(value, componentOverrides[name]); err != nil {
+				log.Printf("Error parsing overrides for %s: %v", name, err)
+				return err
+			}
+		}
+	}
+
+	log.Println("Reading the overrides from the cluster completed successfully!")
+	return nil
 }
 
 type Release struct {
@@ -73,10 +144,10 @@ type Helm interface {
 }
 
 func (c *Component) InstallComponent() error {
-	chartDir := path.Join(resources, c.Name)
+	chartDir := path.Join(resourcesPath, c.Name)
 	log.Printf("MST Installing %s in %s from %s", c.Name, c.Namespace, chartDir)
 
-	overrides := c.OverridesProvider.OverridesFor()
+	overrides := c.OverridesProvider.OverridesFor(c)
 
 	err := c.HelmClient.InstallRelease(chartDir, c.Namespace, c.Name, overrides)
 	if err != nil {
@@ -85,7 +156,6 @@ func (c *Component) InstallComponent() error {
 	}
 
 	log.Printf("MST Installed %s in %s", c.Name, c.Namespace)
-	return nil
 
 	return nil
 }
@@ -98,187 +168,117 @@ func (c *Components) GetComponents() []Component {
 			Name:              "istio-kyma-patch",
 			Namespace:         "istio-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
-		},
-		Component{
-			Name:              "knative-serving",
-			Namespace:         "knative-serving",
-			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "knative-eventing",
 			Namespace:         "knative-eventing",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "dex",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "ory",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "api-gateway",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "rafter",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "service-catalog",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "service-catalog-addons",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "nats-streaming",
 			Namespace:         "natss",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "core",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "cluster-users",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "permission-controller",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "apiserver-proxy",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "iam-kubeconfig-service",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "serverless",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "knative-provisioner-natss",
 			Namespace:         "knative-eventing",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "event-sources",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "application-connector",
 			Namespace:         "kyma-integration",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 		Component{
 			Name:              "console",
 			Namespace:         "kyma-system",
 			OverridesProvider: overridesProvider,
-			HelmClient:helmClient,
+			HelmClient:        helmClient,
 		},
 	}
-}
-
-func (o *Overrides) OverridesFor() map[string]interface{} {
-	config, err := getClientConfig(kubeconfig)
-	if err != nil {
-		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
-	}
-
-	kubeClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatalf("Unable to create internal client. Error: %v", err)
-	}
-
-	configmaps, err := kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), commonListOpts)
-	overrides := make(map[string]interface{})
-
-	for _, cm := range configmaps.Items {
-		log.Printf("%s data %v", cm.Name, cm.Data)
-
-		yamlData, err := yaml.Marshal(cm.Data)
-
-		//save to .yaml
-		tmpFile, err := ioutil.TempFile(os.TempDir(), cm.Name+"-")
-		if err != nil {
-			log.Fatal("Cannot create temporary file", err)
-		}
-
-		fmt.Println("Created File: " + tmpFile.Name())
-		defer os.Remove(tmpFile.Name())
-
-		if _, err = tmpFile.Write(yamlData); err != nil {
-			log.Fatal("Failed to write to temporary file", err)
-		}
-
-		// Close the file
-		if err := tmpFile.Close(); err != nil {
-			log.Fatal(err)
-		}
-
-		//read from file
-		var data map[string]interface{}
-		bs, err := ioutil.ReadFile(tmpFile.Name())
-		if err != nil {
-			panic(err)
-		}
-		if err := yaml.Unmarshal(bs, &data); err != nil {
-			panic(err)
-		}
-
-		for k, v := range data {
-			overrides[k] = v
-		}
-
-	}
-
-	unflatten := unflattenToMap(overrides)
-
-	//save to .yaml
-	unflattenData, err := yaml.Marshal(unflatten)
-	if err := ioutil.WriteFile(overridesFile, unflattenData, 0644); err != nil {
-		panic(err)
-	}
-
-	return unflatten
 }
 
 func installPrerequisites() error {
@@ -286,10 +286,10 @@ func installPrerequisites() error {
 	helmClient := &Release{}
 
 	clusterEssentials := &Component{
-		Name:      "cluster-essentials",
-		Namespace: "kyma-system",
-		OverridesProvider:overridesProvider,
-		HelmClient:helmClient,
+		Name:              "cluster-essentials",
+		Namespace:         "kyma-system",
+		OverridesProvider: overridesProvider,
+		HelmClient:        helmClient,
 	}
 	err := clusterEssentials.InstallComponent()
 	if err != nil {
@@ -297,10 +297,10 @@ func installPrerequisites() error {
 	}
 
 	istio := &Component{
-		Name:      "istio",
-		Namespace: "istio-system",
-		OverridesProvider:overridesProvider,
-		HelmClient:helmClient,
+		Name:              "istio",
+		Namespace:         "istio-system",
+		OverridesProvider: overridesProvider,
+		HelmClient:        helmClient,
 	}
 	err = istio.InstallComponent()
 	if err != nil {
@@ -308,12 +308,17 @@ func installPrerequisites() error {
 	}
 
 	xipPatch := &Component{
-		Name:      "xip-patch",
-		Namespace: "kyma-installer",
-		OverridesProvider:overridesProvider,
-		HelmClient:helmClient,
+		Name:              "xip-patch",
+		Namespace:         "kyma-installer",
+		OverridesProvider: overridesProvider,
+		HelmClient:        helmClient,
 	}
 	err = xipPatch.InstallComponent()
+	if err != nil {
+		return err
+	}
+
+	err = readOverridesFromCluster()
 	if err != nil {
 		return err
 	}
@@ -354,6 +359,15 @@ func (e *Engine) Install() error {
 }
 
 func main() {
+	goPath := os.Getenv("GOPATH")
+	if goPath == "" {
+		log.Fatalf("Please set GOPATH")
+	}
+
+	resourcesPath = filepath.Join(goPath, "src", "github.com", "kyma-project", "kyma", "resources")
+
+	kubeconfigPath = "/Users/i304607/Downloads/mst.yml"
+
 	componentsProvider := &Components{}
 
 	engine := NewEngine(componentsProvider)
