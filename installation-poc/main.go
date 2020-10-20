@@ -12,11 +12,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
 	"sigs.k8s.io/yaml"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart/loader"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -52,7 +50,7 @@ type Component struct {
 	Name              string
 	Namespace         string
 	OverridesProvider OverridesProvider
-	HelmClient        Helm
+	HelmClient        helm.ClientInterface
 }
 
 type ComponentInstallation interface {
@@ -65,12 +63,7 @@ type OverridesProvider interface {
 	OverridesFor() map[string]interface{}
 }
 
-type Release struct {
-}
 
-type Helm interface {
-	InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error
-}
 
 func (c *Component) InstallComponent() error {
 	chartDir := path.Join(resources, c.Name)
@@ -92,7 +85,7 @@ func (c *Component) InstallComponent() error {
 
 func (c *Components) GetComponents() []Component {
 	overridesProvider := &Overrides{}
-	helmClient := &Release{}
+	helmClient := &helm.Client{}
 	return []Component{
 		Component{
 			Name:              "istio-kyma-patch",
@@ -283,7 +276,7 @@ func (o *Overrides) OverridesFor() map[string]interface{} {
 
 func installPrerequisites() error {
 	overridesProvider := &Overrides{}
-	helmClient := &Release{}
+	helmClient := &helm.Client{}
 
 	clusterEssentials := &Component{
 		Name:      "cluster-essentials",
@@ -456,41 +449,4 @@ func enqueueJob(job Component, jobChan chan<- Component) bool {
 	}
 }
 
-func (r *Release) InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error {
-	cfg, err := newActionConfig(namespace)
-	if err != nil {
-		return err
-	}
 
-	chart, err := loader.Load(chartDir)
-	if err != nil {
-		return err
-	}
-
-	install := action.NewInstall(cfg)
-	install.ReleaseName = name
-	install.Namespace = namespace
-	install.Atomic = true
-	install.Wait = true
-	install.CreateNamespace = true
-
-	_, err = install.Run(chart, overrides)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func newActionConfig(namespace string) (*action.Configuration, error) {
-	clientGetter := genericclioptions.NewConfigFlags(false)
-	clientGetter.Namespace = &namespace
-
-	cfg := new(action.Configuration)
-	if err := cfg.Init(clientGetter, namespace, "secrets", log.Printf); err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
