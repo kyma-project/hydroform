@@ -2,7 +2,9 @@ package helm
 
 import (
 	"log"
+	"time"
 
+	"github.com/avast/retry-go"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -26,6 +28,9 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 		return err
 	}
 
+	maxAttempts := 3
+	fixedDelay := 3
+
 	install := action.NewInstall(cfg)
 	install.ReleaseName = name
 	install.Namespace = namespace
@@ -33,11 +38,21 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 	install.Wait = true
 	install.CreateNamespace = true
 
-	_, err = install.Run(chart, overrides)
+	err = retry.Do(
+		func() error {
+			_, err = install.Run(chart, overrides)
 
-	if err != nil {
-		return err
-	}
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+		retry.Attempts(uint(maxAttempts)),
+		retry.DelayType(func(attempt uint, config *retry.Config) time.Duration {
+			log.Printf("Retry number %d on getting release status.\n", attempt+1)
+			return time.Duration(fixedDelay) * time.Second
+		}),
+	)
 
 	return nil
 }
