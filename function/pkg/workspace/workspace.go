@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"fmt"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
 	"io"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type FileName string
@@ -94,6 +96,27 @@ func Synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 	config.Resources.Limits = function.Spec.ResourceLimits()
 	config.Resources.Requests = function.Spec.ResourceRequests()
+
+	ul, err := build("default", operator.GVKTriggers).List(ctx, v1.ListOptions{
+		LabelSelector: fmt.Sprintf("ownerID=%s", function.GetUID()),
+	})
+	if err != nil && apierrors.IsNotFound(err) {
+		return err
+	}
+
+	if ul != nil {
+		for _, item := range ul.Items {
+			var trigger types.Trigger
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &trigger); err != nil {
+				return err
+			}
+			config.Triggers = append(config.Triggers, Trigger{
+				EventTypeVersion: trigger.Filter.Attributes.Eventtypeversion,
+				Source:           trigger.Filter.Attributes.Source,
+				Type:             trigger.Filter.Attributes.Type,
+			})
+		}
+	}
 
 	if function.Spec.Type == "git" {
 		gitRepository := types.GitRepository{}
