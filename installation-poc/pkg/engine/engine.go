@@ -1,11 +1,11 @@
 package engine
 
 import (
+	"context"
 	"log"
 	"path"
 	"sync"
 	"time"
-	"context"
 
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/components"
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
@@ -100,7 +100,7 @@ func (e *Engine) Uninstall() error {
 	return nil
 }
 
-func run(cmps []components.Component, installationType string){
+func run(cmps []components.Component, installationType string) {
 	jobChan := make(chan components.Component, 30)
 	for _, comp := range cmps {
 		if !enqueueJob(comp, jobChan) {
@@ -135,9 +135,9 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 				return
 			}
 			if ok {
-				if installationType == "install"{
+				if installationType == "install" {
 					job.InstallComponent()
-				} else if installationType == "uninstall"{
+				} else if installationType == "uninstall" {
 					job.UninstallComponent()
 				}
 			}

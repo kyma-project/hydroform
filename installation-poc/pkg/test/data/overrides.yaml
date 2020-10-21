@@ -1,0 +1,9 @@
+ory:
+  hydra:
+    deployment:
+      resources:
+        limits:
+          memory: "141Mi"
+global:
+  test:
+    hey: enabled

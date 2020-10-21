@@ -436,7 +436,6 @@ github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kubernetes-sigs/go-open-service-broker-client v0.0.0-20190909175253-906fa5f9c249/go.mod h1:s8wBC55/DEkNa3YMY1WLgpT33Ghpmw7v+waIxh15dYI=
 github.com/kubernetes-sigs/service-catalog v0.3.0/go.mod h1:zRfgMd1T9HuXR24Qj4GOu/TGWABVGw62MGlyHVcpWnU=
-github.com/kyma-project/kyma v0.5.0 h1:msjpImAtZ3l+y6j+dHvOwF4Nm0J4IGJXRRBw7VwnqpA=
 github.com/kyma-project/kyma/components/kyma-operator v0.0.0-20201020070353-8d6c1b9037cc h1:eSFXXgoozKrckAMetbX8TljVwQPZKMuhpruSYmbNgLo=
 github.com/kyma-project/kyma/components/kyma-operator v0.0.0-20201020070353-8d6c1b9037cc/go.mod h1:Svisep1qUjML69qtRee5OcDOpWVjxID2Nb6E/xyhQ5k=
 github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 h1:SOEGU9fKiNWd/HOJuq6+3iTQz8KNCLtVX6idSoTLdUw=

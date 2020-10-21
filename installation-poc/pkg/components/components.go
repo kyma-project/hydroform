@@ -2,24 +2,25 @@ package components
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path"
 
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
 	"github.com/kyma-project/kyma/components/kyma-operator/pkg/apis/installer/v1alpha1"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type Provider struct {
 	overridesProvider overrides.OverridesProvider
 	path              string
+	componentListYaml string
 }
 
-func NewComponents(overridesProvider overrides.OverridesProvider, path string) *Provider {
+func NewComponents(overridesProvider overrides.OverridesProvider, path string, componentListYaml string) *Provider {
 	return &Provider{
 		overridesProvider: overridesProvider,
 		path:              path,
+		componentListYaml: componentListYaml,
 	}
 }
 
@@ -35,13 +36,8 @@ func (p *Provider) GetComponents() ([]Component, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile("pkg/components/installationCR.yaml")
-	if err != nil {
-		return nil, err
-	}
-
 	var installationCR v1alpha1.Installation
-	err = yaml.Unmarshal(data, &installationCR)
+	err = yaml.Unmarshal([]byte(p.componentListYaml), &installationCR)
 	if err != nil {
 		return nil, err
 	}
