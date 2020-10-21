@@ -34,4 +34,4 @@ Example:
 
 ## Workspace initialization show case
 
-See the [sample](./cmd/init/main.go) application that shows how to integrate the Function API to initialize the serverless workspace.
+See the [sample](cmd/workspace/init/main.go) application that shows how to integrate the Function API to initialize the serverless workspace.

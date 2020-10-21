@@ -2,20 +2,15 @@ package workspace
 
 import (
 	"context"
+	"github.com/kyma-incubator/hydroform/function/pkg/client"
+	"github.com/kyma-incubator/hydroform/function/pkg/operator"
 	"io"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
-
-	"github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
-	"k8s.io/client-go/rest"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
-)
-
-const (
-	functions       = "functions"
-	GitRepositories = "gitrepositories"
-	Git             = "git"
 )
 
 type FileName string
@@ -57,31 +52,21 @@ func initialize(cfg Cfg, dirPath string, writerProvider WriterProvider) (err err
 	return ws.build(cfg, dirPath, writerProvider)
 }
 
-func InitializeFromFunction(function v1alpha1.Function, cfg Cfg, dirPath string) error {
-	return initializeFromFunction(function, cfg, dirPath, defaultWriterProvider)
-}
-
-func initializeFromFunction(function v1alpha1.Function, cfg Cfg, dirPath string, writerProvider WriterProvider) (err error) {
-
-	var sourceFileName FileName
-	var depsFileName FileName
-
-	switch function.Spec.Runtime {
-	case v1alpha1.Nodejs12, v1alpha1.Nodejs10:
-		sourceFileName = FileNameHandlerJs
-		depsFileName = FileNamePackageJSON
-	case v1alpha1.Python38:
-		sourceFileName = FileNameHandlerPy
-		depsFileName = FileNameRequirementsTxt
+func fromSources(runtime string, source, deps string) (workspace, error) {
+	switch runtime {
+	case types.Nodejs10, types.Nodejs12:
+		return workspace{
+			newTemplatedFile(source, FileNameHandlerJs),
+			newTemplatedFile(deps, FileNamePackageJSON),
+		}, nil
+	case types.Python38:
+		return workspace{
+			newTemplatedFile(source, FileNameHandlerPy),
+			newTemplatedFile(deps, FileNameRequirementsTxt),
+		}, nil
 	default:
-		return errUnsupportedRuntime
+		return workspace{}, errUnsupportedRuntime
 	}
-
-	ws := workspace{
-		newTemplatedFile(function.Spec.Source, sourceFileName),
-		newTemplatedFile(function.Spec.Deps, depsFileName),
-	}
-	return ws.build(cfg, dirPath, writerProvider)
 }
 
 func fromRuntime(runtime types.Runtime) (workspace, error) {
@@ -95,61 +80,55 @@ func fromRuntime(runtime types.Runtime) (workspace, error) {
 	}
 }
 
-func Synchronise(config Cfg, outputPath string, function v1alpha1.Function, restClient *rest.RESTClient) error {
-	var source Source
+func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build) error {
 
-	config.Labels = function.Labels
-	config.Runtime = types.Runtime(function.Spec.Runtime)
-
-	if function.Spec.Resources.Limits != nil {
-		config.Resources.Limits = make(map[ResourceName]interface{})
-		for name, quantity := range function.Spec.Resources.Limits {
-			config.Resources.Limits[ResourceName(name)] = quantity
-		}
+	u, err := build(config.Namespace, operator.GVKFunction).Get(ctx, config.Name, v1.GetOptions{})
+	if err != nil {
+		return err
 	}
 
-	if function.Spec.Resources.Requests != nil {
-		config.Resources.Requests = make(map[ResourceName]interface{})
-		for name, quantity := range function.Spec.Resources.Requests {
-			config.Resources.Requests[ResourceName(name)] = quantity
-		}
+	var function types.Function
+	if err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &function); err != nil {
+		return err
 	}
 
-	if function.Spec.Type == Git {
-		gitRepo := &v1alpha1.GitRepository{}
+	config.Resources.Limits = function.Spec.ResourceLimits()
+	config.Resources.Requests = function.Spec.ResourceRequests()
 
-		err := restClient.Get().Resource(GitRepositories).Namespace(config.Namespace).Name(config.Name).Do(context.Background()).Into(gitRepo)
+	if function.Spec.Type == "git" {
+		gitRepository := types.GitRepository{}
+		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, config.Name, v1.GetOptions{})
 		if err != nil {
 			return err
 		}
 
-		source = Source{
+		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &gitRepository); err != nil {
+			return err
+		}
+
+		config.Source = Source{
 			Type: SourceTypeGit,
 			SourceGit: SourceGit{
-				URL:       gitRepo.Spec.URL,
+				URL:       gitRepository.Spec.URL,
 				Reference: function.Spec.Reference,
 				BaseDir:   function.Spec.BaseDir,
 			},
 		}
-
-		config.Source = source
-
-		if err := initialize(config, outputPath, defaultWriterProvider); err != nil {
-			return err
-		}
-	} else {
-		config.Source = Source{
-			Type: SourceTypeInline,
-			SourceInline: SourceInline{
-				SourcePath: outputPath,
-			},
-		}
-
-		if err := initializeFromFunction(function, config, outputPath, defaultWriterProvider); err != nil {
-			return err
-		}
+		return initialize(config, outputPath, defaultWriterProvider)
 	}
-	return nil
+
+	config.Source = Source{
+		Type: SourceTypeInline,
+		SourceInline: SourceInline{
+			SourcePath: outputPath,
+		},
+	}
+	ws, err := fromSources(function.Spec.Runtime, function.Spec.Source, function.Spec.Deps)
+	if err != nil {
+		return err
+	}
+
+	return ws.build(config, outputPath, defaultWriterProvider)
 }
 
 type SourceFileName = string
