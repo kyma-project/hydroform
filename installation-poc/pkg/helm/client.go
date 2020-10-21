@@ -15,6 +15,38 @@ type Client struct {
 
 type ClientInterface interface {
 	InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error
+	UninstallRelease(namespace, name string) error
+}
+
+func (c *Client) UninstallRelease(namespace, name string) error {
+
+	cfg, err := newActionConfig(namespace)
+	if err != nil {
+		return err
+	}
+
+	uninstall := action.NewUninstall(cfg)
+
+	maxAttempts := 3
+	fixedDelay := 3
+
+	err = retry.Do(
+		func() error {
+			_, err = uninstall.Run(name)
+
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+		retry.Attempts(uint(maxAttempts)),
+		retry.DelayType(func(attempt uint, config *retry.Config) time.Duration {
+			log.Printf("Retry number %d on getting release status.\n", attempt+1)
+			return time.Duration(fixedDelay) * time.Second
+		}),
+	)
+
+	return nil
 }
 
 func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error {
@@ -28,15 +60,15 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 		return err
 	}
 
-	maxAttempts := 3
-	fixedDelay := 3
-
 	install := action.NewInstall(cfg)
 	install.ReleaseName = name
 	install.Namespace = namespace
 	install.Atomic = true
 	install.Wait = true
 	install.CreateNamespace = true
+
+	maxAttempts := 3
+	fixedDelay := 3
 
 	err = retry.Do(
 		func() error {

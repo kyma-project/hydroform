@@ -25,6 +25,7 @@ func NewEngine(componentsProvider components.ComponentsProvider, resourcesPath s
 
 type Installation interface {
 	Install() error
+	Uninstall() error
 }
 
 func (e *Engine) installPrerequisites() error {
@@ -82,6 +83,24 @@ func (e *Engine) Install() error {
 	}
 
 	//Install the rest of the components
+	run(cmps, "install")
+
+	return nil
+}
+
+func (e *Engine) Uninstall() error {
+	cmps, err := e.componentsProvider.GetComponents()
+	if err != nil {
+		return err
+	}
+
+	//Install the rest of the components
+	run(cmps, "uninstall")
+
+	return nil
+}
+
+func run(cmps []components.Component, installationType string){
 	jobChan := make(chan components.Component, 30)
 	for _, comp := range cmps {
 		if !enqueueJob(comp, jobChan) {
@@ -94,18 +113,16 @@ func (e *Engine) Install() error {
 
 	for i := 0; i < 4; i++ {
 		wg.Add(1)
-		go worker(ctx, &wg, jobChan)
+		go worker(ctx, &wg, jobChan, installationType)
 	}
 
 	// to stop the workers, first close the job channel
 	close(jobChan)
 	wait(&wg, 10*time.Minute)
 	cancel()
-
-	return nil
 }
 
-func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.Component) {
+func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.Component, installationType string) {
 	defer wg.Done()
 
 	for {
@@ -118,7 +135,11 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 				return
 			}
 			if ok {
-				job.InstallComponent()
+				if installationType == "install"{
+					job.InstallComponent()
+				} else if installationType == "uninstall"{
+					job.UninstallComponent()
+				}
 			}
 		}
 	}

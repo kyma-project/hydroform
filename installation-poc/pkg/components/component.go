@@ -26,18 +26,33 @@ func NewComponent(name, namespace, chartDir string, overrides map[string]interfa
 
 type ComponentInstallation interface {
 	InstallComponent() error
+	UnInstallComponent() error
 }
 
 func (c *Component) InstallComponent() error {
-	log.Printf("MST Installing %s in %s from %s", c.Name, c.Namespace, c.ChartDir)
+	log.Printf("Installing %s in %s from %s", c.Name, c.Namespace, c.ChartDir)
 
 	err := c.HelmClient.InstallRelease(c.ChartDir, c.Namespace, c.Name, c.Overrides)
 	if err != nil {
-		log.Printf("MST Error installing %s: %v", c.Name, err)
+		log.Printf("Error installing %s: %v", c.Name, err)
 		return err
 	}
 
-	log.Printf("MST Installed %s in %s", c.Name, c.Namespace)
+	log.Printf("Installed %s in %s", c.Name, c.Namespace)
+
+	return nil
+}
+
+func (c *Component) UninstallComponent() error {
+	log.Printf("Uninstalling %s in %s from %s", c.Name, c.Namespace, c.ChartDir)
+
+	err := c.HelmClient.UninstallRelease(c.Namespace, c.Name)
+	if err != nil {
+		log.Printf("Error uninstalling %s: %v", c.Name, err)
+		return err
+	}
+
+	log.Printf("Uninstalled %s in %s", c.Name, c.Namespace)
 
 	return nil
 }

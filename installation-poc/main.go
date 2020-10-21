@@ -42,12 +42,21 @@ func main() {
 
 	eng := engine.NewEngine(componentsProvider, resourcesPath)
 
+	fmt.Println("Kyma installation")
 	err = eng.Install()
 	if err != nil {
 		log.Fatalf("Kyma installation failed. Error: %v", err)
 	}
 
 	fmt.Println("Kyma installed")
+	fmt.Println("Kyma uninstallation")
+
+	err = eng.Uninstall()
+	if err != nil {
+		log.Fatalf("Kyma uninstallation failed. Error: %v", err)
+	}
+
+	fmt.Println("Kyma uninstalled")
 }
 
 func getClientConfig(kubeconfig string) (*rest.Config, error) {
