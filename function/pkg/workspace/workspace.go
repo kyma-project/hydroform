@@ -6,6 +6,9 @@ import (
 	"io"
 	"os"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,12 +17,6 @@ import (
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-)
-
-const (
-	functions       = "functions"
-	GitRepositories = "gitrepositories"
-	Git             = "git"
 )
 
 type FileName string

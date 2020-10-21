@@ -14,8 +14,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
-
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 )
 
@@ -104,75 +102,6 @@ func Test_initialize(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := initialize(tt.args.cfg, tt.args.dirPath, tt.args.writerProvider); (err != nil) != tt.wantErr {
-				t.Errorf("initialize() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_initializeFromFunction(t *testing.T) {
-	type args struct {
-		function       v1alpha1.Function
-		cfg            Cfg
-		dirPath        string
-		writerProvider WriterProvider
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name:    "happy path JS",
-			wantErr: false,
-			args: args{
-				function: v1alpha1.Function{
-					Spec: v1alpha1.FunctionSpec{
-						Source:  handlerJs,
-						Deps:    packageJSON,
-						Runtime: v1alpha1.Nodejs12,
-					},
-				},
-				cfg: Cfg{
-					Runtime: types.Nodejs12,
-				},
-				dirPath: "",
-				writerProvider: func(path string) (io.Writer, Cancel, error) {
-					return &bytes.Buffer{}, nil, nil
-				},
-			},
-		}, {
-			name:    "happy path Python",
-			wantErr: false,
-			args: args{
-				function: v1alpha1.Function{
-					Spec: v1alpha1.FunctionSpec{
-						Source:  handlerPython,
-						Runtime: v1alpha1.Python38,
-					},
-				},
-				cfg: Cfg{
-					Runtime: types.Python38,
-				},
-				dirPath: "",
-				writerProvider: func(path string) (io.Writer, Cancel, error) {
-					return &bytes.Buffer{}, nil, nil
-				},
-			},
-		},
-		{
-			name:    "unsupported runtime",
-			wantErr: true,
-			args: args{
-				cfg: Cfg{
-					Runtime: types.Runtime("unsupported runtime"),
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := initializeFromFunction(tt.args.function, tt.args.cfg, tt.args.dirPath, tt.args.writerProvider); (err != nil) != tt.wantErr {
 				t.Errorf("initialize() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

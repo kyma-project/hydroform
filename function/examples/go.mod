@@ -2,6 +2,8 @@ module github.com/kyma-incubator/hydroform/function-examples
 
 go 1.14
 
+replace github.com/kyma-incubator/hydroform/function => github.com/m00g3n/hydroform/function v0.0.0-20201021195333-8c6b818958b5
+
 require (
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/kyma-incubator/hydroform/function v0.0.0-20201027094432-8e584f2623f7
