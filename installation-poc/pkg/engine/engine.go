@@ -7,17 +7,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
+
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/components"
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
 )
 
 type Engine struct {
+	overridesProvider  overrides.OverridesProvider
 	componentsProvider components.ComponentsProvider
 	resourcesPath      string
 }
 
-func NewEngine(componentsProvider components.ComponentsProvider, resourcesPath string) *Engine {
+func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider components.ComponentsProvider, resourcesPath string) *Engine {
 	return &Engine{
+		overridesProvider:  overridesProvider,
 		componentsProvider: componentsProvider,
 		resourcesPath:      resourcesPath,
 	}
@@ -29,13 +33,12 @@ type Installation interface {
 }
 
 func (e *Engine) installPrerequisites() error {
-	//TODO need to have overrides for this 3 components as well
 	helmClient := &helm.Client{}
 
 	clusterEssentials := &components.Component{
 		Name:       "cluster-essentials",
 		Namespace:  "kyma-system",
-		Overrides:  nil,
+		Overrides:  e.overridesProvider.OverridesFor("cluster-essentials"),
 		ChartDir:   path.Join(e.resourcesPath, "cluster-essentials"),
 		HelmClient: helmClient,
 	}
@@ -47,7 +50,7 @@ func (e *Engine) installPrerequisites() error {
 	istio := &components.Component{
 		Name:       "istio",
 		Namespace:  "istio-system",
-		Overrides:  nil,
+		Overrides:  e.overridesProvider.OverridesFor("istio"),
 		ChartDir:   path.Join(e.resourcesPath, "istio"),
 		HelmClient: helmClient,
 	}
@@ -59,7 +62,7 @@ func (e *Engine) installPrerequisites() error {
 	xipPatch := &components.Component{
 		Name:       "xip-patch",
 		Namespace:  "kyma-installer",
-		Overrides:  nil,
+		Overrides:  e.overridesProvider.OverridesFor("xip-patch"),
 		ChartDir:   path.Join(e.resourcesPath, "xip-patch"),
 		HelmClient: helmClient,
 	}

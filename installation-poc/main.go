@@ -93,7 +93,7 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 
 	componentsProvider := components.NewComponents(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
 
-	eng := engine.NewEngine(componentsProvider, i.ResourcesPath)
+	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath)
 
 	fmt.Println("Kyma installation")
 	err = eng.Install()
@@ -117,7 +117,7 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 
 	componentsProvider := components.NewComponents(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
 
-	eng := engine.NewEngine(componentsProvider, i.ResourcesPath)
+	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath)
 
 	fmt.Println("Kyma uninstallation")
 
