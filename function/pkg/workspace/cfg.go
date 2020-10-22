@@ -1,9 +1,10 @@
 package workspace
 
 import (
+	"io"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"gopkg.in/yaml.v3"
-	"io"
 )
 
 var _ file = &Cfg{}
@@ -20,14 +21,14 @@ const CfgFilename = "config.yaml"
 type Attributes = map[string]interface{}
 
 type Trigger struct {
-	EventTypeVersion string `yaml:"eventTypeVersion"`
-	Source           string `yaml:"source"`
-	Type             string `yaml:"type"`
+	Version string `yaml:"version"`
+	Source  string `yaml:"source"`
+	Type    string `yaml:"type"`
 }
 
 func (t Trigger) Attributes() Attributes {
 	return map[string]interface{}{
-		"eventtypeversion": t.EventTypeVersion,
+		"eventtypeversion": t.Version,
 		"source":           t.Source,
 		"type":             t.Type,
 	}

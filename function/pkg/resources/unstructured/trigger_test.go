@@ -29,7 +29,7 @@ func TestNewTriggers(t *testing.T) {
 					Runtime: "python38",
 					Triggers: []workspace.Trigger{
 						{
-							EventTypeVersion: "a",
+							Version: "a",
 							Source:           "b",
 							Type:             "c",
 						},

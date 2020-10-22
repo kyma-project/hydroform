@@ -61,7 +61,7 @@ func Test_newFunction(t *testing.T) {
 					},
 					Triggers: []workspace.Trigger{
 						{
-							EventTypeVersion: "test-trigger-etv",
+							Version: "test-trigger-etv",
 							Source:           "test-trigger-source",
 							Type:             "test-trigger-type",
 						},
@@ -135,7 +135,7 @@ func Test_newFunction(t *testing.T) {
 					},
 					Triggers: []workspace.Trigger{
 						{
-							EventTypeVersion: "test-trigger-etv",
+							Version: "test-trigger-etv",
 							Source:           "test-trigger-source",
 							Type:             "test-trigger-type",
 						},
@@ -272,7 +272,7 @@ func Test_newGitFunction(t *testing.T) {
 					},
 					Triggers: []workspace.Trigger{
 						{
-							EventTypeVersion: "test-trigger-etv",
+							Version: "test-trigger-etv",
 							Source:           "test-trigger-source",
 							Type:             "test-trigger-type",
 						},
@@ -341,7 +341,7 @@ func Test_newGitFunction(t *testing.T) {
 					},
 					Triggers: []workspace.Trigger{
 						{
-							EventTypeVersion: "test-trigger-etv",
+							Version: "test-trigger-etv",
 							Source:           "test-trigger-source",
 							Type:             "test-trigger-type",
 						},
