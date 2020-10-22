@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
+	"reflect"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	mockclient "github.com/kyma-incubator/hydroform/function/pkg/client/automock"
-	"io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"reflect"
-	"testing"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 )
