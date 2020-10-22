@@ -95,10 +95,11 @@ func Synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		return err
 	}
 
+	config.Runtime = function.Spec.Runtime
 	config.Resources.Limits = function.Spec.ResourceLimits()
 	config.Resources.Requests = function.Spec.ResourceRequests()
 
-	ul, err := build("default", operator.GVKTriggers).List(ctx, v1.ListOptions{
+	ul, err := build(config.Namespace, operator.GVKTriggers).List(ctx, v1.ListOptions{
 		LabelSelector: fmt.Sprintf("ownerID=%s", function.GetUID()),
 	})
 	if err != nil && apierrors.IsNotFound(err) {
@@ -112,9 +113,9 @@ func Synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				return err
 			}
 			config.Triggers = append(config.Triggers, Trigger{
-				EventTypeVersion: trigger.Filter.Attributes.Eventtypeversion,
-				Source:           trigger.Filter.Attributes.Source,
-				Type:             trigger.Filter.Attributes.Type,
+				Version: trigger.Spec.Filter.Attributes.Eventtypeversion,
+				Source:  trigger.Spec.Filter.Attributes.Source,
+				Type:    trigger.Spec.Filter.Attributes.Type,
 			})
 		}
 	}

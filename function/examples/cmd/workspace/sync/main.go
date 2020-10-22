@@ -7,13 +7,16 @@ package main
 import (
 	"context"
 	"fmt"
-	xclint "github.com/kyma-incubator/hydroform/function-examples/internal/client"
+
 	xunstruct "github.com/kyma-incubator/hydroform/function-examples/internal/unstructured"
+
+	"time"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"time"
 )
 
 func main() {

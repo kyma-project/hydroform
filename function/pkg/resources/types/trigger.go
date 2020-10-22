@@ -7,8 +7,9 @@ type Attributes struct {
 }
 
 type Trigger struct {
-	Filter struct {
-		Attributes Attributes `json:"attributes"`
-	} `json:"filter"`
+	Spec struct {
+		Filter struct {
+			Attributes Attributes `json:"attributes"`
+		} `json:"filter"`
+	} `json:"spec"`
 }
-
