@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"path"
 	"sync"
@@ -12,6 +13,8 @@ import (
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/components"
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
 )
+
+var statusMap map[string]string
 
 type Engine struct {
 	overridesProvider  overrides.OverridesProvider
@@ -86,9 +89,7 @@ func (e *Engine) Install() error {
 	}
 
 	//Install the rest of the components
-	run(cmps, "install")
-
-	return nil
+	return run(cmps, "install")
 }
 
 func (e *Engine) Uninstall() error {
@@ -98,12 +99,10 @@ func (e *Engine) Uninstall() error {
 	}
 
 	//Install the rest of the components
-	run(cmps, "uninstall")
-
-	return nil
+	return run(cmps, "uninstall")
 }
 
-func run(cmps []components.Component, installationType string) {
+func run(cmps []components.Component, installationType string) error {
 	jobChan := make(chan components.Component, 30)
 	for _, comp := range cmps {
 		if !enqueueJob(comp, jobChan) {
@@ -111,21 +110,22 @@ func run(cmps []components.Component, installationType string) {
 		}
 	}
 
+	statusChan := make(chan components.Component, 30)
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	for i := 0; i < 4; i++ {
 		wg.Add(1)
-		go worker(ctx, &wg, jobChan, installationType)
+		go worker(ctx, &wg, jobChan, statusChan, installationType)
 	}
 
 	// to stop the workers, first close the job channel
 	close(jobChan)
-	wait(&wg, 10*time.Minute)
-	cancel()
+	return wait(&wg, 10*time.Minute, statusChan)
 }
 
-func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.Component, installationType string) {
+func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.Component, statusChan chan<- components.Component, installationType string) {
 	defer wg.Done()
 
 	for {
@@ -139,27 +139,56 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 			}
 			if ok {
 				if installationType == "install" {
-					job.InstallComponent()
+					if err := job.InstallComponent(); err != nil {
+						job.Status = "Error"
+					} else {
+						job.Status = "Installed"
+					}
+					statusChan <- job
 				} else if installationType == "uninstall" {
-					job.UninstallComponent()
+					if err := job.UninstallComponent(); err != nil {
+						job.Status = "Error"
+					} else {
+						job.Status = "Uninstalled"
+					}
+					statusChan <- job
 				}
 			}
 		}
 	}
 }
 
-func wait(wg *sync.WaitGroup, timeout time.Duration) bool {
+func wait(wg *sync.WaitGroup, timeout time.Duration, statusChan <-chan components.Component) error {
 	ch := make(chan struct{})
 	go func() {
 		wg.Wait()
 		close(ch)
 	}()
-	select {
-	case <-ch:
-		return true
-	case <-time.After(timeout):
-		log.Println("Timeout occurred!")
-		return false
+	for {
+		select {
+		case component, ok := <-statusChan:
+			if ok {
+				log.Printf("Operation in progress.. Component: %v, Status: %v", component.Name, component.Status)
+				if statusMap == nil {
+					statusMap = make(map[string]string)
+				}
+				statusMap[component.Name] = component.Status
+			}
+		case <-ch:
+			operationErrored := false
+			for k, v := range statusMap {
+				log.Printf("Component: %s, Status: %s", k, v)
+				if v == "Error" {
+					operationErrored = true
+				}
+			}
+			if operationErrored {
+				return fmt.Errorf("Operation was unsuccessful! Check the previous logs to see the problem.")
+			}
+			return nil
+		case <-time.After(timeout):
+			return fmt.Errorf("Timeout occurred after %v minutes", timeout.Minutes())
+		}
 	}
 }
 

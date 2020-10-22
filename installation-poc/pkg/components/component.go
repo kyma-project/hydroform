@@ -9,6 +9,7 @@ import (
 type Component struct {
 	Name       string
 	Namespace  string
+	Status     string
 	ChartDir   string
 	Overrides  map[string]interface{}
 	HelmClient helm.ClientInterface
@@ -21,6 +22,7 @@ func NewComponent(name, namespace, chartDir string, overrides map[string]interfa
 		ChartDir:   chartDir,
 		Overrides:  overrides,
 		HelmClient: helmClient,
+		Status:     "NotStarted",
 	}
 }
 
