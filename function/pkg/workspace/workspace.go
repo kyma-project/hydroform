@@ -84,6 +84,10 @@ func fromRuntime(runtime types.Runtime) (workspace, error) {
 }
 
 func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build) error {
+	return synchronise(ctx, config, outputPath, build, defaultWriterProvider)
+}
+
+func synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, writerProvider WriterProvider) error {
 
 	u, err := build(config.Namespace, operator.GVKFunction).Get(ctx, config.Name, v1.GetOptions{})
 	if err != nil {
@@ -102,7 +106,7 @@ func Synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	ul, err := build(config.Namespace, operator.GVKTriggers).List(ctx, v1.ListOptions{
 		LabelSelector: fmt.Sprintf("ownerID=%s", function.GetUID()),
 	})
-	if err != nil && apierrors.IsNotFound(err) {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 
@@ -139,7 +143,7 @@ func Synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				BaseDir:   function.Spec.BaseDir,
 			},
 		}
-		return initialize(config, outputPath, defaultWriterProvider)
+		return initialize(config, outputPath, writerProvider)
 	}
 
 	config.Source = Source{
@@ -153,7 +157,7 @@ func Synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		return err
 	}
 
-	return ws.build(config, outputPath, defaultWriterProvider)
+	return ws.build(config, outputPath, writerProvider)
 }
 
 type SourceFileName = string
