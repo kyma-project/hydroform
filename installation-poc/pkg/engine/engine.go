@@ -23,6 +23,7 @@ type Engine struct {
 }
 
 func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider components.ComponentsProvider, resourcesPath string) *Engine {
+	statusMap = make(map[string]string)
 	return &Engine{
 		overridesProvider:  overridesProvider,
 		componentsProvider: componentsProvider,
@@ -122,7 +123,7 @@ func run(cmps []components.Component, installationType string) error {
 
 	// to stop the workers, first close the job channel
 	close(jobChan)
-	return wait(&wg, 10*time.Minute, statusChan)
+	return wait(&wg, 10*time.Minute, statusChan, cmps)
 }
 
 func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.Component, statusChan chan<- components.Component, installationType string) {
@@ -133,32 +134,32 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 		case <-ctx.Done():
 			return
 
-		case job, ok := <-jobChan:
+		case component, ok := <-jobChan:
 			if ctx.Err() != nil || !ok {
 				return
 			}
 			if ok {
 				if installationType == "install" {
-					if err := job.InstallComponent(); err != nil {
-						job.Status = "Error"
+					if err := component.InstallComponent(); err != nil {
+						component.Status = "Error"
 					} else {
-						job.Status = "Installed"
+						component.Status = "Installed"
 					}
-					statusChan <- job
+					statusChan <- component
 				} else if installationType == "uninstall" {
-					if err := job.UninstallComponent(); err != nil {
-						job.Status = "Error"
+					if err := component.UninstallComponent(); err != nil {
+						component.Status = "Error"
 					} else {
-						job.Status = "Uninstalled"
+						component.Status = "Uninstalled"
 					}
-					statusChan <- job
+					statusChan <- component
 				}
 			}
 		}
 	}
 }
 
-func wait(wg *sync.WaitGroup, timeout time.Duration, statusChan <-chan components.Component) error {
+func wait(wg *sync.WaitGroup, timeout time.Duration, statusChan <-chan components.Component, cmps []components.Component) error {
 	ch := make(chan struct{})
 	go func() {
 		wg.Wait()
@@ -169,16 +170,19 @@ func wait(wg *sync.WaitGroup, timeout time.Duration, statusChan <-chan component
 		case component, ok := <-statusChan:
 			if ok {
 				log.Printf("Operation in progress.. Component: %v, Status: %v", component.Name, component.Status)
-				if statusMap == nil {
-					statusMap = make(map[string]string)
-				}
 				statusMap[component.Name] = component.Status
 			}
 		case <-ch:
 			operationErrored := false
-			for k, v := range statusMap {
-				log.Printf("Component: %s, Status: %s", k, v)
-				if v == "Error" {
+			for _, cmp := range cmps {
+				componentStatus, ok := statusMap[cmp.Name]
+				if !ok {
+					log.Printf("Component: %s, Status: %s", cmp.Name, "Error")
+					operationErrored = true
+					continue
+				}
+				log.Printf("Component: %s, Status: %s", cmp.Name, componentStatus)
+				if componentStatus == "Error" {
 					operationErrored = true
 				}
 			}

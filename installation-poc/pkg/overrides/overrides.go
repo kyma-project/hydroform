@@ -17,7 +17,6 @@ type Provider struct {
 	overrides          map[string]interface{}
 	componentOverrides map[string]map[string]interface{}
 	kubeClient         kubernetes.Interface
-	OverridesYaml      string
 }
 
 type OverridesProvider interface {
@@ -26,19 +25,18 @@ type OverridesProvider interface {
 }
 
 func New(client kubernetes.Interface, overridesYaml string) (OverridesProvider, error) {
-	res := Provider{
-		kubeClient:    client,
-		OverridesYaml: overridesYaml,
+	provider := Provider{
+		kubeClient: client,
 	}
 
 	if overridesYaml != "" {
-		err := res.parseAdditionalOverrides()
+		err := provider.parseAdditionalOverrides(overridesYaml)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return &res, nil
+	return &provider, nil
 }
 
 func (p *Provider) OverridesFor(name string) map[string]interface{} {
@@ -117,14 +115,14 @@ func (p *Provider) ReadOverridesFromCluster() error {
 	return nil
 }
 
-func (p *Provider) parseAdditionalOverrides() error {
+func (p *Provider) parseAdditionalOverrides(overridesYaml string) error {
 
 	if p.componentOverrides == nil {
 		p.componentOverrides = make(map[string]map[string]interface{})
 	}
 
 	var additionalOverrides map[string]interface{}
-	err := yaml.Unmarshal([]byte(p.OverridesYaml), &additionalOverrides)
+	err := yaml.Unmarshal([]byte(overridesYaml), &additionalOverrides)
 	if err != nil {
 		return err
 	}

@@ -1,12 +1,14 @@
 package helm
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/avast/retry-go"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
@@ -32,21 +34,29 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 
 	err = retry.Do(
 		func() error {
-			_, err = uninstall.Run(name)
-
+			rel, err := uninstall.Run(name)
 			if err != nil {
 				return err
 			}
+
+			if rel == nil || rel.Release == nil || rel.Release.Info == nil {
+				return fmt.Errorf("Failed to uninstall %s. Status: %v", name, "Unknown")
+			}
+
+			if rel.Release.Info.Status != release.StatusUninstalled {
+				return fmt.Errorf("Failed to uninstall %s. Status: %v", name, rel.Release.Info.Status)
+			}
+
 			return nil
 		},
 		retry.Attempts(uint(maxAttempts)),
 		retry.DelayType(func(attempt uint, config *retry.Config) time.Duration {
-			log.Printf("Retry number %d on getting release status.\n", attempt+1)
+			log.Printf("Retry number %d on uninstalling %s.\n", attempt+1, name)
 			return time.Duration(fixedDelay) * time.Second
 		}),
 	)
 
-	return nil
+	return err
 }
 
 func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error {
@@ -66,27 +76,36 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 	install.Atomic = true
 	install.Wait = true
 	install.CreateNamespace = true
+	install.Timeout = 3 * time.Minute
 
 	maxAttempts := 3
 	fixedDelay := 3
 
 	err = retry.Do(
 		func() error {
-			_, err = install.Run(chart, overrides)
-
+			rel, err := install.Run(chart, overrides)
 			if err != nil {
 				return err
 			}
+
+			if rel == nil || rel.Info == nil {
+				return fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
+			}
+
+			if rel.Info.Status != release.StatusDeployed {
+				return fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
+			}
+
 			return nil
 		},
 		retry.Attempts(uint(maxAttempts)),
 		retry.DelayType(func(attempt uint, config *retry.Config) time.Duration {
-			log.Printf("Retry number %d on getting release status.\n", attempt+1)
+			log.Printf("Retry number %d on installing %s.\n", attempt+1, name)
 			return time.Duration(fixedDelay) * time.Second
 		}),
 	)
 
-	return nil
+	return err
 }
 
 func newActionConfig(namespace string) (*action.Configuration, error) {
