@@ -79,7 +79,7 @@ func Test_initialize(t *testing.T) {
 					Runtime: types.Python38,
 					Triggers: []Trigger{
 						{
-							EventTypeVersion: "test-version",
+							Version: "test-version",
 							Source:           "test-source",
 							Type:             "test-type",
 						},
