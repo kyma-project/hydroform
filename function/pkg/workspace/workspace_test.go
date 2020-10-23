@@ -172,7 +172,7 @@ func Test_Synchronise(t *testing.T) {
 		ctx        context.Context
 		cfg        Cfg
 		outputPath string
-		client     client.Build //TODO rename
+		build      client.Build
 	}
 
 	name := "test"
@@ -188,7 +188,7 @@ func Test_Synchronise(t *testing.T) {
 			name:    "getting function should fail",
 			wantErr: true,
 			args: args{
-				client: func(namespace string, resource schema.GroupVersionResource) client.Client {
+				build: func(namespace string, resource schema.GroupVersionResource) client.Client {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
@@ -208,7 +208,7 @@ func Test_Synchronise(t *testing.T) {
 					Name:      name,
 					Namespace: namespace,
 				},
-				client: func() client.Build {
+				build: func() client.Build {
 
 					result := mockclient.NewMockClient(ctrl)
 
@@ -256,8 +256,7 @@ func Test_Synchronise(t *testing.T) {
 						},
 					},
 				},
-				outputPath: "./testdir/inline",
-				client: func() client.Build {
+				build: func() client.Build {
 					c := inlineClient(ctrl, name, namespace)
 					return func(_ string, _ schema.GroupVersionResource) client.Client {
 						return c
@@ -293,8 +292,7 @@ func Test_Synchronise(t *testing.T) {
 						},
 					},
 				},
-				outputPath: "./testdir/git",
-				client: func() client.Build {
+				build: func() client.Build {
 					c := gitClient(ctrl, name, namespace)
 					return func(_ string, _ schema.GroupVersionResource) client.Client {
 						return c
@@ -306,7 +304,7 @@ func Test_Synchronise(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := synchronise(tt.args.ctx, tt.args.cfg, tt.args.outputPath, tt.args.client, newStrWriterProvider())
+			err := synchronise(tt.args.ctx, tt.args.cfg, tt.args.outputPath, tt.args.build, newStrWriterProvider())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Synchronise() error = %v, wantErr %v", err, tt.wantErr)
 				return
