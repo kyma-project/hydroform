@@ -420,28 +420,25 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 		}}, nil).Times(1)
 
 	result.EXPECT().
-		List(gomock.Any(), v1.ListOptions{
-			LabelSelector: "ownerID=",
-		}).
-		Return(&unstructured.UnstructuredList{
-			Items: []unstructured.Unstructured{
-				{
-					Object: map[string]interface{}{
-						"trigger": map[string]interface{}{
-							"spec": map[string]interface{}{
-								"filter": map[string]interface{}{
-									"attributes": map[string]interface{}{
-										"eventtypeversion": "v1.0.0",
-										"source":           "the-source",
-										"type":             "t1",
-									},
+		List(gomock.Any(), v1.ListOptions{LabelSelector: "ownerID="}).Return(&unstructured.UnstructuredList{
+		Items: []unstructured.Unstructured{
+			{
+				Object: map[string]interface{}{
+					"trigger": map[string]interface{}{
+						"spec": map[string]interface{}{
+							"filter": map[string]interface{}{
+								"attributes": map[string]interface{}{
+									"eventtypeversion": "v1.0.0",
+									"source":           "the-source",
+									"type":             "t1",
 								},
 							},
 						},
 					},
 				},
 			},
-		}, nil).Times(1)
+		},
+	}, nil).Times(1)
 
 	return result
 }
@@ -475,9 +472,7 @@ func gitClient(ctrl *gomock.Controller, name, namespace string) client.Client {
 		}}, nil).Times(1)
 
 	result.EXPECT().
-		List(gomock.Any(), v1.ListOptions{
-			LabelSelector: "ownerID=",
-		}).
+		List(gomock.Any(), v1.ListOptions{LabelSelector: "ownerID="}).
 		Return(&unstructured.UnstructuredList{}, nil).
 		Times(1)
 
