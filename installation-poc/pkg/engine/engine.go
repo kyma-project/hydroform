@@ -78,6 +78,48 @@ func (e *Engine) installPrerequisites() error {
 	return nil
 }
 
+func (e *Engine) uninstallPrerequisites() error {
+	helmClient := &helm.Client{}
+
+	xipPatch := &components.Component{
+		Name:       "xip-patch",
+		Namespace:  "kyma-installer",
+		Overrides:  e.overridesProvider.OverridesFor("xip-patch"),
+		ChartDir:   path.Join(e.resourcesPath, "xip-patch"),
+		HelmClient: helmClient,
+	}
+	err := xipPatch.UninstallComponent()
+	if err != nil {
+		return err
+	}
+
+	istio := &components.Component{
+		Name:       "istio",
+		Namespace:  "istio-system",
+		Overrides:  e.overridesProvider.OverridesFor("istio"),
+		ChartDir:   path.Join(e.resourcesPath, "istio"),
+		HelmClient: helmClient,
+	}
+	err = istio.UninstallComponent()
+	if err != nil {
+		return err
+	}
+
+	clusterEssentials := &components.Component{
+		Name:       "cluster-essentials",
+		Namespace:  "kyma-system",
+		Overrides:  e.overridesProvider.OverridesFor("cluster-essentials"),
+		ChartDir:   path.Join(e.resourcesPath, "cluster-essentials"),
+		HelmClient: helmClient,
+	}
+	err = clusterEssentials.UninstallComponent()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (e *Engine) Install() error {
 	err := e.installPrerequisites()
 	if err != nil {
@@ -99,8 +141,19 @@ func (e *Engine) Uninstall() error {
 		return err
 	}
 
-	//Install the rest of the components
-	return run(cmps, "uninstall")
+	//Uninstall the components
+	err = run(cmps, "uninstall")
+	if err != nil {
+		return err
+	}
+
+	//Uninstall the prequisite components
+	err = e.uninstallPrerequisites()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func run(cmps []components.Component, installationType string) error {
