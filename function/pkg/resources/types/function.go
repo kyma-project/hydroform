@@ -17,7 +17,7 @@ type FunctionSpec struct {
 	Repository `json:",inline,omitempty"`
 }
 
-func toMap(l corev1.ResourceList) map[string]interface{} {
+func (s FunctionSpec) toMap(l corev1.ResourceList) map[string]interface{} {
 	length := len(l)
 	if length == 0 {
 		return nil
@@ -32,11 +32,11 @@ func toMap(l corev1.ResourceList) map[string]interface{} {
 }
 
 func (s FunctionSpec) ResourceLimits() map[string]interface{} {
-	return toMap(s.Resources.Limits)
+	return s.toMap(s.Resources.Limits)
 }
 
 func (s FunctionSpec) ResourceRequests() map[string]interface{} {
-	return toMap(s.Resources.Requests)
+	return s.toMap(s.Resources.Requests)
 }
 
 type Function struct {
