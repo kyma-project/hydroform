@@ -32,6 +32,35 @@ The Manager allows you to control the hierarchy of the operators in the parent-c
 Example:
 * [Sibling-children owner references](./cmd/manager/main.go) 
 
-## Workspace initialization show case
+## Function Workspace
 
-See the [sample](cmd/workspace/init/main.go) application that shows how to integrate the Function API to initialize the serverless workspace.
+The function workspace is a configuration __yaml__ file and was designed to work with Kyma CLI `apply` and `sync` commands to quickly create or update kubernetes resources.
+
+It aggregates properties of a function object and other function-related objects e.g. trigger.
+
+The example of configuration file may look like this: 
+
+```yaml
+name: example
+namespace: example-ns
+runtime: python38
+resource:
+    limits:
+        cpu: 100m
+        memory: 128Mi
+    requests:
+        cpu: 50m
+        memory: 64Mi
+source:
+    sourceType: inline
+    sourcePath: /tmp/test-fn-git
+triggers:
+    version: v1
+    type: t1
+    source: src1
+```
+
+Examples:
+
+* [initialize workspace](./cmd/workspace/init/main.go)
+* [synchronize workspace](./cmd/workspace/sync/main.go)
