@@ -4,6 +4,7 @@ import (
 	"context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 //go:generate mockgen -source=client.go -destination=automock/client.go
@@ -17,3 +18,5 @@ type Client interface {
 	Get(ctx context.Context, name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
 	List(ctx context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error)
 }
+
+type Build func(namespace string, resource schema.GroupVersionResource) Client
