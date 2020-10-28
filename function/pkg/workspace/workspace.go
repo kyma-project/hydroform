@@ -6,11 +6,10 @@ import (
 	"io"
 	"os"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
