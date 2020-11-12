@@ -13,7 +13,8 @@ import (
 
 type Installation struct {
 	// Content of the Installation CR YAML file
-	ComponentsYaml string
+	PrerequisitesYaml string
+	ComponentsYaml              string
 	// Content of the Helm overrides YAML file
 	OverridesYaml string
 	ResourcesPath string
@@ -24,7 +25,7 @@ type Installer interface {
 	StartKymaUninstallation(kubeconfig *rest.Config) error
 }
 
-func NewInstallation(componentsYaml string, overridesYaml string, resourcesPath string) (*Installation, error) {
+func NewInstallation(prerequisitesYaml string, componentsYaml string, overridesYaml string, resourcesPath string) (*Installation, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Installation. Resource path is required.")
 	}
@@ -32,7 +33,10 @@ func NewInstallation(componentsYaml string, overridesYaml string, resourcesPath 
 		return nil, fmt.Errorf("Unable to create Installation. Components YAML file content is required.")
 	}
 
+	//TODO: should prerequisites be necessary?
+
 	return &Installation{
+		PrerequisitesYaml: prerequisitesYaml,
 		ComponentsYaml: componentsYaml,
 		OverridesYaml:  overridesYaml,
 		ResourcesPath:  resourcesPath,
@@ -50,9 +54,10 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 		log.Fatalf("Unable to create overrides provider. Error: %v", err)
 	}
 
-	componentsProvider := components.NewComponents(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.PrerequisitesYaml)
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
 
-	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath)
+	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath)
 
 	fmt.Println("Kyma installation")
 	err = eng.Install()
@@ -74,9 +79,10 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 		log.Fatalf("Unable to create overrides provider. Error: %v", err)
 	}
 
-	componentsProvider := components.NewComponents(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.PrerequisitesYaml)
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
 
-	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath)
+	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath)
 
 	fmt.Println("Kyma uninstallation")
 

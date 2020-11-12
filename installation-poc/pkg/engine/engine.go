@@ -4,28 +4,28 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"path"
 	"sync"
 	"time"
 
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
 
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/components"
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
 )
 
 var statusMap map[string]string
 
 type Engine struct {
 	overridesProvider  overrides.OverridesProvider
-	componentsProvider components.ComponentsProvider
+	prerequisitesProvider components.Provider
+	componentsProvider components.Provider
 	resourcesPath      string
 }
 
-func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider components.ComponentsProvider, resourcesPath string) *Engine {
+func NewEngine(overridesProvider overrides.OverridesProvider, prerequisitesProvider components.Provider, componentsProvider components.Provider, resourcesPath string) *Engine {
 	statusMap = make(map[string]string)
 	return &Engine{
 		overridesProvider:  overridesProvider,
+		prerequisitesProvider: prerequisitesProvider,
 		componentsProvider: componentsProvider,
 		resourcesPath:      resourcesPath,
 	}
@@ -37,84 +37,34 @@ type Installation interface {
 }
 
 func (e *Engine) installPrerequisites() error {
-	helmClient := &helm.Client{}
 
-	clusterEssentials := &components.Component{
-		Name:       "cluster-essentials",
-		Namespace:  "kyma-system",
-		Overrides:  e.overridesProvider.OverridesFor("cluster-essentials"),
-		ChartDir:   path.Join(e.resourcesPath, "cluster-essentials"),
-		HelmClient: helmClient,
-	}
-	err := clusterEssentials.InstallComponent()
+	prerequisites, err := e.prerequisitesProvider.GetComponents()
 	if err != nil {
 		return err
 	}
 
-	istio := &components.Component{
-		Name:       "istio",
-		Namespace:  "istio-system",
-		Overrides:  e.overridesProvider.OverridesFor("istio"),
-		ChartDir:   path.Join(e.resourcesPath, "istio"),
-		HelmClient: helmClient,
-	}
-	err = istio.InstallComponent()
-	if err != nil {
-		return err
-	}
-
-	xipPatch := &components.Component{
-		Name:       "xip-patch",
-		Namespace:  "kyma-installer",
-		Overrides:  e.overridesProvider.OverridesFor("xip-patch"),
-		ChartDir:   path.Join(e.resourcesPath, "xip-patch"),
-		HelmClient: helmClient,
-	}
-	err = xipPatch.InstallComponent()
-	if err != nil {
-		return err
+	for _, prerequisite := range prerequisites {
+		err := prerequisite.InstallComponent()
+		if err != nil {
+			return  err
+		}
 	}
 
 	return nil
 }
 
 func (e *Engine) uninstallPrerequisites() error {
-	helmClient := &helm.Client{}
 
-	xipPatch := &components.Component{
-		Name:       "xip-patch",
-		Namespace:  "kyma-installer",
-		Overrides:  e.overridesProvider.OverridesFor("xip-patch"),
-		ChartDir:   path.Join(e.resourcesPath, "xip-patch"),
-		HelmClient: helmClient,
-	}
-	err := xipPatch.UninstallComponent()
+	prerequisites, err := e.prerequisitesProvider.GetComponents()
 	if err != nil {
 		return err
 	}
 
-	istio := &components.Component{
-		Name:       "istio",
-		Namespace:  "istio-system",
-		Overrides:  e.overridesProvider.OverridesFor("istio"),
-		ChartDir:   path.Join(e.resourcesPath, "istio"),
-		HelmClient: helmClient,
-	}
-	err = istio.UninstallComponent()
-	if err != nil {
-		return err
-	}
-
-	clusterEssentials := &components.Component{
-		Name:       "cluster-essentials",
-		Namespace:  "kyma-system",
-		Overrides:  e.overridesProvider.OverridesFor("cluster-essentials"),
-		ChartDir:   path.Join(e.resourcesPath, "cluster-essentials"),
-		HelmClient: helmClient,
-	}
-	err = clusterEssentials.UninstallComponent()
-	if err != nil {
-		return err
+	for i := len(prerequisites)-1; i>=0; i-- {
+		err := prerequisites[i].UninstallComponent()
+		if err != nil {
+			return  err
+		}
 	}
 
 	return nil

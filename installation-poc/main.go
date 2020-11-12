@@ -18,12 +18,15 @@ func main() {
 	}
 
 	resourcesPath := filepath.Join(goPath, "src", "github.com", "kyma-project", "kyma", "resources")
-	kubeconfigPath := "/Users/i304607/Downloads/mst.yml"
+	kubeconfigPath := "/Users/I517624/.kube/config"
 
 	config, err := getClientConfig(kubeconfigPath)
 	if err != nil {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
 	}
+
+	//TODO: get prerequisites yaml
+	prerequisitesContent := ""
 
 	componentsContent, err := ioutil.ReadFile("pkg/test/data/installationCR.yaml")
 	if err != nil {
@@ -35,7 +38,7 @@ func main() {
 		log.Fatalf("Failed to read overrides file: %v", err)
 	}
 
-	installer, err := installation.NewInstallation(string(componentsContent), string(overridesContent), resourcesPath)
+	installer, err := installation.NewInstallation(prerequisitesContent, string(componentsContent), string(overridesContent), resourcesPath)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}

@@ -10,25 +10,25 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Provider struct {
+type Provider interface {
+	GetComponents() ([]Component, error)
+}
+
+type ComponentsProvider struct {
 	overridesProvider overrides.OverridesProvider
 	path              string
 	componentListYaml string
 }
 
-func NewComponents(overridesProvider overrides.OverridesProvider, path string, componentListYaml string) *Provider {
-	return &Provider{
+func NewComponentsProvider(overridesProvider overrides.OverridesProvider, path string, componentListYaml string) *ComponentsProvider {
+	return &ComponentsProvider{
 		overridesProvider: overridesProvider,
 		path:              path,
 		componentListYaml: componentListYaml,
 	}
 }
 
-type ComponentsProvider interface {
-	GetComponents() ([]Component, error)
-}
-
-func (p *Provider) GetComponents() ([]Component, error) {
+func (p *ComponentsProvider) GetComponents() ([]Component, error) {
 	helmClient := &helm.Client{}
 
 	err := p.overridesProvider.ReadOverridesFromCluster()
