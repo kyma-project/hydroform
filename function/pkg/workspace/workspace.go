@@ -2,7 +2,6 @@ package workspace
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 
@@ -103,9 +102,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	config.Resources.Limits = function.Spec.ResourceLimits()
 	config.Resources.Requests = function.Spec.ResourceRequests()
 
-	ul, err := build(config.Namespace, operator.GVKTriggers).List(ctx, v1.ListOptions{
-		LabelSelector: fmt.Sprintf("ownerID=%s", function.GetUID()),
-	})
+	ul, err := build("", operator.GVKTriggers).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
@@ -116,6 +113,11 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &trigger); err != nil {
 				return err
 			}
+
+			if !trigger.IsReference(function.Name, function.Namespace) {
+				continue
+			}
+
 			config.Triggers = append(config.Triggers, Trigger{
 				Version: trigger.Spec.Filter.Attributes.Eventtypeversion,
 				Source:  trigger.Spec.Filter.Attributes.Source,
