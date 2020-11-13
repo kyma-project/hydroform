@@ -3,6 +3,8 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
 	"testing"
 
@@ -358,7 +360,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			t := NewTriggersOperator(tt.fields.Client, tt.fields.items...)
+			t := NewTriggersOperator(tt.fields.Client, "test", "test-namespace", tt.fields.items...)
 			if err := t.Apply(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Apply() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -482,7 +484,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			t := NewTriggersOperator(tt.fields.Client, tt.fields.items...)
+			t := NewTriggersOperator(tt.fields.Client, "test", "test-namespace", tt.fields.items...)
 			if err := t.Delete(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -588,7 +590,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: " pre callbacks error",
+			name: "pre callbacks error",
 			args: args{
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
@@ -645,7 +647,17 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			if err := wipeRemoved(tt.args.ctx, tt.args.Client, tt.args.items, tt.args.ownerID, tt.args.opts.Options); (err != nil) != tt.wantErr {
+			if err := wipeRemoved(tt.args.ctx, tt.args.Client, func(obj map[string]interface{}) (bool, error) {
+				var trigger types.Trigger
+				if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &trigger); err != nil {
+					return false, err
+				}
+
+				isRef := trigger.IsReference("test-function-name", "test-namespace")
+				isListed := contains(tt.args.items, trigger.Metadata.Name)
+
+				return isRef && !isListed, nil
+			}, tt.args.opts.Options); (err != nil) != tt.wantErr {
 				t1.Errorf("wipeRemoved() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

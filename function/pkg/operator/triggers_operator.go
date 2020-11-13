@@ -4,22 +4,34 @@ import (
 	"context"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const message = "ownerID"
 
+type FnRef struct {
+	name      string
+	namespace string
+}
+
 type triggersOperator struct {
+	fnRef FnRef
 	items []unstructured.Unstructured
 	client.Client
 }
 
-func NewTriggersOperator(c client.Client, u ...unstructured.Unstructured) Operator {
+func NewTriggersOperator(c client.Client, fnName, fnNamespace string, u ...unstructured.Unstructured) Operator {
 	return &triggersOperator{
 		Client: c,
 		items:  u,
+		fnRef: FnRef{
+			name:      fnName,
+			namespace: fnNamespace,
+		},
 	}
 }
 
@@ -30,7 +42,19 @@ func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	if !found {
 		return errors.Wrap(errNotFound, message)
 	}
-	if err := wipeRemoved(ctx, t.Client, t.items, ownerID, opts.Options); err != nil {
+
+	predicate := func(obj map[string]interface{}) (bool, error) {
+		var trigger types.Trigger
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &trigger); err != nil {
+			return false, err
+		}
+		isRef := trigger.IsReference(t.fnRef.name, t.fnRef.namespace)
+		found := contains(t.items, trigger.Metadata.Name)
+		ok := isRef && !found
+		return ok, nil
+	}
+
+	if err := wipeRemoved(ctx, t.Client, predicate, opts.Options); err != nil {
 		return err
 	}
 	// apply all triggers

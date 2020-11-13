@@ -18,19 +18,35 @@ import (
 var (
 	testObj = unstructured.Unstructured{Object: map[string]interface{}{
 		"metadata": map[string]interface{}{
-			"name": "test-obj",
+			"name":      "test-obj",
+			"namespace": "test-namespace",
 		},
 		"spec": map[string]interface{}{
 			"test": "me",
+			"subscriber": map[string]interface{}{
+				"ref": map[string]interface{}{
+					"kind":      "Service",
+					"name":      "test-function-name",
+					"namespace": "test-namespace",
+				},
+			},
 		},
 	}}
 	testObj2 = unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"metadata": map[string]interface{}{
-				"name": "test-obj2",
+				"name":      "test-obj2",
+				"namespace": "test-namespace",
 			},
 			"spec": map[string]interface{}{
 				"test": "me2",
+				"subscriber": map[string]interface{}{
+					"ref": map[string]interface{}{
+						"kind":      "Service",
+						"name":      "test-function-name",
+						"namespace": "test-namespace",
+					},
+				},
 			},
 		},
 	}

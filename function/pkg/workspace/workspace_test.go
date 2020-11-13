@@ -218,7 +218,7 @@ func Test_Synchronise(t *testing.T) {
 						Times(1)
 
 					result.EXPECT().
-						List(gomock.Any(), v1.ListOptions{LabelSelector: "ownerID="}).
+						List(gomock.Any(), v1.ListOptions{}).
 						Return(&unstructured.UnstructuredList{}, errors.New("the error")).
 						Times(1)
 
@@ -420,7 +420,7 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 		}}, nil).Times(1)
 
 	result.EXPECT().
-		List(gomock.Any(), v1.ListOptions{LabelSelector: "ownerID="}).Return(&unstructured.UnstructuredList{
+		List(gomock.Any(), v1.ListOptions{}).Return(&unstructured.UnstructuredList{
 		Items: []unstructured.Unstructured{
 			{
 				Object: map[string]interface{}{
@@ -472,7 +472,7 @@ func gitClient(ctrl *gomock.Controller, name, namespace string) client.Client {
 		}}, nil).Times(1)
 
 	result.EXPECT().
-		List(gomock.Any(), v1.ListOptions{LabelSelector: "ownerID="}).
+		List(gomock.Any(), v1.ListOptions{}).
 		Return(&unstructured.UnstructuredList{}, nil).
 		Times(1)
 

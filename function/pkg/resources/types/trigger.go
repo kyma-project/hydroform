@@ -7,6 +7,9 @@ type Attributes struct {
 }
 
 type Trigger struct {
+	Metadata struct {
+		Name string `json:"name"`
+	} `json:"metadata"`
 	Spec struct {
 		Filter struct {
 			Attributes Attributes `json:"attributes"`
