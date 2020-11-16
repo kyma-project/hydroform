@@ -3,8 +3,6 @@ package operator
 import (
 	"context"
 	"fmt"
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
-	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
 	"testing"
 
@@ -647,17 +645,11 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			if err := wipeRemoved(tt.args.ctx, tt.args.Client, func(obj map[string]interface{}) (bool, error) {
-				var trigger types.Trigger
-				if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &trigger); err != nil {
-					return false, err
-				}
-
-				isRef := trigger.IsReference("test-function-name", "test-namespace")
-				isListed := contains(tt.args.items, trigger.Metadata.Name)
-
-				return isRef && !isListed, nil
-			}, tt.args.opts.Options); (err != nil) != tt.wantErr {
+			predicate := buildPredicate(FnRef{
+				name:      "test-function-name",
+				namespace: "test-namespace",
+			}, tt.args.items)
+			if err := wipeRemoved(tt.args.ctx, tt.args.Client, predicate, tt.args.opts.Options); (err != nil) != tt.wantErr {
 				t1.Errorf("wipeRemoved() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
