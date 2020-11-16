@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
+	"reflect"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	mockclient "github.com/kyma-incubator/hydroform/function/pkg/client/automock"
-	"io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"reflect"
-	"testing"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 )
@@ -424,14 +425,23 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 		Items: []unstructured.Unstructured{
 			{
 				Object: map[string]interface{}{
-					"trigger": map[string]interface{}{
-						"spec": map[string]interface{}{
-							"filter": map[string]interface{}{
-								"attributes": map[string]interface{}{
-									"eventtypeversion": "v1.0.0",
-									"source":           "the-source",
-									"type":             "t1",
-								},
+					"metadata": map[string]interface{}{
+						"name":      "trigger1",
+						"namespace": "test-ns",
+					},
+					"spec": map[string]interface{}{
+						"filter": map[string]interface{}{
+							"attributes": map[string]interface{}{
+								"eventtypeversion": "v1.0.0",
+								"source":           "the-source",
+								"type":             "t1",
+							},
+						},
+						"subscriber": map[string]interface{}{
+							"ref": map[string]interface{}{
+								"name":      "test",
+								"kind":      "Service",
+								"namespace": "test-ns",
 							},
 						},
 					},

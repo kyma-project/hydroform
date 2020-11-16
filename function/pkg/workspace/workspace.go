@@ -122,7 +122,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				Version: trigger.Spec.Filter.Attributes.Eventtypeversion,
 				Source:  trigger.Spec.Filter.Attributes.Source,
 				Type:    trigger.Spec.Filter.Attributes.Type,
-				Name:    trigger.Metadata.Name,
+				Name:    trigger.ObjectMeta.Name,
 			})
 		}
 	}

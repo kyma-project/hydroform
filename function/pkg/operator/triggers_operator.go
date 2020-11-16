@@ -42,9 +42,12 @@ func buildPredicate(fnRef FnRef, items []unstructured.Unstructured) func(map[str
 			return false, err
 		}
 		isRef := trigger.IsReference(fnRef.name, fnRef.namespace)
-		found := contains(items, trigger.Metadata.Name)
-		ok := isRef && !found
-		return ok, nil
+		if !isRef {
+			return false, nil
+		}
+
+		containsTrigger := contains(items, trigger.ObjectMeta.Name)
+		return !containsTrigger, nil
 	}
 }
 

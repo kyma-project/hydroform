@@ -655,3 +655,61 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 		})
 	}
 }
+
+func Test_Predicate(t *testing.T) {
+	type args struct {
+		trigger unstructured.Unstructured
+		fnRef   FnRef
+		items   []unstructured.Unstructured
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{
+			name: "no match 1",
+			args: args{
+				items:   []unstructured.Unstructured{testObj2, testObj},
+				fnRef:   FnRef{name: "test-function-name", namespace: "test-namespace"},
+				trigger: testObj,
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "no match 2",
+			args: args{
+				items:   []unstructured.Unstructured{testObj, testObj2},
+				fnRef:   FnRef{name: "test-function-name1", namespace: "test-namespace"},
+				trigger: testObj,
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "match",
+			args: args{
+				items:   []unstructured.Unstructured{testObj2},
+				fnRef:   FnRef{name: "test-function-name", namespace: "test-namespace"},
+				trigger: testObj,
+			},
+			want:    true,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			predicate := buildPredicate(tt.args.fnRef, tt.args.items)
+			got, err := predicate(tt.args.trigger.Object)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("predicate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("predicate() bool = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
