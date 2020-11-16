@@ -35,6 +35,19 @@ func NewTriggersOperator(c client.Client, fnName, fnNamespace string, u ...unstr
 	}
 }
 
+func buildPredicate(fnRef FnRef, items []unstructured.Unstructured) func(map[string]interface{}) (bool, error) {
+	return func(obj map[string]interface{}) (bool, error) {
+		var trigger types.Trigger
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &trigger); err != nil {
+			return false, err
+		}
+		isRef := trigger.IsReference(fnRef.name, fnRef.namespace)
+		found := contains(items, trigger.Metadata.Name)
+		ok := isRef && !found
+		return ok, nil
+	}
+}
+
 var errNotFound = errors.New("not found")
 
 func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
@@ -43,16 +56,7 @@ func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 		return errors.Wrap(errNotFound, message)
 	}
 
-	predicate := func(obj map[string]interface{}) (bool, error) {
-		var trigger types.Trigger
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &trigger); err != nil {
-			return false, err
-		}
-		isRef := trigger.IsReference(t.fnRef.name, t.fnRef.namespace)
-		found := contains(t.items, trigger.Metadata.Name)
-		ok := isRef && !found
-		return ok, nil
-	}
+	predicate := buildPredicate(t.fnRef, t.items)
 
 	if err := wipeRemoved(ctx, t.Client, predicate, opts.Options); err != nil {
 		return err
