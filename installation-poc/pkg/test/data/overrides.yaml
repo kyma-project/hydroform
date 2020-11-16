@@ -4,6 +4,12 @@ ory:
       resources:
         limits:
           memory: "141Mi"
+monitoring:
+  alertmanager:
+    alertmanagerSpec:
+      resources:
+        limits:
+          cpu: "49m"
 global:
   test:
     hey: enabled
