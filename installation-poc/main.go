@@ -25,8 +25,11 @@ func main() {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
 	}
 
-	//TODO: get prerequisites yaml
-	prerequisitesContent := ""
+	prerequisitesContent := map[string]string{
+		"cluster-essentials": "kyma-system",
+		"istio": "istio-system",
+		"xip-patch": "kyma-installer",
+	}
 
 	componentsContent, err := ioutil.ReadFile("pkg/test/data/installationCR.yaml")
 	if err != nil {

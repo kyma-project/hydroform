@@ -12,8 +12,9 @@ import (
 )
 
 type Installation struct {
+	// Map component > namespace
+	Prerequisites map[string]string
 	// Content of the Installation CR YAML file
-	PrerequisitesYaml string
 	ComponentsYaml              string
 	// Content of the Helm overrides YAML file
 	OverridesYaml string
@@ -25,7 +26,7 @@ type Installer interface {
 	StartKymaUninstallation(kubeconfig *rest.Config) error
 }
 
-func NewInstallation(prerequisitesYaml string, componentsYaml string, overridesYaml string, resourcesPath string) (*Installation, error) {
+func NewInstallation(prerequisites map[string]string, componentsYaml string, overridesYaml string, resourcesPath string) (*Installation, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Installation. Resource path is required.")
 	}
@@ -33,10 +34,8 @@ func NewInstallation(prerequisitesYaml string, componentsYaml string, overridesY
 		return nil, fmt.Errorf("Unable to create Installation. Components YAML file content is required.")
 	}
 
-	//TODO: should prerequisites be necessary?
-
 	return &Installation{
-		PrerequisitesYaml: prerequisitesYaml,
+		Prerequisites:  prerequisites,
 		ComponentsYaml: componentsYaml,
 		OverridesYaml:  overridesYaml,
 		ResourcesPath:  resourcesPath,
@@ -54,7 +53,7 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 		log.Fatalf("Unable to create overrides provider. Error: %v", err)
 	}
 
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.PrerequisitesYaml)
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites)
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
 
 	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath)
@@ -79,7 +78,7 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 		log.Fatalf("Unable to create overrides provider. Error: %v", err)
 	}
 
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.PrerequisitesYaml)
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites)
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
 
 	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath)
