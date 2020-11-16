@@ -75,7 +75,7 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	return response, statusEntryCreated, nil
 }
 
-func wipeRemoved(ctx context.Context, i client.Client, predicate func(obj map[string]interface{}) (bool, error), opts Options) error {
+func wipeRemoved(ctx context.Context, i client.Client, deletePredicate func(obj map[string]interface{}) (bool, error), opts Options) error {
 	list, err := i.List(ctx, v1.ListOptions{})
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func wipeRemoved(ctx context.Context, i client.Client, predicate func(obj map[st
 	policy := v1.DeletePropagationBackground
 
 	for _, item := range list.Items {
-		match, err := predicate(item.Object)
+		match, err := deletePredicate(item.Object)
 		if err != nil {
 			return err
 		}
