@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/avast/retry-go"
+	"github.com/cenkalti/backoff/v4"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
@@ -29,34 +29,33 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 
 	uninstall := action.NewUninstall(cfg)
 
-	maxAttempts := 3
-	fixedDelay := 3
+	operation := func() error {
+		rel, err := uninstall.Run(name)
+		if err != nil {
+			return err
+		}
 
-	err = retry.Do(
-		func() error {
-			rel, err := uninstall.Run(name)
-			if err != nil {
-				return err
-			}
+		if rel == nil || rel.Release == nil || rel.Release.Info == nil {
+			return fmt.Errorf("Failed to uninstall %s. Status: %v", name, "Unknown")
+		}
 
-			if rel == nil || rel.Release == nil || rel.Release.Info == nil {
-				return fmt.Errorf("Failed to uninstall %s. Status: %v", name, "Unknown")
-			}
+		if rel.Release.Info.Status != release.StatusUninstalled {
+			return fmt.Errorf("Failed to uninstall %s. Status: %v", name, rel.Release.Info.Status)
+		}
 
-			if rel.Release.Info.Status != release.StatusUninstalled {
-				return fmt.Errorf("Failed to uninstall %s. Status: %v", name, rel.Release.Info.Status)
-			}
+		return nil
+	}
 
-			return nil
-		},
-		retry.Attempts(uint(maxAttempts)),
-		retry.DelayType(func(attempt uint, config *retry.Config) time.Duration {
-			log.Printf("Retry number %d on uninstalling %s.\n", attempt+1, name)
-			return time.Duration(fixedDelay) * time.Second
-		}),
-	)
+	exponentialBackoff := backoff.NewExponentialBackOff()
+	exponentialBackoff.InitialInterval = 3 * time.Second
+	exponentialBackoff.MaxElapsedTime = 10 * time.Minute
 
-	return err
+	err = backoff.Retry(operation, exponentialBackoff)
+	if err != nil {
+		return fmt.Errorf("Failed to uninstall %s within the given timeout. Error: %v", name, err)
+	}
+
+	return nil
 }
 
 func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error {
@@ -78,32 +77,31 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 	install.CreateNamespace = true
 	install.Timeout = 3 * time.Minute
 
-	maxAttempts := 3
-	fixedDelay := 3
+	operation := func() error {
+		rel, err := install.Run(chart, overrides)
+		if err != nil {
+			return err
+		}
 
-	err = retry.Do(
-		func() error {
-			rel, err := install.Run(chart, overrides)
-			if err != nil {
-				return err
-			}
+		if rel == nil || rel.Info == nil {
+			return fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
+		}
 
-			if rel == nil || rel.Info == nil {
-				return fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
-			}
+		if rel.Info.Status != release.StatusDeployed {
+			return fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
+		}
 
-			if rel.Info.Status != release.StatusDeployed {
-				return fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
-			}
+		return nil
+	}
 
-			return nil
-		},
-		retry.Attempts(uint(maxAttempts)),
-		retry.DelayType(func(attempt uint, config *retry.Config) time.Duration {
-			log.Printf("Retry number %d on installing %s.\n", attempt+1, name)
-			return time.Duration(fixedDelay) * time.Second
-		}),
-	)
+	exponentialBackoff := backoff.NewExponentialBackOff()
+	exponentialBackoff.InitialInterval = 3 * time.Second
+	exponentialBackoff.MaxElapsedTime = 10 * time.Minute
+
+	err = backoff.Retry(operation, exponentialBackoff)
+	if err != nil {
+		return fmt.Errorf("Failed to install %s within the given timeout. Error: %v", name, err)
+	}
 
 	return err
 }
