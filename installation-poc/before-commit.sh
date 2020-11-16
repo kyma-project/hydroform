@@ -81,7 +81,7 @@ fi
 ##
 # GO VET
 ##
-packagesToVet=("./config/..." "./installation/..." "./k8s/..." "./scheme/..." "./util/...")
+packagesToVet=("./pkg/...")
 
 for vPackage in "${packagesToVet[@]}"; do
 	vetResult=$(go vet ${vPackage})
