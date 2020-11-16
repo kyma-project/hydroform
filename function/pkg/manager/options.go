@@ -14,4 +14,5 @@ type Options struct {
 	OnError            OnError
 	DryRun             bool
 	SetOwnerReferences bool
+	WaitForApply       bool
 }

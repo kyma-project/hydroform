@@ -11,7 +11,8 @@ type Callbacks struct {
 
 type Options struct {
 	Callbacks
-	DryRun []string
+	DryRun       []string
+	WaitForApply bool
 }
 
 type ApplyOptions struct {

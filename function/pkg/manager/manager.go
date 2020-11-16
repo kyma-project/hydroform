@@ -2,7 +2,6 @@ package manager
 
 import (
 	"context"
-
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
 	"github.com/pkg/errors"
@@ -11,16 +10,27 @@ import (
 
 type Manager interface {
 	Do(ctx context.Context, options Options) error
+	AddParent(object operator.Operator, childes []operator.Operator)
+}
+
+type parent struct {
+	object   operator.Operator
+	children []operator.Operator
 }
 
 type manager struct {
-	operators map[operator.Operator][]operator.Operator
+	operators []parent
 }
 
-func NewManager(operators map[operator.Operator][]operator.Operator) Manager {
-	return manager{
-		operators: operators,
-	}
+func NewManager() Manager {
+	return &manager{}
+}
+
+func (m *manager) AddParent(object operator.Operator, childes []operator.Operator) {
+	m.operators = append(m.operators, parent{
+		object:   object,
+		children: childes,
+	})
 }
 
 func (m manager) Do(ctx context.Context, options Options) error {
@@ -35,13 +45,13 @@ func (m manager) Do(ctx context.Context, options Options) error {
 }
 
 func (m *manager) manageOperators(ctx context.Context, options Options) error {
-	for parent, children := range m.operators {
-		references, err := m.useOperator(ctx, parent, options, nil)
+	for _, parent := range m.operators {
+		references, err := m.useOperator(ctx, parent.object, options, nil)
 		if err != nil {
 			return err
 		}
 
-		for _, resource := range children {
+		for _, resource := range parent.children {
 			_, err := m.useOperator(ctx, resource, options, references)
 			if err != nil {
 				return err
@@ -64,8 +74,9 @@ func (m *manager) useOperator(ctx context.Context, opr operator.Operator, option
 	applyOpts := operator.ApplyOptions{
 		OwnerReferences: references,
 		Options: operator.Options{
-			DryRun:    m.getDryRunFlag(options.DryRun),
-			Callbacks: callbacks,
+			DryRun:       m.getDryRunFlag(options.DryRun),
+			Callbacks:    callbacks,
+			WaitForApply: options.WaitForApply,
 		},
 	}
 	return newRefs, opr.Apply(ctx, applyOpts)
@@ -80,11 +91,11 @@ func (m *manager) purgeParents(options Options) {
 		},
 	}
 
-	for opr := range m.operators {
-		if opr == nil {
+	for _, parent := range m.operators {
+		if parent.object == nil {
 			continue
 		}
-		_ = opr.Delete(context.Background(), deleteOptions)
+		_ = parent.object.Delete(context.Background(), deleteOptions)
 	}
 }
 

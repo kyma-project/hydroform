@@ -2,7 +2,9 @@ package operator
 
 import (
 	"context"
+	errs "errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/watch"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -100,7 +102,7 @@ func Test_genericOperator_Apply(t *testing.T) {
 
 					result.EXPECT().
 						Create(gomock.Any(), gomock.Any(), gomock.Any()).
-						Return(testObj.DeepCopy(), nil).
+						Return(nil, errs.New("test error")).
 						Times(1)
 
 					return result
@@ -110,7 +112,7 @@ func Test_genericOperator_Apply(t *testing.T) {
 			args: args{
 				opts: ApplyOptions{},
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "apply",
@@ -128,9 +130,26 @@ func Test_genericOperator_Apply(t *testing.T) {
 						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
+					fakeWatcher := watch.NewRaceFreeFake()
+					testObject := fixUnstructured("test", "test")
+					fakeWatcher.Add(&testObject)
+
+					result.EXPECT().
+						Watch(gomock.Any(), gomock.Any()).
+						Return(fakeWatcher, nil).
+						Times(1)
+
 					return result
 				}(),
 				items: []unstructured.Unstructured{testObj},
+			},
+			args: args{
+				ctx: context.Background(),
+				opts: ApplyOptions{
+					Options: Options{
+						WaitForApply: true,
+					},
+				},
 			},
 			wantErr: false,
 		},

@@ -9,6 +9,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	watch "k8s.io/apimachinery/pkg/watch"
 	reflect "reflect"
 )
 
@@ -156,4 +157,19 @@ func (m *MockClient) List(ctx context.Context, opts v1.ListOptions) (*unstructur
 func (mr *MockClientMockRecorder) List(ctx, opts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockClient)(nil).List), ctx, opts)
+}
+
+// Watch mocks base method
+func (m *MockClient) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Watch", ctx, opts)
+	ret0, _ := ret[0].(watch.Interface)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Watch indicates an expected call of Watch
+func (mr *MockClientMockRecorder) Watch(ctx, opts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Watch", reflect.TypeOf((*MockClient)(nil).Watch), ctx, opts)
 }
