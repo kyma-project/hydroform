@@ -27,8 +27,8 @@ func main() {
 
 	prerequisitesContent := map[string]string{
 		"cluster-essentials": "kyma-system",
-		"istio": "istio-system",
-		"xip-patch": "kyma-installer",
+		"istio":              "istio-system",
+		"xip-patch":          "kyma-installer",
 	}
 
 	componentsContent, err := ioutil.ReadFile("pkg/test/data/installationCR.yaml")

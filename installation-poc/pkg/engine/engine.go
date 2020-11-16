@@ -15,19 +15,19 @@ import (
 var statusMap map[string]string
 
 type Engine struct {
-	overridesProvider  overrides.OverridesProvider
+	overridesProvider     overrides.OverridesProvider
 	prerequisitesProvider components.Provider
-	componentsProvider components.Provider
-	resourcesPath      string
+	componentsProvider    components.Provider
+	resourcesPath         string
 }
 
 func NewEngine(overridesProvider overrides.OverridesProvider, prerequisitesProvider components.Provider, componentsProvider components.Provider, resourcesPath string) *Engine {
 	statusMap = make(map[string]string)
 	return &Engine{
-		overridesProvider:  overridesProvider,
+		overridesProvider:     overridesProvider,
 		prerequisitesProvider: prerequisitesProvider,
-		componentsProvider: componentsProvider,
-		resourcesPath:      resourcesPath,
+		componentsProvider:    componentsProvider,
+		resourcesPath:         resourcesPath,
 	}
 }
 
@@ -46,7 +46,7 @@ func (e *Engine) installPrerequisites() error {
 	for _, prerequisite := range prerequisites {
 		err := prerequisite.InstallComponent()
 		if err != nil {
-			return  err
+			return err
 		}
 	}
 
@@ -60,10 +60,10 @@ func (e *Engine) uninstallPrerequisites() error {
 		return err
 	}
 
-	for i := len(prerequisites)-1; i>=0; i-- {
+	for i := len(prerequisites) - 1; i >= 0; i-- {
 		err := prerequisites[i].UninstallComponent()
 		if err != nil {
-			return  err
+			return err
 		}
 	}
 

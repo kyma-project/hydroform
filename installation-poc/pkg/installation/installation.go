@@ -15,7 +15,7 @@ type Installation struct {
 	// Map component > namespace
 	Prerequisites map[string]string
 	// Content of the Installation CR YAML file
-	ComponentsYaml              string
+	ComponentsYaml string
 	// Content of the Helm overrides YAML file
 	OverridesYaml string
 	ResourcesPath string

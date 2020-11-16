@@ -9,17 +9,16 @@ import (
 type PrerequisitesProvider struct {
 	overridesProvider overrides.OverridesProvider
 	path              string
-	componentList 	map[string]string
+	componentList     map[string]string
 }
 
 func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, path string, componentList map[string]string) *PrerequisitesProvider {
 	return &PrerequisitesProvider{
 		overridesProvider: overridesProvider,
 		path:              path,
-		componentList: 	   componentList,
+		componentList:     componentList,
 	}
 }
-
 
 func (p *PrerequisitesProvider) GetComponents() ([]Component, error) {
 	helmClient := &helm.Client{}
@@ -42,4 +41,3 @@ func (p *PrerequisitesProvider) GetComponents() ([]Component, error) {
 
 	return components, nil
 }
-
