@@ -74,7 +74,7 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 		case cmp, ok := <-statusChan:
 			if ok {
 				if cmp.Status == components.StatusError {
-					errCount += 1
+					errCount++
 				}
 				statusMap[cmp.Name] = cmp.Status
 			} else {
@@ -86,8 +86,6 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
@@ -124,7 +122,7 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 		case cmp, ok := <-statusChan:
 			if ok {
 				if cmp.Status == components.StatusError {
-					errCount += 1
+					errCount++
 				}
 				statusMap[cmp.Name] = cmp.Status
 			} else {
@@ -136,8 +134,6 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 func logStatuses(statusMap map[string]string) {
