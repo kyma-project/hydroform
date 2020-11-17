@@ -1,6 +1,7 @@
 package installation
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -50,7 +51,7 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 
 	overridesProvider, err := overrides.New(kubeClient, i.OverridesYaml)
 	if err != nil {
-		log.Fatalf("Unable to create overrides provider. Error: %v", err)
+		return fmt.Errorf("Unable to create overrides provider. Error: %v", err)
 	}
 
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites)
@@ -59,9 +60,31 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath)
 
 	fmt.Println("Kyma installation")
-	err = eng.Install()
+	cancelCtx := context.Background()
+	statusChan, err := eng.Install(cancelCtx)
 	if err != nil {
 		return fmt.Errorf("Kyma installation failed. Error: %v", err)
+	}
+
+	var statusMap = map[string]string{}
+	var errCount int = 0
+	//Await completion
+	for {
+		select {
+		case cmp, ok := <-statusChan:
+			if ok {
+				if cmp.Status == components.StatusError {
+					errCount += 1
+				}
+				statusMap[cmp.Name] = cmp.Status
+			} else {
+				if errCount > 0 {
+					logStatuses(statusMap)
+					return fmt.Errorf("Kyma uninstallation failed due to errors in %d component(s)", errCount)
+				}
+				return nil
+			}
+		}
 	}
 
 	return nil
@@ -70,12 +93,14 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {
-		log.Fatalf("Unable to create internal client. Error: %v", err)
+		log.Printf("Unable to create internal client. Error: %v", err)
+		return err
 	}
 
 	overridesProvider, err := overrides.New(kubeClient, i.OverridesYaml)
 	if err != nil {
-		log.Fatalf("Unable to create overrides provider. Error: %v", err)
+		log.Printf("Unable to create overrides provider. Error: %v", err)
+		return err
 	}
 
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites)
@@ -83,12 +108,40 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 
 	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath)
 
-	fmt.Println("Kyma uninstallation")
+	log.Println("Kyma uninstallation started")
 
-	err = eng.Uninstall()
+	cancelCtx := context.Background()
+	statusChan, err := eng.Uninstall(cancelCtx)
 	if err != nil {
-		log.Fatalf("Kyma uninstallation failed. Error: %v", err)
+		return err
+	}
+
+	var statusMap = map[string]string{}
+	var errCount int = 0
+	//Await completion
+	for {
+		select {
+		case cmp, ok := <-statusChan:
+			if ok {
+				if cmp.Status == components.StatusError {
+					errCount += 1
+				}
+				statusMap[cmp.Name] = cmp.Status
+			} else {
+				if errCount > 0 {
+					logStatuses(statusMap)
+					return fmt.Errorf("Kyma uninstallation failed due to errors in %d component(s)", errCount)
+				}
+				return nil
+			}
+		}
 	}
 
 	return nil
+}
+
+func logStatuses(statusMap map[string]string) {
+	for k, v := range statusMap {
+		log.Printf("Component: %s, Status: %s", k, v)
+	}
 }

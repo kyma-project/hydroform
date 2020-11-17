@@ -3,6 +3,7 @@ package helm
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -28,10 +29,16 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 	}
 
 	uninstall := action.NewUninstall(cfg)
+	//TODO: Make configurable
+	uninstall.Timeout = 5 * time.Minute
 
 	operation := func() error {
 		rel, err := uninstall.Run(name)
 		if err != nil {
+			//TODO: Find a better way. Maybe explicit check before uninstalling?
+			if strings.HasSuffix(err.Error(), "release: not found") {
+				return nil
+			}
 			return err
 		}
 

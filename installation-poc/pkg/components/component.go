@@ -6,6 +6,10 @@ import (
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
 )
 
+const StatusError = "Error"
+const StatusInstalled = "Installed"
+const StatusUninstalled = "Uninstalled"
+
 type Component struct {
 	Name       string
 	Namespace  string

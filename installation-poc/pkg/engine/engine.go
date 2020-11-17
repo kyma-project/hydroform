@@ -2,10 +2,8 @@ package engine
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"sync"
-	"time"
 
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
 
@@ -32,93 +30,110 @@ func NewEngine(overridesProvider overrides.OverridesProvider, prerequisitesProvi
 }
 
 type Installation interface {
-	Install() error
-	Uninstall() error
+	//Installs components. ctx is used for cancellation of the operation. returned channel receives every processed component and is closed after all components are processed.
+	Install(ctx context.Context) (<-chan components.Component, error)
+	//Uninstalls components. ctx is used for cancellation of the operation. returned channel receives every processed component and is closed after all components are processed.
+	Uninstall(ctx context.Context) (<-chan components.Component, error)
 }
 
-func (e *Engine) installPrerequisites() error {
-
-	prerequisites, err := e.prerequisitesProvider.GetComponents()
-	if err != nil {
-		return err
-	}
+func (e *Engine) installPrerequisites(statusChan chan<- components.Component, prerequisites []components.Component) {
 
 	for _, prerequisite := range prerequisites {
 		err := prerequisite.InstallComponent()
 		if err != nil {
-			return err
+			prerequisite.Status = components.StatusError
+		} else {
+			prerequisite.Status = components.StatusInstalled
 		}
+		statusChan <- prerequisite
 	}
-
-	return nil
 }
 
-func (e *Engine) uninstallPrerequisites() error {
+func (e *Engine) uninstallPrerequisites(statusChan chan<- components.Component, prerequisites []components.Component) {
+
+	for i := len(prerequisites) - 1; i >= 0; i-- {
+		prq := prerequisites[i]
+		err := prq.UninstallComponent()
+		if err != nil {
+			prq.Status = components.StatusError
+		} else {
+			prq.Status = components.StatusUninstalled
+		}
+		statusChan <- prq
+	}
+}
+
+func (e *Engine) Install(ctx context.Context) (<-chan components.Component, error) {
 
 	prerequisites, err := e.prerequisitesProvider.GetComponents()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for i := len(prerequisites) - 1; i >= 0; i-- {
-		err := prerequisites[i].UninstallComponent()
-		if err != nil {
-			return err
+	cmps, err := e.componentsProvider.GetComponents()
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: Size dependent on number of components?
+	statusChan := make(chan components.Component, 30)
+
+	go func() {
+		defer close(statusChan)
+
+		e.installPrerequisites(statusChan, prerequisites)
+
+		//Install the rest of the components
+		run(ctx, statusChan, cmps, "install")
+	}()
+
+	return statusChan, nil
+}
+
+func (e *Engine) Uninstall(ctx context.Context) (<-chan components.Component, error) {
+	cmps, err := e.componentsProvider.GetComponents()
+	if err != nil {
+		return nil, err
+	}
+
+	prerequisites, err := e.prerequisitesProvider.GetComponents()
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: Size dependent on number of components?
+	statusChan := make(chan components.Component, 30)
+
+	go func() {
+		defer close(statusChan)
+
+		//Uninstall the "standard" components
+		run(ctx, statusChan, cmps, "uninstall")
+
+		if ctx.Err() == nil {
+			//Uninstall the prequisite components
+			e.uninstallPrerequisites(statusChan, prerequisites)
 		}
-	}
+	}()
 
-	return nil
+	return statusChan, nil
 }
 
-func (e *Engine) Install() error {
-	err := e.installPrerequisites()
-	if err != nil {
-		return err
-	}
-
-	cmps, err := e.componentsProvider.GetComponents()
-	if err != nil {
-		return err
-	}
-
-	//Install the rest of the components
-	return run(cmps, "install")
-}
-
-func (e *Engine) Uninstall() error {
-	cmps, err := e.componentsProvider.GetComponents()
-	if err != nil {
-		return err
-	}
-
-	//Uninstall the components
-	err = run(cmps, "uninstall")
-	if err != nil {
-		return err
-	}
-
-	//Uninstall the prequisite components
-	err = e.uninstallPrerequisites()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func run(cmps []components.Component, installationType string) error {
+func run(ctx context.Context, statusChan chan<- components.Component, cmps []components.Component, installationType string) {
+	//TODO: Size dependent on number of components?
 	jobChan := make(chan components.Component, 30)
+
+	//Fill the queue with jobs
 	for _, comp := range cmps {
 		if !enqueueJob(comp, jobChan) {
 			log.Printf("Max capacity reached, component dismissed: %s", comp.Name)
 		}
 	}
 
-	statusChan := make(chan components.Component, 30)
+	//Spawn workers
 	var wg sync.WaitGroup
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
+	//TODO: Configurable number of workers
 	for i := 0; i < 4; i++ {
 		wg.Add(1)
 		go worker(ctx, &wg, jobChan, statusChan, installationType)
@@ -126,7 +141,9 @@ func run(cmps []components.Component, installationType string) error {
 
 	// to stop the workers, first close the job channel
 	close(jobChan)
-	return wait(&wg, 10*time.Minute, statusChan, cmps)
+
+	// block until workers quit
+	wg.Wait()
 }
 
 func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.Component, statusChan chan<- components.Component, installationType string) {
@@ -135,66 +152,34 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 	for {
 		select {
 		case <-ctx.Done():
+			log.Printf("Finishing work: context cancelled.")
 			return
 
 		case component, ok := <-jobChan:
-			if ctx.Err() != nil || !ok {
-				return
-			}
 			if ok {
 				if installationType == "install" {
 					if err := component.InstallComponent(); err != nil {
-						component.Status = "Error"
+						component.Status = components.StatusError
 					} else {
-						component.Status = "Installed"
+						component.Status = components.StatusInstalled
 					}
 					statusChan <- component
 				} else if installationType == "uninstall" {
 					if err := component.UninstallComponent(); err != nil {
-						component.Status = "Error"
+						component.Status = components.StatusError
 					} else {
-						component.Status = "Uninstalled"
+						component.Status = components.StatusUninstalled
 					}
 					statusChan <- component
 				}
-			}
-		}
-	}
-}
-
-func wait(wg *sync.WaitGroup, timeout time.Duration, statusChan <-chan components.Component, cmps []components.Component) error {
-	ch := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
-	for {
-		select {
-		case component, ok := <-statusChan:
-			if ok {
-				log.Printf("Operation in progress.. Component: %v, Status: %v", component.Name, component.Status)
-				statusMap[component.Name] = component.Status
-			}
-		case <-ch:
-			operationErrored := false
-			for _, cmp := range cmps {
-				componentStatus, ok := statusMap[cmp.Name]
-				if !ok {
-					log.Printf("Component: %s, Status: %s", cmp.Name, "Error")
-					operationErrored = true
-					continue
+			} else {
+				if err := ctx.Err(); err != nil {
+					log.Printf("Finishing work: context error: %s.", err.Error())
+				} else {
+					log.Printf("Finishing work: no more jobs in queue.")
 				}
-				log.Printf("Component: %s, Status: %s", cmp.Name, componentStatus)
-				if componentStatus == "Error" {
-					operationErrored = true
-				}
+				return
 			}
-			if operationErrored {
-				return fmt.Errorf("Operation was unsuccessful! Check the previous logs to see the problem.")
-			}
-			return nil
-		case <-time.After(timeout):
-			return fmt.Errorf("Timeout occurred after %v minutes", timeout.Minutes())
 		}
 	}
 }
