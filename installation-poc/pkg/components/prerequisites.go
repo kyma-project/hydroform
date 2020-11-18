@@ -9,10 +9,10 @@ import (
 type PrerequisitesProvider struct {
 	overridesProvider overrides.OverridesProvider
 	path              string
-	componentList     map[string]string
+	componentList     [][]string
 }
 
-func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, path string, componentList map[string]string) *PrerequisitesProvider {
+func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, path string, componentList [][]string) *PrerequisitesProvider {
 	return &PrerequisitesProvider{
 		overridesProvider: overridesProvider,
 		path:              path,
@@ -29,12 +29,15 @@ func (p *PrerequisitesProvider) GetComponents() ([]Component, error) {
 	}
 
 	var components []Component
-	for component, namespace := range p.componentList {
+	for _, componentNamespacePair := range p.componentList {
+		name := componentNamespacePair[0]
+		namespace := componentNamespacePair[1]
+
 		components = append(components, Component{
-			Name:       component,
+			Name:       name,
 			Namespace:  namespace,
-			ChartDir:   path.Join(p.path, component),
-			Overrides:  p.overridesProvider.OverridesFor(component),
+			ChartDir:   path.Join(p.path, name),
+			Overrides:  p.overridesProvider.OverridesFor(name),
 			HelmClient: helmClient,
 		})
 	}

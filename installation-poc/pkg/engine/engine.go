@@ -17,15 +17,17 @@ type Engine struct {
 	prerequisitesProvider components.Provider
 	componentsProvider    components.Provider
 	resourcesPath         string
+	concurrency           int
 }
 
-func NewEngine(overridesProvider overrides.OverridesProvider, prerequisitesProvider components.Provider, componentsProvider components.Provider, resourcesPath string) *Engine {
+func NewEngine(overridesProvider overrides.OverridesProvider, prerequisitesProvider components.Provider, componentsProvider components.Provider, resourcesPath string, concurrency int) *Engine {
 	statusMap = make(map[string]string)
 	return &Engine{
 		overridesProvider:     overridesProvider,
 		prerequisitesProvider: prerequisitesProvider,
 		componentsProvider:    componentsProvider,
 		resourcesPath:         resourcesPath,
+		concurrency:           concurrency,
 	}
 }
 
@@ -99,7 +101,7 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 
 		if ctx.Err() != nil {
 			//Install the rest of the components
-			run(ctx, statusChan, cmps, "install")
+			run(ctx, statusChan, cmps, "install", e.concurrency)
 		}
 	}()
 
@@ -125,7 +127,7 @@ func (e *Engine) Uninstall(ctx context.Context) (<-chan components.Component, er
 		defer close(statusChan)
 
 		//Uninstall the "standard" components
-		run(ctx, statusChan, cmps, "uninstall")
+		run(ctx, statusChan, cmps, "uninstall", e.concurrency)
 
 		if ctx.Err() == nil {
 			//Uninstall the prequisite components
@@ -136,7 +138,7 @@ func (e *Engine) Uninstall(ctx context.Context) (<-chan components.Component, er
 	return statusChan, nil
 }
 
-func run(ctx context.Context, statusChan chan<- components.Component, cmps []components.Component, installationType string) {
+func run(ctx context.Context, statusChan chan<- components.Component, cmps []components.Component, installationType string, concurrency int) {
 	//TODO: Size dependent on number of components?
 	jobChan := make(chan components.Component, 30)
 
@@ -151,7 +153,7 @@ func run(ctx context.Context, statusChan chan<- components.Component, cmps []com
 	var wg sync.WaitGroup
 
 	//TODO: Configurable number of workers
-	for i := 0; i < 4; i++ {
+	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		go worker(ctx, &wg, jobChan, statusChan, installationType)
 	}
