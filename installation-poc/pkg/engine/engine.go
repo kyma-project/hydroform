@@ -99,7 +99,7 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 
 		e.installPrerequisites(ctx, statusChan, prerequisites)
 
-		if ctx.Err() != nil {
+		if ctx.Err() == nil {
 			//Install the rest of the components
 			run(ctx, statusChan, cmps, "install", e.concurrency)
 		}
