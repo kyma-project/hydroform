@@ -570,7 +570,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			predicate := buildMattchRemovedTriggerPredicate(functionReference{
+			predicate := buildMatchRemovedTriggerPredicate(functionReference{
 				name:      "test-function-name",
 				namespace: "test-namespace",
 			}, tt.args.items)
@@ -626,7 +626,7 @@ func Test_Predicate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			predicate := buildMattchRemovedTriggerPredicate(tt.args.fnRef, tt.args.items)
+			predicate := buildMatchRemovedTriggerPredicate(tt.args.fnRef, tt.args.items)
 			got, err := predicate(tt.args.trigger.Object)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("predicate() error = %v, wantErr %v", err, tt.wantErr)
