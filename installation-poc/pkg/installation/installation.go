@@ -14,12 +14,14 @@ import (
 
 type Installation struct {
 	// Map component > namespace
-	Prerequisites map[string]string
+	Prerequisites [][]string
 	// Content of the Installation CR YAML file
 	ComponentsYaml string
 	// Content of the Helm overrides YAML file
 	OverridesYaml string
 	ResourcesPath string
+	// Number of components to be installed in parallel
+	Concurrency int
 }
 
 type Installer interface {
@@ -27,7 +29,7 @@ type Installer interface {
 	StartKymaUninstallation(kubeconfig *rest.Config) error
 }
 
-func NewInstallation(prerequisites map[string]string, componentsYaml string, overridesYaml string, resourcesPath string) (*Installation, error) {
+func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYaml string, resourcesPath string, concurrency int) (*Installation, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Installation. Resource path is required.")
 	}
@@ -40,6 +42,7 @@ func NewInstallation(prerequisites map[string]string, componentsYaml string, ove
 		ComponentsYaml: componentsYaml,
 		OverridesYaml:  overridesYaml,
 		ResourcesPath:  resourcesPath,
+		Concurrency: 	concurrency,
 	}, nil
 }
 
@@ -57,7 +60,7 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites)
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
 
-	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath)
+	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, i.Concurrency)
 
 	fmt.Println("Kyma installation")
 	cancelCtx := context.Background()
@@ -104,7 +107,7 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites)
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
 
-	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath)
+	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, i.Concurrency)
 
 	log.Println("Kyma uninstallation started")
 

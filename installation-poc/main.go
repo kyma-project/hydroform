@@ -25,10 +25,10 @@ func main() {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
 	}
 
-	prerequisitesContent := map[string]string{
-		"cluster-essentials": "kyma-system",
-		"istio":              "istio-system",
-		"xip-patch":          "kyma-installer",
+	prerequisitesContent := [][]string{
+		{"cluster-essentials", "kyma-system"},
+		{"istio", "istio-system"},
+		{"xip-patch", "kyma-installer"},
 	}
 
 	componentsContent, err := ioutil.ReadFile("pkg/test/data/installationCR.yaml")
@@ -41,7 +41,11 @@ func main() {
 		log.Fatalf("Failed to read overrides file: %v", err)
 	}
 
-	installer, err := installation.NewInstallation(prerequisitesContent, string(componentsContent), string(overridesContent), resourcesPath)
+	installer, err := installation.NewInstallation(prerequisitesContent,
+		string(componentsContent),
+		string(overridesContent),
+		resourcesPath,
+		4)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
