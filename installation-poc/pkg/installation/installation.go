@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/components"
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/engine"
@@ -60,7 +61,7 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath)
 
 	fmt.Println("Kyma installation")
-	cancelCtx := context.Background()
+	cancelCtx, cancel := context.WithCancel(context.Background())
 	statusChan, err := eng.Install(cancelCtx)
 	if err != nil {
 		return fmt.Errorf("Kyma installation failed. Error: %v", err)
@@ -68,22 +69,39 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 
 	var statusMap = map[string]string{}
 	var errCount int = 0
+	var cancelTimeout time.Duration = 20 * time.Minute
+	var quitTimeout time.Duration = 25 * time.Minute
+	var timeoutOccured bool = false
+
 	//Await completion
 	for {
 		select {
 		case cmp, ok := <-statusChan:
 			if ok {
+				//Received a status update
 				if cmp.Status == components.StatusError {
 					errCount += 1
 				}
 				statusMap[cmp.Name] = cmp.Status
 			} else {
+				//statusChan is closed
 				if errCount > 0 {
 					logStatuses(statusMap)
-					return fmt.Errorf("Kyma uninstallation failed due to errors in %d component(s)", errCount)
+					return fmt.Errorf("Kyma installation failed due to errors in %d component(s)", errCount)
+				}
+				if timeoutOccured {
+					logStatuses(statusMap)
+					return fmt.Errorf("Kyma installation failed due to the timeout")
 				}
 				return nil
 			}
+		case <-time.After(cancelTimeout):
+			timeoutOccured = true
+			log.Printf("Timeout occurred after %v minutes. Cancelling installation", cancelTimeout.Minutes())
+			cancel()
+		case <-time.After(quitTimeout):
+			log.Print("Installation doesn't stop after it's canceled. Enforcing quit")
+			return fmt.Errorf("Kyma installation failed due to the timeout")
 		}
 	}
 
@@ -110,7 +128,7 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 
 	log.Println("Kyma uninstallation started")
 
-	cancelCtx := context.Background()
+	cancelCtx, cancel := context.WithCancel(context.Background())
 	statusChan, err := eng.Uninstall(cancelCtx)
 	if err != nil {
 		return err
@@ -118,6 +136,10 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 
 	var statusMap = map[string]string{}
 	var errCount int = 0
+	var cancelTimeout time.Duration = 20 * time.Minute
+	var quitTimeout time.Duration = 25 * time.Minute
+	var timeoutOccured bool = false
+
 	//Await completion
 	for {
 		select {
@@ -132,8 +154,19 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 					logStatuses(statusMap)
 					return fmt.Errorf("Kyma uninstallation failed due to errors in %d component(s)", errCount)
 				}
+				if timeoutOccured {
+					logStatuses(statusMap)
+					return fmt.Errorf("Kyma uninstallation failed due to the timeout")
+				}
 				return nil
 			}
+		case <-time.After(cancelTimeout):
+			timeoutOccured = true
+			log.Printf("Timeout occurred after %v minutes. Cancelling uninstallation", cancelTimeout.Minutes())
+			cancel()
+		case <-time.After(quitTimeout):
+			log.Print("Uninstallation doesn't stop after it's canceled. Enforcing quit")
+			return fmt.Errorf("Kyma uninstallation failed due to the timeout")
 		}
 	}
 
@@ -141,6 +174,7 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 }
 
 func logStatuses(statusMap map[string]string) {
+	log.Print("Components processed so far:")
 	for k, v := range statusMap {
 		log.Printf("Component: %s, Status: %s", k, v)
 	}

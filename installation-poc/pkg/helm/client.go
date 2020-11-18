@@ -53,6 +53,7 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 		return nil
 	}
 
+	//TODO: Find a way to stop backoff once we have Context cancel() function invoked by the global installation timetout.
 	exponentialBackoff := backoff.NewExponentialBackOff()
 	exponentialBackoff.InitialInterval = 3 * time.Second
 	exponentialBackoff.MaxElapsedTime = 10 * time.Minute
@@ -101,6 +102,7 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 		return nil
 	}
 
+	//TODO: Find a way to stop backoff once we have Context cancel() function invoked by the global installation timetout.
 	exponentialBackoff := backoff.NewExponentialBackOff()
 	exponentialBackoff.InitialInterval = 3 * time.Second
 	exponentialBackoff.MaxElapsedTime = 10 * time.Minute

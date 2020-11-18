@@ -36,9 +36,14 @@ type Installation interface {
 	Uninstall(ctx context.Context) (<-chan components.Component, error)
 }
 
-func (e *Engine) installPrerequisites(statusChan chan<- components.Component, prerequisites []components.Component) {
+func (e *Engine) installPrerequisites(ctx context.Context, statusChan chan<- components.Component, prerequisites []components.Component) {
 
 	for _, prerequisite := range prerequisites {
+		//TODO: Is there a better way to find out if Context is canceled?
+		if ctx.Err() != nil {
+			//Context is canceled or timed-out. Skip processing
+			return
+		}
 		err := prerequisite.InstallComponent()
 		if err != nil {
 			prerequisite.Status = components.StatusError
@@ -49,17 +54,22 @@ func (e *Engine) installPrerequisites(statusChan chan<- components.Component, pr
 	}
 }
 
-func (e *Engine) uninstallPrerequisites(statusChan chan<- components.Component, prerequisites []components.Component) {
+func (e *Engine) uninstallPrerequisites(ctx context.Context, statusChan chan<- components.Component, prerequisites []components.Component) {
 
 	for i := len(prerequisites) - 1; i >= 0; i-- {
-		prq := prerequisites[i]
-		err := prq.UninstallComponent()
-		if err != nil {
-			prq.Status = components.StatusError
-		} else {
-			prq.Status = components.StatusUninstalled
+		//TODO: Is there a better way to find out if Context is canceled?
+		if ctx.Err() != nil {
+			//Context is canceled or timed-out. Skip processing
+			return
 		}
-		statusChan <- prq
+		prereq := prerequisites[i]
+		err := prereq.UninstallComponent()
+		if err != nil {
+			prereq.Status = components.StatusError
+		} else {
+			prereq.Status = components.StatusUninstalled
+		}
+		statusChan <- prereq
 	}
 }
 
@@ -78,13 +88,19 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.Component, 30)
 
+	//TODO: I'd prefer to avoid this goroutine. Because goroutines are cheap, for now it's OK.
+	//A better approach would be a dedicated data type containing a list of operations.
+	//Every operation would be a non-empty set of components, along with information about how many workers should be used (default = 1)
+	//Then we could use generic `run` subroutine to process such list.
 	go func() {
 		defer close(statusChan)
 
-		e.installPrerequisites(statusChan, prerequisites)
+		e.installPrerequisites(ctx, statusChan, prerequisites)
 
-		//Install the rest of the components
-		run(ctx, statusChan, cmps, "install")
+		if ctx.Err() != nil {
+			//Install the rest of the components
+			run(ctx, statusChan, cmps, "install")
+		}
 	}()
 
 	return statusChan, nil
@@ -104,6 +120,7 @@ func (e *Engine) Uninstall(ctx context.Context) (<-chan components.Component, er
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.Component, 30)
 
+	//TODO: Perhaps we should refactor to get rid of this goroutine.
 	go func() {
 		defer close(statusChan)
 
@@ -112,7 +129,7 @@ func (e *Engine) Uninstall(ctx context.Context) (<-chan components.Component, er
 
 		if ctx.Err() == nil {
 			//Uninstall the prequisite components
-			e.uninstallPrerequisites(statusChan, prerequisites)
+			e.uninstallPrerequisites(ctx, statusChan, prerequisites)
 		}
 	}()
 
@@ -151,11 +168,17 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 
 	for {
 		select {
+		//TODO: Perhaps this should be removed/refactored. Golang choses cases randomly if both are possible, so it might chose processing component instead, and that is invalid.
 		case <-ctx.Done():
-			log.Printf("Finishing work: context cancelled.")
+			log.Printf("Finishing work: %v", ctx.Err())
 			return
 
 		case component, ok := <-jobChan:
+			//TODO: Is there a better way to find out if Context is canceled?
+			if err := ctx.Err(); err != nil {
+				log.Printf("Finishing work: %v.", err)
+				return
+			}
 			if ok {
 				if installationType == "install" {
 					if err := component.InstallComponent(); err != nil {
@@ -173,11 +196,7 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 					statusChan <- component
 				}
 			} else {
-				if err := ctx.Err(); err != nil {
-					log.Printf("Finishing work: context error: %s.", err.Error())
-				} else {
-					log.Printf("Finishing work: no more jobs in queue.")
-				}
+				log.Printf("Finishing work: no more jobs in queue.")
 				return
 			}
 		}

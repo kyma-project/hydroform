@@ -48,9 +48,10 @@ func main() {
 
 	err = installer.StartKymaInstallation(config)
 	if err != nil {
-		log.Fatalf("Failed to install Kyma: %v", err)
+		log.Printf("Failed to install Kyma: %v", err)
+	} else {
+		log.Println("Kyma installed!")
 	}
-	log.Println("Kyma installed!")
 
 	err = installer.StartKymaUninstallation(config)
 	if err != nil {
