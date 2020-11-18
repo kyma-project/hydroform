@@ -21,6 +21,7 @@ const CfgFilename = "config.yaml"
 type Attributes = map[string]interface{}
 
 type Trigger struct {
+	Name    string `yaml:"name"`
 	Version string `yaml:"version"`
 	Source  string `yaml:"source"`
 	Type    string `yaml:"type"`

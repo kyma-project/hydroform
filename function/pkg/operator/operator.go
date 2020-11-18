@@ -75,28 +75,28 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	return response, statusEntryCreated, nil
 }
 
-func wipeRemoved(ctx context.Context, i client.Client,
-	u []unstructured.Unstructured, ownerID string, opts Options) error {
-
-	list, err := i.List(ctx, v1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", message, ownerID),
-	})
+func wipeRemoved(ctx context.Context, i client.Client, deletePredicate func(obj map[string]interface{}) (bool, error), opts Options) error {
+	list, err := i.List(ctx, v1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
 	policy := v1.DeletePropagationBackground
 
-	// delete all removed triggers
 	for _, item := range list.Items {
-		if contains(u, item.GetName()) {
+		match, err := deletePredicate(item.Object)
+		if err != nil {
+			return err
+		}
+
+		if !match {
 			continue
 		}
 
 		if err := fireCallbacks(&item, nil, opts.Pre...); err != nil {
 			return err
 		}
-		// delete trigger, delegate flow ctrl to caller
+		// delete and delegate flow ctrl to caller
 		if err := i.Delete(ctx, item.GetName(), v1.DeleteOptions{
 			DryRun:            opts.DryRun,
 			PropagationPolicy: &policy,
