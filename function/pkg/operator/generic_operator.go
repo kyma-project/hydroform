@@ -45,14 +45,27 @@ func (p genericOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
-		new1, statusEntry, err := applyObject(ctx, p.Client, u, opts.DryRun)
+
+		applied, statusEntry, err := p.apply(ctx, u, opts)
+
 		// fire post callbacks
 		if err := fireCallbacks(statusEntry, err, opts.Callbacks.Post...); err != nil {
 			return err
 		}
-		u.SetUnstructuredContent(new1.Object)
+		u.SetUnstructuredContent(applied.Object)
 	}
 	return nil
+}
+
+func (p genericOperator) apply(ctx context.Context, item unstructured.Unstructured, opts ApplyOptions) (*unstructured.Unstructured, client.PostStatusEntry, error) {
+	applied, statusEntry, err := applyObject(ctx, p.Client, item, opts.DryRun)
+	if err != nil {
+		return applied, statusEntry, err
+	}
+	if opts.WaitForApply {
+		err = waitForObject(ctx, p.Client, *applied)
+	}
+	return applied, statusEntry, err
 }
 
 func (p genericOperator) Delete(ctx context.Context, opts DeleteOptions) error {

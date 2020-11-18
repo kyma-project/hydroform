@@ -3,6 +3,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/watch"
 	"reflect"
 	"testing"
 
@@ -254,7 +255,11 @@ func Test_triggersOperator_Apply(t *testing.T) {
 		{
 			name: "apply",
 			args: args{
+				ctx: context.Background(),
 				opts: ApplyOptions{
+					Options: Options{
+						WaitForApply: true,
+					},
 					OwnerReferences: []v1.OwnerReference{
 						{
 							Kind: "Function",
@@ -276,6 +281,15 @@ func Test_triggersOperator_Apply(t *testing.T) {
 					result.EXPECT().
 						Get(gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(testObj.DeepCopy(), nil).
+						Times(1)
+
+					fakeWatcher := watch.NewRaceFreeFake()
+					testObject := fixUnstructured("test", "test")
+					fakeWatcher.Add(&testObject)
+
+					result.EXPECT().
+						Watch(gomock.Any(), gomock.Any()).
+						Return(fakeWatcher, nil).
 						Times(1)
 
 					return result

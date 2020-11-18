@@ -2,9 +2,12 @@ package operator
 
 import (
 	"context"
+	errs "errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/watch"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
@@ -391,4 +394,100 @@ func Test_fireCallbacks(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_waitForObject(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	timeoutedContext, cencel := context.WithTimeout(context.Background(), time.Second)
+	defer cencel()
+
+	type args struct {
+		ctx context.Context
+		c   client.Client
+		u   unstructured.Unstructured
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "should receive event type ADDED and return nil",
+			args: args{
+				ctx: context.Background(),
+				c: func() client.Client {
+					result := mockclient.NewMockClient(ctrl)
+					fakeWatcher := watch.NewRaceFreeFake()
+					testObject := fixUnstructured("test", "test")
+					fakeWatcher.Add(&testObject)
+
+					result.EXPECT().
+						Watch(gomock.Any(), gomock.Any()).
+						Return(fakeWatcher, nil).
+						Times(1)
+
+					return result
+				}(),
+				u: fixUnstructured("test", "test"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "should receive event type MODIFIED and return error",
+			args: args{
+				ctx: timeoutedContext,
+				c: func() client.Client {
+					result := mockclient.NewMockClient(ctrl)
+					fakeWatcher := watch.NewRaceFreeFake()
+					testObject := fixUnstructured("test", "test")
+					fakeWatcher.Modify(&testObject)
+
+					result.EXPECT().
+						Watch(gomock.Any(), gomock.Any()).
+						Return(fakeWatcher, nil).
+						Times(1)
+
+					return result
+				}(),
+				u: fixUnstructured("test", "test"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "should return error when watcher throws error",
+			args: args{
+				ctx: context.Background(),
+				c: func() client.Client {
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						Watch(gomock.Any(), gomock.Any()).
+						Return(nil, errs.New("sample error")).
+						Times(1)
+
+					return result
+				}(),
+				u: fixUnstructured("test", "test"),
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := waitForObject(tt.args.ctx, tt.args.c, tt.args.u); (err != nil) != tt.wantErr {
+				t.Errorf("waitForObject() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func fixUnstructured(name, namespace string) unstructured.Unstructured {
+	gitRepo := unstructured.Unstructured{}
+	gitRepo.SetAPIVersion("testapiversion")
+	gitRepo.SetKind("testkind")
+	gitRepo.SetName(name)
+	gitRepo.SetNamespace(namespace)
+	gitRepo.SetResourceVersion("testResourceVersion")
+	return gitRepo
 }

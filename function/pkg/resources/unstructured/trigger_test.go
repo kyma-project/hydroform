@@ -30,8 +30,8 @@ func TestNewTriggers(t *testing.T) {
 					Triggers: []workspace.Trigger{
 						{
 							Version: "a",
-							Source:           "b",
-							Type:             "c",
+							Source:  "b",
+							Type:    "c",
 						},
 					},
 				},

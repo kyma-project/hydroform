@@ -64,12 +64,15 @@ func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
-		new1, statusEntry, err := applyObject(ctx, t.Client, u, opts.DryRun)
+		applied, statusEntry, err := applyObject(ctx, t.Client, u, opts.DryRun)
+		if opts.WaitForApply && applied != nil {
+			err = waitForObject(ctx, t.Client, *applied)
+		}
 		// fire post callbacks
 		if err := fireCallbacks(statusEntry, err, opts.Post...); err != nil {
 			return err
 		}
-		u.SetUnstructuredContent(new1.Object)
+		u.SetUnstructuredContent(applied.Object)
 	}
 	return nil
 }

@@ -3,13 +3,14 @@ package operator
 import (
 	"context"
 	"fmt"
-
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
 )
 
@@ -73,6 +74,38 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 
 	statusEntryCreated := client.NewStatusEntryCreated(*response)
 	return response, statusEntryCreated, nil
+}
+
+func waitForObject(ctx context.Context, c client.Client, u unstructured.Unstructured) error {
+	w, err := c.Watch(ctx, metav1.ListOptions{
+		TypeMeta: v1.TypeMeta{
+			Kind:       u.GetKind(),
+			APIVersion: u.GetAPIVersion(),
+		},
+		FieldSelector: fields.AndSelectors(
+			fields.OneTermEqualSelector("metadata.name", u.GetName()),
+			fields.OneTermEqualSelector("metadata.namespace", u.GetNamespace()),
+		).String(),
+	})
+	if err != nil {
+		return err
+	}
+
+functionBlock:
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case event, ok := <-w.ResultChan():
+			if !ok {
+				break functionBlock
+			}
+			if event.Type == watch.Added {
+				return nil
+			}
+		}
+	}
+	return nil
 }
 
 func wipeRemoved(ctx context.Context, i client.Client, deletePredicate func(obj map[string]interface{}) (bool, error), opts Options) error {

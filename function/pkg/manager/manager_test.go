@@ -3,9 +3,6 @@ package manager
 import (
 	"context"
 	"errors"
-	"reflect"
-	"testing"
-
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
@@ -13,28 +10,128 @@ import (
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"reflect"
+	"testing"
 )
 
 func TestNewManager(t *testing.T) {
-	type args struct {
-		operators map[operator.Operator][]operator.Operator
-	}
 	tests := []struct {
 		name string
-		args args
-		want manager
+		want Manager
 	}{
 		{
 			name: "should be ok",
-			args: args{},
-			want: manager{args{}.operators},
+			want: &manager{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewManager(tt.args.operators); !reflect.DeepEqual(got, tt.want) {
+			if got := NewManager(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewManager() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func Test_manager_AddParent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	type fields struct {
+		operators []parent
+	}
+	type args struct {
+		object  operator.Operator
+		childes []operator.Operator
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   []parent
+	}{
+		// TODO: ADD SOME TESTS
+		{
+			name: "should add new empty object to the collection",
+			fields: fields{
+				operators: []parent{},
+			},
+			args: args{},
+			want: []parent{
+				{},
+			},
+		},
+		{
+			name: "should add empty object to the collection",
+			fields: fields{
+				operators: []parent{},
+			},
+			args: args{
+				object: fixMockOperatorWithoutActions(nil),
+				childes: []operator.Operator{
+					fixMockOperatorWithoutActions(nil),
+					fixMockOperatorWithoutActions(nil),
+				},
+			},
+			want: []parent{
+				{
+					object: fixMockOperatorWithoutActions(nil),
+					children: []operator.Operator{
+						fixMockOperatorWithoutActions(nil),
+						fixMockOperatorWithoutActions(nil),
+					},
+				},
+			},
+		},
+		{
+			name: "should add empty object to the collection",
+			fields: fields{
+				operators: []parent{
+					{
+						object:   fixMockOperatorWithoutActions(nil),
+						children: []operator.Operator{},
+					},
+					{
+						object:   nil,
+						children: nil,
+					},
+				},
+			},
+			args: args{
+				object: fixMockOperatorWithoutActions(nil),
+				childes: []operator.Operator{
+					fixMockOperatorWithoutActions(nil),
+					fixMockOperatorWithoutActions(nil),
+				},
+			},
+			want: []parent{
+				{
+					object:   fixMockOperatorWithoutActions(nil),
+					children: []operator.Operator{},
+				},
+				{
+					object:   nil,
+					children: nil,
+				},
+				{
+					object: fixMockOperatorWithoutActions(nil),
+					children: []operator.Operator{
+						fixMockOperatorWithoutActions(nil),
+						fixMockOperatorWithoutActions(nil),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := gomega.NewWithT(t)
+			m := manager{
+				operators: tt.fields.operators,
+			}
+			m.AddParent(tt.args.object, tt.args.childes)
+
+			g.Expect(m.operators).To(gomega.Equal(tt.want))
 		})
 	}
 }
@@ -44,9 +141,10 @@ func Test_manager_Do(t *testing.T) {
 	defer ctrl.Finish()
 
 	type fields struct {
-		operators map[operator.Operator][]operator.Operator
+		operators []parent
 	}
 	type args struct {
+		ctx     context.Context
 		options Options
 	}
 	tests := []struct {
@@ -64,8 +162,11 @@ func Test_manager_Do(t *testing.T) {
 		{
 			name: "should be ok with parents",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMock(ctrl, 1, 0): {},
+				operators: []parent{
+					{
+						object:   fixOperatorMock(ctrl, 1, 0),
+						children: []operator.Operator{},
+					},
 				},
 			},
 			args:    args{},
@@ -74,15 +175,21 @@ func Test_manager_Do(t *testing.T) {
 		{
 			name: "should be ok with parents and children",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMock(ctrl, 1, 0): {
-						fixOperatorMock(ctrl, 1, 0),
-						fixOperatorMock(ctrl, 1, 0),
-						fixOperatorMock(ctrl, 1, 0),
+				operators: []parent{
+					{
+						object: fixOperatorMock(ctrl, 1, 0),
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 1, 0),
+							fixOperatorMock(ctrl, 1, 0),
+							fixOperatorMock(ctrl, 1, 0),
+						},
 					},
-					fixOperatorMock(ctrl, 1, 0): {
-						fixOperatorMock(ctrl, 1, 0),
-						fixOperatorMock(ctrl, 1, 0),
+					{
+						object: fixOperatorMock(ctrl, 1, 0),
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 1, 0),
+							fixOperatorMock(ctrl, 1, 0),
+						},
 					},
 				},
 			},
@@ -92,11 +199,14 @@ func Test_manager_Do(t *testing.T) {
 		{
 			name: "should be ok with nil parent and children",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					nil: {
-						fixOperatorMock(ctrl, 1, 0),
-						fixOperatorMock(ctrl, 1, 0),
-						fixOperatorMock(ctrl, 1, 0),
+				operators: []parent{
+					{
+						object: nil,
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 1, 0),
+							fixOperatorMock(ctrl, 1, 0),
+							fixOperatorMock(ctrl, 1, 0),
+						},
 					},
 				},
 			},
@@ -106,10 +216,13 @@ func Test_manager_Do(t *testing.T) {
 		{
 			name: "should be ok with parent and nil child",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMock(ctrl, 1, 0): {
-						nil,
-						fixOperatorMock(ctrl, 1, 0),
+				operators: []parent{
+					{
+						object: fixOperatorMock(ctrl, 1, 0),
+						children: []operator.Operator{
+							nil,
+							fixOperatorMock(ctrl, 1, 0),
+						},
 					},
 				},
 			},
@@ -119,15 +232,21 @@ func Test_manager_Do(t *testing.T) {
 		{
 			name: "should be error without purge",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMock(ctrl, 1, 0): {
-						nil,
-						fixOperatorMockWithError(ctrl, 1, 0, errors.New("any error")),
-						fixOperatorMock(ctrl, 0, 0),
+				operators: []parent{
+					{
+						object: fixOperatorMock(ctrl, 1, 0),
+						children: []operator.Operator{
+							nil,
+							fixOperatorMockWithError(ctrl, 1, 0, errors.New("any error")),
+							fixOperatorMock(ctrl, 0, 0),
+						},
 					},
-					fixOperatorMock(ctrl, 0, 0): {
-						fixOperatorMock(ctrl, 0, 0),
-						fixOperatorMock(ctrl, 0, 0),
+					{
+						object: fixOperatorMock(ctrl, 0, 0),
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 0, 0),
+							fixOperatorMock(ctrl, 0, 0),
+						},
 					},
 				},
 			},
@@ -141,15 +260,21 @@ func Test_manager_Do(t *testing.T) {
 		{
 			name: "should be purge after error",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMock(ctrl, 1, 1): {
-						nil,
-						fixOperatorMockWithError(ctrl, 1, 0, errors.New("any error")),
-						fixOperatorMock(ctrl, 0, 0),
+				operators: []parent{
+					{
+						object: fixOperatorMock(ctrl, 1, 1),
+						children: []operator.Operator{
+							nil,
+							fixOperatorMockWithError(ctrl, 1, 0, errors.New("any error")),
+							fixOperatorMock(ctrl, 0, 0),
+						},
 					},
-					fixOperatorMock(ctrl, 0, 1): {
-						fixOperatorMock(ctrl, 0, 0),
-						fixOperatorMock(ctrl, 0, 0),
+					{
+						object: fixOperatorMock(ctrl, 0, 1),
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 0, 0),
+							fixOperatorMock(ctrl, 0, 0),
+						},
 					},
 				},
 			},
@@ -166,7 +291,7 @@ func Test_manager_Do(t *testing.T) {
 			m := manager{
 				operators: tt.fields.operators,
 			}
-			if err := m.Do(context.Background(), tt.args.options); (err != nil) != tt.wantErr {
+			if err := m.Do(tt.args.ctx, tt.args.options); (err != nil) != tt.wantErr {
 				t.Errorf("Do() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -174,13 +299,17 @@ func Test_manager_Do(t *testing.T) {
 }
 
 func Test_manager_getDryRunFlag(t *testing.T) {
+	type fields struct {
+		operators []parent
+	}
 	type args struct {
 		dryRun bool
 	}
 	tests := []struct {
-		name string
-		args args
-		want []string
+		name   string
+		fields fields
+		args   args
+		want   []string
 	}{
 		{
 			name: "should be ok without returned elements",
@@ -200,7 +329,7 @@ func Test_manager_getDryRunFlag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &manager{
-				operators: nil,
+				operators: tt.fields.operators,
 			}
 			if got := m.getDryRunFlag(tt.args.dryRun); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getDryRunFlag() = %v, want %v", got, tt.want)
@@ -214,9 +343,10 @@ func Test_manager_manageOperators(t *testing.T) {
 	defer ctrl.Finish()
 
 	type fields struct {
-		operators map[operator.Operator][]operator.Operator
+		operators []parent
 	}
 	type args struct {
+		ctx     context.Context
 		options Options
 	}
 	tests := []struct {
@@ -234,13 +364,22 @@ func Test_manager_manageOperators(t *testing.T) {
 		{
 			name: "should be ok with operators",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMock(ctrl, 1, 0): {},
-					nil:                         {},
-					fixOperatorMock(ctrl, 1, 0): {
-						nil,
-						fixOperatorMock(ctrl, 1, 0),
-						fixOperatorMock(ctrl, 1, 0),
+				operators: []parent{
+					{
+						object:   fixOperatorMock(ctrl, 1, 0),
+						children: []operator.Operator{},
+					},
+					{
+						object:   nil,
+						children: []operator.Operator{},
+					},
+					{
+						object: fixOperatorMock(ctrl, 1, 0),
+						children: []operator.Operator{
+							nil,
+							fixOperatorMock(ctrl, 1, 0),
+							fixOperatorMock(ctrl, 1, 0),
+						},
 					},
 				},
 			},
@@ -250,11 +389,17 @@ func Test_manager_manageOperators(t *testing.T) {
 		{
 			name: "should be error without purge",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMockWithError(ctrl, 1, 0, errors.New("any error")): {},
-					fixOperatorMock(ctrl, 0, 0): {
-						fixOperatorMock(ctrl, 0, 0),
-						fixOperatorMock(ctrl, 0, 0),
+				operators: []parent{
+					{
+						object:   fixOperatorMockWithError(ctrl, 1, 0, errors.New("any error")),
+						children: []operator.Operator{},
+					},
+					{
+						object: fixOperatorMock(ctrl, 0, 0),
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 0, 0),
+							fixOperatorMock(ctrl, 0, 0),
+						},
 					},
 				},
 			},
@@ -264,12 +409,18 @@ func Test_manager_manageOperators(t *testing.T) {
 		{
 			name: "should be error after child error occurred",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMock(ctrl, 1, 0): {},
-					fixOperatorMock(ctrl, 1, 0): {
-						fixOperatorMock(ctrl, 1, 0),
-						fixOperatorMockWithError(ctrl, 1, 0, errors.New("any error")),
-						fixOperatorMock(ctrl, 0, 0),
+				operators: []parent{
+					{
+						object:   fixOperatorMock(ctrl, 1, 0),
+						children: []operator.Operator{},
+					},
+					{
+						object: fixOperatorMock(ctrl, 1, 0),
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 1, 0),
+							fixOperatorMockWithError(ctrl, 1, 0, errors.New("any error")),
+							fixOperatorMock(ctrl, 0, 0),
+						},
 					},
 				},
 			},
@@ -282,7 +433,7 @@ func Test_manager_manageOperators(t *testing.T) {
 			m := &manager{
 				operators: tt.fields.operators,
 			}
-			if err := m.manageOperators(context.Background(), tt.args.options); (err != nil) != tt.wantErr {
+			if err := m.manageOperators(tt.args.ctx, tt.args.options); (err != nil) != tt.wantErr {
 				t.Errorf("manageOperators() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -425,7 +576,7 @@ func Test_manager_purgeParents(t *testing.T) {
 	defer ctrl.Finish()
 
 	type fields struct {
-		operators map[operator.Operator][]operator.Operator
+		operators []parent
 	}
 	type args struct {
 		options Options
@@ -438,19 +589,25 @@ func Test_manager_purgeParents(t *testing.T) {
 		{
 			name: "should do nothing",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{},
+				operators: []parent{},
 			},
 			args: args{},
 		},
 		{
 			name: "should purge all parents",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMock(ctrl, 0, 1): {
-						fixOperatorMock(ctrl, 0, 0),
-						fixOperatorMock(ctrl, 0, 0),
+				operators: []parent{
+					{
+						object: fixOperatorMock(ctrl, 0, 1),
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 0, 0),
+							fixOperatorMock(ctrl, 0, 0),
+						},
 					},
-					fixOperatorMock(ctrl, 0, 1): {},
+					{
+						object:   fixOperatorMock(ctrl, 0, 1),
+						children: []operator.Operator{},
+					},
 				},
 			},
 			args: args{},
@@ -458,16 +615,25 @@ func Test_manager_purgeParents(t *testing.T) {
 		{
 			name: "should purge all parents even parents with error",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMock(ctrl, 0, 1): {
-						fixOperatorMock(ctrl, 0, 0),
-						fixOperatorMock(ctrl, 0, 0),
+				operators: []parent{
+					{
+						object: fixOperatorMock(ctrl, 0, 1),
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 0, 0),
+							fixOperatorMock(ctrl, 0, 0),
+						},
 					},
-					fixOperatorMockWithError(ctrl, 0, 1, errors.New("any error")): {
-						fixOperatorMock(ctrl, 0, 0),
+					{
+						object: fixOperatorMockWithError(ctrl, 0, 1, errors.New("any error")),
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 0, 0),
+						},
 					},
-					fixOperatorMock(ctrl, 0, 1): {
-						fixOperatorMock(ctrl, 0, 0),
+					{
+						object: fixOperatorMock(ctrl, 0, 1),
+						children: []operator.Operator{
+							fixOperatorMock(ctrl, 0, 0),
+						},
 					},
 				},
 			},
@@ -476,12 +642,21 @@ func Test_manager_purgeParents(t *testing.T) {
 		{
 			name: "should be ok with callbacks and nil parent",
 			fields: fields{
-				operators: map[operator.Operator][]operator.Operator{
-					fixOperatorMock(ctrl, 0, 1): {
-						nil,
+				operators: []parent{
+					{
+						object: fixOperatorMock(ctrl, 0, 1),
+						children: []operator.Operator{
+							nil,
+						},
 					},
-					nil:                         {},
-					fixOperatorMock(ctrl, 0, 1): {},
+					{
+						object:   nil,
+						children: []operator.Operator{},
+					},
+					{
+						object:   fixOperatorMock(ctrl, 0, 1),
+						children: []operator.Operator{},
+					},
 				},
 			},
 			args: args{
@@ -513,13 +688,18 @@ func Test_manager_useOperator(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	type fields struct {
+		operators []parent
+	}
 	type args struct {
+		ctx        context.Context
 		opr        operator.Operator
 		options    Options
 		references []metav1.OwnerReference
 	}
 	tests := []struct {
 		name    string
+		fields  fields
 		args    args
 		want    []metav1.OwnerReference
 		wantErr bool
@@ -559,6 +739,7 @@ func Test_manager_useOperator(t *testing.T) {
 					},
 					DryRun:             true,
 					SetOwnerReferences: true,
+					WaitForApply:       true,
 				},
 				references: nil,
 			},
@@ -589,9 +770,6 @@ func Test_manager_useOperator(t *testing.T) {
 			}
 
 			g.Expect(got).Should(gomega.Equal(tt.want))
-			// if !reflect.DeepEqual(got, tt.want) {
-			// t.Errorf("useOperator() got = %v, want %v", got, tt.want)
-			// }
 		})
 	}
 }
@@ -601,11 +779,15 @@ func fixOperatorMock(ctrl *gomock.Controller, applyTimes, deleteTimes int) opera
 }
 
 func fixOperatorMockWithError(ctrl *gomock.Controller, applyTimes, deleteTimes int, err error) operator.Operator {
-	opr := mock_operator.NewMockOperator(ctrl)
+	opr := fixMockOperatorWithoutActions(ctrl)
 	//FIXME investigate
 	opr.EXPECT().Apply(gomock.Any(), gomock.Any()).Return(err).AnyTimes()
 	opr.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(err).Times(deleteTimes)
 	return opr
+}
+
+func fixMockOperatorWithoutActions(ctrl *gomock.Controller) *mock_operator.MockOperator {
+	return mock_operator.NewMockOperator(ctrl)
 }
 
 func fixCommonUnstructured() map[string]interface{} {
