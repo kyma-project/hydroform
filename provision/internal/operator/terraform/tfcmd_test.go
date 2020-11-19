@@ -9,6 +9,7 @@ import (
 )
 
 func TestInitArgs(t *testing.T) {
+	t.Parallel()
 	// test provider that has no module support
 	res := initArgs("", nil, "/path/to/cluster")
 
@@ -34,6 +35,7 @@ func TestInitArgs(t *testing.T) {
 }
 
 func TestApplyArgs(t *testing.T) {
+	t.Parallel()
 	// for now apply args does not use the cluster and provider config for anything
 	res := applyArgs("", nil, "/path/to/cluster")
 
@@ -45,7 +47,7 @@ func TestApplyArgs(t *testing.T) {
 }
 
 func TestImportArgs(t *testing.T) {
-
+	t.Parallel()
 	cfg := map[string]interface{}{"project": "my-project", "namespace": "my-namespace", "location": "somewhere", "cluster_name": "my-cluster"}
 
 	// test GCP

@@ -9,6 +9,7 @@ import (
 )
 
 func TestFuncAction(t *testing.T) {
+	t.Parallel()
 	f := FuncAction(func(args ...interface{}) (interface{}, error) {
 		switch v := args[0].(type) {
 		case int:
@@ -33,6 +34,7 @@ func TestFuncAction(t *testing.T) {
 }
 
 func TestPipe(t *testing.T) {
+	t.Parallel()
 	p := Pipe{
 		// return a number
 		FuncAction(func(args ...interface{}) (interface{}, error) {
@@ -57,6 +59,7 @@ func TestPipe(t *testing.T) {
 }
 
 func TestSequence(t *testing.T) {
+	t.Parallel()
 	seq := Sequence{
 		FuncAction(func(args ...interface{}) (interface{}, error) {
 			return len(args), nil
@@ -81,6 +84,7 @@ func TestSequence(t *testing.T) {
 }
 
 func TestParallel(t *testing.T) {
+	t.Parallel()
 	p := Parallel{
 		FuncAction(func(args ...interface{}) (interface{}, error) {
 			return len(args), nil
