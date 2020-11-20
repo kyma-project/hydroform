@@ -1,11 +1,11 @@
 package components
 
 import (
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"io/ioutil"
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

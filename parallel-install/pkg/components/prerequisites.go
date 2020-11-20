@@ -3,9 +3,9 @@ package components
 import (
 	"path"
 
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/config"
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 )
 
 type PrerequisitesProvider struct {

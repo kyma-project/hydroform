@@ -1,4 +1,4 @@
-module github.com/kyma-incubator/hydroform/installation-poc
+module github.com/kyma-incubator/hydroform/parallel-install
 
 go 1.14
 

@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/components"
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/config"
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/engine"
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )

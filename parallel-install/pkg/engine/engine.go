@@ -6,8 +6,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/components"
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 )
 
 var statusMap map[string]string

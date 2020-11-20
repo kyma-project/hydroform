@@ -3,7 +3,7 @@ package components
 import (
 	"log"
 
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 )
 
 const StatusError = "Error"

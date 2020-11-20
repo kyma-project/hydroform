@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/config"
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"github.com/kyma-project/kyma/components/kyma-operator/pkg/apis/installer/v1alpha1"
 	"gopkg.in/yaml.v3"
 )
