@@ -41,13 +41,8 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, path s
 func (p *ComponentsProvider) GetComponents() ([]Component, error) {
 	helmClient := helm.NewClient(p.helmConfig)
 
-	err := p.overridesProvider.ReadOverridesFromCluster()
-	if err != nil {
-		return nil, err
-	}
-
 	var installationCR v1alpha1.Installation
-	err = yaml.Unmarshal([]byte(p.componentListYaml), &installationCR)
+	err := yaml.Unmarshal([]byte(p.componentListYaml), &installationCR)
 	if err != nil {
 		return nil, err
 	}

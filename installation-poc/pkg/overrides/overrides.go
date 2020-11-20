@@ -14,9 +14,11 @@ var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, !co
 var componentListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, component"}
 
 type Provider struct {
-	overrides          map[string]interface{}
-	componentOverrides map[string]map[string]interface{}
-	kubeClient         kubernetes.Interface
+	overrides                    map[string]interface{}
+	additionalOverrides          map[string]interface{}
+	componentOverrides           map[string]map[string]interface{}
+	additionalComponentOverrides map[string]map[string]interface{}
+	kubeClient                   kubernetes.Interface
 }
 
 type OverridesProvider interface {
@@ -24,15 +26,17 @@ type OverridesProvider interface {
 	ReadOverridesFromCluster() error
 }
 
-func New(client kubernetes.Interface, overridesYaml string) (OverridesProvider, error) {
+func New(client kubernetes.Interface, overridesYamls []string) (OverridesProvider, error) {
 	provider := Provider{
 		kubeClient: client,
 	}
 
-	if overridesYaml != "" {
-		err := provider.parseAdditionalOverrides(overridesYaml)
-		if err != nil {
-			return nil, err
+	for _, overridesYaml := range overridesYamls {
+		if overridesYaml != "" {
+			err := provider.parseAdditionalOverrides(overridesYaml)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -50,6 +54,8 @@ func (p *Provider) OverridesFor(name string) map[string]interface{} {
 }
 
 func (p *Provider) ReadOverridesFromCluster() error {
+
+	// TODO: add retries
 	//Read global overrides
 	globalOverrideCMs, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), commonListOpts)
 	if err != nil {
@@ -78,6 +84,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 	}
 
 	p.overrides = mergeMaps(p.overrides, globalFromCluster)
+	p.overrides = mergeMaps(p.overrides, p.additionalOverrides) // always keep additionalOverrides on top
 
 	//Read component overrides
 	if p.componentOverrides == nil {
@@ -109,6 +116,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 		}
 
 		p.componentOverrides[name] = mergeMaps(p.componentOverrides[name], componentsFromCluster)
+		p.componentOverrides[name] = mergeMaps(p.componentOverrides[name], p.additionalComponentOverrides[name]) // always keep additionalOverrides on top
 	}
 
 	log.Println("Reading the overrides from the cluster completed successfully!")
@@ -116,6 +124,10 @@ func (p *Provider) ReadOverridesFromCluster() error {
 }
 
 func (p *Provider) parseAdditionalOverrides(overridesYaml string) error {
+
+	if p.additionalComponentOverrides == nil {
+		p.additionalComponentOverrides = make(map[string]map[string]interface{})
+	}
 
 	if p.componentOverrides == nil {
 		p.componentOverrides = make(map[string]map[string]interface{})
@@ -132,12 +144,16 @@ func (p *Provider) parseAdditionalOverrides(overridesYaml string) error {
 			globalOverrides := make(map[string]interface{})
 			globalOverrides[k] = v
 			p.overrides = mergeMaps(p.overrides, globalOverrides)
+			p.additionalOverrides = mergeMaps(p.additionalOverrides, globalOverrides)
 		} else {
+			if p.additionalComponentOverrides[k] == nil {
+				p.additionalComponentOverrides[k] = make(map[string]interface{})
+			}
 			if p.componentOverrides[k] == nil {
 				p.componentOverrides[k] = make(map[string]interface{})
 			}
-
 			p.componentOverrides[k] = mergeMaps(p.componentOverrides[k], v.(map[string]interface{}))
+			p.additionalComponentOverrides[k] = mergeMaps(p.additionalComponentOverrides[k], v.(map[string]interface{}))
 		}
 	}
 

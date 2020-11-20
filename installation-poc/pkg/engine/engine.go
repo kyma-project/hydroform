@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 
@@ -90,6 +91,11 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 		return nil, err
 	}
 
+	err = e.overridesProvider.ReadOverridesFromCluster()
+	if err != nil {
+		return nil, fmt.Errorf("error while reading overrides: %v", err)
+	}
+
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.Component, 30)
 
@@ -101,11 +107,19 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 		defer close(statusChan)
 
 		e.installPrerequisites(ctx, statusChan, prerequisites)
-
 		if ctx.Err() == nil {
-			//Install the rest of the components
-			run(ctx, statusChan, cmps, "install", e.cfg.WorkersCount)
+			return
 		}
+
+		err = e.overridesProvider.ReadOverridesFromCluster()
+		if err != nil {
+			log.Printf("error while reading overrides: %v", err)
+			return
+		}
+
+		//Install the rest of the components
+		run(ctx, statusChan, cmps, "install", e.cfg.WorkersCount)
+
 	}()
 
 	return statusChan, nil

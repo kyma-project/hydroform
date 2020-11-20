@@ -19,10 +19,10 @@ type Installation struct {
 	Prerequisites [][]string
 	// Content of the Installation CR YAML file
 	ComponentsYaml string
-	// Content of the Helm overrides YAML file
-	OverridesYaml string
-	ResourcesPath string
-	Cfg           config.Config
+	// Content of the Helm overrides YAML files
+	OverridesYamls []string
+	ResourcesPath  string
+	Cfg            config.Config
 }
 
 type Installer interface {
@@ -34,7 +34,7 @@ type Installer interface {
 	StartKymaUninstallation(kubeconfig *rest.Config) error
 }
 
-func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYaml string, resourcesPath string, cfg config.Config) (*Installation, error) {
+func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Installation. Resource path is required.")
 	}
@@ -45,7 +45,7 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	return &Installation{
 		Prerequisites:  prerequisites,
 		ComponentsYaml: componentsYaml,
-		OverridesYaml:  overridesYaml,
+		OverridesYamls: overridesYamls,
 		ResourcesPath:  resourcesPath,
 		Cfg:            cfg,
 	}, nil
@@ -57,7 +57,7 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 		return fmt.Errorf("Unable to create internal client. Error: %v", err)
 	}
 
-	overridesProvider, err := overrides.New(kubeClient, i.OverridesYaml)
+	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls)
 	if err != nil {
 		return fmt.Errorf("Unable to create overrides provider. Error: %v", err)
 	}
@@ -65,7 +65,7 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
-	engineCfg := engine.Config{i.Cfg.WorkersCount}
+	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
 	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, engineCfg)
 
 	fmt.Println("Kyma installation")
@@ -121,7 +121,7 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 		return err
 	}
 
-	overridesProvider, err := overrides.New(kubeClient, i.OverridesYaml)
+	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls)
 	if err != nil {
 		log.Printf("Unable to create overrides provider. Error: %v", err)
 		return err
@@ -130,7 +130,7 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
-	engineCfg := engine.Config{i.Cfg.WorkersCount}
+	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
 	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, engineCfg)
 
 	log.Println("Kyma uninstallation started")

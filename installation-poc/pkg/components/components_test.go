@@ -1,6 +1,7 @@
 package components
 
 import (
+	"github.com/kyma-incubator/hydroform/installation-poc/pkg/config"
 	"io/ioutil"
 	"testing"
 
@@ -27,14 +28,16 @@ func Test_GetComponents(t *testing.T) {
 		},
 	)
 
-	overridesProvider, err := overrides.New(k8sMock, "")
+	overridesProvider, err := overrides.New(k8sMock, []string{""})
 	require.NoError(t, err)
 
 	// Read components file
 	content, err := ioutil.ReadFile("../test/data/installationCR.yaml")
 	require.NoError(t, err)
 
-	provider := NewComponentsProvider(overridesProvider, "", string(content))
+	installationCfg := config.Config{}
+
+	provider := NewComponentsProvider(overridesProvider, "", string(content), installationCfg)
 
 	res, err := provider.GetComponents()
 	require.NoError(t, err)

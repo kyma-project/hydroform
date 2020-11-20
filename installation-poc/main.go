@@ -19,7 +19,7 @@ func main() {
 	}
 
 	resourcesPath := filepath.Join(goPath, "src", "github.com", "kyma-project", "kyma", "resources")
-	kubeconfigPath := "/Users/I517624/.kube/config"
+	kubeconfigPath := "/Users/I517624/.kube/config" // TODO
 
 	restConfig, err := getClientConfig(kubeconfigPath)
 	if err != nil {
@@ -53,7 +53,7 @@ func main() {
 
 	installer, err := installation.NewInstallation(prerequisitesContent,
 		string(componentsContent),
-		string(overridesContent),
+		[]string{string(overridesContent)},
 		resourcesPath,
 		installationCfg)
 	if err != nil {

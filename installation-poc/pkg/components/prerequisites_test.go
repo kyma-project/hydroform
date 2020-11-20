@@ -1,6 +1,7 @@
 package components
 
 import (
+	"github.com/kyma-incubator/hydroform/installation-poc/pkg/config"
 	"testing"
 
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
@@ -26,12 +27,14 @@ func Test_PrerequisiteGetComponents(t *testing.T) {
 		},
 	)
 
-	overridesProvider, err := overrides.New(k8sMock, "")
+	overridesProvider, err := overrides.New(k8sMock, []string{""})
 	require.NoError(t, err)
 
-	componentList := map[string]string{"prerequisite1": "namespace1"}
+	componentList := [][]string{[]string{"prerequisite1", "namespace1"}}
 
-	provider := NewPrerequisitesProvider(overridesProvider, "", componentList)
+	installationCfg := config.Config{}
+
+	provider := NewPrerequisitesProvider(overridesProvider, "", componentList, installationCfg)
 
 	res, err := provider.GetComponents()
 	require.NoError(t, err)

@@ -11,7 +11,7 @@ import (
 type PrerequisitesProvider struct {
 	overridesProvider overrides.OverridesProvider
 	path              string
-	componentList     [][]string
+	componentList     [][]string // TODO: replace with []struct{name, namespace string}
 	helmConfig        helm.Config
 }
 
@@ -32,11 +32,6 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, pat
 
 func (p *PrerequisitesProvider) GetComponents() ([]Component, error) {
 	helmClient := helm.NewClient(p.helmConfig)
-
-	err := p.overridesProvider.ReadOverridesFromCluster()
-	if err != nil {
-		return nil, err
-	}
 
 	var components []Component
 	for _, componentNamespacePair := range p.componentList {
