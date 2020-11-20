@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 
+	"github.com/kyma-incubator/hydroform/installation-poc/pkg/config"
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/helm"
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
 	"github.com/kyma-project/kyma/components/kyma-operator/pkg/apis/installer/v1alpha1"
@@ -18,18 +19,27 @@ type ComponentsProvider struct {
 	overridesProvider overrides.OverridesProvider
 	path              string
 	componentListYaml string
+	helmConfig        helm.Config
 }
 
-func NewComponentsProvider(overridesProvider overrides.OverridesProvider, path string, componentListYaml string) *ComponentsProvider {
+func NewComponentsProvider(overridesProvider overrides.OverridesProvider, path string, componentListYaml string, cfg config.Config) *ComponentsProvider {
+
+	helmCfg := helm.Config{
+		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
+		BackoffInitialIntervalSeconds: cfg.BackoffInitialIntervalSeconds,
+		BackoffMaxElapsedTimeSeconds:  cfg.BackoffMaxElapsedTimeSeconds,
+	}
+
 	return &ComponentsProvider{
 		overridesProvider: overridesProvider,
 		path:              path,
 		componentListYaml: componentListYaml,
+		helmConfig:        helmCfg,
 	}
 }
 
 func (p *ComponentsProvider) GetComponents() ([]Component, error) {
-	helmClient := &helm.Client{}
+	helmClient := helm.NewClient(p.helmConfig)
 
 	err := p.overridesProvider.ReadOverridesFromCluster()
 	if err != nil {

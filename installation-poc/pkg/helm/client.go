@@ -13,12 +13,25 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
+type Config struct {
+	HelmTimeoutSeconds            int
+	BackoffInitialIntervalSeconds int
+	BackoffMaxElapsedTimeSeconds  int
+}
+
 type Client struct {
+	cfg Config
 }
 
 type ClientInterface interface {
 	InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error
 	UninstallRelease(namespace, name string) error
+}
+
+func NewClient(cfg Config) *Client {
+	return &Client{
+		cfg: cfg,
+	}
 }
 
 func (c *Client) UninstallRelease(namespace, name string) error {
@@ -29,8 +42,7 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 	}
 
 	uninstall := action.NewUninstall(cfg)
-	//TODO: Make configurable
-	uninstall.Timeout = 5 * time.Minute
+	uninstall.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
 	operation := func() error {
 		rel, err := uninstall.Run(name)
@@ -55,8 +67,8 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 
 	//TODO: Find a way to stop backoff once we have Context cancel() function invoked by the global installation timetout.
 	exponentialBackoff := backoff.NewExponentialBackOff()
-	exponentialBackoff.InitialInterval = 3 * time.Second
-	exponentialBackoff.MaxElapsedTime = 10 * time.Minute
+	exponentialBackoff.InitialInterval = time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
+	exponentialBackoff.MaxElapsedTime = time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
 
 	err = backoff.Retry(operation, exponentialBackoff)
 	if err != nil {
@@ -83,7 +95,7 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 	install.Atomic = true
 	install.Wait = true
 	install.CreateNamespace = true
-	install.Timeout = 3 * time.Minute
+	install.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
 	operation := func() error {
 		rel, err := install.Run(chart, overrides)
@@ -104,8 +116,8 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 
 	//TODO: Find a way to stop backoff once we have Context cancel() function invoked by the global installation timetout.
 	exponentialBackoff := backoff.NewExponentialBackOff()
-	exponentialBackoff.InitialInterval = 3 * time.Second
-	exponentialBackoff.MaxElapsedTime = 10 * time.Minute
+	exponentialBackoff.InitialInterval = time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
+	exponentialBackoff.MaxElapsedTime = time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
 
 	err = backoff.Retry(operation, exponentialBackoff)
 	if err != nil {

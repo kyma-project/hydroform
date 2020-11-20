@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/components"
+	"github.com/kyma-incubator/hydroform/installation-poc/pkg/config"
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/engine"
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
 	"k8s.io/client-go/kubernetes"
@@ -21,16 +22,19 @@ type Installation struct {
 	// Content of the Helm overrides YAML file
 	OverridesYaml string
 	ResourcesPath string
-	// Number of components to be installed in parallel
-	Concurrency int
+	Cfg           config.Config
 }
 
 type Installer interface {
+	//This method will block until installation is finished or an error or timeout occurs.
+	//If the installation is not finished in configured config.Config.QuitTimeoutSeconds, the method returns with an error. Some worker goroutines may still be active.
 	StartKymaInstallation(kubeconfig *rest.Config) error
+	//This method will block until uninstallation is finished or an error or timeout occurs.
+	//If the uninstallation is not finished in configured config.Config.QuitTimeoutSeconds, the method returns with an error. Some worker goroutines may still be active.
 	StartKymaUninstallation(kubeconfig *rest.Config) error
 }
 
-func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYaml string, resourcesPath string, concurrency int) (*Installation, error) {
+func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYaml string, resourcesPath string, cfg config.Config) (*Installation, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Installation. Resource path is required.")
 	}
@@ -43,7 +47,7 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 		ComponentsYaml: componentsYaml,
 		OverridesYaml:  overridesYaml,
 		ResourcesPath:  resourcesPath,
-		Concurrency: 	concurrency,
+		Cfg:            cfg,
 	}, nil
 }
 
@@ -58,10 +62,11 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 		return fmt.Errorf("Unable to create overrides provider. Error: %v", err)
 	}
 
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
-	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, i.Concurrency)
+	engineCfg := engine.Config{i.Cfg.WorkersCount}
+	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, engineCfg)
 
 	fmt.Println("Kyma installation")
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -72,8 +77,8 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 
 	var statusMap = map[string]string{}
 	var errCount int = 0
-	var cancelTimeout time.Duration = 20 * time.Minute
-	var quitTimeout time.Duration = 25 * time.Minute
+	var cancelTimeout time.Duration = time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
+	var quitTimeout time.Duration = time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
 	var timeoutOccured bool = false
 
 	//Await completion
@@ -122,10 +127,11 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 		return err
 	}
 
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml)
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
-	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, i.Concurrency)
+	engineCfg := engine.Config{i.Cfg.WorkersCount}
+	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, engineCfg)
 
 	log.Println("Kyma uninstallation started")
 
@@ -137,8 +143,8 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 
 	var statusMap = map[string]string{}
 	var errCount int = 0
-	var cancelTimeout time.Duration = 20 * time.Minute
-	var quitTimeout time.Duration = 25 * time.Minute
+	var cancelTimeout time.Duration = time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
+	var quitTimeout time.Duration = time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
 	var timeoutOccured bool = false
 
 	//Await completion

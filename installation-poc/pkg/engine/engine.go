@@ -5,29 +5,32 @@ import (
 	"log"
 	"sync"
 
-	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
-
 	"github.com/kyma-incubator/hydroform/installation-poc/pkg/components"
+	"github.com/kyma-incubator/hydroform/installation-poc/pkg/overrides"
 )
 
 var statusMap map[string]string
+
+type Config struct {
+	WorkersCount int
+}
 
 type Engine struct {
 	overridesProvider     overrides.OverridesProvider
 	prerequisitesProvider components.Provider
 	componentsProvider    components.Provider
 	resourcesPath         string
-	concurrency           int
+	cfg                   Config
 }
 
-func NewEngine(overridesProvider overrides.OverridesProvider, prerequisitesProvider components.Provider, componentsProvider components.Provider, resourcesPath string, concurrency int) *Engine {
+func NewEngine(overridesProvider overrides.OverridesProvider, prerequisitesProvider components.Provider, componentsProvider components.Provider, resourcesPath string, cfg Config) *Engine {
 	statusMap = make(map[string]string)
 	return &Engine{
 		overridesProvider:     overridesProvider,
 		prerequisitesProvider: prerequisitesProvider,
 		componentsProvider:    componentsProvider,
 		resourcesPath:         resourcesPath,
-		concurrency:           concurrency,
+		cfg:                   cfg,
 	}
 }
 
@@ -101,7 +104,7 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 
 		if ctx.Err() == nil {
 			//Install the rest of the components
-			run(ctx, statusChan, cmps, "install", e.concurrency)
+			run(ctx, statusChan, cmps, "install", e.cfg.WorkersCount)
 		}
 	}()
 
@@ -127,7 +130,7 @@ func (e *Engine) Uninstall(ctx context.Context) (<-chan components.Component, er
 		defer close(statusChan)
 
 		//Uninstall the "standard" components
-		run(ctx, statusChan, cmps, "uninstall", e.concurrency)
+		run(ctx, statusChan, cmps, "uninstall", e.cfg.WorkersCount)
 
 		if ctx.Err() == nil {
 			//Uninstall the prequisite components
