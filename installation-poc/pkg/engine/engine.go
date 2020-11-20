@@ -107,7 +107,7 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 		defer close(statusChan)
 
 		e.installPrerequisites(ctx, statusChan, prerequisites)
-		if ctx.Err() == nil {
+		if ctx.Err() != nil {
 			return
 		}
 
