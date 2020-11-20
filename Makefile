@@ -2,6 +2,7 @@
 build:
 	./provision/before-commit.sh ci
 	./install/before-commit.sh ci
+	./parallel-install/before-commit.sh ci
 
 .PHONY: ci-pr
 ci-pr: build
@@ -30,5 +31,14 @@ test-install:
 	rm cover.out ; \
 	cd ..;
 
+.PHONY: test-parallel-install
+test-parallel-install:
+	@cd parallel-install; \
+	echo "Running tests for parallel-install"; \
+	go test -coverprofile=cover.out ./... ;\
+	echo "Total test coverage: $$(go tool cover -func=cover.out | grep total | awk '{print $$3}')" ;\
+	rm cover.out ; \
+	cd ..;
+
 .PHONY: test
-test: test-provision test-install
+test: test-provision test-install test-parallel-install

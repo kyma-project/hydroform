@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"io/ioutil"
 	"log"
 	"os"
@@ -13,15 +14,21 @@ import (
 )
 
 func main() {
+	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
+	flag.Parse()
+
+	if kubeconfigPath == nil || *kubeconfigPath == "" {
+		log.Fatalf("kubeconfig is required")
+	}
+
 	goPath := os.Getenv("GOPATH")
 	if goPath == "" {
 		log.Fatalf("Please set GOPATH")
 	}
 
 	resourcesPath := filepath.Join(goPath, "src", "github.com", "kyma-project", "kyma", "resources")
-	kubeconfigPath := "/Users/I517624/.kube/config" // TODO
 
-	restConfig, err := getClientConfig(kubeconfigPath)
+	restConfig, err := getClientConfig(*kubeconfigPath)
 	if err != nil {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
 	}
@@ -32,12 +39,12 @@ func main() {
 		{"xip-patch", "kyma-installer"},
 	}
 
-	componentsContent, err := ioutil.ReadFile("pkg/test/data/installationCR.yaml")
+	componentsContent, err := ioutil.ReadFile("../pkg/test/data/installationCR.yaml")
 	if err != nil {
 		log.Fatalf("Failed to read installation CR file: %v", err)
 	}
 
-	overridesContent, err := ioutil.ReadFile("pkg/test/data/overrides.yaml")
+	overridesContent, err := ioutil.ReadFile("../pkg/test/data/overrides.yaml")
 	if err != nil {
 		log.Fatalf("Failed to read overrides file: %v", err)
 	}

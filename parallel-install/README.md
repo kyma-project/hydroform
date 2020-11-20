@@ -1,4 +1,4 @@
-# Parallel installation library
+# Parallel Install
 
 ## Overview
 
@@ -6,7 +6,7 @@ The `parallel-install` package allows you to install and uninstall Kyma on alrea
 
 ## Usage
 
-Before starting an installation/uninstallation you need to provide a configuration by creating an instance of the `Installation` struct. To do so, use the `installation.NewInstallation` function. 
+Before starting an installation/uninstallation you need to provide a configuration by creating an instance of the `Installation` struct. To do so, use the `installation.NewInstallation` function.
 
 | Parameter | Type | Example value | Description |
 | --- | --- | --- | --- |
@@ -23,6 +23,6 @@ Use the following functions accordingly. You need to provide a kubeconfig pointi
 - `StartKymaInstallation` - Starts installation. Prerequisites are installed first linearly, then components' installation continues in parallel. 
 - `StartKymaUninstallation` - Starts uninstallation. Library uninstalls components first, then proceeds with prerequisites' uninstallation in reverse order.
 
-## Example 
+## Example
 
-//TODO: once main.go is moved to a folder and works provide instructions how to use it
+To learn how to use the library to install Kyma on a Gardener cluster, see this [example](../parallel-install/example/example.go).
