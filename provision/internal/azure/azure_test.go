@@ -149,6 +149,7 @@ CLIENT_SECRET = "fake-client-secret"`
 }
 
 func TestProvision(t *testing.T) {
+	t.Parallel()
 	mockOp := &mocks.Operator{}
 	g := azureProvisioner{
 		provisionOperator: mockOp,
@@ -201,6 +202,7 @@ func TestProvision(t *testing.T) {
 }
 
 func TestDeprovision(t *testing.T) {
+	t.Parallel()
 	mockOp := &mocks.Operator{}
 	g := azureProvisioner{
 		provisionOperator: mockOp,

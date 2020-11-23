@@ -9,7 +9,7 @@ import (
 )
 
 func TestApplyTimeouts(t *testing.T) {
-
+	t.Parallel()
 	for _, testCase := range []struct {
 		description    string
 		timeouts       types.Timeouts

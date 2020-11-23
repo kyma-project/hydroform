@@ -9,6 +9,7 @@ import (
 )
 
 func TestWithUI(t *testing.T) {
+	t.Parallel()
 	ops := &Options{}
 
 	require.Equal(t, nil, ops.Meta.Ui, "Zero value UI should be nil")
@@ -20,6 +21,7 @@ func TestWithUI(t *testing.T) {
 }
 
 func TestWithDataDir(t *testing.T) {
+	t.Parallel()
 	ops := &Options{}
 
 	require.Equal(t, ".terraform", ops.Meta.DataDir(), "Default data dir should be .terraform")
@@ -30,6 +32,7 @@ func TestWithDataDir(t *testing.T) {
 }
 
 func TestPersistent(t *testing.T) {
+	t.Parallel()
 	ops := &Options{}
 
 	require.False(t, ops.Persistent)
@@ -40,6 +43,7 @@ func TestPersistent(t *testing.T) {
 }
 
 func TestToTerraformOptions(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		Name     string
 		Input    types.Options

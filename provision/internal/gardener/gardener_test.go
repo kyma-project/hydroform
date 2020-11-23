@@ -13,7 +13,9 @@ import (
 )
 
 func TestValidate(t *testing.T) {
+	t.Parallel()
 	t.Run("Validate GCP config", func(t *testing.T) {
+		t.Parallel()
 		g := gardenerProvisioner{}
 
 		cluster := &types.Cluster{
@@ -63,6 +65,7 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("Validate Azure config", func(t *testing.T) {
+		t.Parallel()
 		g := gardenerProvisioner{}
 
 		cluster := &types.Cluster{
@@ -114,6 +117,7 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("Validate AWS config", func(t *testing.T) {
+		t.Parallel()
 		g := gardenerProvisioner{}
 
 		cluster := &types.Cluster{
@@ -239,7 +243,7 @@ func performBasicValidation(t *testing.T, g gardenerProvisioner, cluster *types.
 }
 
 func TestLoadConfigurations(t *testing.T) {
-
+	t.Parallel()
 	g := gardenerProvisioner{}
 
 	cluster := &types.Cluster{
@@ -282,6 +286,7 @@ func TestLoadConfigurations(t *testing.T) {
 }
 
 func TestProvision(t *testing.T) {
+	t.Parallel()
 	mockOp := &mocks.Operator{}
 	g := gardenerProvisioner{
 		operator: mockOp,
@@ -341,6 +346,7 @@ func TestProvision(t *testing.T) {
 }
 
 func TestDeProvision(t *testing.T) {
+	t.Parallel()
 	mockOp := &mocks.Operator{}
 	g := gardenerProvisioner{
 		operator: mockOp,
