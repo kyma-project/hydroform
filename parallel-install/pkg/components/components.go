@@ -54,11 +54,11 @@ func (p *ComponentsProvider) GetComponents() ([]Component, error) {
 	var components []Component
 	for _, component := range installationCR.Spec.Components {
 		component := Component{
-			Name:       component.Name,
-			Namespace:  component.Namespace,
-			Overrides:  p.overridesProvider.OverridesFor(component.Name),
-			ChartDir:   path.Join(p.path, component.Name),
-			HelmClient: helmClient,
+			Name:            component.Name,
+			Namespace:       component.Namespace,
+			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(component.Name),
+			ChartDir:        path.Join(p.path, component.Name),
+			HelmClient:      helmClient,
 		}
 		components = append(components, component)
 	}

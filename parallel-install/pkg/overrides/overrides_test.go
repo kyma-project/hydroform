@@ -55,11 +55,11 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 
 		// Monitoring should have two sample component overrides + one from additional overrides
 		// + global overrides under one "global" key
-		res := testProvider.OverridesFor(component)
+		res := testProvider.OverridesGetterFunctionFor(component)()
 		require.Equal(t, 4, len(res), "Number of component overrides not as expected")
 
 		// Another component without any component override should only have two global overrides + one from additional overrides
-		res2 := testProvider.OverridesFor("anotherComponent")
+		res2 := testProvider.OverridesGetterFunctionFor("anotherComponent")()
 		require.Contains(t, res2, "global")
 		require.Equal(t, 1, len(res2))
 		require.Equal(t, 3, len(res2["global"].(map[string]interface{})), "Number of global overrides not as expected")
@@ -80,11 +80,11 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 
 		// Monitoring should have two sample component overrides + one from additional overrides
 		// + global overrides under one "global" key
-		res := testProvider.OverridesFor(component)
+		res := testProvider.OverridesGetterFunctionFor(component)()
 		require.Equal(t, 4, len(res), "Number of component overrides not as expected")
 
 		// Another component without any component override should only have two global overrides + one from additional overrides
-		res2 := testProvider.OverridesFor("anotherComponent")
+		res2 := testProvider.OverridesGetterFunctionFor("anotherComponent")()
 		require.Contains(t, res2, "global")
 		require.Equal(t, 1, len(res2))
 		require.Equal(t, 3, len(res2["global"].(map[string]interface{})), "Number of global overrides not as expected")
@@ -99,12 +99,12 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 
 		// Monitoring should have two sample component overrides with one overridden by additional overrides
 		// + global overrides under one "global" key - two global overrides from this file with one overridden by additional overrides
-		res := testProvider.OverridesFor(component)
+		res := testProvider.OverridesGetterFunctionFor(component)()
 		require.Equal(t, 3, len(res), "Number of component overrides not as expected")
 		require.Equal(t, "changed", res["componentOverride1"], "Override from additional overrides not on top of regular overrides")
 
 		// Another component without any component override should only have two global overrides with one overridden by additional overrides
-		res2 := testProvider.OverridesFor("anotherComponent")
+		res2 := testProvider.OverridesGetterFunctionFor("anotherComponent")()
 		require.Contains(t, res2, "global")
 		require.Equal(t, 1, len(res2))
 		globalOverrides, ok := res2["global"].(map[string]interface{})
@@ -122,12 +122,12 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 
 		// Monitoring should have two sample component overrides with one overridden by additional overrides + one from additional overrides
 		// + global overrides under one "global" key - two global overrides from this file with one overridden by additional overrides
-		res := testProvider.OverridesFor(component)
+		res := testProvider.OverridesGetterFunctionFor(component)()
 		require.Equal(t, 4, len(res), "Number of component overrides not as expected")
 		require.Equal(t, "changed", res["componentOverride1"], "Override from additional overrides not on top of regular overrides")
 
 		// Another component without any component override should only have two global overrides with one overridden by additional overrides + one from additional overrides
-		res2 := testProvider.OverridesFor("anotherComponent")
+		res2 := testProvider.OverridesGetterFunctionFor("anotherComponent")()
 		require.Contains(t, res2, "global")
 		require.Equal(t, 1, len(res2))
 		globalOverrides, ok := res2["global"].(map[string]interface{})

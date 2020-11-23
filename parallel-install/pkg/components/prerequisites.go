@@ -39,11 +39,11 @@ func (p *PrerequisitesProvider) GetComponents() ([]Component, error) {
 		namespace := componentNamespacePair[1]
 
 		components = append(components, Component{
-			Name:       name,
-			Namespace:  namespace,
-			ChartDir:   path.Join(p.path, name),
-			Overrides:  p.overridesProvider.OverridesFor(name),
-			HelmClient: helmClient,
+			Name:            name,
+			Namespace:       namespace,
+			ChartDir:        path.Join(p.path, name),
+			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(name),
+			HelmClient:      helmClient,
 		})
 	}
 

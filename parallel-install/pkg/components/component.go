@@ -11,22 +11,22 @@ const StatusInstalled = "Installed"
 const StatusUninstalled = "Uninstalled"
 
 type Component struct {
-	Name       string
-	Namespace  string
-	Status     string
-	ChartDir   string
-	Overrides  map[string]interface{}
-	HelmClient helm.ClientInterface
+	Name            string
+	Namespace       string
+	Status          string
+	ChartDir        string
+	OverridesGetter func() map[string]interface{}
+	HelmClient      helm.ClientInterface
 }
 
-func NewComponent(name, namespace, chartDir string, overrides map[string]interface{}, helmClient helm.ClientInterface) *Component {
+func NewComponent(name, namespace, chartDir string, overrides func() map[string]interface{}, helmClient helm.ClientInterface) *Component {
 	return &Component{
-		Name:       name,
-		Namespace:  namespace,
-		ChartDir:   chartDir,
-		Overrides:  overrides,
-		HelmClient: helmClient,
-		Status:     "NotStarted",
+		Name:            name,
+		Namespace:       namespace,
+		ChartDir:        chartDir,
+		OverridesGetter: overrides,
+		HelmClient:      helmClient,
+		Status:          "NotStarted",
 	}
 }
 
@@ -38,7 +38,9 @@ type ComponentInstallation interface {
 func (c *Component) InstallComponent() error {
 	log.Printf("Installing %s in %s from %s", c.Name, c.Namespace, c.ChartDir)
 
-	err := c.HelmClient.InstallRelease(c.ChartDir, c.Namespace, c.Name, c.Overrides)
+	overrides := c.OverridesGetter()
+
+	err := c.HelmClient.InstallRelease(c.ChartDir, c.Namespace, c.Name, overrides)
 	if err != nil {
 		log.Printf("Error installing %s: %v", c.Name, err)
 		return err

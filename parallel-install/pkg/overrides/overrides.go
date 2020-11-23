@@ -22,7 +22,7 @@ type Provider struct {
 }
 
 type OverridesProvider interface {
-	OverridesFor(name string) map[string]interface{}
+	OverridesGetterFunctionFor(name string) func() map[string]interface{}
 	ReadOverridesFromCluster() error
 }
 
@@ -43,14 +43,16 @@ func New(client kubernetes.Interface, overridesYamls []string) (OverridesProvide
 	return &provider, nil
 }
 
-func (p *Provider) OverridesFor(name string) map[string]interface{} {
-	if val, ok := p.componentOverrides[name]; ok {
-		val = mergeMaps(val, p.overrides)
-		log.Printf("Overrides for %s: %v", name, val)
-		return val
+func (p *Provider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {
+	return func() map[string]interface{} {
+		if val, ok := p.componentOverrides[name]; ok {
+			val = mergeMaps(val, p.overrides)
+			log.Printf("Overrides for %s: %v", name, val)
+			return val
+		}
+		log.Printf("Overrides for %s: %v", name, p.overrides)
+		return p.overrides
 	}
-	log.Printf("Overrides for %s: %v", name, p.overrides)
-	return p.overrides
 }
 
 func (p *Provider) ReadOverridesFromCluster() error {
