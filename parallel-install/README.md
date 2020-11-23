@@ -20,9 +20,12 @@ Before starting an installation/uninstallation you need to provide a configurati
 
 Use the following functions accordingly. You need to provide a kubeconfig pointing to a cluster to each function.
 
-- `StartKymaInstallation` - Starts installation. Prerequisites are installed first linearly, then components' installation continues in parallel. 
+- `StartKymaInstallation` - Starts installation. Prerequisites are installed first linearly, then components' installation continues in parallel.
 - `StartKymaUninstallation` - Starts uninstallation. Library uninstalls components first, then proceeds with prerequisites' uninstallation in reverse order.
 
 ## Example
+
+>**NOTE:**
+Before running the example, please apply the file `namespace.yaml` to properly create kyma-installer namespace, otherwise the installation will fail.
 
 To learn how to use the library to install Kyma on a Gardener cluster, see this [example](../parallel-install/example/example.go).
