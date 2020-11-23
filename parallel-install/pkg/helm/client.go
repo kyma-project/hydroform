@@ -13,6 +13,8 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
+const logPrefix = "[helm/client.go]"
+
 type Config struct {
 	HelmTimeoutSeconds            int
 	BackoffInitialIntervalSeconds int
@@ -45,21 +47,27 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 	uninstall.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
 	operation := func() error {
+		log.Printf("%s Starting uninstall for release %s in namespace %s", logPrefix, name, namespace)
 		rel, err := uninstall.Run(name)
 		if err != nil {
 			//TODO: Find a better way. Maybe explicit check before uninstalling?
 			if strings.HasSuffix(err.Error(), "release: not found") {
 				return nil
 			}
+			log.Printf("%s %v", logPrefix, err)
 			return err
 		}
 
 		if rel == nil || rel.Release == nil || rel.Release.Info == nil {
-			return fmt.Errorf("Failed to uninstall %s. Status: %v", name, "Unknown")
+			err = fmt.Errorf("%s Failed to uninstall %s. Status: %v", logPrefix, name, "Unknown")
+			log.Print(err)
+			return err
 		}
 
 		if rel.Release.Info.Status != release.StatusUninstalled {
-			return fmt.Errorf("Failed to uninstall %s. Status: %v", name, rel.Release.Info.Status)
+			err = fmt.Errorf("%s Failed to uninstall %s. Status: %v", logPrefix, name, rel.Release.Info.Status)
+			log.Print(err)
+			return err
 		}
 
 		return nil
@@ -98,17 +106,23 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 	install.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
 	operation := func() error {
+		log.Printf("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
 		rel, err := install.Run(chart, overrides)
 		if err != nil {
+			log.Printf("%s %v", logPrefix, err)
 			return err
 		}
 
 		if rel == nil || rel.Info == nil {
-			return fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
+			err = fmt.Errorf("%s Failed to install %s. Status: %v", logPrefix, name, "Unknown")
+			log.Print(err)
+			return err
 		}
 
 		if rel.Info.Status != release.StatusDeployed {
-			return fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
+			err = fmt.Errorf("%s Failed to install %s. Status: %v", logPrefix, name, rel.Info.Status)
+			log.Print(err)
+			return err
 		}
 
 		return nil
