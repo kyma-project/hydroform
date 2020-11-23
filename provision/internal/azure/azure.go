@@ -1,11 +1,11 @@
 package azure
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"regexp"
 
-	"github.com/BurntSushi/toml"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/provision/internal/errs"
 	terraform_operator "github.com/kyma-incubator/hydroform/provision/internal/operator/terraform"
@@ -26,7 +26,10 @@ func (a *azureProvisioner) Provision(cluster *types.Cluster, provider *types.Pro
 		return cluster, err
 	}
 
-	config := a.loadConfigurations(cluster, provider)
+	config, err := a.loadConfigurations(cluster, provider)
+	if err != nil {
+		return cluster, err
+	}
 
 	clusterInfo, err := a.provisionOperator.Create(provider.Type, config)
 	if err != nil {
@@ -48,7 +51,10 @@ func (a *azureProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*t
 		return nil, err
 	}
 
-	cfg := a.loadConfigurations(cluster, p)
+	cfg, err := a.loadConfigurations(cluster, p)
+	if err != nil {
+		return nil, err
+	}
 
 	return a.provisionOperator.Status(state, p.Type, cfg)
 }
@@ -74,15 +80,17 @@ func (a *azureProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider
 		return err
 	}
 
-	config := a.loadConfigurations(cluster, p)
+	config, err := a.loadConfigurations(cluster, p)
+	if err != nil {
+		return err
+	}
 
 	var state *statefile.File
 	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
 		state = cluster.ClusterInfo.InternalState.TerraformState
 	}
 
-	err := a.provisionOperator.Delete(state, p.Type, config)
-	if err != nil {
+	if err = a.provisionOperator.Delete(state, p.Type, config); err != nil {
 		return errors.Wrap(err, "unable to deprovision azure cluster")
 	}
 
@@ -145,7 +153,7 @@ func (a *azureProvisioner) validateInputs(cluster *types.Cluster, provider *type
 	return nil
 }
 
-func (a *azureProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
+func (a *azureProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) (map[string]interface{}, error) {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
 	config["agent_count"] = cluster.NodeCount
@@ -155,31 +163,36 @@ func (a *azureProvisioner) loadConfigurations(cluster *types.Cluster, provider *
 	config["location"] = cluster.Location
 	config["project"] = provider.ProjectName
 	config["resource_group"] = provider.ProjectName
-	config["subscription_id"], config["tenant_id"], config["client_id"], config["client_secret"] = azureCredentials(provider.CredentialsFilePath)
+
+	var err error
+	config["subscription_id"], config["tenant_id"], config["client_id"], config["client_secret"], err = azureCredentials(provider.CredentialsFilePath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error loading credentials")
+	}
 
 	for k, v := range provider.CustomConfigurations {
 		config[k] = v
 	}
 
-	return config
+	return config, nil
 }
 
 // azureCredentials extracts the values of a credentials file to authenticate on azure.
-// It expects a file following the TOML format (https://github.com/toml-lang/toml#user-content-spec), containing the SUBSCRIPTION_ID, TENANT_ID, CLIENT_ID and CLIENT_SECRET.
-func azureCredentials(path string) (subscriptionID, tenantID, clientID, clientSecret string) {
+// It expects a JSON file containing the subscription ID, tenant ID, client ID and client secret.
+func azureCredentials(path string) (subscriptionID, tenantID, clientID, clientSecret string, err error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return
 	}
 
 	c := struct {
-		SubscriptionID string `toml:"SUBSCRIPTION_ID"`
-		TenantID       string `toml:"TENANT_ID"`
-		ClientID       string `toml:"CLIENT_ID"`
-		Secret         string `toml:"CLIENT_SECRET"`
+		SubscriptionID string `json:"subscription_id"`
+		TenantID       string `json:"tenant_id"`
+		ClientID       string `json:"client_id"`
+		Secret         string `json:"client_secret"`
 	}{}
 
-	if _, err = toml.Decode(string(data), &c); err != nil {
+	if err = json.Unmarshal(data, &c); err != nil {
 		return
 	}
 

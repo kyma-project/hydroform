@@ -107,7 +107,7 @@ func TestLoadConfigurations(t *testing.T) {
 	provider := &types.Provider{
 		Type:                types.Azure,
 		ProjectName:         "my-resource-group",
-		CredentialsFilePath: "./credentials.toml",
+		CredentialsFilePath: "./credentials-load-config.json",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "azure",
 			"target_secret":   "secret-name",
@@ -120,7 +120,9 @@ func TestLoadConfigurations(t *testing.T) {
 	require.NoError(t, err, "Creating a fake credentials file should not have an error")
 	defer os.Remove(provider.CredentialsFilePath)
 
-	config := g.loadConfigurations(cluster, provider)
+	// happy path
+	config, err := g.loadConfigurations(cluster, provider)
+	require.NoError(t, err)
 
 	require.Equal(t, cluster.Name, config["cluster_name"])
 	require.Equal(t, "fake-subscription-id", config["subscription_id"])
@@ -137,13 +139,20 @@ func TestLoadConfigurations(t *testing.T) {
 	for k, v := range provider.CustomConfigurations {
 		require.Equal(t, v, config[k], fmt.Sprintf("Custom config %s is incorrect", k))
 	}
+
+	// credentials file not found
+	provider.CredentialsFilePath = "/wrong/credentials/path"
+	_, err = g.loadConfigurations(cluster, provider)
+	require.Error(t, err)
 }
 
 func fakeCredentials(file string) error {
-	fake := `SUBSCRIPTION_ID = "fake-subscription-id"
-TENANT_ID = "fake-tenant-id"
-CLIENT_ID = "fake-client-id"
-CLIENT_SECRET = "fake-client-secret"`
+	fake := `{
+  "subscription_id": "fake-subscription-id",
+  "tenant_id": "fake-tenant-id",
+  "client_id": "fake-client-id",
+  "client_secret": "fake-client-secret"
+}`
 
 	return ioutil.WriteFile(file, []byte(fake), 0700)
 }
@@ -167,7 +176,7 @@ func TestProvision(t *testing.T) {
 	provider := &types.Provider{
 		Type:                types.Azure,
 		ProjectName:         "my-resource-group",
-		CredentialsFilePath: "/path/to/credentials",
+		CredentialsFilePath: "./credentials-provision.json",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "azure",
 			"target_secret":   "secret-name",
@@ -175,6 +184,9 @@ func TestProvision(t *testing.T) {
 			"zones":           "europe-west3-b",
 		},
 	}
+	err := fakeCredentials(provider.CredentialsFilePath)
+	require.NoError(t, err, "Creating a fake credentials file should not have an error")
+	defer os.Remove(provider.CredentialsFilePath)
 
 	result := &types.ClusterInfo{
 		CertificateAuthorityData: []byte("My cert"),
@@ -186,16 +198,23 @@ func TestProvision(t *testing.T) {
 			TerraformState: nil,
 		},
 	}
-	mockOp.On("Create", types.Azure, g.loadConfigurations(cluster, provider)).Return(result, nil)
 
-	cluster, err := g.Provision(cluster, provider)
+	cfg, err := g.loadConfigurations(cluster, provider)
+	require.NoError(t, err)
+
+	mockOp.On("Create", types.Azure, cfg).Return(result, nil)
+
+	cluster, err = g.Provision(cluster, provider)
 	require.NoError(t, err, "Provision should succeed")
 	require.Equal(t, result, cluster.ClusterInfo, "The cluster info returned from the operator should be in the cluster returned by Provision")
 
 	badCluster := &types.Cluster{
 		CPU: 1,
 	}
-	mockOp.On("Create", types.Azure, g.loadConfigurations(badCluster, provider)).Return(badCluster, errors.New("Unable to provision cluster"))
+
+	cfg, err = g.loadConfigurations(badCluster, provider)
+	require.NoError(t, err)
+	mockOp.On("Create", types.Azure, cfg).Return(badCluster, errors.New("Unable to provision cluster"))
 
 	_, err = g.Provision(badCluster, provider)
 	require.Error(t, err, "Provision should fail")
@@ -221,7 +240,7 @@ func TestDeprovision(t *testing.T) {
 	provider := &types.Provider{
 		Type:                types.Azure,
 		ProjectName:         "my-resource-group",
-		CredentialsFilePath: "/path/to/credentials",
+		CredentialsFilePath: "./credentials-deprovision.json",
 		CustomConfigurations: map[string]interface{}{
 			"target_provider": "azure",
 			"target_secret":   "secret-name",
@@ -230,14 +249,24 @@ func TestDeprovision(t *testing.T) {
 		},
 	}
 
-	var state *statefile.File
-	mockOp.On("Delete", state, types.Azure, g.loadConfigurations(cluster, provider)).Return(nil)
+	err := fakeCredentials(provider.CredentialsFilePath)
+	require.NoError(t, err, "Creating a fake credentials file should not have an error")
+	defer os.Remove(provider.CredentialsFilePath)
 
-	err := g.Deprovision(cluster, provider)
+	cfg, err := g.loadConfigurations(cluster, provider)
+	require.NoError(t, err)
+
+	var state *statefile.File
+	mockOp.On("Delete", state, types.Azure, cfg).Return(nil)
+
+	err = g.Deprovision(cluster, provider)
 	require.NoError(t, err, "Deprovision should succeed")
 
 	provider.ProjectName = "invalid-resource-group"
-	mockOp.On("Delete", state, types.Azure, g.loadConfigurations(cluster, provider)).Return(errors.New("Unable to deprovision cluster"))
+	cfg, err = g.loadConfigurations(cluster, provider)
+	require.NoError(t, err)
+
+	mockOp.On("Delete", state, types.Azure, cfg).Return(errors.New("Unable to deprovision cluster"))
 
 	err = g.Deprovision(cluster, provider)
 	require.Error(t, err, "Deprovision should fail")

@@ -10,12 +10,14 @@ This example shows you how to use Hydroform to provision an Azure cluster.
 
 To provision an Azure cluster you need:
 
-1. The **Subscription ID**, **Tenant ID**, **Client ID** and **Client Secret** of your Azure subscription stored in a TOML file:
-    ```toml
-    SUBSCRIPTION_ID = "<my-subscription-id>"
-    TENANT_ID = "<my-tenant-id>"
-    CLIENT_ID = "<my-client-id>"
-    CLIENT_SECRET = "<my-client-secret>"
+1. The **Subscription ID**, **Tenant ID**, **Client ID** and **Client Secret** of your Azure subscription stored in a JSON file:
+    ```json
+    {
+      "subscription_id": "{YOUR_SUBSCRIPTION_ID}",
+      "tenant_id": "{YOUR_TENANT_ID}",
+      "client_id": "{YOUR_APP_ID}",
+      "client_secret": "{YOUR_APP_PASSWORD}"
+    }
     ```
 
 2. Login into your azure account with the Azure CLI:
@@ -29,7 +31,7 @@ To provision an Azure cluster you need:
 1. To provision a new cluster on Azure, go to the `provision` directory and run:
 
     ```bash
-    go run ./examples/azure/main.go -p {resource_group_name} -c /{path/to/credentials.toml} --persist
+    go run ./examples/azure/main.go -p {resource_group_name} -c /{path/to/credentials.json} --persist
     ```
 
 2. In the Azure portal, go to **Home** > **All Resources** to see your cluster on the list.
