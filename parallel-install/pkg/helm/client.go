@@ -59,14 +59,14 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 		}
 
 		if rel == nil || rel.Release == nil || rel.Release.Info == nil {
-			err = fmt.Errorf("%s Failed to uninstall %s. Status: %v", logPrefix, name, "Unknown")
-			log.Print(err)
+			err = fmt.Errorf("Failed to uninstall %s. Status: %v", name, "Unknown")
+			log.Printf("%s %v", logPrefix, err)
 			return err
 		}
 
 		if rel.Release.Info.Status != release.StatusUninstalled {
-			err = fmt.Errorf("%s Failed to uninstall %s. Status: %v", logPrefix, name, rel.Release.Info.Status)
-			log.Print(err)
+			err = fmt.Errorf("Failed to uninstall %s. Status: %v", name, rel.Release.Info.Status)
+			log.Printf("%s %v", logPrefix, err)
 			return err
 		}
 
@@ -114,14 +114,14 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 		}
 
 		if rel == nil || rel.Info == nil {
-			err = fmt.Errorf("%s Failed to install %s. Status: %v", logPrefix, name, "Unknown")
-			log.Print(err)
+			err = fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
+			log.Printf("%s %v", logPrefix, err)
 			return err
 		}
 
 		if rel.Info.Status != release.StatusDeployed {
-			err = fmt.Errorf("%s Failed to install %s. Status: %v", logPrefix, name, rel.Info.Status)
-			log.Print(err)
+			err = fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
+			log.Printf("%s %v", logPrefix, err)
 			return err
 		}
 
