@@ -1,0 +1,4 @@
+monitoring:
+  componentOverride1: "changed"
+global:
+  globalOverride1: "changed"
