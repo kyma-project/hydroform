@@ -2,30 +2,29 @@
 
 ## Overview
 
-The `parallel-install` package allows you to install and uninstall Kyma on already existing clusters.
+The `parallel-install` package allows you to install and uninstall Kyma on the already existing clusters.
 
 ## Usage
 
-Before starting an installation/uninstallation you need to provide a configuration by creating an instance of the `Installation` struct. To do so, use the `installation.NewInstallation` function.
+Before starting the installation or uninstallation process, you need to provide a complete configuration by creating an instance of the `Installation` struct. To do so, use the `installation.NewInstallation` function.
 
 | Parameter | Type | Example value | Description |
 | --- | --- | --- | --- |
-| prerequisites | `[][]string` | `{"cluster-essentials", "kyma-system"}, {"istio", "istio-system"},` | Array of component's name and namespace pairs. This components will be installed first in a declared order linearly. |
+| prerequisites | `[][]string` | `{"cluster-essentials", "kyma-system"}, {"istio", "istio-system"},` | Array of the component's name and Namespace pairs. These components will be installed first, linearly, in a declared order. |
 | componentsYaml | `string` | - | Content of the [Installation CR](https://kyma-project.io/docs/#custom-resource-installation). Components will be extracted and installed in parallel. |
 | overridesYaml | `[]string` | `{ "foo: bar", "val: example" }` | List of Helm overrides. The latter the override, the higher is its priority. |
 | resourcesPath | `string` | `/go/src/github.com/kyma-project/kyma/resources` | Path to the Kyma resources. |
-| concurrency | `int` | `3` | Specifies how many components install simultaneously. |
+| concurrency | `int` | `3` | Specifies how many components are installed simultaneously. |
 
->**NOTE:** Library also fetches overrides from Config Maps present in the cluster. However, overrides provided through the `NewInstallation` have higher priority.
+>**NOTE:** This library also fetches overrides from ConfigMaps present in the cluster. However, overrides provided through `NewInstallation` have a higher priority.
 
-Use the following functions accordingly. You need to provide a kubeconfig pointing to a cluster to each function.
+Use the following functions accordingly. You need to provide a kubeconfig pointing to a cluster for each function.
 
-- `StartKymaInstallation` - Starts installation. Prerequisites are installed first linearly, then components' installation continues in parallel.
-- `StartKymaUninstallation` - Starts uninstallation. Library uninstalls components first, then proceeds with prerequisites' uninstallation in reverse order.
+- `StartKymaInstallation` - Starts the installation process. First, prerequisites are installed linearly. Then, the components' installation continues in parallel.
+- `StartKymaUninstallation` - Starts the uninstallation process. The library uninstalls the components first, then it proceeds with the prerequisites' uninstallation in reverse order.
 
-## Example
+### Example
 
->**NOTE:**
-Before running the example, please apply the file `namespace.yaml` to properly create kyma-installer namespace, otherwise the installation will fail.
+> **NOTE:** Before running the example, apply the `namespace.yaml` file to properly create the `kyma-installer` Namespace. Otherwise, the installation will fail.
 
 To learn how to use the library to install Kyma on a Gardener cluster, see this [example](../parallel-install/example/example.go).
