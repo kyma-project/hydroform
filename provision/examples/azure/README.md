@@ -10,7 +10,7 @@ This example shows you how to use Hydroform to provision an Azure cluster.
 
 To provision an Azure cluster you need:
 
-1. The **Subscription ID**, **Tenant ID**, **Client ID** and **Client Secret** of your Azure subscription stored in a JSON file:
+1. The Subscription ID, Tenant ID, Client ID, and Client Secret of your Azure subscription stored in a JSON file:
     ```json
     {
       "subscription_id": "{YOUR_SUBSCRIPTION_ID}",
