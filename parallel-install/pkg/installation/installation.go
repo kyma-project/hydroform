@@ -50,10 +50,6 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	}, nil
 }
 
-func (i *Installation) SetupLogger(log func(string, ...interface{})) {
-	config.Log = log
-}
-
 func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {

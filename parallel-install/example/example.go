@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"log"
 
 	"os"
 	"path/filepath"
@@ -57,7 +57,7 @@ func main() {
 		HelmTimeoutSeconds:            60 * 8,
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
-		Log:                           log.Infof,
+		Log:                           log.Printf,
 	}
 
 	installer, err := installation.NewInstallation(prerequisitesContent,
@@ -69,7 +69,7 @@ func main() {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
 
-	installer.SetupLogger(log.Printf)
+	config.SetupLogger(log.Printf)
 
 	err = installer.StartKymaInstallation(restConfig)
 	if err != nil {

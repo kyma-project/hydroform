@@ -1,6 +1,6 @@
 package config
 
-import log "github.com/sirupsen/logrus"
+import "log"
 
 //Configures various install/uninstall operation parameters.
 //There are no different parameters for Install/Delete operations - if you need it to be different, just use two Installations with two different configs.
@@ -25,4 +25,8 @@ type Config struct {
 
 // TODO: Remove this variable. Search for occurrences of config.Log
 // It is used in functions to avoid passing logger as a parameter
-var Log = log.Infof
+var Log = log.Printf
+
+func SetupLogger(log func(string, ...interface{})) {
+	Log = log
+}
