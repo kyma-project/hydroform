@@ -1,8 +1,6 @@
 package components
 
 import (
-	"log"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 )
 
@@ -17,9 +15,10 @@ type Component struct {
 	ChartDir        string
 	OverridesGetter func() map[string]interface{}
 	HelmClient      helm.ClientInterface
+	Log             func(format string, v ...interface{})
 }
 
-func NewComponent(name, namespace, chartDir string, overrides func() map[string]interface{}, helmClient helm.ClientInterface) *Component {
+func NewComponent(name, namespace, chartDir string, overrides func() map[string]interface{}, helmClient helm.ClientInterface, log func(string, ...interface{})) *Component {
 	return &Component{
 		Name:            name,
 		Namespace:       namespace,
@@ -27,6 +26,7 @@ func NewComponent(name, namespace, chartDir string, overrides func() map[string]
 		OverridesGetter: overrides,
 		HelmClient:      helmClient,
 		Status:          "NotStarted",
+		Log:             log,
 	}
 }
 
@@ -36,31 +36,31 @@ type ComponentInstallation interface {
 }
 
 func (c *Component) InstallComponent() error {
-	log.Printf("Installing %s in %s from %s", c.Name, c.Namespace, c.ChartDir)
+	c.Log("Installing %s in %s from %s", c.Name, c.Namespace, c.ChartDir)
 
 	overrides := c.OverridesGetter()
 
 	err := c.HelmClient.InstallRelease(c.ChartDir, c.Namespace, c.Name, overrides)
 	if err != nil {
-		log.Printf("Error installing %s: %v", c.Name, err)
+		c.Log("Error installing %s: %v", c.Name, err)
 		return err
 	}
 
-	log.Printf("Installed %s in %s", c.Name, c.Namespace)
+	c.Log("Installed %s in %s", c.Name, c.Namespace)
 
 	return nil
 }
 
 func (c *Component) UninstallComponent() error {
-	log.Printf("Uninstalling %s in %s from %s", c.Name, c.Namespace, c.ChartDir)
+	c.Log("Uninstalling %s in %s from %s", c.Name, c.Namespace, c.ChartDir)
 
 	err := c.HelmClient.UninstallRelease(c.Namespace, c.Name)
 	if err != nil {
-		log.Printf("Error uninstalling %s: %v", c.Name, err)
+		c.Log("Error uninstalling %s: %v", c.Name, err)
 		return err
 	}
 
-	log.Printf("Uninstalled %s in %s", c.Name, c.Namespace)
+	c.Log("Uninstalled %s in %s", c.Name, c.Namespace)
 
 	return nil
 }

@@ -3,7 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"sync"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -14,6 +14,7 @@ var statusMap map[string]string
 
 type Config struct {
 	WorkersCount int
+	Log func(format string, v ...interface{})
 }
 
 type Engine struct {
@@ -113,7 +114,7 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 
 		err = e.overridesProvider.ReadOverridesFromCluster()
 		if err != nil {
-			log.Printf("error while reading overrides: %v", err)
+			e.cfg.Log("error while reading overrides: %v", err)
 			return
 		}
 
@@ -162,7 +163,7 @@ func run(ctx context.Context, statusChan chan<- components.Component, cmps []com
 	//Fill the queue with jobs
 	for _, comp := range cmps {
 		if !enqueueJob(comp, jobChan) {
-			log.Printf("Max capacity reached, component dismissed: %s", comp.Name)
+			config.Log("Max capacity reached, component dismissed: %s", comp.Name)
 		}
 	}
 
@@ -189,13 +190,13 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 		select {
 		//TODO: Perhaps this should be removed/refactored. Golang choses cases randomly if both are possible, so it might chose processing component instead, and that is invalid.
 		case <-ctx.Done():
-			log.Printf("Finishing work: %v", ctx.Err())
+			config.Log("Finishing work: %v", ctx.Err())
 			return
 
 		case component, ok := <-jobChan:
 			//TODO: Is there a better way to find out if Context is canceled?
 			if err := ctx.Err(); err != nil {
-				log.Printf("Finishing work: %v.", err)
+				config.Log("Finishing work: %v.", err)
 				return
 			}
 			if ok {
@@ -215,7 +216,7 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 					statusChan <- component
 				}
 			} else {
-				log.Printf("Finishing work: no more jobs in queue.")
+				config.Log("Finishing work: no more jobs in queue.")
 				return
 			}
 		}

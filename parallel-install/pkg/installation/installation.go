@@ -3,7 +3,6 @@ package installation
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -51,13 +50,17 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	}, nil
 }
 
+func (i *Installation) SetupLogger(log func(string, ...interface{})) {
+	config.Log = log
+}
+
 func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {
 		return fmt.Errorf("Unable to create internal client. Error: %v", err)
 	}
 
-	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls)
+	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls, i.Cfg.Log)
 	if err != nil {
 		return fmt.Errorf("Unable to create overrides provider. Error: %v", err)
 	}
@@ -68,7 +71,7 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
 	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, engineCfg)
 
-	fmt.Println("Kyma installation")
+	i.Cfg.Log("Kyma installation")
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	statusChan, err := eng.Install(cancelCtx)
 	if err != nil {
@@ -94,21 +97,21 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 			} else {
 				//statusChan is closed
 				if errCount > 0 {
-					logStatuses(statusMap)
+					i.logStatuses(statusMap)
 					return fmt.Errorf("Kyma installation failed due to errors in %d component(s)", errCount)
 				}
 				if timeoutOccured {
-					logStatuses(statusMap)
+					i.logStatuses(statusMap)
 					return fmt.Errorf("Kyma installation failed due to the timeout")
 				}
 				return nil
 			}
 		case <-time.After(cancelTimeout):
 			timeoutOccured = true
-			log.Printf("Timeout occurred after %v minutes. Cancelling installation", cancelTimeout.Minutes())
+			i.Cfg.Log("Timeout occurred after %v minutes. Cancelling installation", cancelTimeout.Minutes())
 			cancel()
 		case <-time.After(quitTimeout):
-			log.Print("Installation doesn't stop after it's canceled. Enforcing quit")
+			i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Kyma installation failed due to the timeout")
 		}
 	}
@@ -117,23 +120,23 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {
-		log.Printf("Unable to create internal client. Error: %v", err)
+		i.Cfg.Log("Unable to create internal client. Error: %v", err)
 		return err
 	}
 
-	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls)
+	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls, i.Cfg.Log)
 	if err != nil {
-		log.Printf("Unable to create overrides provider. Error: %v", err)
+		i.Cfg.Log("Unable to create overrides provider. Error: %v", err)
 		return err
 	}
 
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
-	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
+	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount, Log: i.Cfg.Log}
 	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, engineCfg)
 
-	log.Println("Kyma uninstallation started")
+	i.Cfg.Log("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	statusChan, err := eng.Uninstall(cancelCtx)
@@ -158,29 +161,29 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 				statusMap[cmp.Name] = cmp.Status
 			} else {
 				if errCount > 0 {
-					logStatuses(statusMap)
+					i.logStatuses(statusMap)
 					return fmt.Errorf("Kyma uninstallation failed due to errors in %d component(s)", errCount)
 				}
 				if timeoutOccured {
-					logStatuses(statusMap)
+					i.logStatuses(statusMap)
 					return fmt.Errorf("Kyma uninstallation failed due to the timeout")
 				}
 				return nil
 			}
 		case <-time.After(cancelTimeout):
 			timeoutOccured = true
-			log.Printf("Timeout occurred after %v minutes. Cancelling uninstallation", cancelTimeout.Minutes())
+			i.Cfg.Log("Timeout occurred after %v minutes. Cancelling uninstallation", cancelTimeout.Minutes())
 			cancel()
 		case <-time.After(quitTimeout):
-			log.Print("Uninstallation doesn't stop after it's canceled. Enforcing quit")
+			i.Cfg.Log("Uninstallation doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Kyma uninstallation failed due to the timeout")
 		}
 	}
 }
 
-func logStatuses(statusMap map[string]string) {
-	log.Print("Components processed so far:")
+func (i *Installation) logStatuses(statusMap map[string]string) {
+	i.Cfg.Log("Components processed so far:")
 	for k, v := range statusMap {
-		log.Printf("Component: %s, Status: %s", k, v)
+		i.Cfg.Log("Component: %s, Status: %s", k, v)
 	}
 }
