@@ -4,6 +4,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
+
 	"os"
 	"path/filepath"
 
@@ -56,6 +57,7 @@ func main() {
 		HelmTimeoutSeconds:            60 * 8,
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
+		Log:                           log.Printf,
 	}
 
 	installer, err := installation.NewInstallation(prerequisitesContent,
@@ -66,6 +68,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
+
+	config.SetupLogger(log.Printf)
 
 	err = installer.StartKymaInstallation(restConfig)
 	if err != nil {

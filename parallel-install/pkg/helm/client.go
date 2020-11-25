@@ -2,7 +2,7 @@ package helm
 
 import (
 	"fmt"
-	"log"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"strings"
 	"time"
 
@@ -19,6 +19,7 @@ type Config struct {
 	HelmTimeoutSeconds            int
 	BackoffInitialIntervalSeconds int
 	BackoffMaxElapsedTimeSeconds  int
+	Log                           func(format string, v ...interface{})
 }
 
 type Client struct {
@@ -47,26 +48,26 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 	uninstall.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
 	operation := func() error {
-		log.Printf("%s Starting uninstall for release %s in namespace %s", logPrefix, name, namespace)
+		c.cfg.Log("%s Starting uninstall for release %s in namespace %s", logPrefix, name, namespace)
 		rel, err := uninstall.Run(name)
 		if err != nil {
 			//TODO: Find a better way. Maybe explicit check before uninstalling?
 			if strings.HasSuffix(err.Error(), "release: not found") {
 				return nil
 			}
-			log.Printf("%s %v", logPrefix, err)
+			c.cfg.Log("%s %v", logPrefix, err)
 			return err
 		}
 
 		if rel == nil || rel.Release == nil || rel.Release.Info == nil {
 			err = fmt.Errorf("Failed to uninstall %s. Status: %v", name, "Unknown")
-			log.Printf("%s %v", logPrefix, err)
+			c.cfg.Log("%s %v", logPrefix, err)
 			return err
 		}
 
 		if rel.Release.Info.Status != release.StatusUninstalled {
 			err = fmt.Errorf("Failed to uninstall %s. Status: %v", name, rel.Release.Info.Status)
-			log.Printf("%s %v", logPrefix, err)
+			c.cfg.Log("%s %v", logPrefix, err)
 			return err
 		}
 
@@ -106,22 +107,22 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 	install.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
 	operation := func() error {
-		log.Printf("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
+		c.cfg.Log("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
 		rel, err := install.Run(chart, overrides)
 		if err != nil {
-			log.Printf("%s %v", logPrefix, err)
+			c.cfg.Log("%s %v", logPrefix, err)
 			return err
 		}
 
 		if rel == nil || rel.Info == nil {
 			err = fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
-			log.Printf("%s %v", logPrefix, err)
+			c.cfg.Log("%s %v", logPrefix, err)
 			return err
 		}
 
 		if rel.Info.Status != release.StatusDeployed {
 			err = fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
-			log.Printf("%s %v", logPrefix, err)
+			c.cfg.Log("%s %v", logPrefix, err)
 			return err
 		}
 
@@ -146,7 +147,7 @@ func newActionConfig(namespace string) (*action.Configuration, error) {
 	clientGetter.Namespace = &namespace
 
 	cfg := new(action.Configuration)
-	if err := cfg.Init(clientGetter, namespace, "secrets", log.Printf); err != nil {
+	if err := cfg.Init(clientGetter, namespace, "secrets", config.Log); err != nil {
 		return nil, err
 	}
 

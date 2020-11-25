@@ -2,13 +2,13 @@ package overrides
 
 import (
 	"context"
-	"log"
-
 	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+const logPrefix = "[overrides/overrides.go]"
 
 var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, !component"}
 var componentListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, component"}
@@ -19,6 +19,7 @@ type Provider struct {
 	componentOverrides           map[string]map[string]interface{}
 	additionalComponentOverrides map[string]map[string]interface{}
 	kubeClient                   kubernetes.Interface
+	log                          func(format string, v ...interface{})
 }
 
 type OverridesProvider interface {
@@ -26,9 +27,10 @@ type OverridesProvider interface {
 	ReadOverridesFromCluster() error
 }
 
-func New(client kubernetes.Interface, overridesYamls []string) (OverridesProvider, error) {
+func New(client kubernetes.Interface, overridesYamls []string, log func(string, ...interface{})) (OverridesProvider, error) {
 	provider := Provider{
 		kubeClient: client,
+		log:        log,
 	}
 
 	for _, overridesYaml := range overridesYamls {
@@ -47,10 +49,10 @@ func (p *Provider) OverridesGetterFunctionFor(name string) func() map[string]int
 	return func() map[string]interface{} {
 		if val, ok := p.componentOverrides[name]; ok {
 			val = mergeMaps(val, p.overrides)
-			log.Printf("Overrides for %s: %v", name, val)
+			p.log("%s Overrides for %s: %v", logPrefix, name, val)
 			return val
 		}
-		log.Printf("Overrides for %s: %v", name, p.overrides)
+		p.log("%s Overrides for %s: %v", logPrefix, name, p.overrides)
 		return p.overrides
 	}
 }
@@ -66,7 +68,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 
 	var globalValues []string
 	for _, cm := range globalOverrideCMs.Items {
-		log.Printf("%s data %v", cm.Name, cm.Data)
+		p.log("%s %s data %v", logPrefix, cm.Name, cm.Data)
 		for k, v := range cm.Data {
 			globalValues = append(globalValues, k+"="+v)
 		}
@@ -80,7 +82,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 
 	for _, value := range globalValues {
 		if err := strvals.ParseInto(value, globalFromCluster); err != nil {
-			log.Printf("Error parsing global overrides: %v", err)
+			p.log("%s Error parsing global overrides: %v", logPrefix, err)
 			return err
 		}
 	}
@@ -96,7 +98,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 	componentOverrideCMs, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), componentListOpts)
 
 	for _, cm := range componentOverrideCMs.Items {
-		log.Printf("%s data %v", cm.Name, cm.Data)
+		p.log("%s %s data %v", logPrefix, cm.Name, cm.Data)
 		var componentValues []string
 		name := cm.Labels["component"]
 
@@ -112,7 +114,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 
 		for _, value := range componentValues {
 			if err := strvals.ParseInto(value, componentsFromCluster); err != nil {
-				log.Printf("Error parsing overrides for %s: %v", name, err)
+				p.log("%s Error parsing overrides for %s: %v", logPrefix, name, err)
 				return err
 			}
 		}
@@ -121,7 +123,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 		p.componentOverrides[name] = mergeMaps(p.componentOverrides[name], p.additionalComponentOverrides[name]) // always keep additionalOverrides on top
 	}
 
-	log.Println("Reading the overrides from the cluster completed successfully!")
+	p.log("%s Reading the overrides from the cluster completed successfully!", logPrefix)
 	return nil
 }
 

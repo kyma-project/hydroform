@@ -1,5 +1,7 @@
 package config
 
+import "log"
+
 //Configures various install/uninstall operation parameters.
 //There are no different parameters for Install/Delete operations - if you need it to be different, just use two Installations with two different configs.
 type Config struct {
@@ -17,4 +19,14 @@ type Config struct {
 	BackoffInitialIntervalSeconds int
 	//Maximum time used for exponent backoff retry policy
 	BackoffMaxElapsedTimeSeconds int
+	//Logger to use
+	Log func(format string, v ...interface{})
+}
+
+// TODO: Remove this variable. Search for occurrences of config.Log
+// It is used in functions to avoid passing logger as a parameter
+var Log = log.Printf
+
+func SetupLogger(log func(string, ...interface{})) {
+	Log = log
 }
