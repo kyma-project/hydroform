@@ -1,6 +1,8 @@
 package components
 
 import (
+	"context"
+
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 )
 
@@ -33,16 +35,16 @@ func NewComponent(name, namespace, chartDir string, overrides func() map[string]
 }
 
 type ComponentInstallation interface {
-	InstallComponent() error
-	UnInstallComponent() error
+	InstallComponent(context.Context) error
+	UnInstallComponent(context.Context) error
 }
 
-func (c *Component) InstallComponent() error {
+func (c *Component) InstallComponent(ctx context.Context) error {
 	c.Log("%s Installing %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
 	overrides := c.OverridesGetter()
 
-	err := c.HelmClient.InstallRelease(c.ChartDir, c.Namespace, c.Name, overrides)
+	err := c.HelmClient.InstallRelease(ctx, c.ChartDir, c.Namespace, c.Name, overrides)
 	if err != nil {
 		c.Log("%s Error installing %s: %v", logPrefix, c.Name, err)
 		return err
@@ -53,10 +55,10 @@ func (c *Component) InstallComponent() error {
 	return nil
 }
 
-func (c *Component) UninstallComponent() error {
+func (c *Component) UninstallComponent(ctx context.Context) error {
 	c.Log("%s Uninstalling %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
-	err := c.HelmClient.UninstallRelease(c.Namespace, c.Name)
+	err := c.HelmClient.UninstallRelease(ctx, c.Namespace, c.Name)
 	if err != nil {
 		c.Log("%s Error uninstalling %s: %v", logPrefix, c.Name, err)
 		return err
