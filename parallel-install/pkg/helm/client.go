@@ -2,9 +2,10 @@ package helm
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"strings"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 
 	"github.com/cenkalti/backoff/v4"
 	"helm.sh/helm/v3/pkg/action"
@@ -55,19 +56,19 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 			if strings.HasSuffix(err.Error(), "release: not found") {
 				return nil
 			}
-			c.cfg.Log("%s %v", logPrefix, err)
+			c.cfg.Log("%s Error: %v", logPrefix, err)
 			return err
 		}
 
 		if rel == nil || rel.Release == nil || rel.Release.Info == nil {
 			err = fmt.Errorf("Failed to uninstall %s. Status: %v", name, "Unknown")
-			c.cfg.Log("%s %v", logPrefix, err)
+			c.cfg.Log("%s Error: %v", logPrefix, err)
 			return err
 		}
 
 		if rel.Release.Info.Status != release.StatusUninstalled {
 			err = fmt.Errorf("Failed to uninstall %s. Status: %v", name, rel.Release.Info.Status)
-			c.cfg.Log("%s %v", logPrefix, err)
+			c.cfg.Log("%s Error: %v", logPrefix, err)
 			return err
 		}
 
@@ -81,7 +82,7 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 
 	err = backoff.Retry(operation, exponentialBackoff)
 	if err != nil {
-		return fmt.Errorf("Failed to uninstall %s within the given timeout. Error: %v", name, err)
+		return fmt.Errorf("Error: Failed to uninstall %s within the given timeout: %v", name, err)
 	}
 
 	return nil
@@ -110,19 +111,19 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 		c.cfg.Log("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
 		rel, err := install.Run(chart, overrides)
 		if err != nil {
-			c.cfg.Log("%s %v", logPrefix, err)
+			c.cfg.Log("%s Error: %v", logPrefix, err)
 			return err
 		}
 
 		if rel == nil || rel.Info == nil {
 			err = fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
-			c.cfg.Log("%s %v", logPrefix, err)
+			c.cfg.Log("%s Error: %v", logPrefix, err)
 			return err
 		}
 
 		if rel.Info.Status != release.StatusDeployed {
 			err = fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
-			c.cfg.Log("%s %v", logPrefix, err)
+			c.cfg.Log("%s Error: %v", logPrefix, err)
 			return err
 		}
 
@@ -136,7 +137,7 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 
 	err = backoff.Retry(operation, exponentialBackoff)
 	if err != nil {
-		return fmt.Errorf("Failed to install %s within the given timeout. Error: %v", name, err)
+		return fmt.Errorf("Error: Failed to install %s within the given timeout. Error: %v", name, err)
 	}
 
 	return err
