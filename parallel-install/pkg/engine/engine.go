@@ -11,6 +11,7 @@ import (
 )
 
 var statusMap map[string]string
+
 const logPrefix = "[engine/engine.go]"
 
 type Config struct {
