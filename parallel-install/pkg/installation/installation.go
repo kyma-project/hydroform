@@ -3,12 +3,14 @@ package installation
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
+	prereq "github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -65,10 +67,29 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
 	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
-	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, engineCfg)
+	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath, engineCfg)
+
+	i.Cfg.Log("Kyma prerequisites installation")
+
+	prerequisites, err := prerequisitesProvider.GetComponents()
+	if err != nil {
+		return err
+	}
+	err = overridesProvider.ReadOverridesFromCluster()
+	if err != nil {
+		return fmt.Errorf("error while reading overrides: %v", err)
+	}
+
+	//TODO: Handle timeout
+	err = prereq.InstallPrerequisites(context.TODO(), prerequisites)
+	if err != nil {
+		return err
+	}
 
 	i.Cfg.Log("Kyma installation")
+
 	cancelCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	statusChan, err := eng.Install(cancelCtx)
 	if err != nil {
 		return fmt.Errorf("Kyma installation failed. Error: %v", err)
@@ -130,11 +151,12 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
 	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount, Log: i.Cfg.Log}
-	eng := engine.NewEngine(overridesProvider, prerequisitesProvider, componentsProvider, i.ResourcesPath, engineCfg)
+	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath, engineCfg)
 
 	i.Cfg.Log("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	statusChan, err := eng.Uninstall(cancelCtx)
 	if err != nil {
 		return err
@@ -147,6 +169,7 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 	var timeoutOccured bool = false
 
 	//Await completion
+Loop:
 	for {
 		select {
 		case cmp, ok := <-statusChan:
@@ -164,7 +187,7 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 					i.logStatuses(statusMap)
 					return fmt.Errorf("Kyma uninstallation failed due to the timeout")
 				}
-				return nil
+				break Loop
 			}
 		case <-time.After(cancelTimeout):
 			timeoutOccured = true
@@ -175,6 +198,21 @@ func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
 			return fmt.Errorf("Kyma uninstallation failed due to the timeout")
 		}
 	}
+
+	log.Print("Kyma prerequisites uninstallation")
+
+	prerequisites, err := prerequisitesProvider.GetComponents()
+	if err != nil {
+		return err
+	}
+
+	//TODO: Handle timeout
+	err = prereq.UninstallPrerequisites(context.TODO(), prerequisites)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (i *Installation) logStatuses(statusMap map[string]string) {

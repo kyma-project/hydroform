@@ -2,9 +2,9 @@ package engine
 
 import (
 	"context"
-	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"sync"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
@@ -27,14 +27,13 @@ type Engine struct {
 	cfg                   Config
 }
 
-func NewEngine(overridesProvider overrides.OverridesProvider, prerequisitesProvider components.Provider, componentsProvider components.Provider, resourcesPath string, cfg Config) *Engine {
+func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider components.Provider, resourcesPath string, cfg Config) *Engine {
 	statusMap = make(map[string]string)
 	return &Engine{
-		overridesProvider:     overridesProvider,
-		prerequisitesProvider: prerequisitesProvider,
-		componentsProvider:    componentsProvider,
-		resourcesPath:         resourcesPath,
-		cfg:                   cfg,
+		overridesProvider:  overridesProvider,
+		componentsProvider: componentsProvider,
+		resourcesPath:      resourcesPath,
+		cfg:                cfg,
 	}
 }
 
@@ -45,74 +44,19 @@ type Installation interface {
 	Uninstall(ctx context.Context) (<-chan components.Component, error)
 }
 
-func (e *Engine) installPrerequisites(ctx context.Context, statusChan chan<- components.Component, prerequisites []components.Component) {
-
-	for _, prerequisite := range prerequisites {
-		//TODO: Is there a better way to find out if Context is canceled?
-		if ctx.Err() != nil {
-			//Context is canceled or timed-out. Skip processing
-			return
-		}
-		err := prerequisite.InstallComponent()
-		if err != nil {
-			prerequisite.Status = components.StatusError
-		} else {
-			prerequisite.Status = components.StatusInstalled
-		}
-		statusChan <- prerequisite
-	}
-}
-
-func (e *Engine) uninstallPrerequisites(ctx context.Context, statusChan chan<- components.Component, prerequisites []components.Component) {
-
-	for i := len(prerequisites) - 1; i >= 0; i-- {
-		//TODO: Is there a better way to find out if Context is canceled?
-		if ctx.Err() != nil {
-			//Context is canceled or timed-out. Skip processing
-			return
-		}
-		prereq := prerequisites[i]
-		err := prereq.UninstallComponent()
-		if err != nil {
-			prereq.Status = components.StatusError
-		} else {
-			prereq.Status = components.StatusUninstalled
-		}
-		statusChan <- prereq
-	}
-}
-
 func (e *Engine) Install(ctx context.Context) (<-chan components.Component, error) {
-
-	prerequisites, err := e.prerequisitesProvider.GetComponents()
-	if err != nil {
-		return nil, err
-	}
 
 	cmps, err := e.componentsProvider.GetComponents()
 	if err != nil {
 		return nil, err
 	}
 
-	err = e.overridesProvider.ReadOverridesFromCluster()
-	if err != nil {
-		return nil, fmt.Errorf("error while reading overrides: %v", err)
-	}
-
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.Component, 30)
 
-	//TODO: I'd prefer to avoid this goroutine. Because goroutines are cheap, for now it's OK.
-	//A better approach would be a dedicated data type containing a list of operations.
-	//Every operation would be a non-empty set of components, along with information about how many workers should be used (default = 1)
-	//Then we could use generic `run` subroutine to process such list.
+	//TODO: Can we avoid this goroutine? Maybe refactor run() so it's non-blocking ?
 	go func() {
 		defer close(statusChan)
-
-		e.installPrerequisites(ctx, statusChan, prerequisites)
-		if ctx.Err() != nil {
-			return
-		}
 
 		err = e.overridesProvider.ReadOverridesFromCluster()
 		if err != nil {
@@ -120,7 +64,6 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 			return
 		}
 
-		//Install the rest of the components
 		run(ctx, statusChan, cmps, "install", e.cfg.WorkersCount)
 
 	}()
@@ -134,25 +77,13 @@ func (e *Engine) Uninstall(ctx context.Context) (<-chan components.Component, er
 		return nil, err
 	}
 
-	prerequisites, err := e.prerequisitesProvider.GetComponents()
-	if err != nil {
-		return nil, err
-	}
-
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.Component, 30)
 
-	//TODO: Perhaps we should refactor to get rid of this goroutine.
 	go func() {
 		defer close(statusChan)
 
-		//Uninstall the "standard" components
 		run(ctx, statusChan, cmps, "uninstall", e.cfg.WorkersCount)
-
-		if ctx.Err() == nil {
-			//Uninstall the prequisite components
-			e.uninstallPrerequisites(ctx, statusChan, prerequisites)
-		}
 	}()
 
 	return statusChan, nil
