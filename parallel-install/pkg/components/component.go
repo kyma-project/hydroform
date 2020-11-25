@@ -8,6 +8,8 @@ const StatusError = "Error"
 const StatusInstalled = "Installed"
 const StatusUninstalled = "Uninstalled"
 
+const logPrefix = "[components/component.go]"
+
 type Component struct {
 	Name            string
 	Namespace       string
@@ -36,31 +38,31 @@ type ComponentInstallation interface {
 }
 
 func (c *Component) InstallComponent() error {
-	c.Log("Installing %s in %s from %s", c.Name, c.Namespace, c.ChartDir)
+	c.Log("%s Installing %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
 	overrides := c.OverridesGetter()
 
 	err := c.HelmClient.InstallRelease(c.ChartDir, c.Namespace, c.Name, overrides)
 	if err != nil {
-		c.Log("Error installing %s: %v", c.Name, err)
+		c.Log("%s Error installing %s: %v", logPrefix, c.Name, err)
 		return err
 	}
 
-	c.Log("Installed %s in %s", c.Name, c.Namespace)
+	c.Log("%s Installed %s in %s", logPrefix, c.Name, c.Namespace)
 
 	return nil
 }
 
 func (c *Component) UninstallComponent() error {
-	c.Log("Uninstalling %s in %s from %s", c.Name, c.Namespace, c.ChartDir)
+	c.Log("%s Uninstalling %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
 	err := c.HelmClient.UninstallRelease(c.Namespace, c.Name)
 	if err != nil {
-		c.Log("Error uninstalling %s: %v", c.Name, err)
+		c.Log("%s Error uninstalling %s: %v", logPrefix, c.Name, err)
 		return err
 	}
 
-	c.Log("Uninstalled %s in %s", c.Name, c.Namespace)
+	c.Log("%s Uninstalled %s in %s", logPrefix, c.Name, c.Namespace)
 
 	return nil
 }
