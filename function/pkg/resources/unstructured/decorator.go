@@ -1,6 +1,8 @@
 package unstructured
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -10,6 +12,9 @@ type Decorators = []Decorate
 
 func decorateWithLabels(ls map[string]string) Decorate {
 	return func(u *unstructured.Unstructured) (err error) {
+		if u == nil {
+			return fmt.Errorf("invalid value nil")
+		}
 		u.SetLabels(ls)
 		return
 	}
