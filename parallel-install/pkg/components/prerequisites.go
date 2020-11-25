@@ -13,7 +13,7 @@ type PrerequisitesProvider struct {
 	path              string
 	componentList     [][]string // TODO: replace with []struct{name, namespace string}
 	helmConfig        helm.Config
-	log				  func(format string, v ...interface{})
+	log               func(format string, v ...interface{})
 }
 
 func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, path string, componentList [][]string, cfg config.Config) *PrerequisitesProvider {
@@ -21,7 +21,7 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, pat
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
 		BackoffInitialIntervalSeconds: cfg.BackoffInitialIntervalSeconds,
 		BackoffMaxElapsedTimeSeconds:  cfg.BackoffMaxElapsedTimeSeconds,
-		Log: 						   cfg.Log,
+		Log:                           cfg.Log,
 	}
 
 	return &PrerequisitesProvider{
@@ -29,7 +29,7 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, pat
 		path:              path,
 		componentList:     componentList,
 		helmConfig:        helmCfg,
-		log: 			   cfg.Log,
+		log:               cfg.Log,
 	}
 }
 
@@ -47,7 +47,7 @@ func (p *PrerequisitesProvider) GetComponents() ([]Component, error) {
 			ChartDir:        path.Join(p.path, name),
 			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(name),
 			HelmClient:      helmClient,
-			Log: 			 p.log,
+			Log:             p.log,
 		})
 	}
 

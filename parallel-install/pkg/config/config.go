@@ -23,7 +23,6 @@ type Config struct {
 	Log func(format string, v ...interface{})
 }
 
-
 // TODO: Remove this variable. Search for occurrences of config.Log
 // It is used in functions to avoid passing logger as a parameter
 var Log = log.Infof

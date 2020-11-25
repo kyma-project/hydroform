@@ -20,7 +20,7 @@ type ComponentsProvider struct {
 	path              string
 	componentListYaml string
 	helmConfig        helm.Config
-	log				  func(format string, v ...interface{})
+	log               func(format string, v ...interface{})
 }
 
 func NewComponentsProvider(overridesProvider overrides.OverridesProvider, path string, componentListYaml string, cfg config.Config) *ComponentsProvider {
@@ -29,7 +29,7 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, path s
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
 		BackoffInitialIntervalSeconds: cfg.BackoffInitialIntervalSeconds,
 		BackoffMaxElapsedTimeSeconds:  cfg.BackoffMaxElapsedTimeSeconds,
-		Log: 						   cfg.Log,
+		Log:                           cfg.Log,
 	}
 
 	return &ComponentsProvider{
@@ -37,7 +37,7 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, path s
 		path:              path,
 		componentListYaml: componentListYaml,
 		helmConfig:        helmCfg,
-		log:			   cfg.Log,
+		log:               cfg.Log,
 	}
 }
 
@@ -62,7 +62,7 @@ func (p *ComponentsProvider) GetComponents() ([]Component, error) {
 			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(component.Name),
 			ChartDir:        path.Join(p.path, component.Name),
 			HelmClient:      helmClient,
-			Log: 			 p.log,
+			Log:             p.log,
 		}
 		components = append(components, component)
 	}

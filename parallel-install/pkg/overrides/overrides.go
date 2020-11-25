@@ -17,8 +17,7 @@ type Provider struct {
 	componentOverrides           map[string]map[string]interface{}
 	additionalComponentOverrides map[string]map[string]interface{}
 	kubeClient                   kubernetes.Interface
-	log							 func(format string, v ...interface{})
-
+	log                          func(format string, v ...interface{})
 }
 
 type OverridesProvider interface {
@@ -29,7 +28,7 @@ type OverridesProvider interface {
 func New(client kubernetes.Interface, overridesYamls []string, log func(string, ...interface{})) (OverridesProvider, error) {
 	provider := Provider{
 		kubeClient: client,
-		log: 		log,
+		log:        log,
 	}
 
 	for _, overridesYaml := range overridesYamls {

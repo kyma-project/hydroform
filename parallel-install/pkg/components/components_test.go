@@ -3,6 +3,7 @@ package components
 import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"io/ioutil"
+	"log"
 	"testing"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
@@ -28,7 +29,7 @@ func Test_GetComponents(t *testing.T) {
 		},
 	)
 
-	overridesProvider, err := overrides.New(k8sMock, []string{""})
+	overridesProvider, err := overrides.New(k8sMock, []string{""}, log.Printf)
 	require.NoError(t, err)
 
 	// Read components file

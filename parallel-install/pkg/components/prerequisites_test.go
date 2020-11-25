@@ -2,6 +2,7 @@ package components
 
 import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"log"
 	"testing"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
@@ -27,7 +28,7 @@ func Test_PrerequisiteGetComponents(t *testing.T) {
 		},
 	)
 
-	overridesProvider, err := overrides.New(k8sMock, []string{""})
+	overridesProvider, err := overrides.New(k8sMock, []string{""}, log.Printf)
 	require.NoError(t, err)
 
 	componentList := [][]string{[]string{"prerequisite1", "namespace1"}}

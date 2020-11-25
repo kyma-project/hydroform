@@ -14,7 +14,7 @@ var statusMap map[string]string
 
 type Config struct {
 	WorkersCount int
-	Log func(format string, v ...interface{})
+	Log          func(format string, v ...interface{})
 }
 
 type Engine struct {

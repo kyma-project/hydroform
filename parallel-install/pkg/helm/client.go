@@ -19,7 +19,7 @@ type Config struct {
 	HelmTimeoutSeconds            int
 	BackoffInitialIntervalSeconds int
 	BackoffMaxElapsedTimeSeconds  int
-	Log 						  func(format string, v ...interface{})
+	Log                           func(format string, v ...interface{})
 }
 
 type Client struct {

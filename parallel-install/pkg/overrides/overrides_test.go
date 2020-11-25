@@ -2,6 +2,7 @@ package overrides
 
 import (
 	"io/ioutil"
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -47,7 +48,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Should properly read overrides with no colliding data", func(t *testing.T) {
-		testProvider, err := New(k8sMock, []string{string(content)})
+		testProvider, err := New(k8sMock, []string{string(content)}, log.Printf)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -66,7 +67,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	})
 
 	t.Run("Should not duplicate additional overrides when reading overrides many times", func(t *testing.T) {
-		testProvider, err := New(k8sMock, []string{string(content)})
+		testProvider, err := New(k8sMock, []string{string(content)}, log.Printf)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -91,7 +92,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	})
 
 	t.Run("Should always put additionalOverrides on top of other overrides", func(t *testing.T) {
-		testProvider, err := New(k8sMock, []string{string(contentWithCollidingOverrides)})
+		testProvider, err := New(k8sMock, []string{string(contentWithCollidingOverrides)}, log.Printf)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -114,7 +115,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	})
 
 	t.Run("Should properly read additional overrides from multiple files", func(t *testing.T) {
-		testProvider, err := New(k8sMock, []string{string(content), string(contentWithCollidingOverrides)})
+		testProvider, err := New(k8sMock, []string{string(content), string(contentWithCollidingOverrides)}, log.Printf)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()

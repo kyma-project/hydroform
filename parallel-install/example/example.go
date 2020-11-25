@@ -57,7 +57,7 @@ func main() {
 		HelmTimeoutSeconds:            60 * 8,
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
-		Log: 						   log.Infof,
+		Log:                           log.Infof,
 	}
 
 	installer, err := installation.NewInstallation(prerequisitesContent,
