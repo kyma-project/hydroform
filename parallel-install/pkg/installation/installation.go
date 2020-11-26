@@ -88,6 +88,9 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
 	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath, engineCfg)
 
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	i.Cfg.Log("Kyma prerequisites installation")
 
 	prerequisites, err := prerequisitesProvider.GetComponents()
@@ -99,26 +102,55 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 		return fmt.Errorf("error while reading overrides: %v", err)
 	}
 
-	//TODO: Handle timeout
-	err = prereq.InstallPrerequisites(context.TODO(), prerequisites)
-	if err != nil {
-		return err
+	var cancelTimeout time.Duration = time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
+	var quitTimeout time.Duration = time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
+	var cancelTimeoutChan <-chan time.Time = time.After(cancelTimeout)
+	var quitTimeoutChan <-chan time.Time = time.After(quitTimeout)
+	var timeoutOccured bool = false
+
+	startTime := time.Now()
+	prereqStatusChan := prereq.InstallPrerequisites(cancelCtx, prerequisites)
+
+	Prerequisites:
+	for {
+		select {
+			case prerequisiteErr, ok := <-prereqStatusChan:
+				if ok {
+					if prerequisiteErr != nil {
+						return fmt.Errorf("Kyma installation failed due to an error. Look at the preceeding logs to find out more")
+					}
+				} else {
+					if timeoutOccured {
+						return fmt.Errorf("Kyma installation failed due to the timeout")
+					}
+					break Prerequisites
+				}
+			case <-cancelTimeoutChan:
+				timeoutOccured = true
+				i.Cfg.Log("Timeout reached. Cancelling installation")
+				cancel()
+			case <-quitTimeoutChan:
+				i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
+				return fmt.Errorf("Kyma installation failed due to the timeout")
+		}
 	}
+	endTime := time.Now()
+
+	elapsedTime := endTime.Sub(startTime)
+	cancelTimeout = cancelTimeout - elapsedTime
+	quitTimeout = quitTimeout - elapsedTime
+	cancelTimeoutChan = time.After(cancelTimeout)
+	quitTimeoutChan = time.After(quitTimeout)
 
 	i.Cfg.Log("Kyma installation")
 
-	cancelCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	var statusMap = map[string]string{}
+	var errCount int = 0
+
 	statusChan, err := eng.Install(cancelCtx)
 	if err != nil {
 		return fmt.Errorf("Kyma installation failed. Error: %v", err)
 	}
-
-	var statusMap = map[string]string{}
-	var errCount int = 0
-	var cancelTimeout time.Duration = time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
-	var quitTimeout time.Duration = time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
-	var timeoutOccured bool = false
 
 	//Await completion
 	for {
@@ -142,11 +174,11 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 				}
 				return nil
 			}
-		case <-time.After(cancelTimeout):
+		case <-cancelTimeoutChan:
 			timeoutOccured = true
 			i.Cfg.Log("Timeout occurred after %v minutes. Cancelling installation", cancelTimeout.Minutes())
 			cancel()
-		case <-time.After(quitTimeout):
+		case <-quitTimeoutChan:
 			i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Kyma installation failed due to the timeout")
 		}
@@ -251,3 +283,4 @@ func (i *Installation) logStatuses(statusMap map[string]string) {
 		i.Cfg.Log("Component: %s, Status: %s", k, v)
 	}
 }
+
