@@ -40,9 +40,6 @@ func TestOneBackoff(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestAllBackoffs(t *testing.T) {
-}
-
 func TestBackoffWithCancel(t *testing.T) {
 
 	var count int = 0
