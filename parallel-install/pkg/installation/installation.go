@@ -102,87 +102,26 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 		return fmt.Errorf("error while reading overrides: %v", err)
 	}
 
-	var cancelTimeout time.Duration = time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
-	var quitTimeout time.Duration = time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
-	var cancelTimeoutChan <-chan time.Time = time.After(cancelTimeout)
-	var quitTimeoutChan <-chan time.Time = time.After(quitTimeout)
-	var timeoutOccured bool = false
-
+	cancelTimeout := time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
+	quitTimeout := time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
 	startTime := time.Now()
-	prereqStatusChan := prereq.InstallPrerequisites(cancelCtx, prerequisites)
-
-	Prerequisites:
-	for {
-		select {
-			case prerequisiteErr, ok := <-prereqStatusChan:
-				if ok {
-					if prerequisiteErr != nil {
-						return fmt.Errorf("Kyma installation failed due to an error. Look at the preceeding logs to find out more")
-					}
-				} else {
-					if timeoutOccured {
-						return fmt.Errorf("Kyma installation failed due to the timeout")
-					}
-					break Prerequisites
-				}
-			case <-cancelTimeoutChan:
-				timeoutOccured = true
-				i.Cfg.Log("Timeout reached. Cancelling installation")
-				cancel()
-			case <-quitTimeoutChan:
-				i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
-				return fmt.Errorf("Kyma installation failed due to the timeout")
-		}
+	err = i.installPrerequisites(cancelCtx, cancel, prerequisites, cancelTimeout, quitTimeout)
+	if err != nil {
+		return err
 	}
 	endTime := time.Now()
 
-	elapsedTime := endTime.Sub(startTime)
-	cancelTimeout = cancelTimeout - elapsedTime
-	quitTimeout = quitTimeout - elapsedTime
-	cancelTimeoutChan = time.After(cancelTimeout)
-	quitTimeoutChan = time.After(quitTimeout)
-
 	i.Cfg.Log("Kyma installation")
 
-	var statusMap = map[string]string{}
-	var errCount int = 0
+	cancelTimeout = calculateDuration(startTime, endTime, i.Cfg.CancelTimeoutSeconds)
+	quitTimeout = calculateDuration(startTime, endTime, i.Cfg.QuitTimeoutSeconds)
 
-	statusChan, err := eng.Install(cancelCtx)
+	err = i.installComponents(cancelCtx, cancel, eng, cancelTimeout, quitTimeout)
 	if err != nil {
-		return fmt.Errorf("Kyma installation failed. Error: %v", err)
+		return err
 	}
 
-	//Await completion
-	for {
-		select {
-		case cmp, ok := <-statusChan:
-			if ok {
-				//Received a status update
-				if cmp.Status == components.StatusError {
-					errCount++
-				}
-				statusMap[cmp.Name] = cmp.Status
-			} else {
-				//statusChan is closed
-				if errCount > 0 {
-					i.logStatuses(statusMap)
-					return fmt.Errorf("Kyma installation failed due to errors in %d component(s)", errCount)
-				}
-				if timeoutOccured {
-					i.logStatuses(statusMap)
-					return fmt.Errorf("Kyma installation failed due to the timeout")
-				}
-				return nil
-			}
-		case <-cancelTimeoutChan:
-			timeoutOccured = true
-			i.Cfg.Log("Timeout occurred after %v minutes. Cancelling installation", cancelTimeout.Minutes())
-			cancel()
-		case <-quitTimeoutChan:
-			i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
-			return fmt.Errorf("Kyma installation failed due to the timeout")
-		}
-	}
+	return nil
 }
 
 func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
@@ -284,3 +223,86 @@ func (i *Installation) logStatuses(statusMap map[string]string) {
 	}
 }
 
+func (i *Installation) installPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+
+	cancelTimeoutChan := time.After(cancelTimeout)
+	quitTimeoutChan := time.After(quitTimeout)
+	timeoutOccurred := false
+
+	prereqStatusChan := prereq.InstallPrerequisites(ctx, p)
+
+Prerequisites:
+	for {
+		select {
+		case prerequisiteErr, ok := <-prereqStatusChan:
+			if ok {
+				if prerequisiteErr != nil {
+					return fmt.Errorf("Kyma installation failed due to an error. Look at the preceeding logs to find out more")
+				}
+			} else {
+				if timeoutOccurred {
+					return fmt.Errorf("Kyma installation failed due to the timeout")
+				}
+				break Prerequisites
+			}
+		case <-cancelTimeoutChan:
+			timeoutOccurred = true
+			i.Cfg.Log("Timeout reached. Cancelling installation")
+			cancelFunc()
+		case <-quitTimeoutChan:
+			i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
+			return fmt.Errorf("Kyma installation failed due to the timeout")
+		}
+	}
+	return nil
+}
+
+func (i *Installation) installComponents(ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+	cancelTimeoutChan := time.After(cancelTimeout)
+	quitTimeoutChan := time.After(quitTimeout)
+	timeoutOccurred := false
+	statusMap := map[string]string{}
+	errCount := 0
+
+	statusChan, err := eng.Install(ctx)
+	if err != nil {
+		return fmt.Errorf("Kyma installation failed. Error: %v", err)
+	}
+
+	//Await completion
+	for {
+		select {
+		case cmp, ok := <-statusChan:
+			if ok {
+				//Received a status update
+				if cmp.Status == components.StatusError {
+					errCount++
+				}
+				statusMap[cmp.Name] = cmp.Status
+			} else {
+				//statusChan is closed
+				if errCount > 0 {
+					i.logStatuses(statusMap)
+					return fmt.Errorf("Kyma installation failed due to errors in %d component(s)", errCount)
+				}
+				if timeoutOccurred {
+					i.logStatuses(statusMap)
+					return fmt.Errorf("Kyma installation failed due to the timeout")
+				}
+				return nil
+			}
+		case <-cancelTimeoutChan:
+			timeoutOccurred = true
+			i.Cfg.Log("Timeout occurred after %v minutes. Cancelling installation", cancelTimeout.Minutes())
+			cancelFunc()
+		case <-quitTimeoutChan:
+			i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
+			return fmt.Errorf("Kyma installation failed due to the timeout")
+		}
+	}
+}
+
+func calculateDuration(start time.Time, end time.Time, duration int) time.Duration {
+	elapsedTime := start.Sub(end)
+	return time.Duration(duration) * time.Second - elapsedTime
+}
