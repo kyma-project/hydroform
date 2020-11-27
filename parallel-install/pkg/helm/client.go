@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -28,8 +29,8 @@ type Client struct {
 }
 
 type ClientInterface interface {
-	InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error
-	UninstallRelease(namespace, name string) error
+	InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error
+	UninstallRelease(ctx context.Context, namespace, name string) error
 }
 
 func NewClient(cfg Config) *Client {
@@ -38,7 +39,7 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) UninstallRelease(namespace, name string) error {
+func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) error {
 
 	cfg, err := newActionConfig(namespace)
 	if err != nil {
@@ -75,20 +76,17 @@ func (c *Client) UninstallRelease(namespace, name string) error {
 		return nil
 	}
 
-	//TODO: Find a way to stop backoff once we have Context cancel() function invoked by the global installation timetout.
-	exponentialBackoff := backoff.NewExponentialBackOff()
-	exponentialBackoff.InitialInterval = time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
-	exponentialBackoff.MaxElapsedTime = time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
-
-	err = backoff.Retry(operation, exponentialBackoff)
+	initialInterval := time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
+	maxElapsedTime := time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
+	err = retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
 	if err != nil {
-		return fmt.Errorf("Error: Failed to uninstall %s within the given timeout: %v", name, err)
+		return fmt.Errorf("Error: Failed to uninstall %s within the configured time. Error: %v", name, err)
 	}
 
 	return nil
 }
 
-func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error {
+func (c *Client) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
 	cfg, err := newActionConfig(namespace)
 	if err != nil {
 		return err
@@ -130,17 +128,27 @@ func (c *Client) InstallRelease(chartDir, namespace, name string, overrides map[
 		return nil
 	}
 
-	//TODO: Find a way to stop backoff once we have Context cancel() function invoked by the global installation timetout.
-	exponentialBackoff := backoff.NewExponentialBackOff()
-	exponentialBackoff.InitialInterval = time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
-	exponentialBackoff.MaxElapsedTime = time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
-
-	err = backoff.Retry(operation, exponentialBackoff)
+	initialInterval := time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
+	maxElapsedTime := time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
+	err = retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
 	if err != nil {
-		return fmt.Errorf("Error: Failed to install %s within the given timeout. Error: %v", name, err)
+		return fmt.Errorf("Error: Failed to install %s within the configured time. Error: %v", name, err)
 	}
 
-	return err
+	return nil
+}
+
+func retryWithBackoff(ctx context.Context, operation func() error, initialInterval, maxTime time.Duration) error {
+
+	exponentialBackoff := backoff.NewExponentialBackOff()
+	exponentialBackoff.InitialInterval = initialInterval
+	exponentialBackoff.MaxElapsedTime = maxTime
+
+	err := backoff.Retry(operation, backoff.WithContext(exponentialBackoff, ctx))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func newActionConfig(namespace string) (*action.Configuration, error) {

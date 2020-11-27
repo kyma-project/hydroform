@@ -18,7 +18,7 @@ func InstallPrerequisites(ctx context.Context, prerequisites []components.Compon
 			//Context is canceled or timed-out. Skip processing
 			return fmt.Errorf("Error installing prerequisite %s: %v", prerequisite.Name, ctx.Err())
 		}
-		err := prerequisite.InstallComponent()
+		err := prerequisite.InstallComponent(ctx)
 		if err != nil {
 			return fmt.Errorf("Error installing prerequisite %s: %v", prerequisite.Name, err)
 		}
@@ -36,7 +36,7 @@ func UninstallPrerequisites(ctx context.Context, prerequisites []components.Comp
 			//Context is canceled or timed-out. Skip processing
 			return fmt.Errorf("Error uninstalling prerequisite %s: %v", prereq.Name, ctx.Err())
 		}
-		err := prereq.UninstallComponent()
+		err := prereq.UninstallComponent(ctx)
 		if err != nil {
 			log.Printf("%s Error uninstalling prerequisite %s: %v (The uninstallation continues anyway)", logPrefix, prereq.Name, err)
 		}
