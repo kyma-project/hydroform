@@ -1,3 +1,9 @@
+//Package engine implements concurrent processing of components.
+//The engine is configured with number of workers that perform operations concurrently.
+//If only single worker is configured, the processing becomes sequential.
+//If you need different configuration for installation and uninstallation, just create two different Engine instances with different configurations.
+//
+//The code in the package uses user-provided function for logging.
 package engine
 
 import (
@@ -10,37 +16,54 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 )
 
-var statusMap map[string]string
-
 const logPrefix = "[engine/engine.go]"
 
+//Config defines configuration values for the engine
 type Config struct {
-	WorkersCount int
-	Log          func(format string, v ...interface{})
+	WorkersCount int                                   //number of concurrent processes for install/uninstall operations
+	Log          func(format string, v ...interface{}) //Logging function
 }
 
+//Engine implements Installation interface
 type Engine struct {
-	overridesProvider     overrides.OverridesProvider
-	prerequisitesProvider components.Provider
-	componentsProvider    components.Provider
-	resourcesPath         string
-	cfg                   Config
+	overridesProvider  overrides.OverridesProvider
+	componentsProvider components.Provider
+	cfg                Config
 }
 
-func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider components.Provider, resourcesPath string, cfg Config) *Engine {
-	statusMap = make(map[string]string)
+//NewEngine returns new Engine instance
+func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider components.Provider, cfg Config) *Engine {
 	return &Engine{
 		overridesProvider:  overridesProvider,
 		componentsProvider: componentsProvider,
-		resourcesPath:      resourcesPath,
 		cfg:                cfg,
 	}
 }
 
+//Installation interface defines contract for the Engine
 type Installation interface {
-	//Installs components. ctx is used for cancellation of the operation. returned channel receives every processed component and is closed after all components are processed.
+	//Install performs concurrent components installation.
+	//Errors are not stopping the processing, because it's assumed components are independent of each other,
+	//and error condition in one component should not influence others.
+	//
+	//The returned channel receives every processed component and is closed after all components are processed or the process is cancelled.
+	//
+	//ctx is used for cancellation of the operation.
+	//It is not guaranteed that cancellation is handled immediately, because the underlying Helm operation are blocking and do not support Context-based cancellation.
+	//However, once the underlying concurrent operations end, the cancel condition is detected and the return channel is closed.
+	//All remaining components are not processed then.
 	Install(ctx context.Context) (<-chan components.Component, error)
-	//Uninstalls components. ctx is used for cancellation of the operation. returned channel receives every processed component and is closed after all components are processed.
+	//Uninstall performs concurrent components uninstallation.
+	//Errors are not stopping the processing, because it's assumed components are independent of each other,
+	//and error condition in one component should not influence others.
+	//
+	//The returned channel receives every processed component and is closed after all components are processed or the process is cancelled.
+	//
+	//ctx is used for cancellation of the operation.
+	//It is not guaranteed that cancellation is handled immediately, because the underlying Helm operation are blocking and do not support Context-based cancellation.
+	//However, once the underlying concurrent operations end, the cancel condition is detected and the return channel is closed.
+	//All remaining components are not processed then.
+	//
 	Uninstall(ctx context.Context) (<-chan components.Component, error)
 }
 
@@ -89,6 +112,7 @@ func (e *Engine) Uninstall(ctx context.Context) (<-chan components.Component, er
 	return statusChan, nil
 }
 
+//Blocking function used to spawn configured number of workers and then await their completion
 func run(ctx context.Context, statusChan chan<- components.Component, cmps []components.Component, installationType string, concurrency int) {
 	//TODO: Size dependent on number of components?
 	jobChan := make(chan components.Component, 30)
@@ -116,6 +140,9 @@ func run(ctx context.Context, statusChan chan<- components.Component, cmps []com
 	wg.Wait()
 }
 
+//Non-blocking concurrent worker.
+//Detects Context cancellation.
+//Context cancellation is not detected immediately, but between component processing operations - because such operations are blocking.
 func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.Component, statusChan chan<- components.Component, installationType string) {
 	defer wg.Done()
 

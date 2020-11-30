@@ -1,11 +1,13 @@
+//Package installation provides top-level API to control installation and uninstallation of Kyma.
 package installation
 
 import (
 	"context"
 	"fmt"
-	"k8s.io/client-go/kubernetes"
 	"log"
 	"time"
+
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
