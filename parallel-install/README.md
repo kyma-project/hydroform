@@ -25,6 +25,4 @@ Use the following functions accordingly. You need to provide a kubeconfig pointi
 
 ### Example
 
-> **NOTE:** Before running the example, apply the `namespace.yaml` file to properly create the `kyma-installer` Namespace. Otherwise, the installation will fail.
-
 To learn how to use the library to install Kyma on a Gardener cluster, see this [example](../parallel-install/example/example.go).
