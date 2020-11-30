@@ -27,7 +27,7 @@ func InstallPrerequisites(ctx context.Context, prerequisites []components.Compon
 			}
 
 			config.Log("%s Installing component %s ", logPrefix, prerequisite.Name)
-			err := prerequisite.InstallComponent()
+			err := prerequisite.InstallComponent(ctx)
 			if err != nil {
 				statusChan <- err
 				return
