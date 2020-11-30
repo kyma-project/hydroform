@@ -2,9 +2,9 @@
 
 ## Overview
 
-The `parallel-install` library allows you to install and uninstall Kyma on the already existing clusters.
-The library can runs several concurrent workers (configurable). This feature significantly reduces installation time.
-Remember that concurrent installation works only if the components (Helm releases) are independent of each other.
+The `parallel-install` library can install and uninstall Kyma on the already existing clusters.
+The library allows you to configure several concurrent workers. This feature significantly reduces the time of the operation.
+Remember that concurrent processing works only if the components (Helm Releases) are independent of each other.
 
 ## Usage
 
