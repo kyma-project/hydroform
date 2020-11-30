@@ -3,12 +3,15 @@
 ## Overview
 
 The `parallel-install` library can install and uninstall Kyma on the already existing clusters.
-The library allows you to configure several concurrent workers. This feature significantly reduces the time of the operation.
-Remember that concurrent processing works only if the components (Helm Releases) are independent of each other.
+The library allows you to configure several parallel workers. This feature significantly reduces the time of the operation.
+Remember that parallel processing works only if the components (Helm Releases) are independent of each other.
 
 ## Usage
 
-Before starting the installation or uninstallation process, you need to provide a complete configuration by creating an instance of the `Installation` struct. To do so, use the `installation.NewInstallation` function.
+The top-level interface for library users is defined in the `installation` package, in the `Installer` interface.
+Before starting the installation or uninstallation process, you need to provide a complete configuration
+by creating an instance of the `Installation` struct.
+To do so, provide the `installation.NewInstallation` function with necessary parameters:
 
 | Parameter | Type | Example value | Description |
 | --- | --- | --- | --- |
@@ -16,11 +19,23 @@ Before starting the installation or uninstallation process, you need to provide 
 | componentsYaml | `string` | - | Content of the [Installation CR](https://kyma-project.io/docs/#custom-resource-installation). Components will be extracted and installed in parallel. |
 | overridesYaml | `[]string` | `{ "foo: bar", "val: example" }` | List of Helm overrides. The latter the override, the higher is its priority. |
 | resourcesPath | `string` | `/go/src/github.com/kyma-project/kyma/resources` | Path to the Kyma resources. |
-| concurrency | `int` | `3` | Specifies how many components are installed simultaneously. |
+| cfg | `config.Config` | - | Specifies fine-grained configuration for the installation process. See below for explanation. |
+
+`config.Config` options:
+
+| Parameter | Type | Example value | Description |
+| --- | --- | --- | --- |
+| WorkersCount | `int` | `4` | Number of concurrent workers used for an install/uninstall operation. |
+| CancelTimeoutSeconds | `int` | `900` | After this time workers' context is canceled. Pending worker goroutines (if any) may continue if blocked by Helm client. |
+| QuitTimeoutSeconds | `int` | `1200` | After this time install/delete operation is aborted and returns an error to the user. Worker goroutines may still be working in the background. Must be greater than CancelTimeoutSeconds. |
+| HelmTimeoutSeconds | `int` | `360` | Timeout for the underlying Helm client. |
+| BackoffInitialIntervalSeconds | `int` | `1` | Initial interval used for exponent backoff retry policy. |
+| BackoffMaxElapsedTimeSeconds | `int` | `30` | Maximum time used for exponent backoff retry policy. |
+| Log | `func(format string, v ...interface{})` | `fmt.Printf` | A function used for logging. |
 
 >**NOTE:** This library also fetches overrides from ConfigMaps present in the cluster. However, overrides provided through `NewInstallation` have a higher priority.
 
-Use the following functions accordingly. You need to provide a kubeconfig pointing to a cluster for each function.
+Once you have a configured `Installation` instance, use the following functions accordingly. You need to provide a kubeconfig pointing to a cluster for each function.
 
 - `StartKymaInstallation` - Starts the installation process. First, prerequisites are installed linearly. Then, the components' installation continues in parallel.
 - `StartKymaUninstallation` - Starts the uninstallation process. The library uninstalls the components first, then it proceeds with the prerequisites' uninstallation in reverse order.
