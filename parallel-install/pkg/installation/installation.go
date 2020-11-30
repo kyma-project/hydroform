@@ -11,7 +11,10 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	prereq "github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -56,6 +59,22 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {
 		return fmt.Errorf("Unable to create internal client. Error: %v", err)
+	}
+
+	// TODO: Delete namespace creation once xip-patch is gone.
+	coreClient, err := corev1.NewForConfig(kubeconfig)
+	if err != nil {
+		return fmt.Errorf("Unable to create K8S Client. Error: %v", err)
+	}
+
+	_, err = coreClient.Namespaces().Create(context.Background(), &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "kyma-installer",
+			Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("Unable to create kyma-installer namespace. Error: %v", err)
 	}
 
 	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls, i.Cfg.Log)
@@ -210,6 +229,17 @@ Loop:
 	err = prereq.UninstallPrerequisites(context.TODO(), prerequisites)
 	if err != nil {
 		return err
+	}
+
+	// TODO: Delete namespace deletion once xip-patch is gone.
+	coreClient, err := corev1.NewForConfig(kubeconfig)
+	if err != nil {
+		return fmt.Errorf("Unable to create K8S Client. Error: %v", err)
+	}
+
+	err = coreClient.Namespaces().Delete(context.Background(), "kyma-installer", metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("Unable to delete kyma-installer namespace. Error: %v", err)
 	}
 
 	return nil
