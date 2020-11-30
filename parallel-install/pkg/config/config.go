@@ -8,7 +8,7 @@ import (
 //Configures various install/uninstall operation parameters.
 //There are no different parameters for Install/Delete operations - if you need it to be different, just use two Installations with two different configs.
 type Config struct {
-	//Number of concurrent workers used for an install/uninstall operation.
+	//Number of parallel workers used for an install/uninstall operation.
 	WorkersCount int
 	//After this time workers' context is canceled. Pending worker goroutines (if any) may continue if blocked by Helm client.
 	CancelTimeout time.Duration
