@@ -6,74 +6,125 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/stretchr/testify/assert"
+	//"k8s.io/client-go/kubernetes/fake"
 	"log"
 	"testing"
 	"time"
 )
 
-const cancelTimeout = 50
+
+const cancelTimeout = 100
 const quitTimeout = 150
 const cancelTimeoutMillisecond = time.Duration(50) * time.Millisecond
 const quitTimeoutMillisecond = time.Duration(150) * time.Millisecond
 
 
-func Test_CancelTimeout(t *testing.T) {
-	//given
+func Test_installPrerequisites(t *testing.T) {
 	i := newInstallation()
 
-	ctx, cancelFunc := context.WithCancel(context.TODO())
 
-	hc := &mockHelmClient{
-		cancelWithTimeout: true,
-	}
-	component := newComponent(hc)
 
-	//when
-	err := i.installPrerequisites(ctx, cancelFunc, []components.Component{component}, cancelTimeoutMillisecond, quitTimeoutMillisecond)
+	t.Run("should install prerequisites with no error", func (t *testing.T) {
+		ctx, cancelFunc := context.WithCancel(context.TODO())
+		defer cancelFunc()
 
-	//then
-	assert.Error(t, err, "Kyma installation failed due to the timeout")
-}
+		hc := &mockHelmClient{}
+		comps := newComponents(hc)
 
-func Test_QuitTimeout(t *testing.T) {
-	//given
-	i := newInstallation()
+		//when
+		err := i.installPrerequisites(ctx, cancelFunc, comps, cancelTimeoutMillisecond, quitTimeoutMillisecond)
 
-	ctx, cancelFunc := context.WithCancel(context.TODO())
+		//then
+		assert.NoError(t, err)
+	})
 
-	hc := &mockHelmClient{
-		quitWithTimeout: true,
-	}
-	component := newComponent(hc)
+	t.Run("should cancel installation after given timeout and exit with error", func (t *testing.T){
+		ctx, cancelFunc := context.WithCancel(context.TODO())
+		defer cancelFunc()
 
-	//when
-	err := i.installPrerequisites(ctx, cancelFunc, []components.Component{component}, cancelTimeoutMillisecond, quitTimeoutMillisecond)
+		hc := &mockHelmClient{
+			cancelWithTimeout: true,
+		}
+		comps := newComponents(hc)
 
-	fmt.Println(err)
-	//then
-	assert.Error(t, err, "Kyma installation failed due to the timeout")
+		//when
+		err := i.installPrerequisites(ctx, cancelFunc, comps, cancelTimeoutMillisecond, quitTimeoutMillisecond)
+
+		//then
+		assert.Error(t, err)
+		assert.EqualError(t, err, "Kyma installation failed due to the timeout")
+	})
+
+	t.Run("should quit installation after given timeout and exit with error", func (t *testing.T) {
+		ctx, cancelFunc := context.WithCancel(context.TODO())
+		defer cancelFunc()
+
+		hc := &mockHelmClient{
+			quitWithTimeout: true,
+		}
+		comps := newComponents(hc)
+
+		//when
+		err := i.installPrerequisites(ctx, cancelFunc, comps, cancelTimeoutMillisecond, quitTimeoutMillisecond)
+
+		//then
+		assert.Error(t, err)
+		assert.EqualError(t, err, "Force quit: Kyma installation failed due to the timeout")
+	})
+
+	t.Run("should not install next components after timeout", func (t *testing.T) {
+		ctx, cancelFunc := context.WithCancel(context.TODO())
+		defer cancelFunc()
+
+		hc := &mockHelmClient{
+			cancelAfterFirstComponent: true,
+		}
+		comps := newComponents(hc)
+
+		//when
+		startTime := time.Now()
+		err := i.installPrerequisites(ctx, cancelFunc, comps, cancelTimeoutMillisecond, quitTimeoutMillisecond)
+		endTime := time.Now()
+
+		elapsed := endTime.Sub(startTime)
+
+		fmt.Printf("%d", elapsed.Milliseconds())
+
+		//then
+		assert.Error(t, err)
+		// One component installation takes 80 ms
+		// So to install one component this assertion must be true
+		// 80 <= componentInstallationTime < 160
+		assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(80))
+		assert.Less(t, elapsed.Milliseconds(), int64(160))
+	})
 }
 
 type mockHelmClient struct {
 	cancelWithTimeout bool
 	quitWithTimeout bool
+	cancelAfterFirstComponent bool
 }
 
-func (c *mockHelmClient) InstallRelease(chartDir, namespace, name string, overrides map[string]interface{}) error {
+func (c *mockHelmClient) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
 	if c.cancelWithTimeout {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(120 * time.Millisecond)
 	}
 	if c.quitWithTimeout{
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
+	}
+	if c.cancelAfterFirstComponent {
+		time.Sleep(80 * time.Millisecond)
 	}
 	return nil
 }
-func (c *mockHelmClient) UninstallRelease(namespace, name string) error {
+func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name string) error {
 	return nil
 }
 
 func newInstallation() Installation {
 	return Installation{
+
 		Cfg:            config.Config{
 			CancelTimeoutSeconds:          cancelTimeout,
 			QuitTimeoutSeconds:            quitTimeout,
@@ -82,12 +133,29 @@ func newInstallation() Installation {
 	}
 }
 
-func newComponent(hc *mockHelmClient) components.Component {
-	return components.Component{
-		Name:            "test",
-		Namespace:       "test",
-		OverridesGetter: func() map[string]interface{} { return nil },
-		HelmClient:      hc,
-		Log:             log.Printf,
+func newComponents(hc *mockHelmClient) []components.Component {
+	return []components.Component{
+		{
+			Name:            "test1",
+			Namespace:       "test1",
+			OverridesGetter: func() map[string]interface{} { return nil },
+			HelmClient:      hc,
+			Log:             log.Printf,
+		},
+		{
+			Name:            "test2",
+			Namespace:       "test2",
+			OverridesGetter: func() map[string]interface{} { return nil },
+			HelmClient:      hc,
+			Log:             log.Printf,
+		},
+		{
+			Name:            "test3",
+			Namespace:       "test3",
+			OverridesGetter: func() map[string]interface{} { return nil },
+			HelmClient:      hc,
+			Log:             log.Printf,
+		},
 	}
+
 }
