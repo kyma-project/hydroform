@@ -12,19 +12,15 @@ import (
 	"time"
 )
 
-
 const cancelTimeout = 100
 const quitTimeout = 150
 const cancelTimeoutMillisecond = time.Duration(50) * time.Millisecond
 const quitTimeoutMillisecond = time.Duration(150) * time.Millisecond
 
-
 func Test_installPrerequisites(t *testing.T) {
 	i := newInstallation()
 
-
-
-	t.Run("should install prerequisites with no error", func (t *testing.T) {
+	t.Run("should install prerequisites with no error", func(t *testing.T) {
 		ctx, cancelFunc := context.WithCancel(context.TODO())
 		defer cancelFunc()
 
@@ -38,7 +34,7 @@ func Test_installPrerequisites(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("should cancel installation after given timeout and exit with error", func (t *testing.T){
+	t.Run("should cancel installation after given timeout and exit with error", func(t *testing.T) {
 		ctx, cancelFunc := context.WithCancel(context.TODO())
 		defer cancelFunc()
 
@@ -55,7 +51,7 @@ func Test_installPrerequisites(t *testing.T) {
 		assert.EqualError(t, err, "Kyma installation failed due to the timeout")
 	})
 
-	t.Run("should quit installation after given timeout and exit with error", func (t *testing.T) {
+	t.Run("should quit installation after given timeout and exit with error", func(t *testing.T) {
 		ctx, cancelFunc := context.WithCancel(context.TODO())
 		defer cancelFunc()
 
@@ -72,7 +68,7 @@ func Test_installPrerequisites(t *testing.T) {
 		assert.EqualError(t, err, "Force quit: Kyma installation failed due to the timeout")
 	})
 
-	t.Run("should not install next components after timeout", func (t *testing.T) {
+	t.Run("should not install next components after timeout", func(t *testing.T) {
 		ctx, cancelFunc := context.WithCancel(context.TODO())
 		defer cancelFunc()
 
@@ -101,8 +97,8 @@ func Test_installPrerequisites(t *testing.T) {
 }
 
 type mockHelmClient struct {
-	cancelWithTimeout bool
-	quitWithTimeout bool
+	cancelWithTimeout         bool
+	quitWithTimeout           bool
 	cancelAfterFirstComponent bool
 }
 
@@ -110,7 +106,7 @@ func (c *mockHelmClient) InstallRelease(ctx context.Context, chartDir, namespace
 	if c.cancelWithTimeout {
 		time.Sleep(120 * time.Millisecond)
 	}
-	if c.quitWithTimeout{
+	if c.quitWithTimeout {
 		time.Sleep(500 * time.Millisecond)
 	}
 	if c.cancelAfterFirstComponent {
@@ -125,10 +121,10 @@ func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name s
 func newInstallation() Installation {
 	return Installation{
 
-		Cfg:            config.Config{
-			CancelTimeoutSeconds:          cancelTimeout,
-			QuitTimeoutSeconds:            quitTimeout,
-			Log:                           log.Printf,
+		Cfg: config.Config{
+			CancelTimeoutSeconds: cancelTimeout,
+			QuitTimeoutSeconds:   quitTimeout,
+			Log:                  log.Printf,
 		},
 	}
 }

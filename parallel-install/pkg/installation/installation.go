@@ -208,7 +208,6 @@ Prerequisites:
 	return nil
 }
 
-
 func (i *Installation) installComponents(ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
@@ -298,5 +297,5 @@ Loop:
 
 func calculateDuration(start time.Time, end time.Time, duration int) time.Duration {
 	elapsedTime := end.Sub(start)
-	return time.Duration(duration) * time.Second - elapsedTime
+	return time.Duration(duration)*time.Second - elapsedTime
 }
