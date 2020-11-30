@@ -11,7 +11,6 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	prereq "github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
-	"k8s.io/client-go/rest"
 )
 
 type Installation struct {
@@ -28,10 +27,10 @@ type Installation struct {
 type Installer interface {
 	//This method will block until installation is finished or an error or timeout occurs.
 	//If the installation is not finished in configured config.Config.QuitTimeoutSeconds, the method returns with an error. Some worker goroutines may still be active.
-	StartKymaInstallation(kubeconfig *rest.Config) error
+	StartKymaInstallation(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error
 	//This method will block until uninstallation is finished or an error or timeout occurs.
 	//If the uninstallation is not finished in configured config.Config.QuitTimeoutSeconds, the method returns with an error. Some worker goroutines may still be active.
-	StartKymaUninstallation(kubeconfig *rest.Config) error
+	StartKymaUninstallation(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error
 }
 
 func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {
@@ -51,7 +50,7 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	}, nil
 }
 
-func (i *Installation) StartKymaInstallation(prerequisitesProvider components.PrerequisitesProvider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
+func (i *Installation) StartKymaInstallation(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -68,6 +67,7 @@ func (i *Installation) StartKymaInstallation(prerequisitesProvider components.Pr
 
 	cancelTimeout := time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
 	quitTimeout := time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
+
 	startTime := time.Now()
 	err = i.installPrerequisites(cancelCtx, cancel, prerequisites, cancelTimeout, quitTimeout)
 	if err != nil {
@@ -88,7 +88,7 @@ func (i *Installation) StartKymaInstallation(prerequisitesProvider components.Pr
 	return nil
 }
 
-func (i *Installation) StartKymaUninstallation(prerequisitesProvider components.PrerequisitesProvider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
+func (i *Installation) StartKymaUninstallation(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
 	i.Cfg.Log("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -158,7 +158,7 @@ Prerequisites:
 				}
 			} else {
 				if timeoutOccurred {
-					return fmt.Errorf("Kyma installation failed due to the timeout")
+					return fmt.Errorf("Kyma prerequisites installation failed due to the timeout")
 				}
 				break Prerequisites
 			}
@@ -168,7 +168,7 @@ Prerequisites:
 			cancelFunc()
 		case <-quitTimeoutChan:
 			i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
-			return fmt.Errorf("Force quit: Kyma installation failed due to the timeout")
+			return fmt.Errorf("Force quit: Kyma prerequisites installation failed due to the timeout")
 		}
 	}
 	return nil
@@ -192,17 +192,17 @@ Prerequisites:
 				}
 			} else {
 				if timeoutOccurred {
-					return fmt.Errorf("Kyma installation failed due to the timeout")
+					return fmt.Errorf("Kyma prerequisites uninstallation failed due to the timeout")
 				}
 				break Prerequisites
 			}
 		case <-cancelTimeoutChan:
 			timeoutOccurred = true
-			i.Cfg.Log("Timeout reached. Cancelling installation")
+			i.Cfg.Log("Timeout reached. Cancelling uninstallation")
 			cancelFunc()
 		case <-quitTimeoutChan:
-			i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
-			return fmt.Errorf("Force quit: Kyma installation failed due to the timeout")
+			i.Cfg.Log("Uninstallation doesn't stop after it's canceled. Enforcing quit")
+			return fmt.Errorf("Force quit: Kyma prerequisites uninstallation failed due to the timeout")
 		}
 	}
 	return nil
@@ -289,7 +289,7 @@ Loop:
 			cancelFunc()
 		case <-time.After(quitTimeout):
 			i.Cfg.Log("Uninstallation doesn't stop after it's canceled. Enforcing quit")
-			return fmt.Errorf("Kyma uninstallation failed due to the timeout")
+			return fmt.Errorf("Force quit: Kyma uninstallation failed due to the timeout")
 		}
 	}
 	return nil
