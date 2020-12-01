@@ -91,14 +91,14 @@ func main() {
 	engineCfg := engine.Config{WorkersCount: installer.Cfg.WorkersCount}
 	eng := engine.NewEngine(overridesProvider, componentsProvider, installer.ResourcesPath, engineCfg)
 
-	err = installer.StartKymaInstallation(*prerequisitesProvider, overridesProvider, eng)
+	err = installer.StartKymaInstallation(prerequisitesProvider, overridesProvider, eng)
 	if err != nil {
 		log.Printf("Failed to install Kyma: %v", err)
 	} else {
 		log.Println("Kyma installed!")
 	}
 
-	err = installer.StartKymaUninstallation(*prerequisitesProvider, overridesProvider, eng)
+	err = installer.StartKymaUninstallation(prerequisitesProvider, overridesProvider, eng)
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}
