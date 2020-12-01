@@ -28,10 +28,10 @@ type Installation struct {
 type Installer interface {
 	//This method will block until installation is finished or an error or timeout occurs.
 	//If the installation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
-	StartKymaInstallation(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error
+	StartKymaInstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error
 	//This method will block until uninstallation is finished or an error or timeout occurs.
 	//If the uninstallation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
-	StartKymaUninstallation(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error
+	StartKymaUninstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, eng *engine.Engine) error
 }
 
 func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {

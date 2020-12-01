@@ -2,7 +2,6 @@ package installation
 
 import (
 	"context"
-	"fmt"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
@@ -86,7 +85,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Force quit: Kyma prerequisites installation failed due to the timeout")
 
-			// One component installation lasts 280 ms
+			// One component installation lasts 300 ms
 			// Quit timeout occurs at 250 ms
 			// Check if program quits in the meantime
 			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(250))
@@ -216,8 +215,6 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 			end := time.Now()
 
 			elapsed := end.Sub(start)
-
-			fmt.Printf("TIME: %d", elapsed.Milliseconds())
 
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Force quit: Kyma uninstallation failed due to the timeout")
