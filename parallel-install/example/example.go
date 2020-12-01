@@ -56,8 +56,8 @@ func main() {
 
 	installationCfg := config.Config{
 		WorkersCount:                  4,
-		CancelTimeout:                 60 * time.Second,
-		QuitTimeout:                   1 * time.Second,
+		CancelTimeout:                 20 * time.Minute,
+		QuitTimeout:                   25 * time.Minute,
 		HelmTimeoutSeconds:            60 * 8,
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
@@ -93,14 +93,14 @@ func main() {
 	engineCfg := engine.Config{WorkersCount: installer.Cfg.WorkersCount}
 	eng := engine.NewEngine(overridesProvider, componentsProvider, installer.ResourcesPath, engineCfg)
 
-	err = installer.StartKymaInstallation(prerequisitesProvider, overridesProvider, eng)
+	err = installer.StartKymaInstallation(kubeClient, prerequisitesProvider, overridesProvider, eng)
 	if err != nil {
 		log.Printf("Failed to install Kyma: %v", err)
 	} else {
 		log.Println("Kyma installed!")
 	}
 
-	err = installer.StartKymaUninstallation(prerequisitesProvider, overridesProvider, eng)
+	err = installer.StartKymaUninstallation(kubeClient, prerequisitesProvider, eng)
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}

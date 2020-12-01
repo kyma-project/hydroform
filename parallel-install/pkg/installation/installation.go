@@ -3,6 +3,7 @@ package installation
 import (
 	"context"
 	"fmt"
+	"k8s.io/client-go/kubernetes"
 	"log"
 	"time"
 
@@ -50,7 +51,7 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	}, nil
 }
 
-func (i *Installation) StartKymaInstallation(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
+func (i *Installation) StartKymaInstallation(kubeClient *kubernetes.Clientset, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -69,7 +70,7 @@ func (i *Installation) StartKymaInstallation(prerequisitesProvider components.Pr
 	quitTimeout := i.Cfg.QuitTimeout
 
 	startTime := time.Now()
-	err = i.installPrerequisites(cancelCtx, cancel, prerequisites, cancelTimeout, quitTimeout)
+	err = i.installPrerequisites(cancelCtx, cancel, kubeClient, prerequisites, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -88,7 +89,7 @@ func (i *Installation) StartKymaInstallation(prerequisitesProvider components.Pr
 	return nil
 }
 
-func (i *Installation) StartKymaUninstallation(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
+func (i *Installation) StartKymaUninstallation(kubeClient *kubernetes.Clientset, prerequisitesProvider components.Provider, eng *engine.Engine) error {
 	i.Cfg.Log("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -114,20 +115,9 @@ func (i *Installation) StartKymaUninstallation(prerequisitesProvider components.
 		return err
 	}
 
-	err = i.uninstallPrerequisites(cancelCtx, cancel, prerequisites, cancelTimeout, quitTimeout)
+	err = i.uninstallPrerequisites(cancelCtx, cancel, kubeClient, prerequisites, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
-	}
-
-	// TODO: Delete namespace deletion once xip-patch is gone.
-	coreClient, err := corev1.NewForConfig(kubeconfig)
-	if err != nil {
-		return fmt.Errorf("Unable to create K8S Client. Error: %v", err)
-	}
-
-	err = coreClient.Namespaces().Delete(context.Background(), "kyma-installer", metav1.DeleteOptions{})
-	if err != nil {
-		return fmt.Errorf("Unable to delete kyma-installer namespace. Error: %v", err)
 	}
 
 	return nil
@@ -140,13 +130,13 @@ func (i *Installation) logStatuses(statusMap map[string]string) {
 	}
 }
 
-func (i *Installation) installPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+func (i *Installation) installPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, kubeClient *kubernetes.Clientset, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
 
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false
 
-	prereqStatusChan := prereq.InstallPrerequisites(ctx, p)
+	prereqStatusChan := prereq.InstallPrerequisites(ctx, p, kubeClient)
 
 Prerequisites:
 	for {
@@ -174,13 +164,13 @@ Prerequisites:
 	return nil
 }
 
-func (i *Installation) uninstallPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+func (i *Installation) uninstallPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, kubeClient *kubernetes.Clientset, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
 
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false
 
-	prereqStatusChan := prereq.UninstallPrerequisites(ctx, p)
+	prereqStatusChan := prereq.UninstallPrerequisites(ctx, kubeClient, p)
 
 Prerequisites:
 	for {

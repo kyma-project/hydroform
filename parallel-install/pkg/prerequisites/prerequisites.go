@@ -2,18 +2,34 @@ package prerequisites
 
 import (
 	"context"
+	"fmt"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const logPrefix = "[prerequisites/prerequisites.go]"
 
-func InstallPrerequisites(ctx context.Context, prerequisites []components.Component) <-chan error {
+func InstallPrerequisites(ctx context.Context, prerequisites []components.Component, kubeClient *kubernetes.Clientset) <-chan error {
 
 	statusChan := make(chan error)
 
 	go func() {
 		defer close(statusChan)
+
+		config.Log("Creating kyma-installer namespace")
+		_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "kyma-installer",
+				Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			statusChan <- fmt.Errorf("Unable to create kyma-installer namespace. Error: %v", err)
+			return
+		}
 
 		for _, prerequisite := range prerequisites {
 			//TODO: Is there a better way to find out if Context is canceled?
@@ -36,7 +52,7 @@ func InstallPrerequisites(ctx context.Context, prerequisites []components.Compon
 	return statusChan
 }
 
-func UninstallPrerequisites(ctx context.Context, prerequisites []components.Component) <-chan error {
+func UninstallPrerequisites(ctx context.Context, kubeClient *kubernetes.Clientset, prerequisites []components.Component) <-chan error {
 
 	statusChan := make(chan error)
 
@@ -60,6 +76,14 @@ func UninstallPrerequisites(ctx context.Context, prerequisites []components.Comp
 				return
 			}
 			statusChan <- nil
+		}
+
+		// TODO: Delete namespace deletion once xip-patch is gone.
+		config.Log("Deleting kyma-installer namespace")
+		err := kubeClient.CoreV1().Namespaces().Delete(context.Background(), "kyma-installer", metav1.DeleteOptions{})
+		if err != nil {
+			statusChan <- fmt.Errorf("Unable to delete kyma-installer namespace. Error: %v", err)
+			return
 		}
 	}()
 
