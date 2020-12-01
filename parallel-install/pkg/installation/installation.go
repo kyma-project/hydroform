@@ -254,6 +254,8 @@ func (i *Installation) installComponents(ctx context.Context, cancelFunc context
 }
 
 func (i *Installation) uninstallComponents(ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+	cancelTimeoutChan := time.After(cancelTimeout)
+	quitTimeoutChan := time.After(quitTimeout)
 	var statusMap = map[string]string{}
 	var errCount int = 0
 	var timeoutOccured bool = false
@@ -283,11 +285,11 @@ Loop:
 				}
 				break Loop
 			}
-		case <-time.After(cancelTimeout):
+		case <-cancelTimeoutChan:
 			timeoutOccured = true
 			i.Cfg.Log("Timeout occurred after %v minutes. Cancelling uninstallation", cancelTimeout.Minutes())
 			cancelFunc()
-		case <-time.After(quitTimeout):
+		case <-quitTimeoutChan:
 			i.Cfg.Log("Uninstallation doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Force quit: Kyma uninstallation failed due to the timeout")
 		}

@@ -183,7 +183,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
 			hc := &mockHelmClient{
-				componentProcessingTime: 320,
+				componentProcessingTime: 300,
 			}
 			provider := &mockProvider{
 				hc: hc,
@@ -209,7 +209,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 			// Quit timeout occurs at 250 ms
 			// Check if program quits in the meantime
 			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(250))
-			assert.Less(t, elapsed.Milliseconds(), int64(320))
+			assert.Less(t, elapsed.Milliseconds(), int64(300))
 		})
 	})
 
