@@ -1,5 +1,5 @@
-//Package engine implements parallel processing of components.
-//The engine is configured with number of workers that run in parallel.
+//Package engine defines the contract and implements parallel processing of components.
+//The Engine is configured with number of workers that run in parallel.
 //If only single worker is configured, the processing becomes sequential.
 //If you need different configuration for installation and uninstallation, just create two different Engine instances with different configurations.
 //
@@ -18,7 +18,7 @@ import (
 
 const logPrefix = "[engine/engine.go]"
 
-//Config defines configuration values for the engine
+//Config defines configuration values for the Engine
 type Config struct {
 	WorkersCount int                                   //number of parallel processes for install/uninstall operations
 	Log          func(format string, v ...interface{}) //Logging function
@@ -46,10 +46,10 @@ type Installation interface {
 	//Errors are not stopping the processing, because it's assumed components are independent of each other,
 	//and error condition in one component should not influence others.
 	//
-	//The returned channel receives every processed component and is closed after all components are processed or the process is cancelled.
+	//The returned channel receives every processed component and is closed after all components are processed, or the process is cancelled.
 	//
 	//ctx is used for cancellation of the operation.
-	//It is not guaranteed that cancellation is handled immediately, because the underlying Helm operation are blocking and do not support Context-based cancellation.
+	//It is not guaranteed that cancellation is handled immediately, because the underlying Helm operations are blocking and do not support Context-based cancellation.
 	//However, once the underlying parallel operations end, the cancel condition is detected and the return channel is closed.
 	//All remaining components are not processed then.
 	Install(ctx context.Context) (<-chan components.Component, error)
@@ -144,6 +144,7 @@ func run(ctx context.Context, statusChan chan<- components.Component, cmps []com
 //Designed to run in parallel (several workers are processing the same jobChan).
 //Detects Context cancellation.
 //Context cancellation is not detected immediately, but between component processing operations - because such operations are blocking.
+//If the Context is cancelled, the worker quits immediately, skipping remaining components.
 func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.Component, statusChan chan<- components.Component, installationType string) {
 	defer wg.Done()
 
