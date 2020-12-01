@@ -120,10 +120,10 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 			inst := newInstallation()
 
 			// Changing it to higher amount to minimize difference between cancel and quit timeout
-			inst.Cfg.CancelTimeout = 200 * time.Millisecond
+			inst.Cfg.CancelTimeout = 220 * time.Millisecond
 
 			hc := &mockHelmClient{
-				componentProcessingTime: 60,
+				componentProcessingTime: 70,
 			}
 			provider := &mockProvider{
 				hc: hc,
@@ -254,10 +254,10 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 			inst := newInstallation()
 
 			// Changing it to higher amount to minimize difference between cancel and quit timeout
-			inst.Cfg.CancelTimeout = 200 * time.Millisecond
+			inst.Cfg.CancelTimeout = 220 * time.Millisecond
 
 			hc := &mockHelmClient{
-				componentProcessingTime: 60,
+				componentProcessingTime: 70,
 			}
 			provider := &mockProvider{
 				hc: hc,
