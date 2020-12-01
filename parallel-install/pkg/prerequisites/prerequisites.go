@@ -12,7 +12,7 @@ import (
 
 const logPrefix = "[prerequisites/prerequisites.go]"
 
-func InstallPrerequisites(ctx context.Context, prerequisites []components.Component, kubeClient *kubernetes.Clientset) <-chan error {
+func InstallPrerequisites(ctx context.Context, prerequisites []components.Component, kubeClient kubernetes.Interface) <-chan error {
 
 	statusChan := make(chan error)
 
@@ -52,7 +52,7 @@ func InstallPrerequisites(ctx context.Context, prerequisites []components.Compon
 	return statusChan
 }
 
-func UninstallPrerequisites(ctx context.Context, kubeClient *kubernetes.Clientset, prerequisites []components.Component) <-chan error {
+func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.Component) <-chan error {
 
 	statusChan := make(chan error)
 

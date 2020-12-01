@@ -51,7 +51,7 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	}, nil
 }
 
-func (i *Installation) StartKymaInstallation(kubeClient *kubernetes.Clientset, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
+func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -89,7 +89,7 @@ func (i *Installation) StartKymaInstallation(kubeClient *kubernetes.Clientset, p
 	return nil
 }
 
-func (i *Installation) StartKymaUninstallation(kubeClient *kubernetes.Clientset, prerequisitesProvider components.Provider, eng *engine.Engine) error {
+func (i *Installation) StartKymaUninstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, eng *engine.Engine) error {
 	i.Cfg.Log("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -130,7 +130,7 @@ func (i *Installation) logStatuses(statusMap map[string]string) {
 	}
 }
 
-func (i *Installation) installPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, kubeClient *kubernetes.Clientset, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+func (i *Installation) installPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, kubeClient kubernetes.Interface, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
 
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
@@ -144,7 +144,7 @@ Prerequisites:
 		case prerequisiteErr, ok := <-prereqStatusChan:
 			if ok {
 				if prerequisiteErr != nil {
-					return fmt.Errorf("Kyma installation failed due to an error. Look at the preceeding logs to find out more")
+					return fmt.Errorf("Kyma installation failed due to an error: %s", prerequisiteErr)
 				}
 			} else {
 				if timeoutOccurred {
@@ -164,7 +164,7 @@ Prerequisites:
 	return nil
 }
 
-func (i *Installation) uninstallPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, kubeClient *kubernetes.Clientset, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+func (i *Installation) uninstallPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, kubeClient kubernetes.Interface, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
 
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
