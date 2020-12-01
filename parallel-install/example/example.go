@@ -8,9 +8,9 @@ import (
 	"io/ioutil"
 	"k8s.io/client-go/kubernetes"
 	"log"
-
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/installation"
@@ -56,8 +56,8 @@ func main() {
 
 	installationCfg := config.Config{
 		WorkersCount:                  4,
-		CancelTimeoutSeconds:          60 * 20,
-		QuitTimeoutSeconds:            60 * 25,
+		CancelTimeout:                 60 * time.Second,
+		QuitTimeout:                   1 * time.Second,
 		HelmTimeoutSeconds:            60 * 8,
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
@@ -77,12 +77,14 @@ func main() {
 
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		//return fmt.Errorf("Unable to create internal client. Error: %v", err)
+		log.Printf("Failed to create kube client. Exiting...")
+		os.Exit(1)
 	}
 
 	overridesProvider, err := overrides.New(kubeClient, installer.OverridesYamls, installer.Cfg.Log)
 	if err != nil {
-		//return fmt.Errorf("Unable to create overrides provider. Error: %v", err)
+		log.Printf("Failed to create overrides provider. Exiting...")
+		os.Exit(1)
 	}
 
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, installer.ResourcesPath, installer.Prerequisites, installer.Cfg)

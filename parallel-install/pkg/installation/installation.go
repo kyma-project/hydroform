@@ -26,10 +26,10 @@ type Installation struct {
 
 type Installer interface {
 	//This method will block until installation is finished or an error or timeout occurs.
-	//If the installation is not finished in configured config.Config.QuitTimeoutSeconds, the method returns with an error. Some worker goroutines may still be active.
+	//If the installation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
 	StartKymaInstallation(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error
 	//This method will block until uninstallation is finished or an error or timeout occurs.
-	//If the uninstallation is not finished in configured config.Config.QuitTimeoutSeconds, the method returns with an error. Some worker goroutines may still be active.
+	//If the uninstallation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
 	StartKymaUninstallation(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error
 }
 
@@ -65,8 +65,8 @@ func (i *Installation) StartKymaInstallation(prerequisitesProvider components.Pr
 		return fmt.Errorf("error while reading overrides: %v", err)
 	}
 
-	cancelTimeout := time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
-	quitTimeout := time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
+	cancelTimeout := i.Cfg.CancelTimeout
+	quitTimeout := i.Cfg.QuitTimeout
 
 	startTime := time.Now()
 	err = i.installPrerequisites(cancelCtx, cancel, prerequisites, cancelTimeout, quitTimeout)
@@ -77,8 +77,8 @@ func (i *Installation) StartKymaInstallation(prerequisitesProvider components.Pr
 
 	i.Cfg.Log("Kyma installation")
 
-	cancelTimeout = calculateDuration(startTime, endTime, i.Cfg.CancelTimeoutSeconds)
-	quitTimeout = calculateDuration(startTime, endTime, i.Cfg.QuitTimeoutSeconds)
+	cancelTimeout = calculateDuration(startTime, endTime, i.Cfg.CancelTimeout)
+	quitTimeout = calculateDuration(startTime, endTime, i.Cfg.QuitTimeout)
 
 	err = i.installComponents(cancelCtx, cancel, eng, cancelTimeout, quitTimeout)
 	if err != nil {
@@ -94,8 +94,8 @@ func (i *Installation) StartKymaUninstallation(prerequisitesProvider components.
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cancelTimeout := time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
-	quitTimeout := time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
+	cancelTimeout := i.Cfg.CancelTimeout
+	quitTimeout := i.Cfg.QuitTimeout
 
 	startTime := time.Now()
 	err := i.uninstallComponents(cancelCtx, cancel, eng, cancelTimeout, quitTimeout)
@@ -106,8 +106,8 @@ func (i *Installation) StartKymaUninstallation(prerequisitesProvider components.
 
 	log.Print("Kyma prerequisites uninstallation")
 
-	cancelTimeout = calculateDuration(startTime, endTime, i.Cfg.CancelTimeoutSeconds)
-	quitTimeout = calculateDuration(startTime, endTime, i.Cfg.QuitTimeoutSeconds)
+	cancelTimeout = calculateDuration(startTime, endTime, i.Cfg.CancelTimeout)
+	quitTimeout = calculateDuration(startTime, endTime, i.Cfg.QuitTimeout)
 
 	prerequisites, err := prerequisitesProvider.GetComponents()
 	if err != nil {
@@ -295,7 +295,7 @@ Loop:
 	return nil
 }
 
-func calculateDuration(start time.Time, end time.Time, duration int) time.Duration {
+func calculateDuration(start time.Time, end time.Time, duration time.Duration) time.Duration {
 	elapsedTime := end.Sub(start)
-	return time.Duration(duration)*time.Second - elapsedTime
+	return duration - elapsedTime
 }

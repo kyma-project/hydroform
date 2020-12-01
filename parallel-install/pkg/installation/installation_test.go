@@ -2,6 +2,7 @@ package installation
 
 import (
 	"context"
+	"fmt"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
@@ -12,10 +13,8 @@ import (
 	"time"
 )
 
-const cancelTimeout = 1
-const quitTimeout = 2
-const cancelTimeoutMillisecond = time.Duration(50) * time.Millisecond
-const quitTimeoutMillisecond = time.Duration(150) * time.Millisecond
+const cancelTimeout = 150 * time.Millisecond
+const quitTimeout = 250 * time.Millisecond
 
 func TestInstallation_StartKymaInstallation(t *testing.T) {
 	t.Parallel()
@@ -29,7 +28,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 		}
 		overridesProvider := &mockOverridesProvider{}
 		eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
-			WorkersCount: 1,
+			WorkersCount: 2,
 			Log:          log.Printf,
 		})
 
@@ -41,14 +40,14 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 	t.Run("should fail to install Kyma prerequisites", func(t *testing.T) {
 		t.Run("due to cancel timeout", func(t *testing.T) {
 			hc := &mockHelmClient{
-				cancelWithTimeout: true,
+				componentProcessingTime: 200,
 			}
 			provider := &mockProvider{
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
-				WorkersCount: 1,
+				WorkersCount: 2,
 				Log:          log.Printf,
 			})
 
@@ -59,14 +58,14 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
 			hc := &mockHelmClient{
-				quitWithTimeout: true,
+				componentProcessingTime: 300,
 			}
 			provider := &mockProvider{
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
-				WorkersCount: 1,
+				WorkersCount: 2,
 				Log:          log.Printf,
 			})
 
@@ -79,25 +78,25 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Force quit: Kyma prerequisites installation failed due to the timeout")
 
-			// One component installation lasts 2200 ms
-			// Quit timeout occurs at 2000 ms
+			// One component installation lasts 280 ms
+			// Quit timeout occurs at 250 ms
 			// Check if program quits in the meantime
-			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(2000))
-			assert.Less(t, elapsed.Milliseconds(), int64(2200))
+			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(250))
+			assert.Less(t, elapsed.Milliseconds(), int64(300))
 		})
 	})
 
 	t.Run("should install prerequisites and fail to install Kyma components", func(t *testing.T) {
 		t.Run("due to cancel timeout", func(t *testing.T) {
 			hc := &mockHelmClient{
-				cancelAfterFirstComponent: true,
+				componentProcessingTime: 40,
 			}
 			provider := &mockProvider{
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
-				WorkersCount: 1,
+				WorkersCount: 2,
 				Log:          log.Printf,
 			})
 
@@ -106,106 +105,183 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Kyma installation failed due to the timeout")
 		})
+		t.Run("due to quit timeout", func(t *testing.T) {
+
+			inst := newInstallation()
+
+			// Changing it to higher amount to minimize difference between cancel and quit timeout
+			inst.Cfg.CancelTimeout = 200 * time.Millisecond
+
+			hc := &mockHelmClient{
+				componentProcessingTime: 60,
+			}
+			provider := &mockProvider{
+				hc: hc,
+			}
+			overridesProvider := &mockOverridesProvider{}
+			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+				WorkersCount: 2,
+				Log:          log.Printf,
+			})
+
+			start := time.Now()
+			err := inst.StartKymaInstallation(provider, overridesProvider, eng)
+			end := time.Now()
+
+			elapsed := end.Sub(start)
+
+			assert.Error(t, err)
+			assert.EqualError(t, err, "Force quit: Kyma installation failed due to the timeout")
+
+			// Prerequisites and two components installation lasts 300 ms
+			// Quit timeout occurs at 250 ms
+			// Check if program quits in the meantime
+			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(250))
+			assert.Less(t, elapsed.Milliseconds(), int64(300))
+		})
 	})
 }
 
-//func Test_installPrerequisites(t *testing.T) {
-//	i := newInstallation()
-//
-//	t.Run("should install prerequisites with no error", func(t *testing.T) {
-//		ctx, cancelFunc := context.WithCancel(context.TODO())
-//		defer cancelFunc()
-//
-//		hc := &mockHelmClient{}
-//		comps := newComponents(hc)
-//
-//		//when
-//		err := i.installPrerequisites(ctx, cancelFunc, comps, cancelTimeoutMillisecond, quitTimeoutMillisecond)
-//
-//		//then
-//		assert.NoError(t, err)
-//	})
-//
-//	t.Run("should cancel installation after given timeout and exit with error", func(t *testing.T) {
-//		ctx, cancelFunc := context.WithCancel(context.TODO())
-//		defer cancelFunc()
-//
-//		hc := &mockHelmClient{
-//			cancelWithTimeout: true,
-//		}
-//		comps := newComponents(hc)
-//
-//		//when
-//		err := i.installPrerequisites(ctx, cancelFunc, comps, cancelTimeoutMillisecond, quitTimeoutMillisecond)
-//
-//		//then
-//		assert.Error(t, err)
-//		assert.EqualError(t, err, "Kyma installation failed due to the timeout")
-//	})
-//
-//	t.Run("should quit installation after given timeout and exit with error", func(t *testing.T) {
-//		ctx, cancelFunc := context.WithCancel(context.TODO())
-//		defer cancelFunc()
-//
-//		hc := &mockHelmClient{
-//			quitWithTimeout: true,
-//		}
-//		comps := newComponents(hc)
-//
-//		//when
-//		err := i.installPrerequisites(ctx, cancelFunc, comps, cancelTimeoutMillisecond, quitTimeoutMillisecond)
-//
-//		//then
-//		assert.Error(t, err)
-//		assert.EqualError(t, err, "Force quit: Kyma installation failed due to the timeout")
-//	})
-//
-//	t.Run("should not install next components after timeout", func(t *testing.T) {
-//		ctx, cancelFunc := context.WithCancel(context.TODO())
-//		defer cancelFunc()
-//
-//		hc := &mockHelmClient{
-//			cancelAfterFirstComponent: true,
-//		}
-//		comps := newComponents(hc)
-//
-//		//when
-//		startTime := time.Now()
-//		err := i.installPrerequisites(ctx, cancelFunc, comps, cancelTimeoutMillisecond, quitTimeoutMillisecond)
-//		endTime := time.Now()
-//
-//		elapsed := endTime.Sub(startTime)
-//
-//		//then
-//		assert.Error(t, err)
-//		// One component installation takes 80 ms
-//		// So to install one component this assertion must be true
-//		// 80 <= componentInstallationTime < 160
-//		assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(80))
-//		assert.Less(t, elapsed.Milliseconds(), int64(160))
-//	})
-//}
+func TestInstallation_StartKymaUninstallation(t *testing.T) {
+
+	i := newInstallation()
+
+	t.Run("should uninstall Kyma", func(t *testing.T) {
+		hc := &mockHelmClient{}
+		provider := &mockProvider{
+			hc: hc,
+		}
+		overridesProvider := &mockOverridesProvider{}
+		eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+			WorkersCount: 2,
+			Log:          log.Printf,
+		})
+
+		err := i.StartKymaUninstallation(provider, overridesProvider, eng)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("should fail to uninstall Kyma components", func(t *testing.T) {
+		t.Run("due to cancel timeout", func(t *testing.T) {
+			hc := &mockHelmClient{
+				componentProcessingTime: 200,
+			}
+			provider := &mockProvider{
+				hc: hc,
+			}
+			overridesProvider := &mockOverridesProvider{}
+			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+				WorkersCount: 2,
+				Log:          log.Printf,
+			})
+
+			err := i.StartKymaUninstallation(provider, overridesProvider, eng)
+
+			assert.Error(t, err)
+			assert.EqualError(t, err, "Kyma uninstallation failed due to the timeout")
+		})
+		t.Run("due to quit timeout", func(t *testing.T) {
+			hc := &mockHelmClient{
+				componentProcessingTime: 320,
+			}
+			provider := &mockProvider{
+				hc: hc,
+			}
+			overridesProvider := &mockOverridesProvider{}
+			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+				WorkersCount: 2,
+				Log:          log.Printf,
+			})
+
+			start := time.Now()
+			err := i.StartKymaUninstallation(provider, overridesProvider, eng)
+			end := time.Now()
+
+			elapsed := end.Sub(start)
+
+			fmt.Printf("TIME: %d", elapsed.Milliseconds())
+
+			assert.Error(t, err)
+			assert.EqualError(t, err, "Force quit: Kyma uninstallation failed due to the timeout")
+
+			// One component installation lasts 300 ms
+			// Quit timeout occurs at 250 ms
+			// Check if program quits in the meantime
+			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(250))
+			assert.Less(t, elapsed.Milliseconds(), int64(320))
+		})
+	})
+
+	t.Run("should uninstall components and fail to install Kyma prerequisites", func(t *testing.T) {
+		t.Run("due to cancel timeout", func(t *testing.T) {
+			hc := &mockHelmClient{
+				componentProcessingTime: 40,
+			}
+			provider := &mockProvider{
+				hc: hc,
+			}
+			overridesProvider := &mockOverridesProvider{}
+			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+				WorkersCount: 2,
+				Log:          log.Printf,
+			})
+
+			err := i.StartKymaUninstallation(provider, overridesProvider, eng)
+
+			assert.Error(t, err)
+			assert.EqualError(t, err, "Kyma prerequisites uninstallation failed due to the timeout")
+		})
+		t.Run("due to quit timeout", func(t *testing.T) {
+
+			inst := newInstallation()
+
+			// Changing it to higher amount to minimize difference between cancel and quit timeout
+			inst.Cfg.CancelTimeout = 200 * time.Millisecond
+
+			hc := &mockHelmClient{
+				componentProcessingTime: 60,
+			}
+			provider := &mockProvider{
+				hc: hc,
+			}
+			overridesProvider := &mockOverridesProvider{}
+			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+				WorkersCount: 2,
+				Log:          log.Printf,
+			})
+
+			start := time.Now()
+			err := inst.StartKymaUninstallation(provider, overridesProvider, eng)
+			end := time.Now()
+
+			elapsed := end.Sub(start)
+
+			assert.Error(t, err)
+			assert.EqualError(t, err, "Force quit: Kyma prerequisites uninstallation failed due to the timeout")
+
+			// Prerequisites and two components installation lasts 300 ms
+			// Quit timeout occurs at 250 ms
+			// Check if program quits in the meantime
+			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(250))
+			assert.Less(t, elapsed.Milliseconds(), int64(300))
+		})
+	})
+}
+
 
 type mockHelmClient struct {
-	cancelWithTimeout         bool
-	quitWithTimeout           bool
-	cancelAfterFirstComponent bool
-	quitAfterFirstComponent   bool
+	componentProcessingTime int
 }
 
 func (c *mockHelmClient) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
-	if c.cancelWithTimeout {
-		time.Sleep(1100 * time.Millisecond)
-	}
-	if c.quitWithTimeout {
-		time.Sleep(2200 * time.Millisecond)
-	}
-	if c.cancelAfterFirstComponent {
-		time.Sleep(300 * time.Millisecond)
-	}
+	time.Sleep(1 * time.Millisecond)
+	time.Sleep(time.Duration(c.componentProcessingTime) * time.Millisecond)
 	return nil
 }
 func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name string) error {
+	time.Sleep(1 * time.Millisecond)
+	time.Sleep(time.Duration(c.componentProcessingTime) * time.Millisecond)
 	return nil
 }
 
@@ -213,38 +289,11 @@ func newInstallation() Installation {
 	return Installation{
 
 		Cfg: config.Config{
-			CancelTimeoutSeconds: cancelTimeout,
-			QuitTimeoutSeconds:   quitTimeout,
-			Log:                  log.Printf,
+			CancelTimeout: cancelTimeout,
+			QuitTimeout:   quitTimeout,
+			Log:           log.Printf,
 		},
 	}
-}
-
-func newComponents(hc *mockHelmClient) []components.Component {
-	return []components.Component{
-		{
-			Name:            "test1",
-			Namespace:       "test1",
-			OverridesGetter: func() map[string]interface{} { return nil },
-			HelmClient:      hc,
-			Log:             log.Printf,
-		},
-		{
-			Name:            "test2",
-			Namespace:       "test2",
-			OverridesGetter: func() map[string]interface{} { return nil },
-			HelmClient:      hc,
-			Log:             log.Printf,
-		},
-		{
-			Name:            "test3",
-			Namespace:       "test3",
-			OverridesGetter: func() map[string]interface{} { return nil },
-			HelmClient:      hc,
-			Log:             log.Printf,
-		},
-	}
-
 }
 
 type mockProvider struct {
@@ -277,9 +326,7 @@ func (p *mockProvider) GetComponents() ([]components.Component, error) {
 	}, nil
 }
 
-type mockOverridesProvider struct {
-
-}
+type mockOverridesProvider struct {}
 
 func (o *mockOverridesProvider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {
 	return nil
