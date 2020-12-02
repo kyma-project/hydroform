@@ -2,9 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"io/ioutil"
 	"k8s.io/client-go/kubernetes"
 	"log"
@@ -81,26 +78,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	overridesProvider, err := overrides.New(kubeClient, installer.OverridesYamls, installer.Cfg.Log)
-	if err != nil {
-		log.Printf("Failed to create overrides provider. Exiting...")
-		os.Exit(1)
-	}
-
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, installer.ResourcesPath, installer.Prerequisites, installer.Cfg)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, installer.ResourcesPath, installer.ComponentsYaml, installer.Cfg)
-
-	engineCfg := engine.Config{WorkersCount: installer.Cfg.WorkersCount}
-	eng := engine.NewEngine(overridesProvider, componentsProvider, installer.ResourcesPath, engineCfg)
-
-	err = installer.StartKymaInstallation(kubeClient, prerequisitesProvider, overridesProvider, eng)
+	err = installer.StartKymaInstallation(kubeClient)
 	if err != nil {
 		log.Printf("Failed to install Kyma: %v", err)
 	} else {
 		log.Println("Kyma installed!")
 	}
 
-	err = installer.StartKymaUninstallation(kubeClient, prerequisitesProvider, eng)
+	err = installer.StartKymaUninstallation(kubeClient)
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}

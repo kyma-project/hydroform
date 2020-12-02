@@ -35,7 +35,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 			Log:          log.Printf,
 		})
 
-		err := i.StartKymaInstallation(kubeClient, provider, overridesProvider, eng)
+		err := i.startKymaInstallation(kubeClient, provider, overridesProvider, eng)
 
 		assert.NoError(t, err)
 	})
@@ -56,7 +56,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 				Log:          log.Printf,
 			})
 
-			err := i.StartKymaInstallation(kubeClient, provider, overridesProvider, eng)
+			err := i.startKymaInstallation(kubeClient, provider, overridesProvider, eng)
 
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Kyma prerequisites installation failed due to the timeout")
@@ -77,7 +77,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := i.StartKymaInstallation(kubeClient, provider, overridesProvider, eng)
+			err := i.startKymaInstallation(kubeClient, provider, overridesProvider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -109,7 +109,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 				Log:          log.Printf,
 			})
 
-			err := i.StartKymaInstallation(kubeClient, provider, overridesProvider, eng)
+			err := i.startKymaInstallation(kubeClient, provider, overridesProvider, eng)
 
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Kyma installation failed due to the timeout")
@@ -135,7 +135,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := inst.StartKymaInstallation(kubeClient, provider, overridesProvider, eng)
+			err := inst.startKymaInstallation(kubeClient, provider, overridesProvider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -169,7 +169,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 			Log:          log.Printf,
 		})
 
-		err := i.StartKymaUninstallation(kubeClient, provider, eng)
+		err := i.startKymaUninstallation(kubeClient, provider, eng)
 
 		assert.NoError(t, err)
 	})
@@ -190,7 +190,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 				Log:          log.Printf,
 			})
 
-			err := i.StartKymaUninstallation(kubeClient, provider, eng)
+			err := i.startKymaUninstallation(kubeClient, provider, eng)
 
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Kyma uninstallation failed due to the timeout")
@@ -211,7 +211,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := i.StartKymaUninstallation(kubeClient, provider, eng)
+			err := i.startKymaUninstallation(kubeClient, provider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -243,7 +243,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 				Log:          log.Printf,
 			})
 
-			err := i.StartKymaUninstallation(kubeClient, provider, eng)
+			err := i.startKymaUninstallation(kubeClient, provider, eng)
 
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Kyma prerequisites uninstallation failed due to the timeout")
@@ -269,7 +269,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := inst.StartKymaUninstallation(kubeClient, provider, eng)
+			err := inst.startKymaUninstallation(kubeClient, provider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)

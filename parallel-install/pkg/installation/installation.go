@@ -28,10 +28,10 @@ type Installation struct {
 type Installer interface {
 	//This method will block until installation is finished or an error or timeout occurs.
 	//If the installation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
-	StartKymaInstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error
+	StartKymaInstallation(kubeClient kubernetes.Interface) error
 	//This method will block until uninstallation is finished or an error or timeout occurs.
 	//If the uninstallation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
-	StartKymaUninstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, eng *engine.Engine) error
+	StartKymaUninstallation(kubeClient kubernetes.Interface) error
 }
 
 func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {
@@ -51,7 +51,23 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	}, nil
 }
 
-func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
+func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface) error {
+	overridesProvider, prerequisitesProvider, eng, err := i.getConfig(kubeClient)
+	if err != nil {
+		return err
+	}
+	return i.startKymaInstallation(kubeClient, prerequisitesProvider, overridesProvider, eng)
+}
+
+func (i *Installation) StartKymaUninstallation(kubeClient kubernetes.Interface) error {
+	_, prerequisitesProvider, eng, err := i.getConfig(kubeClient)
+	if err != nil {
+		return err
+	}
+	return i.startKymaUninstallation(kubeClient, prerequisitesProvider, eng)
+}
+
+func (i *Installation) startKymaInstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -89,7 +105,7 @@ func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface, pr
 	return nil
 }
 
-func (i *Installation) StartKymaUninstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, eng *engine.Engine) error {
+func (i *Installation) startKymaUninstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, eng *engine.Engine) error {
 	i.Cfg.Log("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -285,6 +301,21 @@ Loop:
 		}
 	}
 	return nil
+}
+
+func (i *Installation) getConfig(kubeClient kubernetes.Interface) (overrides.OverridesProvider, components.Provider, *engine.Engine, error) {
+	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls, i.Cfg.Log)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider. Exiting...")
+	}
+
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
+
+	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
+	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath, engineCfg)
+
+	return overridesProvider, prerequisitesProvider, eng, nil
 }
 
 func calculateDuration(start time.Time, end time.Time, duration time.Duration) time.Duration {
