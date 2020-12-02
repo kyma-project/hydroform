@@ -32,6 +32,7 @@ func TestSuccessScenario(t *testing.T) {
 
 	installationCfg := config.Config{
 		WorkersCount: 4,
+		Log: log.Printf,
 	}
 
 	componentsProvider := components.NewComponentsProvider(overridesProvider, "", string(content), installationCfg)
