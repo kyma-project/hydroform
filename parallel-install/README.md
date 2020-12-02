@@ -21,7 +21,7 @@ To do so, provide the `installation.NewInstallation` function with necessary par
 | resourcesPath | `string` | `/go/src/github.com/kyma-project/kyma/resources` | Path to the Kyma resources. |
 | cfg | `config.Config` | - | Specifies fine-grained configuration for the installation process. See the table with `config.Config` configuration options for details. |
 
-`config.Config` options:
+See all available configuration options for the `config.Config` type:
 
 | Parameter | Type | Example value | Description |
 | --- | --- | --- | --- |
