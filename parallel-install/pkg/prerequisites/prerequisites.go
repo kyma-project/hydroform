@@ -1,4 +1,4 @@
-//Package prerequisites implements logic for preparing the cluster for Kyma installation.
+//Package prerequisites implements logic preparing the cluster for Kyma installation.
 //It also contains the code to clean-up the prerequisites.
 //
 //The code in the package uses user-provided function for logging.
@@ -18,9 +18,10 @@ import (
 const logPrefix = "[prerequisites/prerequisites.go]"
 
 //InstallPrerequisites tries to install all provided prerequisites.
-//The function quits on first encountered error, because all prerequisites must be installed in order to start the main installation.
+//The function quits on first encountered error, because all prerequisites must be installed in order to start Kyma installation.
 //
-//The function supports Context cancellation, but not immediately.
+//The function supports Context cancellation.
+//The cancellation is not immediate.
 //If the cancel signal appears during installation step (it's a blocking operation),
 //such cancel condition is detected only after the step is over, and the InstallPrerequisites returns with an error.
 func InstallPrerequisites(ctx context.Context, prerequisites []components.Component, kubeClient kubernetes.Interface) <-chan error {
@@ -48,6 +49,7 @@ func InstallPrerequisites(ctx context.Context, prerequisites []components.Compon
 			if ctx.Err() != nil {
 				//Context is canceled or timed-out. Skip processing
 				config.Log("%s Finishing work: %v", logPrefix, ctx.Err())
+				statusChan <- ctx.Err()
 				return
 			}
 
@@ -65,11 +67,12 @@ func InstallPrerequisites(ctx context.Context, prerequisites []components.Compon
 }
 
 //UninstallPrerequisites tries to uninstall all provided prerequisites.
-//The function does not quit errors - it tries to uninstall everything.
+//The function does not quit on errors - it tries to uninstall everything.
 //
-//The function supports Context cancellation, but not immediately.
+//The function supports Context cancellation.
+//The cancellation is not immediate.
 //If the cancel signal appears during uninstallation step (it's a blocking operation),
-//such cancel condition is detected only after that step is over, and the InstallPrerequisites returns with an error.
+//such cancel condition is detected only after that step is over, and the UninstallPrerequisites returns with an error.
 func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.Component) <-chan error {
 
 	statusChan := make(chan error)
@@ -83,7 +86,7 @@ func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface
 			if ctx.Err() != nil {
 				//Context is canceled or timed-out. Skip processing
 				config.Log("%s Finishing work: %v", logPrefix, ctx.Err())
-
+				statusChan <- ctx.Err()
 				return
 			}
 			config.Log("%s Uninstalling component %s ", logPrefix, prereq.Name)
@@ -92,7 +95,7 @@ func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface
 			err := prereq.UninstallComponent(ctx)
 			if err != nil {
 				config.Log("%s Error uninstalling prerequisite %s: %v (The uninstallation continues anyway)", logPrefix, prereq.Name, err)
-				statusChan <- err //TODO: Is this valid?
+				statusChan <- err
 			}
 			statusChan <- nil
 		}
