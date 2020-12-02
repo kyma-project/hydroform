@@ -56,10 +56,21 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 				Log:          log.Printf,
 			})
 
+			start := time.Now()
 			err := i.startKymaInstallation(kubeClient, provider, overridesProvider, eng)
+			end := time.Now()
+
+			elapsed := end.Sub(start)
 
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Kyma prerequisites installation failed due to the timeout")
+
+			// Cancel timeout occurs at 150 ms
+			// Quit timeout occurs at 250 ms
+			// Blocking process (component installation) ends in the meantime
+			// Check if program quits after cancel and before quit timeout
+			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(150))
+			assert.Less(t, elapsed.Milliseconds(), int64(250))
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset()
@@ -109,18 +120,31 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 				Log:          log.Printf,
 			})
 
+			start := time.Now()
 			err := i.startKymaInstallation(kubeClient, provider, overridesProvider, eng)
+			end := time.Now()
+
+			elapsed := end.Sub(start)
 
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Kyma installation failed due to the timeout")
+
+			// Cancel timeout occurs at 150 ms
+			// Quit timeout occurs at 250 ms
+			// Blocking process (component installation) ends in the meantime
+			// Check if program quits after cancel and before quit timeout
+			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(150))
+			assert.Less(t, elapsed.Milliseconds(), int64(250))
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset()
 
 			inst := newInstallation()
 
-			// Changing it to higher amount to minimize difference between cancel and quit timeout
-			inst.Cfg.CancelTimeout = 220 * time.Millisecond
+			// Changing it to higher amounts to minimize difference between cancel and quit timeout
+			// and give program enough time to process
+			inst.Cfg.CancelTimeout = 240 * time.Millisecond
+			inst.Cfg.QuitTimeout = 270 * time.Millisecond
 
 			hc := &mockHelmClient{
 				componentProcessingTime: 70,
@@ -143,7 +167,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Force quit: Kyma installation failed due to the timeout")
 
-			// Prerequisites and two components installation lasts 300 ms
+			// Prerequisites and two components installation lasts 300 ms (2 workers uninstalling components in parallel)
 			// Quit timeout occurs at 250 ms
 			// Check if program quits in the meantime
 			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(250))
@@ -190,10 +214,21 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 				Log:          log.Printf,
 			})
 
+			start := time.Now()
 			err := i.startKymaUninstallation(kubeClient, provider, eng)
+			end := time.Now()
+
+			elapsed := end.Sub(start)
 
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Kyma uninstallation failed due to the timeout")
+
+			// Cancel timeout occurs at 150 ms
+			// Quit timeout occurs at 250 ms
+			// Blocking process (component installation) ends in the meantime
+			// Check if program quits after cancel and before quit timeout
+			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(150))
+			assert.Less(t, elapsed.Milliseconds(), int64(250))
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset()
@@ -243,18 +278,31 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 				Log:          log.Printf,
 			})
 
+			start := time.Now()
 			err := i.startKymaUninstallation(kubeClient, provider, eng)
+			end := time.Now()
+
+			elapsed := end.Sub(start)
 
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Kyma prerequisites uninstallation failed due to the timeout")
+
+			// Cancel timeout occurs at 150 ms
+			// Quit timeout occurs at 250 ms
+			// Blocking process (component installation) ends in the meantime
+			// Check if program quits after cancel and before quit timeout
+			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(150))
+			assert.Less(t, elapsed.Milliseconds(), int64(250))
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset()
 
 			inst := newInstallation()
 
-			// Changing it to higher amount to minimize difference between cancel and quit timeout
-			inst.Cfg.CancelTimeout = 220 * time.Millisecond
+			// Changing it to higher amounts to minimize difference between cancel and quit timeout
+			// and give program enough time to process
+			inst.Cfg.CancelTimeout = 240 * time.Millisecond
+			inst.Cfg.QuitTimeout = 270 * time.Millisecond
 
 			hc := &mockHelmClient{
 				componentProcessingTime: 70,
@@ -277,7 +325,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 			assert.Error(t, err)
 			assert.EqualError(t, err, "Force quit: Kyma prerequisites uninstallation failed due to the timeout")
 
-			// Prerequisites and two components installation lasts 300 ms
+			// Prerequisites and two components installation lasts 300 ms (2 workers uninstalling components in parallel)
 			// Quit timeout occurs at 250 ms
 			// Check if program quits in the meantime
 			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(250))

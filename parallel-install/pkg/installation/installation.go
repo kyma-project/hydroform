@@ -52,19 +52,19 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 }
 
 func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface) error {
-	overridesProvider, prerequisitesProvider, eng, err := i.getConfig(kubeClient)
+	overridesProvider, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {
 		return err
 	}
-	return i.startKymaInstallation(kubeClient, prerequisitesProvider, overridesProvider, eng)
+	return i.startKymaInstallation(kubeClient, prerequisitesProvider, overridesProvider, engine)
 }
 
 func (i *Installation) StartKymaUninstallation(kubeClient kubernetes.Interface) error {
-	_, prerequisitesProvider, eng, err := i.getConfig(kubeClient)
+	_, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {
 		return err
 	}
-	return i.startKymaUninstallation(kubeClient, prerequisitesProvider, eng)
+	return i.startKymaUninstallation(kubeClient, prerequisitesProvider, engine)
 }
 
 func (i *Installation) startKymaInstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
