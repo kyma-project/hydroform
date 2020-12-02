@@ -31,7 +31,7 @@ To do so, provide the `installation.NewInstallation` function with necessary par
 | HelmTimeoutSeconds | `int` | `360` | Timeout for the underlying Helm client. |
 | BackoffInitialIntervalSeconds | `int` | `1` | Initial interval used for exponent backoff retry policy. |
 | BackoffMaxElapsedTimeSeconds | `int` | `30` | Maximum time used for exponential backoff retry policy. |
-| Log | `func(format string, v ...interface{})` | `fmt.Printf` | A function used for logging. |
+| Log | `func(format string, v ...interface{})` | `fmt.Printf` | Function used for logging. |
 
 >**NOTE:** This library also fetches overrides from ConfigMaps present in the cluster. However, overrides provided through `NewInstallation` have a higher priority.
 
