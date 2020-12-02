@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"io/ioutil"
+	"k8s.io/client-go/kubernetes"
 	"log"
-
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/installation"
@@ -52,8 +53,8 @@ func main() {
 
 	installationCfg := config.Config{
 		WorkersCount:                  4,
-		CancelTimeoutSeconds:          60 * 20,
-		QuitTimeoutSeconds:            60 * 25,
+		CancelTimeout:                 20 * time.Minute,
+		QuitTimeout:                   25 * time.Minute,
 		HelmTimeoutSeconds:            60 * 8,
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
@@ -71,14 +72,20 @@ func main() {
 
 	config.SetupLogger(log.Printf)
 
-	err = installer.StartKymaInstallation(restConfig)
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		log.Printf("Failed to create kube client. Exiting...")
+		os.Exit(1)
+	}
+
+	err = installer.StartKymaInstallation(kubeClient)
 	if err != nil {
 		log.Printf("Failed to install Kyma: %v", err)
 	} else {
 		log.Println("Kyma installed!")
 	}
 
-	err = installer.StartKymaUninstallation(restConfig)
+	err = installer.StartKymaUninstallation(kubeClient)
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}

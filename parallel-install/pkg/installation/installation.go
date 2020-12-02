@@ -3,6 +3,7 @@ package installation
 import (
 	"context"
 	"fmt"
+	"k8s.io/client-go/kubernetes"
 	"log"
 	"time"
 
@@ -11,11 +12,6 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	prereq "github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
 )
 
 type Installation struct {
@@ -31,11 +27,11 @@ type Installation struct {
 
 type Installer interface {
 	//This method will block until installation is finished or an error or timeout occurs.
-	//If the installation is not finished in configured config.Config.QuitTimeoutSeconds, the method returns with an error. Some worker goroutines may still be active.
-	StartKymaInstallation(kubeconfig *rest.Config) error
+	//If the installation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
+	StartKymaInstallation(kubeClient kubernetes.Interface) error
 	//This method will block until uninstallation is finished or an error or timeout occurs.
-	//If the uninstallation is not finished in configured config.Config.QuitTimeoutSeconds, the method returns with an error. Some worker goroutines may still be active.
-	StartKymaUninstallation(kubeconfig *rest.Config) error
+	//If the uninstallation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
+	StartKymaUninstallation(kubeClient kubernetes.Interface) error
 }
 
 func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {
@@ -55,38 +51,25 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	}, nil
 }
 
-func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
-	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
+func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface) error {
+	overridesProvider, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {
-		return fmt.Errorf("Unable to create internal client. Error: %v", err)
+		return err
 	}
+	return i.startKymaInstallation(kubeClient, prerequisitesProvider, overridesProvider, engine)
+}
 
-	// TODO: Delete namespace creation once xip-patch is gone.
-	coreClient, err := corev1.NewForConfig(kubeconfig)
+func (i *Installation) StartKymaUninstallation(kubeClient kubernetes.Interface) error {
+	_, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {
-		return fmt.Errorf("Unable to create K8S Client. Error: %v", err)
+		return err
 	}
+	return i.startKymaUninstallation(kubeClient, prerequisitesProvider, engine)
+}
 
-	_, err = coreClient.Namespaces().Create(context.Background(), &v1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "kyma-installer",
-			Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
-		},
-	}, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("Unable to create kyma-installer namespace. Error: %v", err)
-	}
-
-	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls, i.Cfg.Log)
-	if err != nil {
-		return fmt.Errorf("Unable to create overrides provider. Error: %v", err)
-	}
-
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
-
-	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
-	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath, engineCfg)
+func (i *Installation) startKymaInstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	i.Cfg.Log("Kyma prerequisites installation")
 
@@ -99,26 +82,149 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 		return fmt.Errorf("error while reading overrides: %v", err)
 	}
 
-	//TODO: Handle timeout
-	err = prereq.InstallPrerequisites(context.TODO(), prerequisites)
+	cancelTimeout := i.Cfg.CancelTimeout
+	quitTimeout := i.Cfg.QuitTimeout
+
+	startTime := time.Now()
+	err = i.installPrerequisites(cancelCtx, cancel, kubeClient, prerequisites, cancelTimeout, quitTimeout)
+	if err != nil {
+		return err
+	}
+	endTime := time.Now()
+
+	i.Cfg.Log("Kyma installation")
+
+	cancelTimeout = calculateDuration(startTime, endTime, i.Cfg.CancelTimeout)
+	quitTimeout = calculateDuration(startTime, endTime, i.Cfg.QuitTimeout)
+
+	err = i.installComponents(cancelCtx, cancel, eng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
 
-	i.Cfg.Log("Kyma installation")
+	return nil
+}
+
+func (i *Installation) startKymaUninstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, eng *engine.Engine) error {
+	i.Cfg.Log("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	statusChan, err := eng.Install(cancelCtx)
+
+	cancelTimeout := i.Cfg.CancelTimeout
+	quitTimeout := i.Cfg.QuitTimeout
+
+	startTime := time.Now()
+	err := i.uninstallComponents(cancelCtx, cancel, eng, cancelTimeout, quitTimeout)
+	if err != nil {
+		return err
+	}
+	endTime := time.Now()
+
+	log.Print("Kyma prerequisites uninstallation")
+
+	cancelTimeout = calculateDuration(startTime, endTime, i.Cfg.CancelTimeout)
+	quitTimeout = calculateDuration(startTime, endTime, i.Cfg.QuitTimeout)
+
+	prerequisites, err := prerequisitesProvider.GetComponents()
+	if err != nil {
+		return err
+	}
+
+	err = i.uninstallPrerequisites(cancelCtx, cancel, kubeClient, prerequisites, cancelTimeout, quitTimeout)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Installation) logStatuses(statusMap map[string]string) {
+	i.Cfg.Log("Components processed so far:")
+	for k, v := range statusMap {
+		i.Cfg.Log("Component: %s, Status: %s", k, v)
+	}
+}
+
+func (i *Installation) installPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, kubeClient kubernetes.Interface, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+
+	cancelTimeoutChan := time.After(cancelTimeout)
+	quitTimeoutChan := time.After(quitTimeout)
+	timeoutOccurred := false
+
+	prereqStatusChan := prereq.InstallPrerequisites(ctx, p, kubeClient)
+
+Prerequisites:
+	for {
+		select {
+		case prerequisiteErr, ok := <-prereqStatusChan:
+			if ok {
+				if prerequisiteErr != nil {
+					return fmt.Errorf("Kyma installation failed due to an error: %s", prerequisiteErr)
+				}
+			} else {
+				if timeoutOccurred {
+					return fmt.Errorf("Kyma prerequisites installation failed due to the timeout")
+				}
+				break Prerequisites
+			}
+		case <-cancelTimeoutChan:
+			timeoutOccurred = true
+			i.Cfg.Log("Timeout reached. Cancelling installation")
+			cancelFunc()
+		case <-quitTimeoutChan:
+			i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
+			return fmt.Errorf("Force quit: Kyma prerequisites installation failed due to the timeout")
+		}
+	}
+	return nil
+}
+
+func (i *Installation) uninstallPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, kubeClient kubernetes.Interface, p []components.Component, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+
+	cancelTimeoutChan := time.After(cancelTimeout)
+	quitTimeoutChan := time.After(quitTimeout)
+	timeoutOccurred := false
+
+	prereqStatusChan := prereq.UninstallPrerequisites(ctx, kubeClient, p)
+
+Prerequisites:
+	for {
+		select {
+		case prerequisiteErr, ok := <-prereqStatusChan:
+			if ok {
+				if prerequisiteErr != nil {
+					config.Log("Failed to uninstall a prerequisite: %s", prerequisiteErr)
+				}
+			} else {
+				if timeoutOccurred {
+					return fmt.Errorf("Kyma prerequisites uninstallation failed due to the timeout")
+				}
+				break Prerequisites
+			}
+		case <-cancelTimeoutChan:
+			timeoutOccurred = true
+			i.Cfg.Log("Timeout reached. Cancelling uninstallation")
+			cancelFunc()
+		case <-quitTimeoutChan:
+			i.Cfg.Log("Uninstallation doesn't stop after it's canceled. Enforcing quit")
+			return fmt.Errorf("Force quit: Kyma prerequisites uninstallation failed due to the timeout")
+		}
+	}
+	return nil
+}
+
+func (i *Installation) installComponents(ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+	cancelTimeoutChan := time.After(cancelTimeout)
+	quitTimeoutChan := time.After(quitTimeout)
+	timeoutOccurred := false
+	statusMap := map[string]string{}
+	errCount := 0
+
+	statusChan, err := eng.Install(ctx)
 	if err != nil {
 		return fmt.Errorf("Kyma installation failed. Error: %v", err)
 	}
-
-	var statusMap = map[string]string{}
-	var errCount int = 0
-	var cancelTimeout time.Duration = time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
-	var quitTimeout time.Duration = time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
-	var timeoutOccured bool = false
 
 	//Await completion
 	for {
@@ -136,57 +242,34 @@ func (i *Installation) StartKymaInstallation(kubeconfig *rest.Config) error {
 					i.logStatuses(statusMap)
 					return fmt.Errorf("Kyma installation failed due to errors in %d component(s)", errCount)
 				}
-				if timeoutOccured {
+				if timeoutOccurred {
 					i.logStatuses(statusMap)
 					return fmt.Errorf("Kyma installation failed due to the timeout")
 				}
 				return nil
 			}
-		case <-time.After(cancelTimeout):
-			timeoutOccured = true
+		case <-cancelTimeoutChan:
+			timeoutOccurred = true
 			i.Cfg.Log("Timeout occurred after %v minutes. Cancelling installation", cancelTimeout.Minutes())
-			cancel()
-		case <-time.After(quitTimeout):
+			cancelFunc()
+		case <-quitTimeoutChan:
 			i.Cfg.Log("Installation doesn't stop after it's canceled. Enforcing quit")
-			return fmt.Errorf("Kyma installation failed due to the timeout")
+			return fmt.Errorf("Force quit: Kyma installation failed due to the timeout")
 		}
 	}
 }
 
-func (i *Installation) StartKymaUninstallation(kubeconfig *rest.Config) error {
-	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
-	if err != nil {
-		i.Cfg.Log("Unable to create internal client. Error: %v", err)
-		return err
-	}
-
-	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls, i.Cfg.Log)
-	if err != nil {
-		i.Cfg.Log("Unable to create overrides provider. Error: %v", err)
-		return err
-	}
-
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
-
-	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount, Log: i.Cfg.Log}
-	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath, engineCfg)
-
-	i.Cfg.Log("Kyma uninstallation started")
-
-	cancelCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	statusChan, err := eng.Uninstall(cancelCtx)
-	if err != nil {
-		return err
-	}
-
+func (i *Installation) uninstallComponents(ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+	cancelTimeoutChan := time.After(cancelTimeout)
+	quitTimeoutChan := time.After(quitTimeout)
 	var statusMap = map[string]string{}
 	var errCount int = 0
-	var cancelTimeout time.Duration = time.Duration(i.Cfg.CancelTimeoutSeconds) * time.Second
-	var quitTimeout time.Duration = time.Duration(i.Cfg.QuitTimeoutSeconds) * time.Second
 	var timeoutOccured bool = false
 
+	statusChan, err := eng.Uninstall(ctx)
+	if err != nil {
+		return err
+	}
 	//Await completion
 Loop:
 	for {
@@ -208,46 +291,34 @@ Loop:
 				}
 				break Loop
 			}
-		case <-time.After(cancelTimeout):
+		case <-cancelTimeoutChan:
 			timeoutOccured = true
 			i.Cfg.Log("Timeout occurred after %v minutes. Cancelling uninstallation", cancelTimeout.Minutes())
-			cancel()
-		case <-time.After(quitTimeout):
+			cancelFunc()
+		case <-quitTimeoutChan:
 			i.Cfg.Log("Uninstallation doesn't stop after it's canceled. Enforcing quit")
-			return fmt.Errorf("Kyma uninstallation failed due to the timeout")
+			return fmt.Errorf("Force quit: Kyma uninstallation failed due to the timeout")
 		}
 	}
-
-	log.Print("Kyma prerequisites uninstallation")
-
-	prerequisites, err := prerequisitesProvider.GetComponents()
-	if err != nil {
-		return err
-	}
-
-	//TODO: Handle timeout
-	err = prereq.UninstallPrerequisites(context.TODO(), prerequisites)
-	if err != nil {
-		return err
-	}
-
-	// TODO: Delete namespace deletion once xip-patch is gone.
-	coreClient, err := corev1.NewForConfig(kubeconfig)
-	if err != nil {
-		return fmt.Errorf("Unable to create K8S Client. Error: %v", err)
-	}
-
-	err = coreClient.Namespaces().Delete(context.Background(), "kyma-installer", metav1.DeleteOptions{})
-	if err != nil {
-		return fmt.Errorf("Unable to delete kyma-installer namespace. Error: %v", err)
-	}
-
 	return nil
 }
 
-func (i *Installation) logStatuses(statusMap map[string]string) {
-	i.Cfg.Log("Components processed so far:")
-	for k, v := range statusMap {
-		i.Cfg.Log("Component: %s, Status: %s", k, v)
+func (i *Installation) getConfig(kubeClient kubernetes.Interface) (overrides.OverridesProvider, components.Provider, *engine.Engine, error) {
+	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls, i.Cfg.Log)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider. Exiting...")
 	}
+
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
+
+	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
+	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath, engineCfg)
+
+	return overridesProvider, prerequisitesProvider, eng, nil
+}
+
+func calculateDuration(start time.Time, end time.Time, duration time.Duration) time.Duration {
+	elapsedTime := end.Sub(start)
+	return duration - elapsedTime
 }
