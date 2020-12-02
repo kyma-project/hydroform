@@ -27,7 +27,7 @@ To do so, provide the `installation.NewInstallation` function with necessary par
 | --- | --- | --- | --- |
 | WorkersCount | `int` | `4` | Number of parallel workers used for the `install` or `uninstall` operation. |
 | CancelTimeoutSeconds | `int` | `900` | Time after which the workers' context is canceled. Pending worker goroutines (if any) may continue if blocked by a Helm client. |
-| QuitTimeoutSeconds | `int` | `1200` | After this time install/delete operation is aborted and returns an error to the user. Worker goroutines may still be working in the background. Must be greater than CancelTimeoutSeconds. |
+| QuitTimeoutSeconds | `int` | `1200` | Time after which the `install` or `delete` operation is aborted and returns an error to the user. Worker goroutines may still be working in the background. This value must be greater than the value for CancelTimeoutSeconds. |
 | HelmTimeoutSeconds | `int` | `360` | Timeout for the underlying Helm client. |
 | BackoffInitialIntervalSeconds | `int` | `1` | Initial interval used for exponent backoff retry policy. |
 | BackoffMaxElapsedTimeSeconds | `int` | `30` | Maximum time used for exponential backoff retry policy. |
