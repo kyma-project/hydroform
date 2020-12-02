@@ -19,7 +19,7 @@ To do so, provide the `installation.NewInstallation` function with necessary par
 | componentsYaml | `string` | - | Content of the [Installation CR](https://kyma-project.io/docs/#custom-resource-installation). Components will be extracted and installed in parallel. |
 | overridesYaml | `[]string` | `{ "foo: bar", "val: example" }` | List of Helm overrides. The latter the override, the higher is its priority. |
 | resourcesPath | `string` | `/go/src/github.com/kyma-project/kyma/resources` | Path to the Kyma resources. |
-| cfg | `config.Config` | - | Specifies fine-grained configuration for the installation process. See below for explanation. |
+| cfg | `config.Config` | - | Specifies fine-grained configuration for the installation process. See the table with `config.Config` configuration options for details. |
 
 `config.Config` options:
 
