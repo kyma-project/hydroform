@@ -38,6 +38,7 @@ type Installer interface {
 	StartKymaUninstallation(kubeClient kubernetes.Interface) error
 }
 
+//NewInstallation should be used to create Installation instances
 func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Installation. Resource path is required.")
@@ -55,6 +56,7 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	}, nil
 }
 
+//StartKymaInstallation implements Installer.StartKymaInstallation contract
 func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface) error {
 	overridesProvider, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {
@@ -63,6 +65,7 @@ func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface) er
 	return i.startKymaInstallation(kubeClient, prerequisitesProvider, overridesProvider, engine)
 }
 
+//StartKymaUninstallation implements Installer.StartKymaUninstallation contract
 func (i *Installation) StartKymaUninstallation(kubeClient kubernetes.Interface) error {
 	_, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {
@@ -156,7 +159,7 @@ func (i *Installation) installPrerequisites(ctx context.Context, cancelFunc cont
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false
 
-	prereqStatusChan := prereq.InstallPrerequisites(ctx, p, kubeClient)
+	prereqStatusChan := prereq.InstallPrerequisites(ctx, kubeClient, p)
 
 Prerequisites:
 	for {
@@ -317,7 +320,7 @@ func (i *Installation) getConfig(kubeClient kubernetes.Interface) (overrides.Ove
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
 	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
-	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath, engineCfg)
+	eng := engine.NewEngine(overridesProvider, componentsProvider, engineCfg)
 
 	return overridesProvider, prerequisitesProvider, eng, nil
 }

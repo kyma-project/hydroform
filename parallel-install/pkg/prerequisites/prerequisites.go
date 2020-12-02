@@ -23,8 +23,8 @@ const logPrefix = "[prerequisites/prerequisites.go]"
 //The function supports Context cancellation.
 //The cancellation is not immediate.
 //If the cancel signal appears during installation step (it's a blocking operation),
-//such cancel condition is detected only after the step is over, and the InstallPrerequisites returns with an error.
-func InstallPrerequisites(ctx context.Context, prerequisites []components.Component, kubeClient kubernetes.Interface) <-chan error {
+//such cancel condition is detected only after the step is over, and the InstallPrerequisites returns without an error.
+func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.Component) <-chan error {
 
 	statusChan := make(chan error)
 
@@ -49,17 +49,18 @@ func InstallPrerequisites(ctx context.Context, prerequisites []components.Compon
 			if ctx.Err() != nil {
 				//Context is canceled or timed-out. Skip processing
 				config.Log("%s Finishing work: %v", logPrefix, ctx.Err())
-				statusChan <- ctx.Err()
-				return
+				return //TODO: Consider returning information about "processing skipped because of timeout" via statusChan
 			}
 
 			config.Log("%s Installing component %s ", logPrefix, prerequisite.Name)
+			//installation step
 			err := prerequisite.InstallComponent(ctx)
 			if err != nil {
+				config.Log("%s Error installing prerequisite %s: %v (The installation will not continue)", logPrefix, prerequisite.Name, err)
 				statusChan <- err
 				return
 			}
-			statusChan <- nil
+			statusChan <- nil //TODO: Is this necessary?
 		}
 	}()
 
@@ -72,7 +73,7 @@ func InstallPrerequisites(ctx context.Context, prerequisites []components.Compon
 //The function supports Context cancellation.
 //The cancellation is not immediate.
 //If the cancel signal appears during uninstallation step (it's a blocking operation),
-//such cancel condition is detected only after that step is over, and the UninstallPrerequisites returns with an error.
+//such cancel condition is detected only after that step is over, and the UninstallPrerequisites returns without an error.
 func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.Component) <-chan error {
 
 	statusChan := make(chan error)
@@ -86,18 +87,17 @@ func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface
 			if ctx.Err() != nil {
 				//Context is canceled or timed-out. Skip processing
 				config.Log("%s Finishing work: %v", logPrefix, ctx.Err())
-				statusChan <- ctx.Err()
-				return
+				return //TODO: Consider returning information about "processing skipped because of timeout" via statusChan
 			}
-			config.Log("%s Uninstalling component %s ", logPrefix, prereq.Name)
 
+			config.Log("%s Uninstalling component %s ", logPrefix, prereq.Name)
 			//uninstallation step
 			err := prereq.UninstallComponent(ctx)
 			if err != nil {
 				config.Log("%s Error uninstalling prerequisite %s: %v (The uninstallation continues anyway)", logPrefix, prereq.Name, err)
 				statusChan <- err
 			}
-			statusChan <- nil
+			statusChan <- nil //TODO: Is this necessary?
 		}
 
 		// TODO: Delete namespace deletion once xip-patch is gone.

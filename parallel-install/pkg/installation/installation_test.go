@@ -31,7 +31,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 			hc: hc,
 		}
 		overridesProvider := &mockOverridesProvider{}
-		eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+		eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 			WorkersCount: 2,
 			Log:          log.Printf,
 		})
@@ -52,7 +52,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          log.Printf,
 			})
@@ -85,7 +85,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          log.Printf,
 			})
@@ -119,7 +119,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          log.Printf,
 			})
@@ -158,7 +158,7 @@ func TestInstallation_StartKymaInstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          log.Printf,
 			})
@@ -193,7 +193,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 			hc: hc,
 		}
 		overridesProvider := &mockOverridesProvider{}
-		eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+		eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 			WorkersCount: 2,
 			Log:          log.Printf,
 		})
@@ -214,7 +214,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          log.Printf,
 			})
@@ -247,7 +247,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          log.Printf,
 			})
@@ -281,7 +281,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          log.Printf,
 			})
@@ -320,7 +320,7 @@ func TestInstallation_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, "", engine.Config{
+			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          log.Printf,
 			})
