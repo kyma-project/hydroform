@@ -25,7 +25,7 @@ const logPrefix = "[prerequisites/prerequisites.go]"
 //If the cancel signal appears during installation step (it's a blocking operation),
 //such cancel condition is detected only after the step is over, and the InstallPrerequisites returns without an error.
 //
-//prerequisites provide information of all Components that are considred prerequisites for Kyma installation.
+//prerequisites provide information about all Components that are considered prerequisites for Kyma installation.
 //Such components are installed sequentially in the same order as in the provided slice.
 func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.Component) <-chan error {
 
