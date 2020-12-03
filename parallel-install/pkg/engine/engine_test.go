@@ -2,16 +2,24 @@ package engine
 
 import (
 	"context"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/sync/semaphore"
 	"log"
+	"os"
 	"testing"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/semaphore"
 )
 
 var testComponentsNames = []string{"test0", "test1", "test2", "test3", "test4"}
+
+const (
+	componentProcessingTimeInMilliseconds = 50
+	defualtWorkersCount                   = 4
+)
 
 func TestOneWorkerIsSpawned(t *testing.T) {
 	//Test that only one worker is spawned if configured so.
@@ -19,15 +27,16 @@ func TestOneWorkerIsSpawned(t *testing.T) {
 	tokensAcquiredChan := make(chan bool)
 
 	overridesProvider := &mockOverridesProvider{}
+
 	installationCfg := config.Config{
 		WorkersCount: 1,
 		Log:          log.Printf,
 	}
-	hc := &mockHelmClient{
-		semaphore:        semaphore.NewWeighted(int64(1)),
+	hc := &mockHelmClientWithSemaphore{
+		semaphore:          semaphore.NewWeighted(int64(1)),
 		tokensAcquiredChan: tokensAcquiredChan,
 	}
-	componentsProvider := &mockProvider{
+	componentsProvider := &mockComponentsProvider{
 		hc: hc,
 	}
 	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: log.Printf}
@@ -69,11 +78,11 @@ func TestFourWorkersAreSpawned(t *testing.T) {
 		WorkersCount: 4,
 		Log:          log.Printf,
 	}
-	hc := &mockHelmClient{
-		semaphore:        semaphore.NewWeighted(int64(3)),
+	hc := &mockHelmClientWithSemaphore{
+		semaphore:          semaphore.NewWeighted(int64(3)),
 		tokensAcquiredChan: tokensAcquiredChan,
 	}
-	componentsProvider := &mockProvider{
+	componentsProvider := &mockComponentsProvider{
 		hc: hc,
 	}
 	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: log.Printf}
@@ -109,43 +118,43 @@ Loop:
 	require.Equal(t, expected, tokensAcquired)
 }
 
-//func TestSuccessScenario(t *testing.T) {
-//	//Test success scenario:
-//	//Expected: All configured components are processed and reported via statusChan
-//	k8sMock := fake.NewSimpleClientset()
-//	overridesProvider, err := overrides.New(k8sMock, []string{""}, log.Printf)
-//	require.NoError(t, err)
-//
-//	content, err := ioutil.ReadFile("../test/data/installationCR.yaml")
-//	require.NoError(t, err)
-//
-//	installationCfg := config.Config{
-//		WorkersCount: 4,
-//		Log: log.Printf,
-//	}
-//
-//	componentsProvider := components.NewComponentsProvider(overridesProvider, "", string(content), installationCfg)
-//
-//	componentsToBeProcessed, err := componentsProvider.GetComponents()
-//	require.NoError(t, err)
-//
-//	goPath := os.Getenv("GOPATH")
-//	require.NotEmpty(t, goPath)
-//	resourcesPath := filepath.Join(goPath, "src", "github.com", "kyma-project", "kyma", "resources")
-//
-//	engineCfg := Config{WorkersCount: installationCfg.WorkersCount}
-//
-//	e := NewEngine(overridesProvider, componentsProvider, resourcesPath, engineCfg)
-//	statusChan, err := e.Install(context.TODO())
-//	require.NoError(t, err)
-//
-//	for componentsCount := 0; componentsCount < len(componentsToBeProcessed); componentsCount++ {
-//		componentStatus := <-statusChan
-//		require.Equal(t, components.StatusInstalled, componentStatus.Status)
-//	}
-//
-//	//require.Equal(t, len(componentsToBeProcessed), componentsCount)
-//}
+func TestSuccessScenario(t *testing.T) {
+	//Test success scenario:
+	//Expected: All configured components are processed and reported via statusChan
+	overridesProvider := &mockOverridesProvider{}
+
+	helmClient := &mockSimpleHelmClient{}
+
+	componentsProvider := &mockComponentsProvider{helmClient}
+
+	componentsToBeProcessed, err := componentsProvider.GetComponents()
+	require.NoError(t, err)
+
+	goPath := os.Getenv("GOPATH")
+	require.NotEmpty(t, goPath)
+
+	engineCfg := Config{WorkersCount: defualtWorkersCount}
+
+	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
+	statusChan, err := e.Install(context.TODO())
+	require.NoError(t, err)
+
+	waitFor := time.Duration(((len(componentsToBeProcessed)/defualtWorkersCount)+1)*componentProcessingTimeInMilliseconds) * 2 * time.Millisecond // time required to process all components doubled
+
+	// wait until channel is filled with all components' statuses
+	require.Eventually(t, func() bool {
+		return len(statusChan) == len(componentsToBeProcessed)
+	}, waitFor, 10*time.Millisecond)
+
+	// check if each component has status "Installed"
+	for componentsCount := 0; componentsCount < len(componentsToBeProcessed); componentsCount++ {
+		componentStatus := <-statusChan
+		require.Equal(t, components.StatusInstalled, componentStatus.Status)
+	}
+
+	// make sure that the status channel does not contain any unexpected statuses
+	require.Zero(t, len(statusChan))
+}
 func TestErrorScenario(t *testing.T) {
 	//Test error scenario: Configure some components to report error on install.
 	//Expected: All configured components are processed, success and error statuses are reported via statusChan
@@ -155,12 +164,12 @@ func TestContextCancelScenario(t *testing.T) {
 	//Expected: Components A, B, C, D are reported via statusChan. This is because context is canceled after B, but workers should already start processing C and D.
 }
 
-type mockHelmClient struct {
-	semaphore        *semaphore.Weighted
+type mockHelmClientWithSemaphore struct {
+	semaphore          *semaphore.Weighted
 	tokensAcquiredChan chan bool
 }
 
-func (c *mockHelmClient) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
+func (c *mockHelmClientWithSemaphore) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
 	token := c.semaphore.TryAcquire(1)
 	go func() {
 		c.tokensAcquiredChan <- token
@@ -174,16 +183,16 @@ func (c *mockHelmClient) InstallRelease(ctx context.Context, chartDir, namespace
 	}
 	return nil
 }
-func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name string) error {
+func (c *mockHelmClientWithSemaphore) UninstallRelease(ctx context.Context, namespace, name string) error {
 	time.Sleep(1 * time.Millisecond)
 	return nil
 }
 
-type mockProvider struct {
-	hc *mockHelmClient
+type mockComponentsProvider struct {
+	hc helm.ClientInterface
 }
 
-func (p *mockProvider) GetComponents() ([]components.Component, error) {
+func (p *mockComponentsProvider) GetComponents() ([]components.Component, error) {
 	var comps []components.Component
 	for _, name := range testComponentsNames {
 		component := components.Component{
@@ -199,11 +208,25 @@ func (p *mockProvider) GetComponents() ([]components.Component, error) {
 	return comps, nil
 }
 
-type mockOverridesProvider struct{}
+type mockSimpleHelmClient struct{}
 
-func (o *mockOverridesProvider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {
+func (c *mockSimpleHelmClient) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
+	time.Sleep(1 * time.Millisecond)
+	time.Sleep(time.Duration(componentProcessingTimeInMilliseconds) * time.Millisecond)
 	return nil
 }
+func (c *mockSimpleHelmClient) UninstallRelease(ctx context.Context, namespace, name string) error {
+	time.Sleep(1 * time.Millisecond)
+	time.Sleep(time.Duration(componentProcessingTimeInMilliseconds) * time.Millisecond)
+	return nil
+}
+
+type mockOverridesProvider struct{}
+
 func (o *mockOverridesProvider) ReadOverridesFromCluster() error {
+	return nil
+}
+
+func (o *mockOverridesProvider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {
 	return nil
 }
