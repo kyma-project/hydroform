@@ -41,7 +41,7 @@ type Installer interface {
 	StartKymaUninstallation(kubeClient kubernetes.Interface) error
 }
 
-//NewInstallation should be used to create Installation instances
+//NewInstallation should be used to create Installation instances.
 //
 //prerequisites is a slice of pairs: [component-name, namespace]
 //
