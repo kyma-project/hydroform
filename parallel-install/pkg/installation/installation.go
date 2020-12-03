@@ -48,7 +48,7 @@ type Installer interface {
 //componentsYaml is a string containing an Installation CR in the YAML format.
 //
 //overridesYamls contains data in the YAML format.
-//See overrides.New for details about overrides contract.
+//See overrides.New for details about the overrides contract.
 //
 //resourcesPath is a local filesystem path where components' charts are located
 func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {
