@@ -45,7 +45,7 @@ type Installer interface {
 //
 //prerequisites is a slice of pairs: [component-name, namespace]
 //
-//componentsYaml is a string containing Installation CR in yaml format.
+//componentsYaml is a string containing an Installation CR in the YAML format.
 //
 //overridesYamls contains data in yaml format.
 //See overrides.New for details about overrides contract.
