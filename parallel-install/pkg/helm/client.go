@@ -54,7 +54,7 @@ type ClientInterface interface {
 	//because the underlying Helm operations are blocking and do not support the Context-based cancellation.
 	//Cancellation is possible when errors occur and the operation is re-tried.
 	//When the operation is re-tried, it is not guaranteed that the cancellation is handled immediately due to the blocking nature of Helm client calls.
-	//However, once the underlying Helm operations ends, the cancel condition is detected and the operation's result is returned without further retries.
+	//However, once the underlying Helm operation ends, the cancel condition is detected and the operation's result is returned without further retries.
 	UninstallRelease(ctx context.Context, namespace, name string) error
 }
 
