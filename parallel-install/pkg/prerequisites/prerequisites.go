@@ -73,7 +73,7 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 //UninstallPrerequisites tries to uninstall all provided prerequisites.
 //The function does not quit on errors - it tries to uninstall everything.
 //
-//The function supports Context cancellation.
+//The function supports the Context cancellation.
 //The cancellation is not immediate.
 //If the cancel signal appears during uninstallation step (it's a blocking operation),
 //such cancel condition is detected only after that step is over, and the UninstallPrerequisites returns without an error.
