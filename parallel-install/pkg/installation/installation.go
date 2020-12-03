@@ -17,28 +17,42 @@ import (
 )
 
 type Installation struct {
-	// Map component > namespace
+	// Slice of pairs: [component, namespace]
 	Prerequisites [][]string
 	// Content of the Installation CR YAML file
 	ComponentsYaml string
 	// Content of the Helm overrides YAML files
 	OverridesYamls []string
-	ResourcesPath  string
-	Cfg            config.Config
+	// Rood dir in local filesystem with subdirectories containing components' Helm charts
+	ResourcesPath string
+	Cfg           config.Config
 }
 
 type Installer interface {
 	//StartKymaInstallation installs Kyma on the cluster.
 	//This method will block until installation is finished or an error or timeout occurs.
-	//If the installation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
+	//If the installation is not finished in configured config.Config.QuitTimeout,
+	//the method returns with an error. Some worker goroutines may still run in the background.
 	StartKymaInstallation(kubeClient kubernetes.Interface) error
 	//StartKymaUninstallation uninstalls Kyma from the cluster.
 	//This method will block until uninstallation is finished or an error or timeout occurs.
-	//If the uninstallation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
+	//If the uninstallation is not finished in configured config.Config.QuitTimeout,
+	//the method returns with an error. Some worker goroutines may still run in the background.
 	StartKymaUninstallation(kubeClient kubernetes.Interface) error
 }
 
 //NewInstallation should be used to create Installation instances
+//
+//prerequisites is a slice of pairs: [component-name, namespace]
+//
+//componentsYaml is a string containing Installation CR in yaml format.
+//
+//overridesYams contains data in yaml format.
+//The structure of the file should follow Helm values.yaml convention.
+//There is one difference from plain Helm values.yaml: These are not values for a single release, but for entire Kyma installation.
+//Because of that you have to put values for a specific component (e.g: "foo") under a key equal to component's name (i.e: "foo") or under a "global" key.
+//
+//resourcesPath is a local filesystem path where components' charts are located
 func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Installation. Resource path is required.")

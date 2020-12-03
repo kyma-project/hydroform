@@ -12,6 +12,20 @@ const StatusUninstalled = "Uninstalled"
 
 const logPrefix = "[components/component.go]"
 
+//ComponentInstallation interface defines contract for Component installation and uninstallation.
+type ComponentInstallation interface {
+	//InstallComponent installs a component.
+	//The function is blocking until the component is installed or an error (including Helm timeout) occurs.
+	//See the helm.HelmClient.InstallRelease documentation for how the context.Context is used for cancellation.
+	InstallComponent(context.Context) error
+
+	//UninstallComponent uninstalls a component.
+	//The function is blocking until the component is uninstalled or an error (including Helm timeout) occurs.
+	//See the helm.HelmClient.UninstallRelease documentation for how the context.Context is used for cancellation.
+	UnInstallComponent(context.Context) error
+}
+
+//Component implements ComponentInstallation interface
 type Component struct {
 	Name            string
 	Namespace       string
@@ -22,6 +36,12 @@ type Component struct {
 	Log             func(format string, v ...interface{})
 }
 
+//NewComponent instantiates a new Component
+//name and namespace define Helm release name and namespace
+//
+//chartDir is a local filesystem directory with component's chart.
+//
+//overrides is a function that returns overrides for the release.
 func NewComponent(name, namespace, chartDir string, overrides func() map[string]interface{}, helmClient helm.ClientInterface, log func(string, ...interface{})) *Component {
 	return &Component{
 		Name:            name,
@@ -34,11 +54,7 @@ func NewComponent(name, namespace, chartDir string, overrides func() map[string]
 	}
 }
 
-type ComponentInstallation interface {
-	InstallComponent(context.Context) error
-	UnInstallComponent(context.Context) error
-}
-
+//InstallComponent implements ComponentInstallation.InstallComponent
 func (c *Component) InstallComponent(ctx context.Context) error {
 	c.Log("%s Installing %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
@@ -55,6 +71,7 @@ func (c *Component) InstallComponent(ctx context.Context) error {
 	return nil
 }
 
+//UninstallComponent implements ComponentInstallation.UninstallComponent
 func (c *Component) UninstallComponent(ctx context.Context) error {
 	c.Log("%s Uninstalling %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 

@@ -1,3 +1,4 @@
+//Package config defines top-level configuration settings for the parallel-install library.
 package config
 
 import (
@@ -30,6 +31,7 @@ type Config struct {
 // It is used in functions to avoid passing logger as a parameter
 var Log = log.Printf
 
+//Setups global logging function
 func SetupLogger(log func(string, ...interface{})) {
 	Log = log
 }

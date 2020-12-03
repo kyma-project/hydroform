@@ -1,7 +1,10 @@
+//Package overrides implements logic related to handling overrides.
+//The manually-provided overrides have precedence over standard Kyma overrides defined in the cluster.
 package overrides
 
 import (
 	"context"
+
 	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +16,7 @@ const logPrefix = "[overrides/overrides.go]"
 var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, !component"}
 var componentListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, component"}
 
+//Provider type caches overrides from the cluster and manually-provided ones.
 type Provider struct {
 	overrides                    map[string]interface{}
 	additionalOverrides          map[string]interface{}
@@ -22,8 +26,12 @@ type Provider struct {
 	log                          func(format string, v ...interface{})
 }
 
+//OverridesProvider defines contract for reading overrides for given Helm release.
 type OverridesProvider interface {
+	//OverridesGetterFunctionFor returns overrides for Helm release with provided name.
+	//Before using this function, ensure that local overrides cache is populated by calling ReadOverridesFromCluster.
 	OverridesGetterFunctionFor(name string) func() map[string]interface{}
+	//Reads overrides from the cluster. You have to call this function before using OverridesGetterFunctionFor().
 	ReadOverridesFromCluster() error
 }
 
