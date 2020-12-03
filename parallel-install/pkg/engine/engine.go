@@ -1,7 +1,8 @@
 //Package engine defines the contract and implements parallel processing of components.
-//The Engine is configured with number of workers that run in parallel.
+//The Engine is configured with a number of workers that run in parallel.
 //If only single worker is configured, the processing becomes sequential.
-//If you need different configuration for installation and uninstallation, just create two different Engine instances with different configurations.
+//If you need different configuration for installation and uninstallation,
+//just create two different Engine instances with different configurations.
 //
 //The code in the package uses user-provided function for logging.
 package engine

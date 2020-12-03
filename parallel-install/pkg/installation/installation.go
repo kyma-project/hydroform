@@ -48,9 +48,7 @@ type Installer interface {
 //componentsYaml is a string containing Installation CR in yaml format.
 //
 //overridesYams contains data in yaml format.
-//The structure of the file should follow Helm values.yaml convention.
-//There is one difference from plain Helm values.yaml: These are not values for a single release, but for entire Kyma installation.
-//Because of that you have to put values for a specific component (e.g: "foo") under a key equal to component's name (i.e: "foo") or under a "global" key.
+//See overrides.New for details about overrides contract.
 //
 //resourcesPath is a local filesystem path where components' charts are located
 func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {

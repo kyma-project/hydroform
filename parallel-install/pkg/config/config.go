@@ -1,4 +1,4 @@
-//Package config defines top-level configuration settings for the parallel-install library.
+//Package config defines top-level configuration settings for library users.
 package config
 
 import (
@@ -7,7 +7,8 @@ import (
 )
 
 //Configures various install/uninstall operation parameters.
-//There are no different parameters for Install/Delete operations - if you need it to be different, just use two Installations with two different configs.
+//There are no different parameters for Install/Delete operations.
+//If you need different configurations, just use two different Installation instances.
 type Config struct {
 	//Number of parallel workers used for an install/uninstall operation.
 	WorkersCount int
