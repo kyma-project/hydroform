@@ -19,7 +19,7 @@ type Provider interface {
 //ComponentsProvider implements the Provider interface.
 type ComponentsProvider struct {
 	overridesProvider overrides.OverridesProvider
-	resourcesPath     string //a root directory where components' charts subdirectories are located.
+	resourcesPath     string //A root directory where subdirectories of components' charts are located.
 	componentListYaml string
 	helmConfig        helm.Config
 	log               func(format string, v ...interface{})
@@ -27,7 +27,7 @@ type ComponentsProvider struct {
 
 //NewComponentsProvider returns a ComponentsProvider instance.
 //
-//resourcesPath is a directory where components' charts subdirectories are located.
+//resourcesPath is a directory where subdirectories of components' charts are located.
 //
 //componentListYaml is a string containing YAML with an Installation CR.
 func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, componentListYaml string, cfg config.Config) *ComponentsProvider {
