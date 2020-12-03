@@ -32,7 +32,7 @@ func TestOneWorkerIsSpawned(t *testing.T) {
 		WorkersCount: 1,
 		Log:          log.Printf,
 	}
-	hc := &mockHelmClientWithSemaphore{
+	hc := &mockHelmClient{
 		semaphore:          semaphore.NewWeighted(int64(1)),
 		tokensAcquiredChan: tokensAcquiredChan,
 	}
@@ -78,7 +78,7 @@ func TestFourWorkersAreSpawned(t *testing.T) {
 		WorkersCount: 4,
 		Log:          log.Printf,
 	}
-	hc := &mockHelmClientWithSemaphore{
+	hc := &mockHelmClient{
 		semaphore:          semaphore.NewWeighted(int64(3)),
 		tokensAcquiredChan: tokensAcquiredChan,
 	}
@@ -111,10 +111,15 @@ Loop:
 	require.NoError(t, err)
 	// Semaphore has 3 tokens in pool and there should be 4 workers
 	// After completing work workers release their tokens
-	// If worker installing 4th component is not able to acquire a token it means the pool got exhausted
-	// and no tokens were released yet - there are more than 3 workers
+	// If worker installing 4th component is not able to acquire a token (a "loser"),
+	// it means the token pool got exhausted and no tokens were released yet - there are more than 3 workers
 	// If worker installing 5th component is able to acquire a token it means a token was released during
 	// previous operations and worker didn't start immediately - there are less than 5 workers
+	// Caveat:
+	// If there are five workers we'd see a pattern: [true, true, true, false, false]
+	// The same pattern occurs for four workers, when "loser" worker is processing very fast and is rejected token twice.
+	// We ensure the "loser" worker is not rejected the token twice
+	// by a making it working for a longer time than the workers that acquired token successfully.
 	require.Equal(t, expected, tokensAcquired)
 }
 
@@ -164,7 +169,7 @@ func TestContextCancelScenario(t *testing.T) {
 	//Expected: Components A, B, C, D are reported via statusChan. This is because context is canceled after B, but workers should already start processing C and D.
 }
 
-type mockHelmClientWithSemaphore struct {
+type mockHelmClient struct {
 	semaphore          *semaphore.Weighted
 	tokensAcquiredChan chan bool
 }
