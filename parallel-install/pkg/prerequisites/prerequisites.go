@@ -25,8 +25,8 @@ const logPrefix = "[prerequisites/prerequisites.go]"
 //If the cancel signal appears during installation step (it's a blocking operation),
 //such cancel condition is detected only after the step is over, and the InstallPrerequisites returns without an error.
 //
-//prerequisites provide information of all Components that are considred prerequisites for Kyma installation.
-//Such components are installed sequentially in the same order as in the provided slice.
+//prerequisites provide information about all Components that are considered prerequisites for Kyma installation.
+//Such components are installed sequentially, in the same order as in the provided slice.
 func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.Component) <-chan error {
 
 	statusChan := make(chan error)
@@ -73,10 +73,10 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 //UninstallPrerequisites tries to uninstall all provided prerequisites.
 //The function does not quit on errors - it tries to uninstall everything.
 //
-//The function supports Context cancellation.
+//The function supports the Context cancellation.
 //The cancellation is not immediate.
-//If the cancel signal appears during uninstallation step (it's a blocking operation),
-//such cancel condition is detected only after that step is over, and the UninstallPrerequisites returns without an error.
+//If the "cancel" signal appears during the uninstallation step (it's a blocking operation),
+//such a "cancel" condition is detected only after that step is over, and UninstallPrerequisites returns without an error.
 func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.Component) <-chan error {
 
 	statusChan := make(chan error)

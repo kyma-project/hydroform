@@ -1,4 +1,4 @@
-//Package installation provides top-level API to control installation and uninstallation of Kyma.
+//Package installation provides a top-level API to control Kyma installation and uninstallation.
 package installation
 
 import (
@@ -23,7 +23,7 @@ type Installation struct {
 	ComponentsYaml string
 	// Content of the Helm overrides YAML files
 	OverridesYamls []string
-	// Root dir in local filesystem with subdirectories containing components' Helm charts
+	// Root dir in a local filesystem with subdirectories containing components' Helm charts
 	ResourcesPath string
 	Cfg           config.Config
 }
@@ -41,13 +41,13 @@ type Installer interface {
 	StartKymaUninstallation(kubeClient kubernetes.Interface) error
 }
 
-//NewInstallation should be used to create Installation instances
+//NewInstallation should be used to create Installation instances.
 //
 //prerequisites is a slice of pairs: [component-name, namespace]
 //
-//componentsYaml is a string containing Installation CR in yaml format.
+//componentsYaml is a string containing an Installation CR in the YAML format.
 //
-//overridesYamls contains data in yaml format.
+//overridesYamls contains data in the YAML format.
 //See overrides.New for details about overrides contract.
 //
 //resourcesPath is a local filesystem path where components' charts are located

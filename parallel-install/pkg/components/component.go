@@ -12,7 +12,7 @@ const StatusUninstalled = "Uninstalled"
 
 const logPrefix = "[components/component.go]"
 
-//ComponentInstallation interface defines contract for Component installation and uninstallation.
+//ComponentInstallation interface defines a contract for Component installation and uninstallation.
 type ComponentInstallation interface {
 	//InstallComponent installs a component.
 	//The function is blocking until the component is installed or an error (including Helm timeout) occurs.
@@ -21,11 +21,11 @@ type ComponentInstallation interface {
 
 	//UninstallComponent uninstalls a component.
 	//The function is blocking until the component is uninstalled or an error (including Helm timeout) occurs.
-	//See the helm.HelmClient.UninstallRelease documentation for how the context.Context is used for cancellation.
+	//See the helm.HelmClient.UninstallRelease documentation for how context.Context is used for cancellation.
 	UninstallComponent(context.Context) error
 }
 
-//Component implements ComponentInstallation interface
+//Component implements the ComponentInstallation interface.
 type Component struct {
 	Name            string
 	Namespace       string

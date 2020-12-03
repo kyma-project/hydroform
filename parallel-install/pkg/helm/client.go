@@ -50,16 +50,16 @@ type ClientInterface interface {
 	//The function retries on errors according to Config provided to the Client.
 	//
 	//ctx is used for cancellation of the operation.
-	//Cancellation of the successfull operation is not possible,
-	//because the underlying Helm operation are blocking and do not support Context-based cancellation.
+	//Cancellation of the successful operation is not possible
+	//because the underlying Helm operations are blocking and do not support the Context-based cancellation.
 	//Cancellation is possible when errors occur and the operation is re-tried.
-	//When operation is re-tried, it is not guaranteed that cancellation is handled immediately, due to the blocking nature of Helm client calls.
-	//However, once the underlying Helm operations ends, the cancel condition is detected and the operation's result is returned without further retries.
+	//When the operation is re-tried, it is not guaranteed that the cancellation is handled immediately due to the blocking nature of Helm client calls.
+	//However, once the underlying Helm operation ends, the cancel condition is detected and the operation's result is returned without further retries.
 	UninstallRelease(ctx context.Context, namespace, name string) error
 }
 
 //NewClient returns a new Client instance.
-//If you need different configuration for installation and uninstallation,
+//If you need different configurations for installation and uninstallation,
 //just create two different Client instances with different configurations.
 func NewClient(cfg Config) *Client {
 	return &Client{
