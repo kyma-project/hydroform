@@ -44,7 +44,7 @@ func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider
 //Installation interface defines contract for the Engine
 type Installation interface {
 	//Install performs parallel components installation.
-	//Errors are not stopping the processing because it's assumed components are independent of each other.
+	//Errors are not stopping the processing because it's assumed components are independent of one another.
 	//An error condition in one component should not influence others.
 	//
 	//The returned channel receives every processed component and is closed after all components are processed or the process is cancelled.
