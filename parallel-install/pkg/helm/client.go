@@ -50,7 +50,7 @@ type ClientInterface interface {
 	//The function retries on errors according to Config provided to the Client.
 	//
 	//ctx is used for cancellation of the operation.
-	//Cancellation of the successfull operation is not possible,
+	//Cancellation of the successful operation is not possible
 	//because the underlying Helm operation are blocking and do not support Context-based cancellation.
 	//Cancellation is possible when errors occur and the operation is re-tried.
 	//When operation is re-tried, it is not guaranteed that cancellation is handled immediately, due to the blocking nature of Helm client calls.
