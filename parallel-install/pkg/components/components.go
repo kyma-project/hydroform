@@ -11,12 +11,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//Provider is an entity that produces a list of components for installation or uninstallation of Kyma.
+//Provider is an entity that produces a list of components for Kyma installation or uninstallation.
 type Provider interface {
 	GetComponents() ([]Component, error)
 }
 
-//ComponentsProvider implements Provider interface
+//ComponentsProvider implements the Provider interface.
 type ComponentsProvider struct {
 	overridesProvider overrides.OverridesProvider
 	resourcesPath     string //a root directory where components' charts subdirectories are located.
@@ -29,7 +29,7 @@ type ComponentsProvider struct {
 //
 //resourcesPath is a directory where components' charts subdirectories are located.
 //
-//componentListYaml is a string containing YAML with an Installation CR
+//componentListYaml is a string containing YAML with an Installation CR.
 func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, componentListYaml string, cfg config.Config) *ComponentsProvider {
 
 	helmCfg := helm.Config{

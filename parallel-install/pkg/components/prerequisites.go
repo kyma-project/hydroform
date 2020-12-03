@@ -9,7 +9,7 @@ import (
 )
 
 //PrerequisitesProvider implements a contract for getting Components that are considered prerequisites for Kyma installation.
-//It implements Provider interface.
+//It implements the Provider interface.
 type PrerequisitesProvider struct {
 	overridesProvider overrides.OverridesProvider
 	resourcesPath     string     //a root directory where components' charts subdirectories are located.
@@ -20,7 +20,7 @@ type PrerequisitesProvider struct {
 
 //NewPrerequisitesProvider returns a new PrerequisitesProvider instance.
 //
-//resourcesPath is a directory where components' charts subdirectories are located.
+//resourcesPath is a directory where subdirectories of components' charts are located.
 //
 //componentList is a slice of pairs: [component-name, namespace]
 func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, componentList [][]string, cfg config.Config) *PrerequisitesProvider {

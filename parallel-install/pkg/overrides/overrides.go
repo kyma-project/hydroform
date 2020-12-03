@@ -1,7 +1,7 @@
 //Package overrides implements logic related to handling overrides.
 //The manually-provided overrides have precedence over standard Kyma overrides defined in the cluster.
 //
-//The code in the package uses user-provided function for logging.
+//The code in the package uses the user-provided function for logging.
 package overrides
 
 import (
@@ -19,7 +19,7 @@ var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, !co
 var componentListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, component"}
 
 //Provider type caches overrides for further use.
-//It contains overrides from the cluster and manually-provided ones.
+//It contains overrides from the cluster and the manually-provided ones.
 type Provider struct {
 	overrides                    map[string]interface{}
 	additionalOverrides          map[string]interface{}
@@ -29,24 +29,24 @@ type Provider struct {
 	log                          func(format string, v ...interface{})
 }
 
-//OverridesProvider defines contract for reading overrides for given Helm release.
+//OverridesProvider defines the contract for reading overrides for a given Helm release.
 type OverridesProvider interface {
-	//OverridesGetterFunctionFor returns a function returning overrides for a Helm release with provided name.
-	//Before using this function, ensure that the overrides cache is populated by calling ReadOverridesFromCluster function.
+	//OverridesGetterFunctionFor returns a function returning overrides for a Helm release with the provided name.
+	//Before using this function, ensure that the overrides cache is populated by calling the ReadOverridesFromCluster function.
 	OverridesGetterFunctionFor(name string) func() map[string]interface{}
 
-	//Populates overrides cache by reading from the cluster. You have to call this function before using OverridesGetterFunctionFor.
+	//Populates overrides cache by reading data from the cluster. You have to call this function before using OverridesGetterFunctionFor.
 	ReadOverridesFromCluster() error
 }
 
 //New returns a new Provider.
 //
 //overridesYaml contains a list of manually-provided overrides.
-//every value in the list contains data in yaml format.
-//The structure of the file should follow Helm values.yaml convention.
-//There is one difference from plain Helm values.yaml: These are not values for a single release, but for entire Kyma installation.
-//Because of that you have to put values for a specific Component (e.g: Component name is "foo") under a key equal to component's name (i.e: "foo").
-//You can also put overrides under a "global" key, these will merge with top-level "global" Helm key for every Helm chart.
+//Every value in the list contains data in the YAML format.
+//The structure of the file should follow the Helm's values.yaml convention.
+//There is one difference from the plain Helm's values.yaml file: These are not values for a single release but for the entire Kyma installation.
+//Because of that, you have to put values for a specific Component (e.g: Component name is "foo") under a key equal to the component's name (i.e: "foo").
+//You can also put overrides under a "global" key. These will merge with the top-level "global" Helm key for every Helm chart.
 func New(client kubernetes.Interface, overridesYamls []string, log func(string, ...interface{})) (OverridesProvider, error) {
 	provider := Provider{
 		kubeClient: client,

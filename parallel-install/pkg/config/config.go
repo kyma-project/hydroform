@@ -7,10 +7,10 @@ import (
 )
 
 //Configures various install/uninstall operation parameters.
-//There are no different parameters for Install/Delete operations.
+//There are no different parameters for the "install" and "delete" operations.
 //If you need different configurations, just use two different Installation instances.
 type Config struct {
-	//Number of parallel workers used for an install/uninstall operation.
+	//Number of parallel workers used for an install/uninstall operation
 	WorkersCount int
 	//After this time workers' context is canceled. Pending worker goroutines (if any) may continue if blocked by Helm client.
 	CancelTimeout time.Duration
@@ -32,7 +32,7 @@ type Config struct {
 // It is used in functions to avoid passing logger as a parameter
 var Log = log.Printf
 
-//Setups global logging function
+//It sets up the global logging function.
 func SetupLogger(log func(string, ...interface{})) {
 	Log = log
 }

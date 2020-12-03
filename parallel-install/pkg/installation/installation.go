@@ -50,7 +50,7 @@ type Installer interface {
 //overridesYamls contains data in the YAML format.
 //See overrides.New for details about the overrides contract.
 //
-//resourcesPath is a local filesystem path where components' charts are located
+//resourcesPath is a local filesystem path where components' charts are located.
 func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Installation. Resource path is required.")
@@ -68,7 +68,7 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	}, nil
 }
 
-//StartKymaInstallation implements Installer.StartKymaInstallation contract
+//StartKymaInstallation implements the Installer.StartKymaInstallation contract.
 func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface) error {
 	overridesProvider, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {
@@ -77,7 +77,7 @@ func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface) er
 	return i.startKymaInstallation(kubeClient, prerequisitesProvider, overridesProvider, engine)
 }
 
-//StartKymaUninstallation implements Installer.StartKymaUninstallation contract
+//StartKymaUninstallation implements the Installer.StartKymaUninstallation contract.
 func (i *Installation) StartKymaUninstallation(kubeClient kubernetes.Interface) error {
 	_, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {

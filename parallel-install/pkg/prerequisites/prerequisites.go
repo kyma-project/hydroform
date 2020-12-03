@@ -1,7 +1,7 @@
 //Package prerequisites implements logic preparing the cluster for Kyma installation.
-//It also contains the code to clean-up the prerequisites.
+//It also contains the code to clean up the prerequisites.
 //
-//The code in the package uses user-provided function for logging.
+//The code in the package uses the user-provided function for logging.
 package prerequisites
 
 import (
@@ -18,12 +18,12 @@ import (
 const logPrefix = "[prerequisites/prerequisites.go]"
 
 //InstallPrerequisites tries to install all provided prerequisites.
-//The function quits on first encountered error, because all prerequisites must be installed in order to start Kyma installation.
+//The function quits on the first encountered error because all prerequisites must be installed in order to start Kyma installation.
 //
-//The function supports Context cancellation.
+//The function supports the Context cancellation.
 //The cancellation is not immediate.
-//If the cancel signal appears during installation step (it's a blocking operation),
-//such cancel condition is detected only after the step is over, and the InstallPrerequisites returns without an error.
+//If the "cancel" signal appears during the installation step (it's a blocking operation),
+//such a "cancel" condition is detected only after the step is over, and InstallPrerequisites returns without an error.
 //
 //prerequisites provide information about all Components that are considered prerequisites for Kyma installation.
 //Such components are installed sequentially, in the same order as in the provided slice.
