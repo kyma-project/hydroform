@@ -75,7 +75,7 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 //
 //The function supports the Context cancellation.
 //The cancellation is not immediate.
-//If the cancel signal appears during uninstallation step (it's a blocking operation),
+//If the "cancel" signal appears during the uninstallation step (it's a blocking operation),
 //such cancel condition is detected only after that step is over, and the UninstallPrerequisites returns without an error.
 func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.Component) <-chan error {
 
