@@ -25,7 +25,7 @@ type ComponentInstallation interface {
 	UninstallComponent(context.Context) error
 }
 
-//Component implements ComponentInstallation interface
+//Component implements the ComponentInstallation interface.
 type Component struct {
 	Name            string
 	Namespace       string
