@@ -1,4 +1,4 @@
-//Package installation provides top-level API to control installation and uninstallation of Kyma.
+//Package installation provides a top-level API to control Kyma installation and uninstallation.
 package installation
 
 import (
