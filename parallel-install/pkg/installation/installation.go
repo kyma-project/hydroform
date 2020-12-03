@@ -47,7 +47,7 @@ type Installer interface {
 //
 //componentsYaml is a string containing an Installation CR in the YAML format.
 //
-//overridesYamls contains data in yaml format.
+//overridesYamls contains data in the YAML format.
 //See overrides.New for details about overrides contract.
 //
 //resourcesPath is a local filesystem path where components' charts are located
