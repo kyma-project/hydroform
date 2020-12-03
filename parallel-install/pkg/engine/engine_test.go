@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-var testComponentsNames = []string{"test0", "test1", "test2", "test3", "test4"}
+var testComponentsNames = []string{"test0", "test1", "test2", "test3", "test4", "test5"}
 
 const (
 	componentProcessingTimeInMilliseconds = 50
@@ -23,7 +23,7 @@ const (
 
 func TestOneWorkerIsSpawned(t *testing.T) {
 	//Test that only one worker is spawned if configured so.
-	expected := []bool{true, true, true, true, true}
+	expected := []bool{true, true, true, true, true, true}
 	tokensAcquiredChan := make(chan bool)
 
 	overridesProvider := &mockOverridesProvider{}
@@ -70,7 +70,7 @@ Loop:
 }
 func TestFourWorkersAreSpawned(t *testing.T) {
 	//Test that four workers are spawned if configured so.
-	expected := []bool{true, true, true, false, true}
+	expected := []bool{true, true, true, false, true, true}
 	tokensAcquiredChan := make(chan bool)
 
 	overridesProvider := &mockOverridesProvider{}
@@ -167,6 +167,47 @@ func TestErrorScenario(t *testing.T) {
 func TestContextCancelScenario(t *testing.T) {
 	//Test cancel scenario: Configure two workers and six components (A, B, C, D, E, F), then after B is reported via statusChan, cancel the context.
 	//Expected: Components A, B, C, D are reported via statusChan. This is because context is canceled after B, but workers should already start processing C and D.
+	expectedInstalledComponents := []string{"test0","test1","test2","test3"}
+	expectedNotInstalledComponents := []string{"test4", "test5"}
+
+	overridesProvider := &mockOverridesProvider{}
+	installationCfg := config.Config{
+		WorkersCount: 2,
+		Log:          log.Printf,
+	}
+	hc := &mockSimpleHelmClient{}
+	componentsProvider := &mockComponentsProvider{
+		hc: hc,
+	}
+	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: log.Printf}
+	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	statusChan, err := e.Install(ctx)
+
+	require.NoError(t, err)
+
+	// This variable holds results of semaphore.TryAcquire from mockHelmClient.InstallRelease
+	// If token during installation of the nth component was acquired it holds true on the nth position
+	var installedComponents []string
+Loop:
+	for {
+		select {
+		case component, ok := <-statusChan:
+			if ok {
+				installedComponents = append(installedComponents, component.Name)
+				if component.Name == testComponentsNames[1] {
+					time.Sleep(10 * time.Millisecond)
+					cancel()
+				}
+			} else {
+				break Loop
+			}
+		}
+	}
+
+	require.ElementsMatch(t, installedComponents, expectedInstalledComponents)
+	require.NotSubset(t, installedComponents, expectedNotInstalledComponents)
 }
 
 type mockHelmClient struct {
