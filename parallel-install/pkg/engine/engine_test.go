@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -157,17 +158,58 @@ func TestSuccessScenario(t *testing.T) {
 		require.Equal(t, components.StatusInstalled, componentStatus.Status)
 	}
 
-	// make sure that the status channel does not contain any unexpected statuses
+	// make sure that the status channel does not contain any unexpected additional statuses
 	require.Zero(t, len(statusChan))
 }
 func TestErrorScenario(t *testing.T) {
 	//Test error scenario: Configure some components to report error on install.
 	//Expected: All configured components are processed, success and error statuses are reported via statusChan
+	overridesProvider := &mockOverridesProvider{}
+	expectedFailedComponents := []string{"test0", "test4"}
+
+	helmClient := &mockSimpleHelmClient{
+		componentsToFail: expectedFailedComponents,
+	}
+
+	componentsProvider := &mockComponentsProvider{helmClient}
+
+	componentsToBeProcessed, err := componentsProvider.GetComponents()
+	require.NoError(t, err)
+
+	goPath := os.Getenv("GOPATH")
+	require.NotEmpty(t, goPath)
+
+	engineCfg := Config{WorkersCount: defualtWorkersCount}
+
+	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
+	statusChan, err := e.Install(context.TODO())
+	require.NoError(t, err)
+
+	waitFor := time.Duration(((len(componentsToBeProcessed)/defualtWorkersCount)+1)*componentProcessingTimeInMilliseconds) * 2 * time.Millisecond // time required to process all components doubled
+
+	// wait until channel is filled with all components' statuses
+	require.Eventually(t, func() bool {
+		return len(statusChan) == len(componentsToBeProcessed)
+	}, waitFor, 10*time.Millisecond)
+
+	// check if components that should fail have status "Error", and the rest have status "Installed"
+	for componentsCount := 0; componentsCount < len(componentsToBeProcessed); componentsCount++ {
+		componentStatus := <-statusChan
+		if componentStatus.Name == expectedFailedComponents[0] || componentStatus.Name == expectedFailedComponents[1] {
+			require.Equal(t, components.StatusError, componentStatus.Status)
+		} else {
+			require.Equal(t, components.StatusInstalled, componentStatus.Status)
+		}
+	}
+
+	// make sure that the status channel does not contain any unexpected additional statuses
+	require.Zero(t, len(statusChan))
 }
+
 func TestContextCancelScenario(t *testing.T) {
 	//Test cancel scenario: Configure two workers and six components (A, B, C, D, E, F), then after B is reported via statusChan, cancel the context.
 	//Expected: Components A, B, C, D are reported via statusChan. This is because context is canceled after B, but workers should already start processing C and D.
-	expectedInstalledComponents := []string{"test0","test1","test2","test3"}
+	expectedInstalledComponents := []string{"test0", "test1", "test2", "test3"}
 	expectedNotInstalledComponents := []string{"test4", "test5"}
 
 	overridesProvider := &mockOverridesProvider{}
@@ -187,8 +229,6 @@ func TestContextCancelScenario(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// This variable holds results of semaphore.TryAcquire from mockHelmClient.InstallRelease
-	// If token during installation of the nth component was acquired it holds true on the nth position
 	var installedComponents []string
 Loop:
 	for {
@@ -254,16 +294,26 @@ func (p *mockComponentsProvider) GetComponents() ([]components.Component, error)
 	return comps, nil
 }
 
-type mockSimpleHelmClient struct{}
+type mockSimpleHelmClient struct {
+	componentsToFail []string
+}
 
 func (c *mockSimpleHelmClient) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
-	time.Sleep(1 * time.Millisecond)
 	time.Sleep(time.Duration(componentProcessingTimeInMilliseconds) * time.Millisecond)
+	for i := 0; i < len(c.componentsToFail); i++ {
+		if name == c.componentsToFail[i] {
+			return fmt.Errorf("failed to install %s", name)
+		}
+	}
 	return nil
 }
 func (c *mockSimpleHelmClient) UninstallRelease(ctx context.Context, namespace, name string) error {
-	time.Sleep(1 * time.Millisecond)
 	time.Sleep(time.Duration(componentProcessingTimeInMilliseconds) * time.Millisecond)
+	for i := 0; i < len(c.componentsToFail); i++ {
+		if name == c.componentsToFail[i] {
+			return fmt.Errorf("failed to uninstall %s", name)
+		}
+	}
 	return nil
 }
 
