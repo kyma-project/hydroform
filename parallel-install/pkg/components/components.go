@@ -19,7 +19,7 @@ type Provider interface {
 //ComponentsProvider implements Provider interface
 type ComponentsProvider struct {
 	overridesProvider overrides.OverridesProvider
-	rootDir           string //a root directory where components' charts subdirectories are located.
+	resourcesPath     string //a root directory where components' charts subdirectories are located.
 	componentListYaml string
 	helmConfig        helm.Config
 	log               func(format string, v ...interface{})
@@ -27,10 +27,10 @@ type ComponentsProvider struct {
 
 //NewComponentsProvider returns a ComponentsProvider instance.
 //
-//rootDir is a directory where components' charts subdirectories are located.
+//resourcesPath is a directory where components' charts subdirectories are located.
 //
 //componentListYaml is a string containing YAML with an Installation CR
-func NewComponentsProvider(overridesProvider overrides.OverridesProvider, rootDir string, componentListYaml string, cfg config.Config) *ComponentsProvider {
+func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, componentListYaml string, cfg config.Config) *ComponentsProvider {
 
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
@@ -41,7 +41,7 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, rootDi
 
 	return &ComponentsProvider{
 		overridesProvider: overridesProvider,
-		rootDir:           rootDir,
+		resourcesPath:     resourcesPath,
 		componentListYaml: componentListYaml,
 		helmConfig:        helmCfg,
 		log:               cfg.Log,
@@ -68,7 +68,7 @@ func (p *ComponentsProvider) GetComponents() ([]Component, error) {
 			Name:            component.Name,
 			Namespace:       component.Namespace,
 			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(component.Name),
-			ChartDir:        path.Join(p.rootDir, component.Name),
+			ChartDir:        path.Join(p.resourcesPath, component.Name),
 			HelmClient:      helmClient,
 			Log:             p.log,
 		}

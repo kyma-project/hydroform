@@ -23,7 +23,7 @@ type Installation struct {
 	ComponentsYaml string
 	// Content of the Helm overrides YAML files
 	OverridesYamls []string
-	// Rood dir in local filesystem with subdirectories containing components' Helm charts
+	// Root dir in local filesystem with subdirectories containing components' Helm charts
 	ResourcesPath string
 	Cfg           config.Config
 }
@@ -47,7 +47,7 @@ type Installer interface {
 //
 //componentsYaml is a string containing Installation CR in yaml format.
 //
-//overridesYams contains data in yaml format.
+//overridesYamls contains data in yaml format.
 //See overrides.New for details about overrides contract.
 //
 //resourcesPath is a local filesystem path where components' charts are located

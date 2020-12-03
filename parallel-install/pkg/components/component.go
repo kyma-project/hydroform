@@ -22,7 +22,7 @@ type ComponentInstallation interface {
 	//UninstallComponent uninstalls a component.
 	//The function is blocking until the component is uninstalled or an error (including Helm timeout) occurs.
 	//See the helm.HelmClient.UninstallRelease documentation for how the context.Context is used for cancellation.
-	UnInstallComponent(context.Context) error
+	UninstallComponent(context.Context) error
 }
 
 //Component implements ComponentInstallation interface

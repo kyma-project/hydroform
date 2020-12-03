@@ -18,7 +18,7 @@ To do so, provide the `installation.NewInstallation` function with necessary par
 | prerequisites | `[][]string` | `{"cluster-essentials", "kyma-system"}, {"istio", "istio-system"},` | Array of the component's name and Namespace pairs. These components will be installed first, linearly, in a declared order. |
 | componentsYaml | `string` | - | Content of the [Installation CR](https://kyma-project.io/docs/#custom-resource-installation). Components will be extracted and installed in parallel. |
 | overridesYaml | `[]string` | `{ "foo: bar", "val: example" }` | List of Helm overrides. The latter the override, the higher is its priority. |
-| resourcesPath | `string` | `/go/src/github.com/kyma-project/kyma/resources` | Path to the Kyma resources. |
+| resourcesPath | `string` | `/go/src/github.com/kyma-project/kyma/resources` | Path to the Kyma resources directory. It contains subdirectories with all Kyma components' charts |
 | cfg | `config.Config` | - | Specifies fine-grained configuration for the installation process. See the table with `config.Config` configuration options for details. |
 
 See all available configuration options for the `config.Config` type:
