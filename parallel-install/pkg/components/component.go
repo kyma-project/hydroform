@@ -36,7 +36,7 @@ type Component struct {
 	Log             func(format string, v ...interface{})
 }
 
-//NewComponent instantiates a new Component
+//NewComponent instantiates a new Component.
 //name and namespace define Helm release name and namespace
 //
 //chartDir is a local filesystem directory with component's chart.
