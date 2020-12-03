@@ -81,6 +81,7 @@ func TestBackoffWithCancel(t *testing.T) {
 	expectedMaxTime := int64(10 * time.Millisecond) //10[ms]
 	expectedMaxCount := 4
 	require.Error(t, err)
+	t.Log(err)
 	require.LessOrEqual(t, count, expectedMaxCount, "total retries count too big")
 	require.Less(t, int64(timeDiff), expectedMaxTime, "total time of retries outside the expected range")
 }

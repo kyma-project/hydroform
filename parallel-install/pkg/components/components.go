@@ -11,19 +11,26 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+//Provider is an entity that produces a list of components for Kyma installation or uninstallation.
 type Provider interface {
 	GetComponents() ([]Component, error)
 }
 
+//ComponentsProvider implements the Provider interface.
 type ComponentsProvider struct {
 	overridesProvider overrides.OverridesProvider
-	path              string
+	resourcesPath     string //A root directory where subdirectories of components' charts are located.
 	componentListYaml string
 	helmConfig        helm.Config
 	log               func(format string, v ...interface{})
 }
 
-func NewComponentsProvider(overridesProvider overrides.OverridesProvider, path string, componentListYaml string, cfg config.Config) *ComponentsProvider {
+//NewComponentsProvider returns a ComponentsProvider instance.
+//
+//resourcesPath is a directory where subdirectories of components' charts are located.
+//
+//componentListYaml is a string containing YAML with an Installation CR.
+func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, componentListYaml string, cfg config.Config) *ComponentsProvider {
 
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
@@ -34,13 +41,14 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, path s
 
 	return &ComponentsProvider{
 		overridesProvider: overridesProvider,
-		path:              path,
+		resourcesPath:     resourcesPath,
 		componentListYaml: componentListYaml,
 		helmConfig:        helmCfg,
 		log:               cfg.Log,
 	}
 }
 
+//Implements Provider.GetComponents.
 func (p *ComponentsProvider) GetComponents() ([]Component, error) {
 	helmClient := helm.NewClient(p.helmConfig)
 
@@ -60,7 +68,7 @@ func (p *ComponentsProvider) GetComponents() ([]Component, error) {
 			Name:            component.Name,
 			Namespace:       component.Namespace,
 			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(component.Name),
-			ChartDir:        path.Join(p.path, component.Name),
+			ChartDir:        path.Join(p.resourcesPath, component.Name),
 			HelmClient:      helmClient,
 			Log:             p.log,
 		}

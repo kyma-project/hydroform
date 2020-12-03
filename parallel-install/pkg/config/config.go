@@ -1,3 +1,4 @@
+//Package config defines top-level configuration settings for library users.
 package config
 
 import (
@@ -6,9 +7,10 @@ import (
 )
 
 //Configures various install/uninstall operation parameters.
-//There are no different parameters for Install/Delete operations - if you need it to be different, just use two Installations with two different configs.
+//There are no different parameters for the "install" and "delete" operations.
+//If you need different configurations, just use two different Installation instances.
 type Config struct {
-	//Number of concurrent workers used for an install/delete operation.
+	//Number of parallel workers used for an install/uninstall operation
 	WorkersCount int
 	//After this time workers' context is canceled. Pending worker goroutines (if any) may continue if blocked by Helm client.
 	CancelTimeout time.Duration
@@ -16,7 +18,7 @@ type Config struct {
 	//Worker goroutines may still be working in the background.
 	//Must be greater than CancelTimeout.
 	QuitTimeout time.Duration
-	//Timeout for Helm client
+	//Timeout for the underlying Helm client
 	HelmTimeoutSeconds int
 	//Initial interval used for exponent backoff retry policy
 	BackoffInitialIntervalSeconds int
@@ -30,6 +32,7 @@ type Config struct {
 // It is used in functions to avoid passing logger as a parameter
 var Log = log.Printf
 
+//It sets up the global logging function.
 func SetupLogger(log func(string, ...interface{})) {
 	Log = log
 }

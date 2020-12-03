@@ -1,11 +1,13 @@
+//Package installation provides a top-level API to control Kyma installation and uninstallation.
 package installation
 
 import (
 	"context"
 	"fmt"
-	"k8s.io/client-go/kubernetes"
 	"log"
 	"time"
+
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -15,25 +17,40 @@ import (
 )
 
 type Installation struct {
-	// Map component > namespace
+	// Slice of pairs: [component, namespace]
 	Prerequisites [][]string
 	// Content of the Installation CR YAML file
 	ComponentsYaml string
 	// Content of the Helm overrides YAML files
 	OverridesYamls []string
-	ResourcesPath  string
-	Cfg            config.Config
+	// Root dir in a local filesystem with subdirectories containing components' Helm charts
+	ResourcesPath string
+	Cfg           config.Config
 }
 
 type Installer interface {
+	//StartKymaInstallation installs Kyma on the cluster.
 	//This method will block until installation is finished or an error or timeout occurs.
-	//If the installation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
+	//If the installation is not finished in configured config.Config.QuitTimeout,
+	//the method returns with an error. Some worker goroutines may still run in the background.
 	StartKymaInstallation(kubeClient kubernetes.Interface) error
+	//StartKymaUninstallation uninstalls Kyma from the cluster.
 	//This method will block until uninstallation is finished or an error or timeout occurs.
-	//If the uninstallation is not finished in configured config.Config.QuitTimeout, the method returns with an error. Some worker goroutines may still be active.
+	//If the uninstallation is not finished in configured config.Config.QuitTimeout,
+	//the method returns with an error. Some worker goroutines may still run in the background.
 	StartKymaUninstallation(kubeClient kubernetes.Interface) error
 }
 
+//NewInstallation should be used to create Installation instances.
+//
+//prerequisites is a slice of pairs: [component-name, namespace]
+//
+//componentsYaml is a string containing an Installation CR in the YAML format.
+//
+//overridesYamls contains data in the YAML format.
+//See overrides.New for details about the overrides contract.
+//
+//resourcesPath is a local filesystem path where components' charts are located.
 func NewInstallation(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Installation, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Installation. Resource path is required.")
@@ -51,6 +68,7 @@ func NewInstallation(prerequisites [][]string, componentsYaml string, overridesY
 	}, nil
 }
 
+//StartKymaInstallation implements the Installer.StartKymaInstallation contract.
 func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface) error {
 	overridesProvider, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {
@@ -59,6 +77,7 @@ func (i *Installation) StartKymaInstallation(kubeClient kubernetes.Interface) er
 	return i.startKymaInstallation(kubeClient, prerequisitesProvider, overridesProvider, engine)
 }
 
+//StartKymaUninstallation implements the Installer.StartKymaUninstallation contract.
 func (i *Installation) StartKymaUninstallation(kubeClient kubernetes.Interface) error {
 	_, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {
@@ -152,7 +171,7 @@ func (i *Installation) installPrerequisites(ctx context.Context, cancelFunc cont
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false
 
-	prereqStatusChan := prereq.InstallPrerequisites(ctx, p, kubeClient)
+	prereqStatusChan := prereq.InstallPrerequisites(ctx, kubeClient, p)
 
 Prerequisites:
 	for {
@@ -313,7 +332,7 @@ func (i *Installation) getConfig(kubeClient kubernetes.Interface) (overrides.Ove
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
 	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
-	eng := engine.NewEngine(overridesProvider, componentsProvider, i.ResourcesPath, engineCfg)
+	eng := engine.NewEngine(overridesProvider, componentsProvider, engineCfg)
 
 	return overridesProvider, prerequisitesProvider, eng, nil
 }

@@ -1,3 +1,7 @@
+//Package helm implements a wrapper over a native Helm client.
+//The wrapper exposes a simple installation API and the configuration.
+//
+//The code in the package uses the user-provided function for logging.
 package helm
 
 import (
@@ -17,22 +21,46 @@ import (
 
 const logPrefix = "[helm/client.go]"
 
+//Config provides configuration for the Client.
 type Config struct {
-	HelmTimeoutSeconds            int
-	BackoffInitialIntervalSeconds int
-	BackoffMaxElapsedTimeSeconds  int
-	Log                           func(format string, v ...interface{})
+	HelmTimeoutSeconds            int                                   //Underlying native Helm client processing timeout
+	BackoffInitialIntervalSeconds int                                   //Initial interval for the exponential backoff retry algorithm
+	BackoffMaxElapsedTimeSeconds  int                                   //Maximum time for the exponential backoff retry algorithm
+	Log                           func(format string, v ...interface{}) //Used for logging
 }
 
+//Client implements the ClientInterface.
 type Client struct {
 	cfg Config
 }
 
+//ClientInterface defines the contract for the Helm-related installation processes.
 type ClientInterface interface {
+	//InstallRelease installs a named chart from a local filesystem directory with specific overrides.
+	//The function retries on errors according to Config provided to the Client.
+	//
+	//ctx is used for the operation cancellation.
+	//Cancellation of the successful operation is not possible
+	//because the underlying Helm operations are blocking and do not support Context-based cancellation.
+	//Cancellation is possible when errors occur and the operation is re-tried.
+	//When the operation is re-tried, it is not guaranteed that the cancellation is handled immediately due to the blocking nature of Helm client calls.
+	//However, once the underlying Helm operation ends, the "cancel" condition is detected and the operation's result is returned without further retries.
 	InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error
+	//UninstallRelease uninstalls a named chart from the cluster.
+	//The function retries on errors according to Config provided to the Client.
+	//
+	//ctx is used for the operation cancellation.
+	//Cancellation of the successful operation is not possible
+	//because the underlying Helm operations are blocking and do not support the Context-based cancellation.
+	//Cancellation is possible when errors occur and the operation is re-tried.
+	//When the operation is re-tried, it is not guaranteed that the cancellation is handled immediately due to the blocking nature of Helm client calls.
+	//However, once the underlying Helm operation ends, the cancel condition is detected and the operation's result is returned without further retries.
 	UninstallRelease(ctx context.Context, namespace, name string) error
 }
 
+//NewClient returns a new Client instance.
+//If you need different configurations for installation and uninstallation,
+//just create two different Client instances with different configurations.
 func NewClient(cfg Config) *Client {
 	return &Client{
 		cfg: cfg,

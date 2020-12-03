@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+//main provides an example of how to integrate the parallel-install library with your code.
 func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
 	flag.Parse()
