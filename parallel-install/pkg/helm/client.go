@@ -59,7 +59,7 @@ type ClientInterface interface {
 }
 
 //NewClient returns a new Client instance.
-//If you need different configuration for installation and uninstallation,
+//If you need different configurations for installation and uninstallation,
 //just create two different Client instances with different configurations.
 func NewClient(cfg Config) *Client {
 	return &Client{
