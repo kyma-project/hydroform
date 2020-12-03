@@ -1,4 +1,4 @@
-//Package helm implements a wrapper over native Helm client.
+//Package helm implements a wrapper over a native Helm client.
 //The wrapper exposes a simple installation API and the configuration.
 //
 //The code in the package uses the user-provided function for logging.
@@ -29,7 +29,7 @@ type Config struct {
 	Log                           func(format string, v ...interface{}) //Used for logging
 }
 
-//Client type implements ClientInterface
+//Client implements the ClientInterface.
 type Client struct {
 	cfg Config
 }

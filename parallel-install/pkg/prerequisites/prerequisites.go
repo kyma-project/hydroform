@@ -1,4 +1,4 @@
-//Package prerequisites implements logic preparing the cluster for Kyma installation.
+//Package prerequisites implements the logic preparing the cluster for Kyma installation.
 //It also contains the code to clean up the prerequisites.
 //
 //The code in the package uses the user-provided function for logging.

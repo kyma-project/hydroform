@@ -37,9 +37,9 @@ type Component struct {
 }
 
 //NewComponent instantiates a new Component.
-//"name and namespace" define the Helm release name and namespace.
+//"name" and "namespace" parameters define the Helm release name and namespace.
 //
-//chartDir is a local filesystem directory with the component's chart.
+//"chartDir" is a local filesystem directory with the component's chart.
 //
 //"overrides" is a function that returns overrides for the release.
 func NewComponent(name, namespace, chartDir string, overrides func() map[string]interface{}, helmClient helm.ClientInterface, log func(string, ...interface{})) *Component {
