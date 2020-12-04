@@ -3,8 +3,6 @@ package engine
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -31,16 +29,14 @@ func TestOneWorkerIsSpawned(t *testing.T) {
 
 	installationCfg := config.Config{
 		WorkersCount: 1,
-		Log:          log.Printf,
+		Log:          t.Logf,
 	}
 	hc := &mockHelmClient{
 		semaphore:          semaphore.NewWeighted(int64(1)),
 		tokensAcquiredChan: tokensAcquiredChan,
 	}
-	componentsProvider := &mockComponentsProvider{
-		hc: hc,
-	}
-	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: log.Printf}
+	componentsProvider := &mockComponentsProvider{t, hc}
+	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
 	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
 
 	_, err := e.Install(context.TODO())
@@ -77,16 +73,14 @@ func TestFourWorkersAreSpawned(t *testing.T) {
 	overridesProvider := &mockOverridesProvider{}
 	installationCfg := config.Config{
 		WorkersCount: 4,
-		Log:          log.Printf,
+		Log:          t.Logf,
 	}
 	hc := &mockHelmClient{
 		semaphore:          semaphore.NewWeighted(int64(3)),
 		tokensAcquiredChan: tokensAcquiredChan,
 	}
-	componentsProvider := &mockComponentsProvider{
-		hc: hc,
-	}
-	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: log.Printf}
+	componentsProvider := &mockComponentsProvider{t, hc}
+	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
 	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
 
 	_, err := e.Install(context.TODO())
@@ -116,11 +110,12 @@ Loop:
 	// it means the token pool got exhausted and no tokens were released yet - there are more than 3 workers
 	// If worker installing 5th component is able to acquire a token it means a token was released during
 	// previous operations and worker didn't start immediately - there are less than 5 workers
-	// Caveat:
+	//
+	// Caveat1:
 	// If there are five workers we'd see a pattern: [true, true, true, false, false]
 	// The same pattern occurs for four workers, when "loser" worker is processing very fast and is rejected token twice.
 	// We ensure the "loser" worker is not rejected the token twice
-	// by a making it working for a longer time than the workers that acquired token successfully.
+	// by a making it working significantly longer than the workers that acquired token successfully.
 	require.Equal(t, expected, tokensAcquired)
 }
 
@@ -131,13 +126,10 @@ func TestSuccessScenario(t *testing.T) {
 
 	helmClient := &mockSimpleHelmClient{}
 
-	componentsProvider := &mockComponentsProvider{helmClient}
+	componentsProvider := &mockComponentsProvider{t, helmClient}
 
 	componentsToBeProcessed, err := componentsProvider.GetComponents()
 	require.NoError(t, err)
-
-	goPath := os.Getenv("GOPATH")
-	require.NotEmpty(t, goPath)
 
 	engineCfg := Config{WorkersCount: defualtWorkersCount}
 
@@ -145,12 +137,13 @@ func TestSuccessScenario(t *testing.T) {
 	statusChan, err := e.Install(context.TODO())
 	require.NoError(t, err)
 
-	waitFor := time.Duration(((len(componentsToBeProcessed)/defualtWorkersCount)+1)*componentProcessingTimeInMilliseconds) * 2 * time.Millisecond // time required to process all components doubled
+	maxIterationsForWorker := ((len(componentsToBeProcessed) / defualtWorkersCount) + 1) //at least one worker runs that many iterations.
+	processingTimeDoubled := time.Duration(maxIterationsForWorker*componentProcessingTimeInMilliseconds) * 2 * time.Millisecond
 
 	// wait until channel is filled with all components' statuses
 	require.Eventually(t, func() bool {
 		return len(statusChan) == len(componentsToBeProcessed)
-	}, waitFor, 10*time.Millisecond)
+	}, processingTimeDoubled, 10*time.Millisecond, "Invalid statusChan length")
 
 	// check if each component has status "Installed"
 	for componentsCount := 0; componentsCount < len(componentsToBeProcessed); componentsCount++ {
@@ -171,13 +164,10 @@ func TestErrorScenario(t *testing.T) {
 		componentsToFail: expectedFailedComponents,
 	}
 
-	componentsProvider := &mockComponentsProvider{helmClient}
+	componentsProvider := &mockComponentsProvider{t, helmClient}
 
 	componentsToBeProcessed, err := componentsProvider.GetComponents()
 	require.NoError(t, err)
-
-	goPath := os.Getenv("GOPATH")
-	require.NotEmpty(t, goPath)
 
 	engineCfg := Config{WorkersCount: defualtWorkersCount}
 
@@ -185,12 +175,13 @@ func TestErrorScenario(t *testing.T) {
 	statusChan, err := e.Install(context.TODO())
 	require.NoError(t, err)
 
-	waitFor := time.Duration(((len(componentsToBeProcessed)/defualtWorkersCount)+1)*componentProcessingTimeInMilliseconds) * 2 * time.Millisecond // time required to process all components doubled
+	maxIterationsForWorker := ((len(componentsToBeProcessed) / defualtWorkersCount) + 1) //at least one worker runs that many iterations.
+	processingTimeDoubled := time.Duration(maxIterationsForWorker*componentProcessingTimeInMilliseconds) * 2 * time.Millisecond
 
 	// wait until channel is filled with all components' statuses
 	require.Eventually(t, func() bool {
 		return len(statusChan) == len(componentsToBeProcessed)
-	}, waitFor, 10*time.Millisecond)
+	}, processingTimeDoubled, 10*time.Millisecond, "Invalid statusChan length")
 
 	// check if components that should fail have status "Error", and the rest have status "Installed"
 	for componentsCount := 0; componentsCount < len(componentsToBeProcessed); componentsCount++ {
@@ -215,16 +206,15 @@ func TestContextCancelScenario(t *testing.T) {
 	overridesProvider := &mockOverridesProvider{}
 	installationCfg := config.Config{
 		WorkersCount: 2,
-		Log:          log.Printf,
+		Log:          t.Logf,
 	}
 	hc := &mockSimpleHelmClient{}
-	componentsProvider := &mockComponentsProvider{
-		hc: hc,
-	}
-	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: log.Printf}
+	componentsProvider := &mockComponentsProvider{t, hc}
+	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
 	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
 
 	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
 	statusChan, err := e.Install(ctx)
 
 	require.NoError(t, err)
@@ -237,8 +227,11 @@ Loop:
 			if ok {
 				installedComponents = append(installedComponents, component.Name)
 				if component.Name == testComponentsNames[1] {
-					time.Sleep(10 * time.Millisecond)
-					cancel()
+					//Cancel asynchronously after 10[ms]
+					go func() {
+						time.Sleep(10 * time.Millisecond)
+						cancel()
+					}()
 				}
 			} else {
 				break Loop
@@ -257,9 +250,6 @@ type mockHelmClient struct {
 
 func (c *mockHelmClientWithSemaphore) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
 	token := c.semaphore.TryAcquire(1)
-	go func() {
-		c.tokensAcquiredChan <- token
-	}()
 
 	if token {
 		time.Sleep(20 * time.Millisecond)
@@ -267,6 +257,11 @@ func (c *mockHelmClientWithSemaphore) InstallRelease(ctx context.Context, chartD
 	} else {
 		time.Sleep(30 * time.Millisecond)
 	}
+
+	go func() {
+		c.tokensAcquiredChan <- token
+	}()
+
 	return nil
 }
 func (c *mockHelmClientWithSemaphore) UninstallRelease(ctx context.Context, namespace, name string) error {
@@ -275,6 +270,7 @@ func (c *mockHelmClientWithSemaphore) UninstallRelease(ctx context.Context, name
 }
 
 type mockComponentsProvider struct {
+	t  *testing.T
 	hc helm.ClientInterface
 }
 
@@ -286,7 +282,7 @@ func (p *mockComponentsProvider) GetComponents() ([]components.Component, error)
 			Namespace:       "test",
 			OverridesGetter: func() map[string]interface{} { return nil },
 			HelmClient:      p.hc,
-			Log:             log.Printf,
+			Log:             p.t.Logf,
 		}
 		comps = append(comps, component)
 	}
