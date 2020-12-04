@@ -37,7 +37,7 @@ func TestOneWorkerIsSpawned(t *testing.T) {
 	}
 	componentsProvider := &mockComponentsProvider{t, hc}
 	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
-	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
+	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 
 	_, err := e.Install(context.TODO())
 
@@ -81,7 +81,7 @@ func TestFourWorkersAreSpawned(t *testing.T) {
 	}
 	componentsProvider := &mockComponentsProvider{t, hc}
 	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
-	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
+	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 
 	_, err := e.Install(context.TODO())
 
@@ -133,7 +133,7 @@ func TestSuccessScenario(t *testing.T) {
 
 	engineCfg := Config{WorkersCount: defualtWorkersCount}
 
-	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
+	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 	statusChan, err := e.Install(context.TODO())
 	require.NoError(t, err)
 
@@ -171,7 +171,7 @@ func TestErrorScenario(t *testing.T) {
 
 	engineCfg := Config{WorkersCount: defualtWorkersCount}
 
-	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
+	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 	statusChan, err := e.Install(context.TODO())
 	require.NoError(t, err)
 
@@ -211,7 +211,7 @@ func TestContextCancelScenario(t *testing.T) {
 	hc := &mockSimpleHelmClient{}
 	componentsProvider := &mockComponentsProvider{t, hc}
 	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
-	e := NewEngine(overridesProvider, componentsProvider, "", engineCfg)
+	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
