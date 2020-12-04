@@ -31,7 +31,7 @@ func TestOneWorkerIsSpawned(t *testing.T) {
 		WorkersCount: 1,
 		Log:          t.Logf,
 	}
-	hc := &mockHelmClient{
+	hc := &mockHelmClientWithSemaphore{
 		semaphore:          semaphore.NewWeighted(int64(1)),
 		tokensAcquiredChan: tokensAcquiredChan,
 	}
@@ -41,7 +41,7 @@ func TestOneWorkerIsSpawned(t *testing.T) {
 
 	_, err := e.Install(context.TODO())
 
-	// This variable holds results of semaphore.TryAcquire from mockHelmClient.InstallRelease
+	// This variable holds results of semaphore.TryAcquire from mockHelmClientWithSemaphore.InstallRelease
 	// If token during installation of the nth component was acquired it holds true on the nth position
 	var tokensAcquired []bool
 Loop:
@@ -75,7 +75,7 @@ func TestFourWorkersAreSpawned(t *testing.T) {
 		WorkersCount: 4,
 		Log:          t.Logf,
 	}
-	hc := &mockHelmClient{
+	hc := &mockHelmClientWithSemaphore{
 		semaphore:          semaphore.NewWeighted(int64(3)),
 		tokensAcquiredChan: tokensAcquiredChan,
 	}
@@ -85,7 +85,7 @@ func TestFourWorkersAreSpawned(t *testing.T) {
 
 	_, err := e.Install(context.TODO())
 
-	// This variable holds results of semaphore.TryAcquire from mockHelmClient.InstallRelease
+	// This variable holds results of semaphore.TryAcquire from mockHelmClientWithSemaphore.InstallRelease
 	// If token during installation of the nth component was acquired it holds true on the nth position
 	var tokensAcquired []bool
 Loop:
@@ -243,7 +243,7 @@ Loop:
 	require.NotSubset(t, installedComponents, expectedNotInstalledComponents)
 }
 
-type mockHelmClient struct {
+type mockHelmClientWithSemaphore struct {
 	semaphore          *semaphore.Weighted
 	tokensAcquiredChan chan bool
 }
