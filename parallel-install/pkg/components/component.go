@@ -12,12 +12,12 @@ const StatusUninstalled = "Uninstalled"
 
 const logPrefix = "[components/component.go]"
 
-//ComponentInstallation interface defines a contract for Component installation and uninstallation.
-type ComponentInstallation interface {
-	//InstallComponent installs a component.
+//ComponentDeployment interface defines a contract for Component installation and uninstallation.
+type ComponentDeploy interface {
+	//DeployComponent installs a component.
 	//The function is blocking until the component is installed or an error (including Helm timeout) occurs.
-	//See the helm.HelmClient.InstallRelease documentation for how context.Context is used for cancellation.
-	InstallComponent(context.Context) error
+	//See the helm.HelmClient.DeployRelease documentation for how context.Context is used for cancellation.
+	DeployComponent(context.Context) error
 
 	//UninstallComponent uninstalls a component.
 	//The function is blocking until the component is uninstalled or an error (including Helm timeout) occurs.
@@ -25,7 +25,7 @@ type ComponentInstallation interface {
 	UninstallComponent(context.Context) error
 }
 
-//Component implements the ComponentInstallation interface.
+//Component implements the ComponentDeployment interface.
 type Component struct {
 	Name            string
 	Namespace       string
@@ -54,13 +54,13 @@ func NewComponent(name, namespace, chartDir string, overrides func() map[string]
 	}
 }
 
-//InstallComponent implements ComponentInstallation.InstallComponent.
-func (c *Component) InstallComponent(ctx context.Context) error {
+//DeployComponent implements ComponentDeployment.DeployComponent.
+func (c *Component) DeployComponent(ctx context.Context) error {
 	c.Log("%s Installing %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
 	overrides := c.OverridesGetter()
 
-	err := c.HelmClient.InstallRelease(ctx, c.ChartDir, c.Namespace, c.Name, overrides)
+	err := c.HelmClient.DeployRelease(ctx, c.ChartDir, c.Namespace, c.Name, overrides)
 	if err != nil {
 		c.Log("%s Error installing %s: %v", logPrefix, c.Name, err)
 		return err

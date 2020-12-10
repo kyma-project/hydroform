@@ -348,7 +348,7 @@ type mockHelmClient struct {
 	componentProcessingTime int
 }
 
-func (c *mockHelmClient) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
+func (c *mockHelmClient) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
 	time.Sleep(1 * time.Millisecond)
 	time.Sleep(time.Duration(c.componentProcessingTime) * time.Millisecond)
 	return nil

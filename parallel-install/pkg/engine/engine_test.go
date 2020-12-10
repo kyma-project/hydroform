@@ -39,7 +39,7 @@ func TestOneWorkerIsSpawned(t *testing.T) {
 	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 
-	_, err := e.Install(context.TODO())
+	_, err := e.Deploy(context.TODO())
 
 	// This variable holds results of semaphore.TryAcquire from mockHelmClientWithSemaphore.InstallRelease
 	// If token during installation of the nth component was acquired it holds true on the nth position
@@ -83,7 +83,7 @@ func TestFourWorkersAreSpawned(t *testing.T) {
 	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 
-	_, err := e.Install(context.TODO())
+	_, err := e.Deploy(context.TODO())
 
 	// This variable holds results of semaphore.TryAcquire from mockHelmClientWithSemaphore.InstallRelease
 	// If token during installation of the nth component was acquired it holds true on the nth position
@@ -134,7 +134,7 @@ func TestSuccessScenario(t *testing.T) {
 	engineCfg := Config{WorkersCount: defualtWorkersCount}
 
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
-	statusChan, err := e.Install(context.TODO())
+	statusChan, err := e.Deploy(context.TODO())
 	require.NoError(t, err)
 
 	maxIterationsForWorker := ((len(componentsToBeProcessed) / defualtWorkersCount) + 1) //at least one worker runs that many iterations.
@@ -172,7 +172,7 @@ func TestErrorScenario(t *testing.T) {
 	engineCfg := Config{WorkersCount: defualtWorkersCount}
 
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
-	statusChan, err := e.Install(context.TODO())
+	statusChan, err := e.Deploy(context.TODO())
 	require.NoError(t, err)
 
 	maxIterationsForWorker := ((len(componentsToBeProcessed) / defualtWorkersCount) + 1) //at least one worker runs that many iterations.
@@ -215,7 +215,7 @@ func TestContextCancelScenario(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
-	statusChan, err := e.Install(ctx)
+	statusChan, err := e.Deploy(ctx)
 
 	require.NoError(t, err)
 
@@ -248,7 +248,7 @@ type mockHelmClientWithSemaphore struct {
 	tokensAcquiredChan chan bool
 }
 
-func (c *mockHelmClientWithSemaphore) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
+func (c *mockHelmClientWithSemaphore) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
 	token := c.semaphore.TryAcquire(1)
 
 	if token {
@@ -294,7 +294,7 @@ type mockSimpleHelmClient struct {
 	componentsToFail []string
 }
 
-func (c *mockSimpleHelmClient) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
+func (c *mockSimpleHelmClient) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
 	time.Sleep(time.Duration(componentProcessingTimeInMilliseconds) * time.Millisecond)
 	for i := 0; i < len(c.componentsToFail); i++ {
 		if name == c.componentsToFail[i] {

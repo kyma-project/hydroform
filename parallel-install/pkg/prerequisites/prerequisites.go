@@ -57,7 +57,7 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 
 			config.Log("%s Installing component %s ", logPrefix, prerequisite.Name)
 			//installation step
-			err := prerequisite.InstallComponent(ctx)
+			err := prerequisite.DeployComponent(ctx)
 			if err != nil {
 				config.Log("%s Error installing prerequisite %s: %v (The installation will not continue)", logPrefix, prerequisite.Name, err)
 				statusChan <- err

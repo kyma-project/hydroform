@@ -240,7 +240,7 @@ func (i *Installation) installComponents(ctx context.Context, cancelFunc context
 	statusMap := map[string]string{}
 	errCount := 0
 
-	statusChan, err := eng.Install(ctx)
+	statusChan, err := eng.Deploy(ctx)
 	if err != nil {
 		return fmt.Errorf("Kyma installation failed. Error: %v", err)
 	}

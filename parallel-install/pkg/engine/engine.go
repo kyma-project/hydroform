@@ -43,7 +43,7 @@ func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider
 
 //Installation interface defines contract for the Engine
 type Installation interface {
-	//Install performs parallel components installation.
+	//Deploy performs parallel components installation.
 	//Errors are not stopping the processing because it's assumed components are independent of one another.
 	//An error condition in one component should not influence others.
 	//
@@ -53,7 +53,7 @@ type Installation interface {
 	//It is not guaranteed that the cancellation is handled immediately because the underlying Helm operations are blocking and do not support the Context-based cancellation.
 	//However, once the underlying parallel operations end, the cancel condition is detected and the return channel is closed.
 	//All remaining components are not processed then.
-	Install(ctx context.Context) (<-chan components.Component, error)
+	Deploy(ctx context.Context) (<-chan components.Component, error)
 	//Uninstall performs parallel components uninstallation.
 	//Errors are not stopping the processing because it's assumed components are independent of one another.
 	//An error condition in one component should not influence others.
@@ -68,7 +68,7 @@ type Installation interface {
 	Uninstall(ctx context.Context) (<-chan components.Component, error)
 }
 
-func (e *Engine) Install(ctx context.Context) (<-chan components.Component, error) {
+func (e *Engine) Deploy(ctx context.Context) (<-chan components.Component, error) {
 
 	cmps, err := e.componentsProvider.GetComponents()
 	if err != nil {
@@ -88,7 +88,7 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 			return
 		}
 
-		run(ctx, statusChan, cmps, "install", e.cfg.WorkersCount)
+		run(ctx, statusChan, cmps, "deploy", e.cfg.WorkersCount)
 
 	}()
 
@@ -163,8 +163,8 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 				return
 			}
 			if ok {
-				if installationType == "install" {
-					if err := component.InstallComponent(ctx); err != nil {
+				if installationType == "deploy" {
+					if err := component.DeployComponent(ctx); err != nil {
 						component.Status = components.StatusError
 					} else {
 						component.Status = components.StatusInstalled
