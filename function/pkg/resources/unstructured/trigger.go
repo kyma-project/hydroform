@@ -19,9 +19,13 @@ func NewTriggers(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
 		trigger := unstructured.Unstructured{
 			Object: map[string]interface{}{},
 		}
-		triggerName := fmt.Sprintf(triggerNameFormat, cfg.Name, triggerInfo.Source)
 		triggerAttributes := triggerInfo.Attributes()
 		subscriberRef := asSubscriberRef(cfg)
+
+		triggerName := fmt.Sprintf(triggerNameFormat, cfg.Name, triggerInfo.Source)
+		if triggerInfo.Name != "" {
+			triggerName = triggerInfo.Name
+		}
 
 		decorators := Decorators{
 			decorateWithField(triggerApiVersion, "apiVersion"),

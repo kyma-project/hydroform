@@ -7,6 +7,7 @@ import (
 )
 
 func TestAsk(t *testing.T) {
+	t.Parallel()
 	ui := &HydroUI{}
 
 	a, err := ui.Ask("Random question?")
@@ -15,6 +16,7 @@ func TestAsk(t *testing.T) {
 }
 
 func TestAskSecret(t *testing.T) {
+	t.Parallel()
 	ui := &HydroUI{}
 
 	a, err := ui.AskSecret("Random question?")
@@ -23,6 +25,7 @@ func TestAskSecret(t *testing.T) {
 }
 
 func TestWarnAnError(t *testing.T) {
+	t.Parallel()
 	ui := &HydroUI{}
 
 	ui.Warn("WARNING")

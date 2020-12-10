@@ -3,6 +3,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/watch"
 	"reflect"
 	"testing"
 
@@ -44,64 +45,6 @@ func Test_contains(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := contains(tt.args.s, tt.args.name); got != tt.want {
 				t.Errorf("contains() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_findOwnerID(t *testing.T) {
-	type args struct {
-		refs []v1.OwnerReference
-	}
-	tests := []struct {
-		name  string
-		args  args
-		want  string
-		want1 bool
-	}{
-		{
-			name: "nil not found",
-			args: args{
-				refs: nil,
-			},
-			want:  "",
-			want1: false,
-		},
-		{
-			name: "not found",
-			args: args{
-				refs: []v1.OwnerReference{
-					{
-						Kind: "Function123",
-						Name: "not-found",
-					},
-				},
-			},
-			want:  "",
-			want1: false,
-		},
-		{
-			name: "found",
-			args: args{
-				refs: []v1.OwnerReference{
-					{
-						Kind: "Function",
-						Name: "test-obj",
-					},
-				},
-			},
-			want:  "",
-			want1: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := findOwnerID(tt.args.refs)
-			if got != tt.want {
-				t.Errorf("findOwnerID() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("findOwnerID() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
@@ -173,20 +116,6 @@ func Test_triggersOperator_Apply(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{
-			name: "ownerID not found",
-			args: args{
-				opts: ApplyOptions{
-					OwnerReferences: []v1.OwnerReference{
-						{
-							Kind: "Function123",
-							UID:  "you-shall-not-pass",
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
 		{
 			name: "wipe triggers error",
 			args: args{
@@ -326,7 +255,11 @@ func Test_triggersOperator_Apply(t *testing.T) {
 		{
 			name: "apply",
 			args: args{
+				ctx: context.Background(),
 				opts: ApplyOptions{
+					Options: Options{
+						WaitForApply: true,
+					},
 					OwnerReferences: []v1.OwnerReference{
 						{
 							Kind: "Function",
@@ -350,6 +283,15 @@ func Test_triggersOperator_Apply(t *testing.T) {
 						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
+					fakeWatcher := watch.NewRaceFreeFake()
+					testObject := fixUnstructured("test", "test")
+					fakeWatcher.Add(&testObject)
+
+					result.EXPECT().
+						Watch(gomock.Any(), gomock.Any()).
+						Return(fakeWatcher, nil).
+						Times(1)
+
 					return result
 				}(),
 			},
@@ -358,7 +300,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			t := NewTriggersOperator(tt.fields.Client, tt.fields.items...)
+			t := NewTriggersOperator(tt.fields.Client, "test", "test-namespace", tt.fields.items...)
 			if err := t.Apply(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Apply() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -482,7 +424,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			t := NewTriggersOperator(tt.fields.Client, tt.fields.items...)
+			t := NewTriggersOperator(tt.fields.Client, "test", "test-namespace", tt.fields.items...)
 			if err := t.Delete(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -494,11 +436,10 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	type args struct {
-		ownerID string
-		opts    ApplyOptions
-		ctx     context.Context
-		items   []unstructured.Unstructured
-		Client  client.Client
+		opts   ApplyOptions
+		ctx    context.Context
+		items  []unstructured.Unstructured
+		Client client.Client
 	}
 	tests := []struct {
 		name    string
@@ -525,8 +466,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 		{
 			name: "delete err",
 			args: args{
-				ownerID: "test-id",
-				opts:    ApplyOptions{},
+				opts: ApplyOptions{},
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
 
@@ -588,7 +528,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: " pre callbacks error",
+			name: "pre callbacks error",
 			args: args{
 				Client: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
@@ -636,17 +576,78 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 
 					return result
 				}(),
-				items:   []unstructured.Unstructured{testObj},
-				ownerID: "test-id",
-				opts:    ApplyOptions{},
+				items: []unstructured.Unstructured{testObj},
+				opts:  ApplyOptions{},
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			if err := wipeRemoved(tt.args.ctx, tt.args.Client, tt.args.items, tt.args.ownerID, tt.args.opts.Options); (err != nil) != tt.wantErr {
+			predicate := buildMatchRemovedTriggerPredicate(functionReference{
+				name:      "test-function-name",
+				namespace: "test-namespace",
+			}, tt.args.items)
+			if err := wipeRemoved(tt.args.ctx, tt.args.Client, predicate, tt.args.opts.Options); (err != nil) != tt.wantErr {
 				t1.Errorf("wipeRemoved() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_Predicate(t *testing.T) {
+	type args struct {
+		trigger unstructured.Unstructured
+		fnRef   functionReference
+		items   []unstructured.Unstructured
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{
+			name: "no match 1",
+			args: args{
+				items:   []unstructured.Unstructured{testObj2, testObj},
+				fnRef:   functionReference{name: "test-function-name", namespace: "test-namespace"},
+				trigger: testObj,
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "no match 2",
+			args: args{
+				items:   []unstructured.Unstructured{testObj, testObj2},
+				fnRef:   functionReference{name: "test-function-name1", namespace: "test-namespace"},
+				trigger: testObj,
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "match",
+			args: args{
+				items:   []unstructured.Unstructured{testObj2},
+				fnRef:   functionReference{name: "test-function-name", namespace: "test-namespace"},
+				trigger: testObj,
+			},
+			want:    true,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			predicate := buildMatchRemovedTriggerPredicate(tt.args.fnRef, tt.args.items)
+			got, err := predicate(tt.args.trigger.Object)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("predicate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("predicate() bool = %v, want %v", got, tt.want)
 			}
 		})
 	}

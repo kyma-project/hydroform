@@ -4,52 +4,75 @@ import (
 	"context"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const message = "ownerID"
+type functionReference struct {
+	name      string
+	namespace string
+}
 
 type triggersOperator struct {
+	fnRef functionReference
 	items []unstructured.Unstructured
 	client.Client
 }
 
-func NewTriggersOperator(c client.Client, u ...unstructured.Unstructured) Operator {
+func NewTriggersOperator(c client.Client, fnName, fnNamespace string, u ...unstructured.Unstructured) Operator {
 	return &triggersOperator{
 		Client: c,
 		items:  u,
+		fnRef: functionReference{
+			name:      fnName,
+			namespace: fnNamespace,
+		},
+	}
+}
+
+// buildMatchRemovedTriggerPredicate - creates a predicate to match the triggers that should be deleted
+func buildMatchRemovedTriggerPredicate(fnRef functionReference, items []unstructured.Unstructured) func(map[string]interface{}) (bool, error) {
+	return func(obj map[string]interface{}) (bool, error) {
+		var trigger types.Trigger
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &trigger); err != nil {
+			return false, err
+		}
+		isRef := trigger.IsReference(fnRef.name, fnRef.namespace)
+		if !isRef {
+			return false, nil
+		}
+
+		containsTrigger := contains(items, trigger.ObjectMeta.Name)
+		return !containsTrigger, nil
 	}
 }
 
 var errNotFound = errors.New("not found")
 
 func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
-	ownerID, found := findOwnerID(opts.OwnerReferences)
-	if !found {
-		return errors.Wrap(errNotFound, message)
-	}
-	if err := wipeRemoved(ctx, t.Client, t.items, ownerID, opts.Options); err != nil {
+	predicate := buildMatchRemovedTriggerPredicate(t.fnRef, t.items)
+
+	if err := wipeRemoved(ctx, t.Client, predicate, opts.Options); err != nil {
 		return err
 	}
 	// apply all triggers
 	for _, u := range t.items {
 		u.SetOwnerReferences(opts.OwnerReferences)
-		newLabels := mergeMap(u.GetLabels(), map[string]string{
-			message: ownerID,
-		})
-		u.SetLabels(newLabels)
 		// fire pre callbacks
 		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
-		new1, statusEntry, err := applyObject(ctx, t.Client, u, opts.DryRun)
+		applied, statusEntry, err := applyObject(ctx, t.Client, u, opts.DryRun)
+		if opts.WaitForApply && applied != nil {
+			err = waitForObject(ctx, t.Client, *applied)
+		}
 		// fire post callbacks
 		if err := fireCallbacks(statusEntry, err, opts.Post...); err != nil {
 			return err
 		}
-		u.SetUnstructuredContent(new1.Object)
+		u.SetUnstructuredContent(applied.Object)
 	}
 	return nil
 }
@@ -67,16 +90,6 @@ func (t triggersOperator) Delete(ctx context.Context, opts DeleteOptions) error 
 		}
 	}
 	return nil
-}
-
-// seeks for uid of first Function kind or returns error
-func findOwnerID(refs []v1.OwnerReference) (string, bool) {
-	for _, ref := range refs {
-		if ref.Kind == "Function" {
-			return string(ref.UID), true
-		}
-	}
-	return "", false
 }
 
 func contains(s []unstructured.Unstructured, name string) bool {

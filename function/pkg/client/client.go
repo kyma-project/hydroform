@@ -4,6 +4,8 @@ import (
 	"context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 //go:generate mockgen -source=client.go -destination=automock/client.go
@@ -16,4 +18,7 @@ type Client interface {
 	DeleteCollection(ctx context.Context, options metav1.DeleteOptions, listOptions metav1.ListOptions) error
 	Get(ctx context.Context, name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
 	List(ctx context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 }
+
+type Build func(namespace string, resource schema.GroupVersionResource) Client

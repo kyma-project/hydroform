@@ -6,7 +6,6 @@ replace github.com/terraform-providers/terraform-provider-openstack => github.co
 
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c // indirect
-	github.com/BurntSushi/toml v0.3.1
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20190607011252-c5096ec8773d // indirect
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect

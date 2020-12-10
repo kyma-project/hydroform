@@ -8,6 +8,7 @@ import (
 )
 
 func TestFilterVars(t *testing.T) {
+	t.Parallel()
 	cfg := map[string]interface{}{
 		"project":        "fake-project",
 		"create_timeout": "30m",
