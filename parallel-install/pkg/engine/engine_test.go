@@ -274,10 +274,10 @@ type mockComponentsProvider struct {
 	hc helm.ClientInterface
 }
 
-func (p *mockComponentsProvider) GetComponents() ([]components.Component, error) {
-	var comps []components.Component
+func (p *mockComponentsProvider) GetComponents() ([]components.KymaComponent, error) {
+	var comps []components.KymaComponent
 	for _, name := range testComponentsNames {
-		component := components.Component{
+		component := components.KymaComponent{
 			Name:            name,
 			Namespace:       "test",
 			OverridesGetter: func() map[string]interface{} { return nil },

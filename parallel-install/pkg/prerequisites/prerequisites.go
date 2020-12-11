@@ -27,7 +27,7 @@ const logPrefix = "[prerequisites/prerequisites.go]"
 //
 //prerequisites provide information about all Components that are considered prerequisites for Kyma installation.
 //Such components are installed sequentially, in the same order as in the provided slice.
-func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.Component) <-chan error {
+func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.KymaComponent) <-chan error {
 
 	statusChan := make(chan error)
 
@@ -57,7 +57,7 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 
 			config.Log("%s Installing component %s ", logPrefix, prerequisite.Name)
 			//installation step
-			err := prerequisite.DeployComponent(ctx)
+			err := prerequisite.Deploy(ctx)
 			if err != nil {
 				config.Log("%s Error installing prerequisite %s: %v (The installation will not continue)", logPrefix, prerequisite.Name, err)
 				statusChan <- err
@@ -77,7 +77,7 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 //The cancellation is not immediate.
 //If the "cancel" signal appears during the uninstallation step (it's a blocking operation),
 //such a "cancel" condition is detected only after that step is over, and UninstallPrerequisites returns without an error.
-func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.Component) <-chan error {
+func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.KymaComponent) <-chan error {
 
 	statusChan := make(chan error)
 
@@ -95,7 +95,7 @@ func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface
 
 			config.Log("%s Uninstalling component %s ", logPrefix, prereq.Name)
 			//uninstallation step
-			err := prereq.UninstallComponent(ctx)
+			err := prereq.Uninstall(ctx)
 			if err != nil {
 				config.Log("%s Error uninstalling prerequisite %s: %v (The uninstallation continues anyway)", logPrefix, prereq.Name, err)
 				statusChan <- err

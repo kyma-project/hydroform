@@ -13,7 +13,7 @@ import (
 
 //Provider is an entity that produces a list of components for Kyma installation or uninstallation.
 type Provider interface {
-	GetComponents() ([]Component, error)
+	GetComponents() ([]KymaComponent, error)
 }
 
 //ComponentsProvider implements the Provider interface.
@@ -49,7 +49,7 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resour
 }
 
 //Implements Provider.GetComponents.
-func (p *ComponentsProvider) GetComponents() ([]Component, error) {
+func (p *ComponentsProvider) GetComponents() ([]KymaComponent, error) {
 	helmClient := helm.NewClient(p.helmConfig)
 
 	var installationCR v1alpha1.Installation
@@ -62,9 +62,9 @@ func (p *ComponentsProvider) GetComponents() ([]Component, error) {
 		return nil, fmt.Errorf("Could not find any components to install on Installation CR")
 	}
 
-	var components []Component
+	var components []KymaComponent
 	for _, component := range installationCR.Spec.Components {
-		component := Component{
+		component := KymaComponent{
 			Name:            component.Name,
 			Namespace:       component.Namespace,
 			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(component.Name),
