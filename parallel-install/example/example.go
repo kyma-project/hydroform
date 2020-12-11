@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/installation"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -62,7 +62,7 @@ func main() {
 		Log:                           log.Printf,
 	}
 
-	installer, err := installation.NewInstallation(prerequisitesContent,
+	installer, err := deployment.NewDeployment(prerequisitesContent,
 		string(componentsContent),
 		[]string{string(overridesContent)},
 		resourcesPath,
@@ -79,11 +79,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = installer.StartKymaInstallation(kubeClient)
+	err = installer.StartKymaDeployment(kubeClient)
 	if err != nil {
-		log.Printf("Failed to install Kyma: %v", err)
+		log.Printf("Failed to deploy Kyma: %v", err)
 	} else {
-		log.Println("Kyma installed!")
+		log.Println("Kyma deployed!")
 	}
 
 	err = installer.StartKymaUninstallation(kubeClient)
