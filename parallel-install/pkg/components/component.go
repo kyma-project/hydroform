@@ -12,7 +12,7 @@ const StatusUninstalled = "Uninstalled"
 
 const logPrefix = "[components/component.go]"
 
-//ComponentDeploy interface defines a contract for Component installation and uninstallation.
+//ComponentDeploy interface defines a contract for Component deployment and uninstallation.
 type ComponentDeploy interface {
 	//DeployComponent installs a component.
 	//The function is blocking until the component is installed or an error (including Helm timeout) occurs.
@@ -54,7 +54,6 @@ func NewComponent(name, namespace, chartDir string, overrides func() map[string]
 	}
 }
 
-//DeployComponent implements ComponentDeployment.DeployComponent.
 func (c *Component) DeployComponent(ctx context.Context) error {
 	c.Log("%s Installing %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
@@ -71,7 +70,7 @@ func (c *Component) DeployComponent(ctx context.Context) error {
 	return nil
 }
 
-//UninstallComponent implements ComponentInstallation.UninstallComponent.
+//UninstallComponent implements ComponentDeploy.UninstallComponent.
 func (c *Component) UninstallComponent(ctx context.Context) error {
 	c.Log("%s Uninstalling %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
