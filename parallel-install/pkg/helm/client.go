@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"helm.sh/helm/v3/pkg/storage/driver"
 
 	"github.com/cenkalti/backoff/v4"
 	"helm.sh/helm/v3/pkg/action"
@@ -27,6 +28,7 @@ type Config struct {
 	HelmTimeoutSeconds            int                                   //Underlying native Helm client processing timeout
 	BackoffInitialIntervalSeconds int                                   //Initial interval for the exponential backoff retry algorithm
 	BackoffMaxElapsedTimeSeconds  int                                   //Maximum time for the exponential backoff retry algorithm
+	MaxHistory                    int                                   //Maximum number of revisions saved per release
 	Log                           func(format string, v ...interface{}) //Used for logging
 }
 
@@ -115,6 +117,49 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 	return nil
 }
 
+func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
+	upgrade := action.NewUpgrade(cfg)
+	upgrade.Atomic = false
+	upgrade.CleanupOnFail = true
+	upgrade.Wait = true
+	upgrade.ReuseValues = false
+	upgrade.Recreate = false
+	upgrade.MaxHistory = c.cfg.MaxHistory
+	upgrade.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
+
+	operation := func() error {
+		c.cfg.Log("%s Starting deploy for release %s in namespace %s", logPrefix, name, namespace)
+		rel, err := upgrade.Run(name, chart, overrides)
+		if err != nil {
+			c.cfg.Log("%s Error: %v", logPrefix, err)
+			return err
+		}
+
+		if rel == nil || rel.Info == nil {
+			err = fmt.Errorf("Failed to deploy %s. Status: %v", name, "Unknown")
+			c.cfg.Log("%s Error: %v", logPrefix, err)
+			return err
+		}
+
+		if rel.Info.Status != release.StatusDeployed {
+			err = fmt.Errorf("Failed to deploy %s. Status: %v", name, rel.Info.Status)
+			c.cfg.Log("%s Error: %v", logPrefix, err)
+			return err
+		}
+
+		return nil
+	}
+
+	initialInterval := time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
+	maxElapsedTime := time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
+	err := retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
+	if err != nil {
+		return fmt.Errorf("Error: Failed to deploy %s within the configured time. Error: %v", name, err)
+	}
+
+	return nil
+}
+
 func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
 	install := action.NewInstall(cfg)
 	install.ReleaseName = name
@@ -168,12 +213,39 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 		return err
 	}
 
-	err = c.installRelease(ctx, chartDir, namespace, name, overrides, cfg, chart)
+	upgrade, err := isUpgrade(name, cfg)
 	if err != nil {
 		return err
 	}
 
+	if upgrade {
+		err = c.upgradeRelease(ctx, chartDir, namespace, name, overrides, cfg, chart)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = c.installRelease(ctx, chartDir, namespace, name, overrides, cfg, chart)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func isUpgrade(name string, cfg *action.Configuration) (bool, error) {
+	history := action.NewHistory(cfg)
+	history.Max = 1
+
+	_, err := history.Run(name)
+	if err != nil {
+		if err == driver.ErrReleaseNotFound {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+
+	return true, nil
 }
 
 func retryWithBackoff(ctx context.Context, operation func() error, initialInterval, maxTime time.Duration) error {

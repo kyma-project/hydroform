@@ -37,6 +37,7 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resour
 		BackoffInitialIntervalSeconds: cfg.BackoffInitialIntervalSeconds,
 		BackoffMaxElapsedTimeSeconds:  cfg.BackoffMaxElapsedTimeSeconds,
 		Log:                           cfg.Log,
+		MaxHistory:                    cfg.HelmMaxRevisionHistory,
 	}
 
 	return &ComponentsProvider{

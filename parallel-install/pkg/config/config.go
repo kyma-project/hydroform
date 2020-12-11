@@ -26,6 +26,8 @@ type Config struct {
 	BackoffMaxElapsedTimeSeconds int
 	//Logger to use
 	Log func(format string, v ...interface{})
+	//Maximum number of Helm revision saved per release
+	HelmMaxRevisionHistory int
 }
 
 // TODO: Remove this variable. Search for occurrences of config.Log
