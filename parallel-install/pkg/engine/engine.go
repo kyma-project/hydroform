@@ -43,7 +43,7 @@ func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider
 
 //Installation interface defines contract for the Engine
 type Installation interface {
-	//Install performs parallel components installation.
+	//Deploy performs parallel components installation.
 	//Errors are not stopping the processing because it's assumed components are independent of one another.
 	//An error condition in one component should not influence others.
 	//
@@ -53,7 +53,7 @@ type Installation interface {
 	//It is not guaranteed that the cancellation is handled immediately because the underlying Helm operations are blocking and do not support the Context-based cancellation.
 	//However, once the underlying parallel operations end, the cancel condition is detected and the return channel is closed.
 	//All remaining components are not processed then.
-	Install(ctx context.Context) (<-chan components.Component, error)
+	Deploy(ctx context.Context) (<-chan components.KymaComponent, error)
 	//Uninstall performs parallel components uninstallation.
 	//Errors are not stopping the processing because it's assumed components are independent of one another.
 	//An error condition in one component should not influence others.
@@ -65,10 +65,10 @@ type Installation interface {
 	//However, once the underlying parallel operations end, the cancel condition is detected and the return channel is closed.
 	//All remaining components are not processed then.
 	//
-	Uninstall(ctx context.Context) (<-chan components.Component, error)
+	Uninstall(ctx context.Context) (<-chan components.KymaComponent, error)
 }
 
-func (e *Engine) Install(ctx context.Context) (<-chan components.Component, error) {
+func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, error) {
 
 	cmps, err := e.componentsProvider.GetComponents()
 	if err != nil {
@@ -76,7 +76,7 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 	}
 
 	//TODO: Size dependent on number of components?
-	statusChan := make(chan components.Component, 30)
+	statusChan := make(chan components.KymaComponent, 30)
 
 	//TODO: Can we avoid this goroutine? Maybe refactor run() so it's non-blocking ?
 	go func() {
@@ -88,21 +88,21 @@ func (e *Engine) Install(ctx context.Context) (<-chan components.Component, erro
 			return
 		}
 
-		run(ctx, statusChan, cmps, "install", e.cfg.WorkersCount)
+		run(ctx, statusChan, cmps, "deploy", e.cfg.WorkersCount)
 
 	}()
 
 	return statusChan, nil
 }
 
-func (e *Engine) Uninstall(ctx context.Context) (<-chan components.Component, error) {
+func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent, error) {
 	cmps, err := e.componentsProvider.GetComponents()
 	if err != nil {
 		return nil, err
 	}
 
 	//TODO: Size dependent on number of components?
-	statusChan := make(chan components.Component, 30)
+	statusChan := make(chan components.KymaComponent, 30)
 
 	go func() {
 		defer close(statusChan)
@@ -114,9 +114,9 @@ func (e *Engine) Uninstall(ctx context.Context) (<-chan components.Component, er
 }
 
 //Blocking function used to spawn a configured number of workers and then await their completion.
-func run(ctx context.Context, statusChan chan<- components.Component, cmps []components.Component, installationType string, workersCount int) {
+func run(ctx context.Context, statusChan chan<- components.KymaComponent, cmps []components.KymaComponent, installationType string, workersCount int) {
 	//TODO: Size dependent on number of components?
-	jobChan := make(chan components.Component, 30)
+	jobChan := make(chan components.KymaComponent, 30)
 
 	//Fill the queue with jobs
 	for _, comp := range cmps {
@@ -146,7 +146,7 @@ func run(ctx context.Context, statusChan chan<- components.Component, cmps []com
 //Detects Context cancellation.
 //Context cancellation is not detected immediately. It's detected between component processing operations because such operations are blocking.
 //If the Context is cancelled, the worker quits immediately, skipping the remaining components.
-func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.Component, statusChan chan<- components.Component, installationType string) {
+func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.KymaComponent, statusChan chan<- components.KymaComponent, installationType string) {
 	defer wg.Done()
 
 	for {
@@ -163,15 +163,15 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 				return
 			}
 			if ok {
-				if installationType == "install" {
-					if err := component.InstallComponent(ctx); err != nil {
+				if installationType == "deploy" {
+					if err := component.Deploy(ctx); err != nil {
 						component.Status = components.StatusError
 					} else {
 						component.Status = components.StatusInstalled
 					}
 					statusChan <- component
 				} else if installationType == "uninstall" {
-					if err := component.UninstallComponent(ctx); err != nil {
+					if err := component.Uninstall(ctx); err != nil {
 						component.Status = components.StatusError
 					} else {
 						component.Status = components.StatusUninstalled
@@ -186,7 +186,7 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.C
 	}
 }
 
-func enqueueJob(job components.Component, jobChan chan<- components.Component) bool {
+func enqueueJob(job components.KymaComponent, jobChan chan<- components.KymaComponent) bool {
 	select {
 	case jobChan <- job:
 		return true

@@ -12,21 +12,21 @@ const StatusUninstalled = "Uninstalled"
 
 const logPrefix = "[components/component.go]"
 
-//ComponentInstallation interface defines a contract for Component installation and uninstallation.
-type ComponentInstallation interface {
-	//InstallComponent installs a component.
+//Component interface defines a contract for Component deployment and uninstallation.
+type Component interface {
+	//Deploy installs a component.
 	//The function is blocking until the component is installed or an error (including Helm timeout) occurs.
-	//See the helm.HelmClient.InstallRelease documentation for how context.Context is used for cancellation.
-	InstallComponent(context.Context) error
+	//See the helm.HelmClient.DeployRelease documentation for how context.Context is used for cancellation.
+	Deploy(context.Context) error
 
-	//UninstallComponent uninstalls a component.
+	//Uninstall uninstalls a component.
 	//The function is blocking until the component is uninstalled or an error (including Helm timeout) occurs.
 	//See the helm.HelmClient.UninstallRelease documentation for how context.Context is used for cancellation.
-	UninstallComponent(context.Context) error
+	Uninstall(context.Context) error
 }
 
-//Component implements the ComponentInstallation interface.
-type Component struct {
+//KymaComponent implements the Component interface.
+type KymaComponent struct {
 	Name            string
 	Namespace       string
 	Status          string
@@ -36,14 +36,14 @@ type Component struct {
 	Log             func(format string, v ...interface{})
 }
 
-//NewComponent instantiates a new Component.
+//NewComponent instantiates a new KymaComponent.
 //"name" and "namespace" parameters define the Helm release name and namespace.
 //
 //"chartDir" is a local filesystem directory with the component's chart.
 //
 //"overrides" is a function that returns overrides for the release.
-func NewComponent(name, namespace, chartDir string, overrides func() map[string]interface{}, helmClient helm.ClientInterface, log func(string, ...interface{})) *Component {
-	return &Component{
+func NewComponent(name, namespace, chartDir string, overrides func() map[string]interface{}, helmClient helm.ClientInterface, log func(string, ...interface{})) *KymaComponent {
+	return &KymaComponent{
 		Name:            name,
 		Namespace:       namespace,
 		ChartDir:        chartDir,
@@ -54,25 +54,25 @@ func NewComponent(name, namespace, chartDir string, overrides func() map[string]
 	}
 }
 
-//InstallComponent implements ComponentInstallation.InstallComponent.
-func (c *Component) InstallComponent(ctx context.Context) error {
-	c.Log("%s Installing %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
+//Deploy implements Component.Deploy
+func (c *KymaComponent) Deploy(ctx context.Context) error {
+	c.Log("%s Deploying %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
 	overrides := c.OverridesGetter()
 
-	err := c.HelmClient.InstallRelease(ctx, c.ChartDir, c.Namespace, c.Name, overrides)
+	err := c.HelmClient.DeployRelease(ctx, c.ChartDir, c.Namespace, c.Name, overrides)
 	if err != nil {
-		c.Log("%s Error installing %s: %v", logPrefix, c.Name, err)
+		c.Log("%s Error deploying %s: %v", logPrefix, c.Name, err)
 		return err
 	}
 
-	c.Log("%s Installed %s in %s", logPrefix, c.Name, c.Namespace)
+	c.Log("%s Deployed %s in %s", logPrefix, c.Name, c.Namespace)
 
 	return nil
 }
 
-//UninstallComponent implements ComponentInstallation.UninstallComponent.
-func (c *Component) UninstallComponent(ctx context.Context) error {
+//Uninstall implements Component.Uninstall.
+func (c *KymaComponent) Uninstall(ctx context.Context) error {
 	c.Log("%s Uninstalling %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
 	err := c.HelmClient.UninstallRelease(ctx, c.Namespace, c.Name)
