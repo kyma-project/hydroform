@@ -12,7 +12,7 @@ const StatusUninstalled = "Uninstalled"
 
 const logPrefix = "[components/component.go]"
 
-//ComponentDeployment interface defines a contract for Component installation and uninstallation.
+//ComponentDeploy interface defines a contract for Component installation and uninstallation.
 type ComponentDeploy interface {
 	//DeployComponent installs a component.
 	//The function is blocking until the component is installed or an error (including Helm timeout) occurs.
@@ -25,7 +25,7 @@ type ComponentDeploy interface {
 	UninstallComponent(context.Context) error
 }
 
-//Component implements the ComponentDeployment interface.
+//Component implements the ComponentDeploy interface.
 type Component struct {
 	Name            string
 	Namespace       string
