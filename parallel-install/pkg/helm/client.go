@@ -14,6 +14,7 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -36,7 +37,7 @@ type Client struct {
 
 //ClientInterface defines the contract for the Helm-related installation processes.
 type ClientInterface interface {
-	//InstallRelease installs a named chart from a local filesystem directory with specific overrides.
+	//DeployRelease deploys a named chart from a local filesystem directory with specific overrides.
 	//The function retries on errors according to Config provided to the Client.
 	//
 	//ctx is used for the operation cancellation.
@@ -45,7 +46,7 @@ type ClientInterface interface {
 	//Cancellation is possible when errors occur and the operation is re-tried.
 	//When the operation is re-tried, it is not guaranteed that the cancellation is handled immediately due to the blocking nature of Helm client calls.
 	//However, once the underlying Helm operation ends, the "cancel" condition is detected and the operation's result is returned without further retries.
-	InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error
+	DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error
 	//UninstallRelease uninstalls a named chart from the cluster.
 	//The function retries on errors according to Config provided to the Client.
 	//
@@ -114,17 +115,7 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 	return nil
 }
 
-func (c *Client) InstallRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
-	cfg, err := newActionConfig(namespace)
-	if err != nil {
-		return err
-	}
-
-	chart, err := loader.Load(chartDir)
-	if err != nil {
-		return err
-	}
-
+func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
 	install := action.NewInstall(cfg)
 	install.ReleaseName = name
 	install.Namespace = namespace
@@ -158,9 +149,28 @@ func (c *Client) InstallRelease(ctx context.Context, chartDir, namespace, name s
 
 	initialInterval := time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
 	maxElapsedTime := time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
-	err = retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
+	err := retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
 	if err != nil {
 		return fmt.Errorf("Error: Failed to install %s within the configured time. Error: %v", name, err)
+	}
+
+	return nil
+}
+
+func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
+	cfg, err := newActionConfig(namespace)
+	if err != nil {
+		return err
+	}
+
+	chart, err := loader.Load(chartDir)
+	if err != nil {
+		return err
+	}
+
+	err = c.installRelease(ctx, chartDir, namespace, name, overrides, cfg, chart)
+	if err != nil {
+		return err
 	}
 
 	return nil

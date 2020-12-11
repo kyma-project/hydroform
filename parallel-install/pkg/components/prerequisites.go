@@ -41,15 +41,15 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, res
 }
 
 //Implements Provider.GetComponents.
-func (p *PrerequisitesProvider) GetComponents() ([]Component, error) {
+func (p *PrerequisitesProvider) GetComponents() ([]KymaComponent, error) {
 	helmClient := helm.NewClient(p.helmConfig)
 
-	var components []Component
+	var components []KymaComponent
 	for _, componentNamespacePair := range p.componentList {
 		name := componentNamespacePair[0]
 		namespace := componentNamespacePair[1]
 
-		components = append(components, Component{
+		components = append(components, KymaComponent{
 			Name:            name,
 			Namespace:       namespace,
 			ChartDir:        path.Join(p.resourcesPath, name),
