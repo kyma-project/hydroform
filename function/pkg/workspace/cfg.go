@@ -3,6 +3,8 @@ package workspace
 import (
 	"io"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"gopkg.in/yaml.v3"
 )
@@ -53,7 +55,7 @@ type Cfg struct {
 	Source    Source            `yaml:"source"`
 	Resources Resources         `yaml:"resource,omitempty"`
 	Triggers  []Trigger         `yaml:"triggers,omitempty"`
-	Env       []EnvVar          `yaml:"env,omitempty"`
+	Env       []corev1.EnvVar   `yaml:"env,omitempty"`
 }
 
 type Source struct {

@@ -102,6 +102,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	config.Resources.Limits = function.Spec.ResourceLimits()
 	config.Resources.Requests = function.Spec.ResourceRequests()
 	config.Labels = function.Spec.Labels
+	config.Env = function.Spec.Env
 
 	ul, err := build("", operator.GVKTriggers).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
