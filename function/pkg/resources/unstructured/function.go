@@ -40,6 +40,7 @@ func functionDecorators(cfg workspace.Cfg) []Decorate {
 		decorateWithMap(cfg.Resources.Limits, "spec", "resources", "limits"),
 		decorateWithMap(cfg.Resources.Requests, "spec", "resources", "requests"),
 		decorateWithMap(labelsMap, "spec", "labels"),
+		decorateWithField(cfg.Env, "spec", "env"),
 	}
 }
 

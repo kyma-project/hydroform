@@ -40,6 +40,11 @@ type Resources struct {
 	Requests ResourceList `yaml:"requests,omitempty"`
 }
 
+type EnvVar struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
+}
+
 type Cfg struct {
 	Name      string            `yaml:"name"`
 	Namespace string            `yaml:"namespace"`
@@ -48,6 +53,7 @@ type Cfg struct {
 	Source    Source            `yaml:"source"`
 	Resources Resources         `yaml:"resource,omitempty"`
 	Triggers  []Trigger         `yaml:"triggers,omitempty"`
+	Env       []EnvVar          `yaml:"env,omitempty"`
 }
 
 type Source struct {
