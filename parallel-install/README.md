@@ -25,9 +25,9 @@ See all available configuration options for the `config.Config` type:
 
 | Parameter | Type | Example value | Description |
 | --- | --- | --- | --- |
-| WorkersCount | `int` | `4` | Number of parallel workers used for the `deploye` or `uninstall` operation. |
+| WorkersCount | `int` | `4` | Number of parallel workers used for the `deploy` or `uninstall` operation. |
 | CancelTimeout | `time.Duration` | `900 * time.Second` | Time after which the workers' context is canceled. Pending worker goroutines (if any) may continue if blocked by a Helm client. |
-| QuitTimeout | `time.Duration` | `1200 * time.Second` | Time after which the `deploy` or `delete` operation is aborted and returns an error to the user. Worker goroutines may still be working in the background. This value must be greater than the value for CancelTimeout. |
+| QuitTimeout | `time.Duration` | `1200 * time.Second` | Time after which the `deploy` or `uninstall` operation is aborted and returns an error to the user. Worker goroutines may still be working in the background. This value must be greater than the value for CancelTimeout. |
 | HelmTimeoutSeconds | `int` | `360` | Timeout for the underlying Helm client. |
 | BackoffInitialIntervalSeconds | `int` | `1` | Initial interval used for exponential backoff retry policy. |
 | BackoffMaxElapsedTimeSeconds | `int` | `30` | Maximum time used for exponential backoff retry policy. |
