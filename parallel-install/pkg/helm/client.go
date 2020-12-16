@@ -127,36 +127,25 @@ func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name s
 	upgrade.MaxHistory = c.cfg.MaxHistory
 	upgrade.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
-	operation := func() error {
-		c.cfg.Log("%s Starting deploy for release %s in namespace %s", logPrefix, name, namespace)
-		rel, err := upgrade.Run(name, chart, overrides)
-		if err != nil {
-			c.cfg.Log("%s Error: %v", logPrefix, err)
-			return err
-		}
-
-		if rel == nil || rel.Info == nil {
-			err = fmt.Errorf("Failed to deploy %s. Status: %v", name, "Unknown")
-			c.cfg.Log("%s Error: %v", logPrefix, err)
-			return err
-		}
-
-		if rel.Info.Status != release.StatusDeployed {
-			err = fmt.Errorf("Failed to deploy %s. Status: %v", name, rel.Info.Status)
-			c.cfg.Log("%s Error: %v", logPrefix, err)
-			return err
-		}
-
-		return nil
-	}
-
-	initialInterval := time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
-	maxElapsedTime := time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
-	err := retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
+	c.cfg.Log("%s Starting upgrade for release %s in namespace %s", logPrefix, name, namespace)
+	rel, err := upgrade.Run(name, chart, overrides)
 	if err != nil {
-		return fmt.Errorf("Error: Failed to deploy %s within the configured time. Error: %v", name, err)
+		c.cfg.Log("%s Error: %v", logPrefix, err)
+		return err
 	}
 
+	if rel == nil || rel.Info == nil {
+		err = fmt.Errorf("Failed to upgrade %s. Status: %v", name, "Unknown")
+		c.cfg.Log("%s Error: %v", logPrefix, err)
+		return err
+	}
+
+	if rel.Info.Status != release.StatusDeployed {
+		err = fmt.Errorf("Failed to upgrade %s. Status: %v", name, rel.Info.Status)
+		c.cfg.Log("%s Error: %v", logPrefix, err)
+		return err
+	}
+		
 	return nil
 }
 
@@ -169,26 +158,56 @@ func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name s
 	install.CreateNamespace = true
 	install.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
+	c.cfg.Log("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
+	rel, err := install.Run(chart, overrides)
+	if err != nil {
+		c.cfg.Log("%s Error: %v", logPrefix, err)
+		return err
+	}
+
+	if rel == nil || rel.Info == nil {
+		err = fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
+		c.cfg.Log("%s Error: %v", logPrefix, err)
+		return err
+	}
+
+	if rel.Info.Status != release.StatusDeployed {
+		err = fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
+		c.cfg.Log("%s Error: %v", logPrefix, err)
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
 	operation := func() error {
-		c.cfg.Log("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
-		rel, err := install.Run(chart, overrides)
+		cfg, err := newActionConfig(namespace)
 		if err != nil {
-			c.cfg.Log("%s Error: %v", logPrefix, err)
 			return err
 		}
 
-		if rel == nil || rel.Info == nil {
-			err = fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
-			c.cfg.Log("%s Error: %v", logPrefix, err)
+		chart, err := loader.Load(chartDir)
+		if err != nil {
 			return err
 		}
 
-		if rel.Info.Status != release.StatusDeployed {
-			err = fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
-			c.cfg.Log("%s Error: %v", logPrefix, err)
+		upgrade, err := isUpgrade(name, cfg)
+		if err != nil {
 			return err
 		}
 
+		if upgrade {
+			err = c.upgradeRelease(ctx, chartDir, namespace, name, overrides, cfg, chart)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = c.installRelease(ctx, chartDir, namespace, name, overrides, cfg, chart)
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 
@@ -196,39 +215,9 @@ func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name s
 	maxElapsedTime := time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
 	err := retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
 	if err != nil {
-		return fmt.Errorf("Error: Failed to install %s within the configured time. Error: %v", name, err)
+		return fmt.Errorf("Error: Failed to deploy %s within the configured time. Error: %v", name, err)
 	}
 
-	return nil
-}
-
-func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
-	cfg, err := newActionConfig(namespace)
-	if err != nil {
-		return err
-	}
-
-	chart, err := loader.Load(chartDir)
-	if err != nil {
-		return err
-	}
-
-	upgrade, err := isUpgrade(name, cfg)
-	if err != nil {
-		return err
-	}
-
-	if upgrade {
-		err = c.upgradeRelease(ctx, chartDir, namespace, name, overrides, cfg, chart)
-		if err != nil {
-			return err
-		}
-	} else {
-		err = c.installRelease(ctx, chartDir, namespace, name, overrides, cfg, chart)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
