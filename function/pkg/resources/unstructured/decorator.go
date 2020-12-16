@@ -57,6 +57,17 @@ func decorateWithMap(value map[string]interface{}, field string, fields ...strin
 	}
 }
 
+func decorateWithSlice(value []interface{}, field string, fields ...string) Decorate {
+	if len(value) == 0 {
+		return func(u *unstructured.Unstructured) error {
+			return nil
+		}
+	}
+	return func(u *unstructured.Unstructured) error {
+		return unstructured.SetNestedSlice(u.Object, value, append([]string{field}, fields...)...)
+	}
+}
+
 func decorate(u *unstructured.Unstructured, ds Decorators) (err error) {
 	for _, d := range ds {
 		err = d(u)

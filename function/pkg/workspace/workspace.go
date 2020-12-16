@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -102,7 +104,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	config.Resources.Limits = function.Spec.ResourceLimits()
 	config.Resources.Requests = function.Spec.ResourceRequests()
 	config.Labels = function.Spec.Labels
-	config.Env = function.Spec.Env
+	config.Env = convertCoreV1EnvToEnvVar(function.Spec.Env)
 
 	ul, err := build("", operator.GVKTriggers).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -131,7 +133,8 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 	if function.Spec.Type == "git" {
 		gitRepository := types.GitRepository{}
-		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, config.Name, v1.GetOptions{})
+
+		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, function.Spec.Source, v1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -178,4 +181,35 @@ func InlineFileNames(r types.Runtime) (SourceFileName, DepsFileName, bool) {
 	default:
 		return "", "", false
 	}
+}
+
+func convertCoreV1EnvToEnvVar(envs []corev1.EnvVar) []EnvVar {
+	outEnvs := make([]EnvVar, 0)
+	for _, env := range envs {
+
+		newEnv := EnvVar{
+			Name:  env.Name,
+			Value: env.Value,
+		}
+
+		if env.ValueFrom != nil {
+			newEnv.ValueFrom = &EnvVarSource{}
+
+			if env.ValueFrom.SecretKeyRef != nil {
+				newEnv.ValueFrom.SecretKeyRef = &SecretKeySelector{
+					Name: env.ValueFrom.SecretKeyRef.Name,
+					Key:  env.ValueFrom.SecretKeyRef.Key,
+				}
+			}
+
+			if env.ValueFrom.ConfigMapKeyRef != nil {
+				newEnv.ValueFrom.ConfigMapKeyRef = &ConfigMapKeySelector{
+					Name: env.ValueFrom.ConfigMapKeyRef.Name,
+					Key:  env.ValueFrom.ConfigMapKeyRef.Key,
+				}
+			}
+		}
+		outEnvs = append(outEnvs, newEnv)
+	}
+	return outEnvs
 }

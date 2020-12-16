@@ -3,8 +3,6 @@ package workspace
 import (
 	"io"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"gopkg.in/yaml.v3"
 )
@@ -43,8 +41,57 @@ type Resources struct {
 }
 
 type EnvVar struct {
-	Name  string `yaml:"name"`
-	Value string `yaml:"value"`
+	Name      string        `yaml:"name"`
+	Value     string        `yaml:"value,omitempty"`
+	ValueFrom *EnvVarSource `yaml:"valueFrom,omitempty"`
+}
+
+func (e EnvVar) ConvertToMapStringInterface() map[string]interface{} {
+	if e.ValueFrom != nil {
+		if e.ValueFrom.ConfigMapKeyRef != nil {
+			return map[string]interface{}{
+				"name":  e.Name,
+				"value": e.Value,
+				"valueFrom": map[string]interface{}{
+					"configMapKeyRef": map[string]interface{}{
+						"name": e.ValueFrom.ConfigMapKeyRef.Name,
+						"key":  e.ValueFrom.ConfigMapKeyRef.Key,
+					},
+				},
+			}
+		} else {
+			return map[string]interface{}{
+				"name":  e.Name,
+				"value": e.Value,
+				"valueFrom": map[string]interface{}{
+					"secretKeyRef": map[string]interface{}{
+						"name": e.ValueFrom.SecretKeyRef.Name,
+						"key":  e.ValueFrom.SecretKeyRef.Key,
+					},
+				},
+			}
+		}
+	} else {
+		return map[string]interface{}{
+			"name":  e.Name,
+			"value": e.Value,
+		}
+	}
+}
+
+type EnvVarSource struct {
+	ConfigMapKeyRef *ConfigMapKeySelector `yaml:"configMapKeyRef,omitempty"`
+	SecretKeyRef    *SecretKeySelector    `yaml:"secretKeyRef,omitempty"`
+}
+
+type ConfigMapKeySelector struct {
+	Name string `yaml:"name"`
+	Key  string `yaml:"key"`
+}
+
+type SecretKeySelector struct {
+	Name string `yaml:"name"`
+	Key  string `yaml:"key"`
 }
 
 type Cfg struct {
@@ -55,7 +102,7 @@ type Cfg struct {
 	Source    Source            `yaml:"source"`
 	Resources Resources         `yaml:"resource,omitempty"`
 	Triggers  []Trigger         `yaml:"triggers,omitempty"`
-	Env       []corev1.EnvVar   `yaml:"env,omitempty"`
+	Env       []EnvVar          `yaml:"env,omitempty"`
 }
 
 type Source struct {
