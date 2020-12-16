@@ -66,6 +66,30 @@ func Test_newFunction(t *testing.T) {
 							Type:    "test-trigger-type",
 						},
 					},
+					Env: []workspace.EnvVar{
+						{
+							Name:  "TEST_ENV",
+							Value: "test",
+						},
+						{
+							Name: "TEST_ENV_SECRET",
+							ValueFrom: &workspace.EnvVarSource{
+								SecretKeyRef: &workspace.SecretKeySelector{
+									Name: "secretName",
+									Key:  "secretKey",
+								},
+							},
+						},
+						{
+							Name: "TEST_ENV_CM",
+							ValueFrom: &workspace.EnvVarSource{
+								ConfigMapKeyRef: &workspace.ConfigMapKeySelector{
+									Name: "configMapName",
+									Key:  "configMapKey",
+								},
+							},
+						},
+					},
 				},
 			},
 			wantOut: unstructured.Unstructured{
@@ -75,9 +99,6 @@ func Test_newFunction(t *testing.T) {
 					"metadata": map[string]interface{}{
 						"name":      "test-name",
 						"namespace": "test-ns",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -93,6 +114,35 @@ func Test_newFunction(t *testing.T) {
 						},
 						"source": "test-source-content",
 						"deps":   "test-deps-content",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
+						"env": []interface{}{
+							map[string]interface{}{
+								"name":  "TEST_ENV",
+								"value": "test",
+							},
+							map[string]interface{}{
+								"name":  "TEST_ENV_SECRET",
+								"value": "",
+								"valueFrom": map[string]interface{}{
+									"secretKeyRef": map[string]interface{}{
+										"name": "secretName",
+										"key":  "secretKey",
+									},
+								},
+							},
+							map[string]interface{}{
+								"name":  "TEST_ENV_CM",
+								"value": "",
+								"valueFrom": map[string]interface{}{
+									"configMapKeyRef": map[string]interface{}{
+										"name": "configMapName",
+										"key":  "configMapKey",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -149,9 +199,6 @@ func Test_newFunction(t *testing.T) {
 					"metadata": map[string]interface{}{
 						"name":      "test-name",
 						"namespace": "test-ns",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -166,6 +213,9 @@ func Test_newFunction(t *testing.T) {
 							},
 						},
 						"source": "test-source-content",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
 					},
 				},
 			},
@@ -277,6 +327,30 @@ func Test_newGitFunction(t *testing.T) {
 							Type:    "test-trigger-type",
 						},
 					},
+					Env: []workspace.EnvVar{
+						{
+							Name:  "TEST_ENV",
+							Value: "test",
+						},
+						{
+							Name: "TEST_ENV_SECRET",
+							ValueFrom: &workspace.EnvVarSource{
+								SecretKeyRef: &workspace.SecretKeySelector{
+									Name: "secretName",
+									Key:  "secretKey",
+								},
+							},
+						},
+						{
+							Name: "TEST_ENV_CM",
+							ValueFrom: &workspace.EnvVarSource{
+								ConfigMapKeyRef: &workspace.ConfigMapKeySelector{
+									Name: "configMapName",
+									Key:  "configMapKey",
+								},
+							},
+						},
+					},
 				},
 			},
 			wantOut: unstructured.Unstructured{
@@ -286,9 +360,6 @@ func Test_newGitFunction(t *testing.T) {
 					"metadata": map[string]interface{}{
 						"name":      "test-name",
 						"namespace": "test-ns",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -306,6 +377,35 @@ func Test_newGitFunction(t *testing.T) {
 						"baseDir":   "test-base-dir",
 						"reference": "test-reference",
 						"type":      "git",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
+						"env": []interface{}{
+							map[string]interface{}{
+								"name":  "TEST_ENV",
+								"value": "test",
+							},
+							map[string]interface{}{
+								"name":  "TEST_ENV_SECRET",
+								"value": "",
+								"valueFrom": map[string]interface{}{
+									"secretKeyRef": map[string]interface{}{
+										"name": "secretName",
+										"key":  "secretKey",
+									},
+								},
+							},
+							map[string]interface{}{
+								"name":  "TEST_ENV_CM",
+								"value": "",
+								"valueFrom": map[string]interface{}{
+									"configMapKeyRef": map[string]interface{}{
+										"name": "configMapName",
+										"key":  "configMapKey",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -355,9 +455,6 @@ func Test_newGitFunction(t *testing.T) {
 					"metadata": map[string]interface{}{
 						"name":      "test-name",
 						"namespace": "test-ns",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -375,6 +472,9 @@ func Test_newGitFunction(t *testing.T) {
 						"baseDir":   "test-base-dir",
 						"reference": "test-reference",
 						"type":      "git",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
 					},
 				},
 			},
