@@ -145,7 +145,7 @@ func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name s
 		c.cfg.Log("%s Error: %v", logPrefix, err)
 		return err
 	}
-		
+
 	return nil
 }
 
