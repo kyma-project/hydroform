@@ -119,7 +119,7 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 
 func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
 	upgrade := action.NewUpgrade(cfg)
-	upgrade.Atomic = false
+	upgrade.Atomic = true
 	upgrade.CleanupOnFail = true
 	upgrade.Wait = true
 	upgrade.ReuseValues = false
