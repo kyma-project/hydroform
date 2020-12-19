@@ -18,21 +18,11 @@ const (
 
 const CfgFilename = "config.yaml"
 
-type Attributes = map[string]interface{}
-
 type Trigger struct {
-	Name    string `yaml:"name"`
-	Version string `yaml:"version"`
-	Source  string `yaml:"source"`
-	Type    string `yaml:"type"`
-}
-
-func (t Trigger) Attributes() Attributes {
-	return map[string]interface{}{
-		"eventtypeversion": t.Version,
-		"source":           t.Source,
-		"type":             t.Type,
-	}
+	Name             string `yaml:"name"`
+	EventTypeVersion string `yaml:"eventTypeVersion"`
+	Source           string `yaml:"source"`
+	Type             string `yaml:"type"`
 }
 
 type Resources struct {
@@ -44,39 +34,6 @@ type EnvVar struct {
 	Name      string        `yaml:"name"`
 	Value     string        `yaml:"value,omitempty"`
 	ValueFrom *EnvVarSource `yaml:"valueFrom,omitempty"`
-}
-
-func (e EnvVar) ConvertToMapStringInterface() map[string]interface{} {
-	if e.ValueFrom != nil {
-		if e.ValueFrom.ConfigMapKeyRef != nil {
-			return map[string]interface{}{
-				"name":  e.Name,
-				"value": e.Value,
-				"valueFrom": map[string]interface{}{
-					"configMapKeyRef": map[string]interface{}{
-						"name": e.ValueFrom.ConfigMapKeyRef.Name,
-						"key":  e.ValueFrom.ConfigMapKeyRef.Key,
-					},
-				},
-			}
-		} else {
-			return map[string]interface{}{
-				"name":  e.Name,
-				"value": e.Value,
-				"valueFrom": map[string]interface{}{
-					"secretKeyRef": map[string]interface{}{
-						"name": e.ValueFrom.SecretKeyRef.Name,
-						"key":  e.ValueFrom.SecretKeyRef.Key,
-					},
-				},
-			}
-		}
-	} else {
-		return map[string]interface{}{
-			"name":  e.Name,
-			"value": e.Value,
-		}
-	}
 }
 
 type EnvVarSource struct {

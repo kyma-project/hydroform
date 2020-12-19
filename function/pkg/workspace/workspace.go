@@ -123,10 +123,10 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			}
 
 			config.Triggers = append(config.Triggers, Trigger{
-				Version: trigger.Spec.Filter.Attributes.Eventtypeversion,
-				Source:  trigger.Spec.Filter.Attributes.Source,
-				Type:    trigger.Spec.Filter.Attributes.Type,
-				Name:    trigger.ObjectMeta.Name,
+				EventTypeVersion: trigger.Spec.Filter.Attributes.EventTypeVersion,
+				Source:           trigger.Spec.Filter.Attributes.Source,
+				Type:             trigger.Spec.Filter.Attributes.Type,
+				Name:             trigger.ObjectMeta.Name,
 			})
 		}
 	}
@@ -146,9 +146,10 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		config.Source = Source{
 			Type: SourceTypeGit,
 			SourceGit: SourceGit{
-				URL:       gitRepository.Spec.URL,
-				Reference: function.Spec.Reference,
-				BaseDir:   function.Spec.BaseDir,
+				URL:        gitRepository.Spec.URL,
+				Repository: function.Spec.Source,
+				Reference:  function.Spec.Reference,
+				BaseDir:    function.Spec.BaseDir,
 			},
 		}
 		return initialize(config, outputPath, writerProvider)

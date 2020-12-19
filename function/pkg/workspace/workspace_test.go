@@ -88,9 +88,9 @@ func Test_initialize(t *testing.T) {
 					Runtime: types.Python38,
 					Triggers: []Trigger{
 						{
-							Version: "test-version",
-							Source:  "test-source",
-							Type:    "test-type",
+							EventTypeVersion: "test-version",
+							Source:           "test-source",
+							Type:             "test-type",
 						},
 					},
 				},
@@ -275,9 +275,9 @@ func Test_Synchronise(t *testing.T) {
 					},
 					Triggers: []Trigger{
 						{
-							Version: "v1.0.0",
-							Source:  "the-source",
-							Type:    "t1",
+							EventTypeVersion: "v1.0.0",
+							Source:           "the-source",
+							Type:             "t1",
 						},
 					},
 				},
@@ -311,9 +311,9 @@ func Test_Synchronise(t *testing.T) {
 					},
 					Triggers: []Trigger{
 						{
-							Version: "v1.0.0",
-							Source:  "the-source",
-							Type:    "t1",
+							EventTypeVersion: "v1.0.0",
+							Source:           "the-source",
+							Type:             "t1",
 						},
 					},
 				},

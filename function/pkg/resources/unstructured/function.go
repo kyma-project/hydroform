@@ -5,6 +5,14 @@ import (
 	"io/ioutil"
 	"path"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -26,41 +34,27 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 	}
 }
 
-func functionDecorators(cfg workspace.Cfg) []Decorate {
-
-	labelsMap := make(map[string]interface{})
-	for k, v := range cfg.Labels {
-		labelsMap[k] = v
-	}
-
-	envs := make([]interface{}, 0)
-	for _, envVar := range cfg.Env {
-		envs = append(envs, envVar.ConvertToMapStringInterface())
-	}
-
-	return []Decorate{
-		decorateWithFunction,
-		decorateWithMetadata(cfg.Name, cfg.Namespace),
-		decorateWithField(cfg.Runtime, "spec", "runtime"),
-		decorateWithMap(cfg.Resources.Limits, "spec", "resources", "limits"),
-		decorateWithMap(cfg.Resources.Requests, "spec", "resources", "requests"),
-		decorateWithMap(labelsMap, "spec", "labels"),
-		decorateWithSlice(envs, "spec", "env"),
-	}
-}
-
 func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
 	repository := cfg.Name
 	if cfg.Source.Repository != "" {
 		repository = cfg.Source.Repository
 	}
-	decorators := append(functionDecorators(cfg),
-		decorateWithField("git", "spec", "type"),
-		decorateWithField(repository, "spec", "source"),
-		decorateWithField(cfg.Source.Reference, "spec", "reference"),
-		decorateWithField(cfg.Source.BaseDir, "spec", "baseDir"),
-	)
-	err = decorate(&out, decorators)
+
+	f, err := prepareBaseFunction(cfg)
+	if err != nil {
+		return unstructured.Unstructured{}, err
+	}
+
+	f.Spec.Type = "git"
+	f.Spec.Source = repository
+	f.Spec.Reference = cfg.Source.Reference
+	f.Spec.BaseDir = cfg.Source.BaseDir
+
+	unstructuredFunction, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&f)
+	out = unstructured.Unstructured{Object: unstructuredFunction}
+	if err != nil {
+		return unstructured.Unstructured{}, err
+	}
 
 	return
 }
@@ -82,34 +76,140 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstruc
 		depsHandlerName = cfg.Source.DepsHandlerName
 	}
 
-	decorators := functionDecorators(cfg)
-
-	// read sources and dependencies
-	for _, item := range []struct {
-		property property
-		filename string
-	}{
-		{property: propertySource, filename: sourceHandlerName},
-		{property: propertyDeps, filename: depsHandlerName},
-	} {
-		filePath := path.Join(cfg.Source.SourcePath, item.filename)
-		data, err := readFile(filePath)
-		if err != nil {
-			return unstructured.Unstructured{}, err
-		}
-		if len(data) == 0 {
-			continue
-		}
-		decorators = append(decorators, decorateWithField(string(data), "spec", string(item.property)))
+	f, err := prepareInlineFunction(cfg, readFile, sourceHandlerName, depsHandlerName)
+	if err != nil {
+		return unstructured.Unstructured{}, err
 	}
 
-	err = decorate(&out, decorators)
+	unstructuredFunction, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&f)
+	out = unstructured.Unstructured{Object: unstructuredFunction}
+	if err != nil {
+		return unstructured.Unstructured{}, err
+	}
 	return
 }
 
-type property string
+func prepareInlineFunction(cfg workspace.Cfg, readFile ReadFile, sourceHandlerName workspace.SourceFileName, depsHandlerName workspace.DepsFileName) (types.Function, error) {
+	specSource, specDeps, err := prepareFunctionSourceAndDeps(cfg, readFile, sourceHandlerName, depsHandlerName)
+	if err != nil {
+		return types.Function{}, err
+	}
 
-const (
-	propertySource property = "source"
-	propertyDeps   property = "deps"
-)
+	f, err := prepareBaseFunction(cfg)
+	if err != nil {
+		return types.Function{}, err
+	}
+
+	f.Spec.Source = string(specSource)
+	f.Spec.Deps = string(specDeps)
+
+	return f, nil
+}
+
+func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
+	limitsCPU, limitsMemory, requestsCPU, requestsMemory, err := prepareFunctionResources(cfg)
+	if err != nil {
+		return types.Function{}, err
+	}
+
+	envs := prepareEnvVars(cfg.Env)
+
+	f := types.Function{
+		ApiVersion: functionApiVersion,
+		Kind:       "Function",
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cfg.Name,
+			Namespace: cfg.Namespace,
+		},
+		Spec: types.FunctionSpec{
+			Runtime: cfg.Runtime,
+			Resources: v1.ResourceRequirements{
+				Limits: map[v1.ResourceName]resource.Quantity{
+					v1.ResourceCPU:    limitsCPU,
+					v1.ResourceMemory: limitsMemory,
+				},
+				Requests: map[v1.ResourceName]resource.Quantity{
+					v1.ResourceCPU:    requestsCPU,
+					v1.ResourceMemory: requestsMemory,
+				},
+			},
+			Labels:     cfg.Labels,
+			Repository: types.Repository{},
+			Env:        envs,
+		},
+	}
+	return f, nil
+}
+
+func prepareFunctionSourceAndDeps(cfg workspace.Cfg, readFile ReadFile, sourceHandlerName workspace.SourceFileName, depsHandlerName workspace.DepsFileName) ([]byte, []byte, error) {
+	specSource, err := readFile(path.Join(cfg.Source.SourcePath, sourceHandlerName))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	specDeps, err := readFile(path.Join(cfg.Source.SourcePath, depsHandlerName))
+	if err != nil {
+		return nil, nil, err
+	}
+	return specSource, specDeps, nil
+}
+
+func prepareFunctionResources(cfg workspace.Cfg) (resource.Quantity, resource.Quantity, resource.Quantity, resource.Quantity, error) {
+
+	limitsCPU, err := resource.ParseQuantity(cfg.Resources.Limits[workspace.ResourceNameCPU].(string))
+	if err != nil {
+		return resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, err
+	}
+
+	limitsMemory, err := resource.ParseQuantity(cfg.Resources.Limits[workspace.ResourceNameMemory].(string))
+	if err != nil {
+		return resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, err
+	}
+
+	requestsCPU, err := resource.ParseQuantity(cfg.Resources.Requests[workspace.ResourceNameCPU].(string))
+	if err != nil {
+		return resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, err
+	}
+
+	requestsMemory, err := resource.ParseQuantity(cfg.Resources.Requests[workspace.ResourceNameMemory].(string))
+	if err != nil {
+		return resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, err
+	}
+	return limitsCPU, limitsMemory, requestsCPU, requestsMemory, nil
+}
+
+func prepareEnvVars(envs []workspace.EnvVar) []v1.EnvVar {
+	newEnvs := make([]v1.EnvVar, 0)
+
+	for _, envVar := range envs {
+		newEnv := v1.EnvVar{
+			Name:  envVar.Name,
+			Value: envVar.Value,
+		}
+
+		if envVar.ValueFrom != nil {
+			newEnv.ValueFrom = &v1.EnvVarSource{}
+
+			if envVar.ValueFrom.SecretKeyRef != nil {
+				newEnv.ValueFrom.SecretKeyRef = &v1.SecretKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: envVar.ValueFrom.SecretKeyRef.Name,
+					},
+					Key: envVar.ValueFrom.SecretKeyRef.Key,
+				}
+			}
+
+			if envVar.ValueFrom.ConfigMapKeyRef != nil {
+				newEnv.ValueFrom.ConfigMapKeyRef = &v1.ConfigMapKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: envVar.ValueFrom.ConfigMapKeyRef.Name,
+					},
+					Key: envVar.ValueFrom.ConfigMapKeyRef.Key,
+				}
+			}
+		}
+
+		newEnvs = append(newEnvs, newEnv)
+	}
+	return newEnvs
+}

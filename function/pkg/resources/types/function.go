@@ -41,6 +41,8 @@ func (s FunctionSpec) ResourceRequests() map[string]interface{} {
 }
 
 type Function struct {
+	ApiVersion        string
+	Kind              string
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              FunctionSpec `json:"spec,omitempty"`
 }

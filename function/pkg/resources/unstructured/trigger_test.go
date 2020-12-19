@@ -1,10 +1,11 @@
 package unstructured
 
 import (
-	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"reflect"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestNewTriggers(t *testing.T) {
@@ -29,9 +30,9 @@ func TestNewTriggers(t *testing.T) {
 					Runtime: "python38",
 					Triggers: []workspace.Trigger{
 						{
-							Version: "a",
-							Source:  "b",
-							Type:    "c",
+							EventTypeVersion: "a",
+							Source:           "b",
+							Type:             "c",
 						},
 					},
 				},
