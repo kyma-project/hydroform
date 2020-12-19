@@ -90,7 +90,12 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstruc
 }
 
 func prepareInlineFunction(cfg workspace.Cfg, readFile ReadFile, sourceHandlerName workspace.SourceFileName, depsHandlerName workspace.DepsFileName) (types.Function, error) {
-	specSource, specDeps, err := prepareFunctionSourceAndDeps(cfg, readFile, sourceHandlerName, depsHandlerName)
+	specSource, err := prepareFunctionSource(cfg, readFile, sourceHandlerName)
+	if err != nil {
+		return types.Function{}, err
+	}
+
+	specDeps, err := prepareFunctionDeps(cfg, readFile, depsHandlerName)
 	if err != nil {
 		return types.Function{}, err
 	}
@@ -107,7 +112,7 @@ func prepareInlineFunction(cfg workspace.Cfg, readFile ReadFile, sourceHandlerNa
 }
 
 func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
-	limitsCPU, limitsMemory, requestsCPU, requestsMemory, err := prepareFunctionResources(cfg)
+	resources, err := prepareFunctionResources(cfg)
 	if err != nil {
 		return types.Function{}, err
 	}
@@ -122,17 +127,8 @@ func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
 			Namespace: cfg.Namespace,
 		},
 		Spec: types.FunctionSpec{
-			Runtime: cfg.Runtime,
-			Resources: v1.ResourceRequirements{
-				Limits: map[v1.ResourceName]resource.Quantity{
-					v1.ResourceCPU:    limitsCPU,
-					v1.ResourceMemory: limitsMemory,
-				},
-				Requests: map[v1.ResourceName]resource.Quantity{
-					v1.ResourceCPU:    requestsCPU,
-					v1.ResourceMemory: requestsMemory,
-				},
-			},
+			Runtime:    cfg.Runtime,
+			Resources:  resources,
 			Labels:     cfg.Labels,
 			Repository: types.Repository{},
 			Env:        envs,
@@ -141,41 +137,57 @@ func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
 	return f, nil
 }
 
-func prepareFunctionSourceAndDeps(cfg workspace.Cfg, readFile ReadFile, sourceHandlerName workspace.SourceFileName, depsHandlerName workspace.DepsFileName) ([]byte, []byte, error) {
+func prepareFunctionSource(cfg workspace.Cfg, readFile ReadFile, sourceHandlerName workspace.SourceFileName) ([]byte, error) {
 	specSource, err := readFile(path.Join(cfg.Source.SourcePath, sourceHandlerName))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	specDeps, err := readFile(path.Join(cfg.Source.SourcePath, depsHandlerName))
-	if err != nil {
-		return nil, nil, err
-	}
-	return specSource, specDeps, nil
+	return specSource, nil
 }
 
-func prepareFunctionResources(cfg workspace.Cfg) (resource.Quantity, resource.Quantity, resource.Quantity, resource.Quantity, error) {
+func prepareFunctionDeps(cfg workspace.Cfg, readFile ReadFile, depsHandlerName workspace.DepsFileName) ([]byte, error) {
+	specDeps, err := readFile(path.Join(cfg.Source.SourcePath, depsHandlerName))
+	if err != nil {
+		return nil, err
+	}
+	return specDeps, nil
+}
+
+func prepareFunctionResources(cfg workspace.Cfg) (v1.ResourceRequirements, error) {
 
 	limitsCPU, err := resource.ParseQuantity(cfg.Resources.Limits[workspace.ResourceNameCPU].(string))
 	if err != nil {
-		return resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, err
+		return v1.ResourceRequirements{}, err
 	}
 
 	limitsMemory, err := resource.ParseQuantity(cfg.Resources.Limits[workspace.ResourceNameMemory].(string))
 	if err != nil {
-		return resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, err
+		return v1.ResourceRequirements{}, err
 	}
 
 	requestsCPU, err := resource.ParseQuantity(cfg.Resources.Requests[workspace.ResourceNameCPU].(string))
 	if err != nil {
-		return resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, err
+		return v1.ResourceRequirements{}, err
 	}
 
 	requestsMemory, err := resource.ParseQuantity(cfg.Resources.Requests[workspace.ResourceNameMemory].(string))
 	if err != nil {
-		return resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, resource.Quantity{}, err
+		return v1.ResourceRequirements{}, err
 	}
-	return limitsCPU, limitsMemory, requestsCPU, requestsMemory, nil
+
+	resources := v1.ResourceRequirements{
+		Limits: map[v1.ResourceName]resource.Quantity{
+			v1.ResourceCPU:    limitsCPU,
+			v1.ResourceMemory: limitsMemory,
+		},
+		Requests: map[v1.ResourceName]resource.Quantity{
+			v1.ResourceCPU:    requestsCPU,
+			v1.ResourceMemory: requestsMemory,
+		},
+	}
+
+	return resources, nil
 }
 
 func prepareEnvVars(envs []workspace.EnvVar) []v1.EnvVar {
