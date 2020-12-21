@@ -100,9 +100,14 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		return err
 	}
 
+	if config.Resources.Limits != nil {
+		config.Resources.Limits = function.Spec.ResourceLimits()
+	}
+	if config.Resources.Requests != nil {
+		config.Resources.Requests = function.Spec.ResourceRequests()
+	}
+
 	config.Runtime = function.Spec.Runtime
-	config.Resources.Limits = function.Spec.ResourceLimits()
-	config.Resources.Requests = function.Spec.ResourceRequests()
 	config.Labels = function.Spec.Labels
 	config.Env = convertCoreV1EnvToEnvVar(function.Spec.Env)
 

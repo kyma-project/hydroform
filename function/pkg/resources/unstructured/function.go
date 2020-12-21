@@ -154,40 +154,57 @@ func prepareFunctionDeps(cfg workspace.Cfg, readFile ReadFile, depsHandlerName w
 	return specDeps, nil
 }
 
-func prepareFunctionResources(cfg workspace.Cfg) (v1.ResourceRequirements, error) {
-
-	limitsCPU, err := resource.ParseQuantity(cfg.Resources.Limits[workspace.ResourceNameCPU].(string))
-	if err != nil {
-		return v1.ResourceRequirements{}, err
+func prepareFunctionResources(cfg workspace.Cfg) (*v1.ResourceRequirements, error) {
+	if cfg.Resources.Limits == nil && cfg.Resources.Requests == nil {
+		return nil, nil
 	}
 
-	limitsMemory, err := resource.ParseQuantity(cfg.Resources.Limits[workspace.ResourceNameMemory].(string))
-	if err != nil {
-		return v1.ResourceRequirements{}, err
+	resources := v1.ResourceRequirements{}
+	var limitsCPU, limitsMemory, requestsCPU, requestsMemory resource.Quantity
+	var err error
+
+	if cfg.Resources.Limits != nil {
+		resources.Limits = map[v1.ResourceName]resource.Quantity{}
+		if cfg.Resources.Limits[workspace.ResourceNameCPU] != nil {
+			limitsCPU, err = resource.ParseQuantity(cfg.Resources.Limits[workspace.ResourceNameCPU].(string))
+			if err != nil {
+				return nil, err
+			}
+			resources.Limits[v1.ResourceCPU] = limitsCPU
+		}
+
+		if cfg.Resources.Limits[workspace.ResourceNameMemory] != nil {
+			limitsMemory, err = resource.ParseQuantity(cfg.Resources.Limits[workspace.ResourceNameMemory].(string))
+			if err != nil {
+				return nil, err
+			}
+			resources.Limits[v1.ResourceMemory] = limitsMemory
+		}
+
 	}
 
-	requestsCPU, err := resource.ParseQuantity(cfg.Resources.Requests[workspace.ResourceNameCPU].(string))
-	if err != nil {
-		return v1.ResourceRequirements{}, err
+	if cfg.Resources.Requests != nil {
+		resources.Requests = map[v1.ResourceName]resource.Quantity{}
+
+		if cfg.Resources.Requests[workspace.ResourceNameCPU] != nil {
+			requestsCPU, err = resource.ParseQuantity(cfg.Resources.Requests[workspace.ResourceNameCPU].(string))
+			if err != nil {
+				return nil, err
+			}
+			resources.Requests[v1.ResourceCPU] = requestsCPU
+		}
+
+		if cfg.Resources.Requests[workspace.ResourceNameMemory] != nil {
+			requestsMemory, err = resource.ParseQuantity(cfg.Resources.Requests[workspace.ResourceNameMemory].(string))
+			if err != nil {
+				return nil, err
+			}
+			resources.Requests[v1.ResourceMemory] = requestsMemory
+		}
+
 	}
 
-	requestsMemory, err := resource.ParseQuantity(cfg.Resources.Requests[workspace.ResourceNameMemory].(string))
-	if err != nil {
-		return v1.ResourceRequirements{}, err
-	}
-
-	resources := v1.ResourceRequirements{
-		Limits: map[v1.ResourceName]resource.Quantity{
-			v1.ResourceCPU:    limitsCPU,
-			v1.ResourceMemory: limitsMemory,
-		},
-		Requests: map[v1.ResourceName]resource.Quantity{
-			v1.ResourceCPU:    requestsCPU,
-			v1.ResourceMemory: requestsMemory,
-		},
-	}
-
-	return resources, nil
+	return &resources, nil
 }
 
 func prepareEnvVars(envs []workspace.EnvVar) []v1.EnvVar {
