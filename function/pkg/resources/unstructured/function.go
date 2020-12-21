@@ -82,10 +82,10 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstruc
 	}
 
 	unstructuredFunction, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&f)
-	out = unstructured.Unstructured{Object: unstructuredFunction}
 	if err != nil {
 		return unstructured.Unstructured{}, err
 	}
+	out = unstructured.Unstructured{Object: unstructuredFunction}
 	return
 }
 

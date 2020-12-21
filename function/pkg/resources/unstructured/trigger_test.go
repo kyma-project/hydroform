@@ -46,8 +46,9 @@ func TestNewTriggers(t *testing.T) {
 							"labels": map[string]interface{}{
 								"test": "me",
 							},
-							"name":      "test-name-b",
-							"namespace": "test-namespace",
+							"name":              "test-name-b",
+							"namespace":         "test-namespace",
+							"creationTimestamp": nil,
 						},
 						"spec": map[string]interface{}{
 							"broker": "default",

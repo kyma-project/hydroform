@@ -31,6 +31,7 @@ func NewTriggers(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      triggerName,
 				Namespace: cfg.Namespace,
+				Labels:    cfg.Labels,
 			},
 			Spec: types.TriggerSpec{
 				Filter: types.TriggerFilter{

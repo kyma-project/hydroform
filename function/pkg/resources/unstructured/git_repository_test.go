@@ -2,11 +2,12 @@ package unstructured
 
 import (
 	"encoding/json"
-	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestNewPublicGitRepository(t *testing.T) {
@@ -38,8 +39,9 @@ func TestNewPublicGitRepository(t *testing.T) {
 					"apiVersion": gitRepositoryApiVersion,
 					"kind":       "GitRepository",
 					"metadata": map[string]interface{}{
-						"name":      "test-repository",
-						"namespace": "test-ns",
+						"name":              "test-repository",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
 						"url": "test-url",

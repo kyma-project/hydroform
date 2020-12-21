@@ -59,13 +59,6 @@ func Test_newFunction(t *testing.T) {
 							DepsHandlerName:   "test.my.deps",
 						},
 					},
-					Triggers: []workspace.Trigger{
-						{
-							EventTypeVersion: "test-trigger-etv",
-							Source:           "test-trigger-source",
-							Type:             "test-trigger-type",
-						},
-					},
 					Env: []workspace.EnvVar{
 						{
 							Name:  "TEST_ENV",
@@ -97,8 +90,9 @@ func Test_newFunction(t *testing.T) {
 					"apiVersion": functionApiVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
-						"name":      "test-name",
-						"namespace": "test-ns",
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -123,8 +117,7 @@ func Test_newFunction(t *testing.T) {
 								"value": "test",
 							},
 							map[string]interface{}{
-								"name":  "TEST_ENV_SECRET",
-								"value": "",
+								"name": "TEST_ENV_SECRET",
 								"valueFrom": map[string]interface{}{
 									"secretKeyRef": map[string]interface{}{
 										"name": "secretName",
@@ -133,8 +126,7 @@ func Test_newFunction(t *testing.T) {
 								},
 							},
 							map[string]interface{}{
-								"name":  "TEST_ENV_CM",
-								"value": "",
+								"name": "TEST_ENV_CM",
 								"valueFrom": map[string]interface{}{
 									"configMapKeyRef": map[string]interface{}{
 										"name": "configMapName",
@@ -197,8 +189,9 @@ func Test_newFunction(t *testing.T) {
 					"apiVersion": functionApiVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
-						"name":      "test-name",
-						"namespace": "test-ns",
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -358,8 +351,9 @@ func Test_newGitFunction(t *testing.T) {
 					"apiVersion": functionApiVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
-						"name":      "test-name",
-						"namespace": "test-ns",
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -386,8 +380,7 @@ func Test_newGitFunction(t *testing.T) {
 								"value": "test",
 							},
 							map[string]interface{}{
-								"name":  "TEST_ENV_SECRET",
-								"value": "",
+								"name": "TEST_ENV_SECRET",
 								"valueFrom": map[string]interface{}{
 									"secretKeyRef": map[string]interface{}{
 										"name": "secretName",
@@ -396,8 +389,7 @@ func Test_newGitFunction(t *testing.T) {
 								},
 							},
 							map[string]interface{}{
-								"name":  "TEST_ENV_CM",
-								"value": "",
+								"name": "TEST_ENV_CM",
 								"valueFrom": map[string]interface{}{
 									"configMapKeyRef": map[string]interface{}{
 										"name": "configMapName",
@@ -453,8 +445,9 @@ func Test_newGitFunction(t *testing.T) {
 					"apiVersion": functionApiVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
-						"name":      "test-name",
-						"namespace": "test-ns",
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
