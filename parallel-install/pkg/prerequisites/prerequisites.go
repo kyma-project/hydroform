@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	v1 "k8s.io/api/core/v1"
@@ -34,17 +36,27 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 	go func() {
 		defer close(statusChan)
 
-		config.Log("Creating kyma-installer namespace")
-		_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   "kyma-installer",
-				Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
-			},
-		}, metav1.CreateOptions{})
+		config.Log("Deploying kyma-installer namespace")
+
+		_, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), "kyma-installer", metav1.GetOptions{})
 
 		if err != nil {
-			statusChan <- fmt.Errorf("Unable to create kyma-installer namespace. Error: %v", err)
-			return
+			if errors.IsNotFound(err) {
+				nsErr := createNamespace(kubeClient)
+				if nsErr != nil {
+					statusChan <- fmt.Errorf("Unable to create kyma-installer namespace. Error: %v", nsErr)
+					return
+				}
+			} else {
+				statusChan <- fmt.Errorf("Unable to get kyma-installer namespace. Error: %v", err)
+				return
+			}
+		} else {
+			nsErr := updateNamespace(kubeClient)
+			if nsErr != nil {
+				statusChan <- fmt.Errorf("Unable to update kyma-installer namespace. Error: %v", nsErr)
+				return
+			}
 		}
 
 		for _, prerequisite := range prerequisites {
@@ -68,6 +80,36 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 	}()
 
 	return statusChan
+}
+
+func createNamespace(kubeClient kubernetes.Interface) error {
+	_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "kyma-installer",
+			Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
+		},
+	}, metav1.CreateOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateNamespace(kubeClient kubernetes.Interface) error {
+	_, err := kubeClient.CoreV1().Namespaces().Update(context.Background(), &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "kyma-installer",
+			Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
+		},
+	}, metav1.UpdateOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //UninstallPrerequisites tries to uninstall all provided prerequisites.
