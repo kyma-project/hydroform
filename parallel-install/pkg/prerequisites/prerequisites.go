@@ -40,15 +40,17 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 
 		_, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), "kyma-installer", metav1.GetOptions{})
 
-		if errors.IsNotFound(err) {
-			nsErr := createNamespace(kubeClient)
-			if nsErr != nil {
-				statusChan <- fmt.Errorf("Unable to create kyma-installer namespace. Error: %v", nsErr)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				nsErr := createNamespace(kubeClient)
+				if nsErr != nil {
+					statusChan <- fmt.Errorf("Unable to create kyma-installer namespace. Error: %v", nsErr)
+					return
+				}
+			} else {
+				statusChan <- fmt.Errorf("Unable to get kyma-installer namespace. Error: %v", err)
 				return
 			}
-		} else if err != nil {
-			statusChan <- fmt.Errorf("Unable to get kyma-installer namespace. Error: %v", err)
-			return
 		} else {
 			nsErr := updateNamespace(kubeClient)
 			if nsErr != nil {
