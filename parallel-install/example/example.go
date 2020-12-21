@@ -60,6 +60,7 @@ func main() {
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
 		Log:                           log.Printf,
+		HelmMaxRevisionHistory:        10,
 	}
 
 	installer, err := deployment.NewDeployment(prerequisitesContent,
