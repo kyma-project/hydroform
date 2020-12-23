@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"io/ioutil"
-	"k8s.io/client-go/kubernetes"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
@@ -63,11 +64,15 @@ func main() {
 		HelmMaxRevisionHistory:        10,
 	}
 
+	// used to receive progress updates of the install/uninstall process
+	progressChan := make(chan<- deployment.ProcessUpdate)
+
 	installer, err := deployment.NewDeployment(prerequisitesContent,
 		string(componentsContent),
 		[]string{string(overridesContent)},
 		resourcesPath,
-		installationCfg)
+		installationCfg,
+		progressChan)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
