@@ -23,7 +23,7 @@ const quitTimeout = 250 * time.Millisecond
 func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 	procUpdChan := make(chan ProcessUpdate)
 
-	// count the received events
+	// verify we received all expected events
 	receivedEvents := make(map[string]int)
 	var wg sync.WaitGroup
 	go func() {
@@ -31,7 +31,24 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 		for procUpd := range procUpdChan {
 			receivedEvents[processUpdateString(procUpd)]++
 		}
-		fmt.Println("Die")
+		expectedEvents := []string{
+			"InstallPreRequisites-ProcessStart",
+			"InstallPreRequisites-ProcessFinished",
+			"InstallComponents-ProcessStart",
+			"InstallComponents-ProcessRunning-test1-Installed",
+			"InstallComponents-ProcessRunning-test2-Installed",
+			"InstallComponents-ProcessRunning-test3-Installed",
+			"InstallComponents-ProcessFinished",
+		}
+
+		assert.Equal(t, len(expectedEvents), len(receivedEvents),
+			fmt.Sprintf("Amount of expected and received events differ (got %v)", receivedEvents))
+
+		for _, expectedEvent := range expectedEvents {
+			count, ok := receivedEvents[expectedEvent]
+			assert.True(t, ok, fmt.Sprintf("Expected event '%s' missing", expectedEvent))
+			assert.Equal(t, 1, count, fmt.Sprintf("Expected event '%s' missing, got %v", expectedEvent, receivedEvents))
+		}
 		wg.Done()
 	}()
 
@@ -53,24 +70,8 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 
 	close(procUpdChan)
 
+	// wait until the test threat is ready
 	wg.Wait()
-	fmt.Println("Test")
-	// verify we received all expected events
-	expectedEvents := []string{
-		"InstallPreRequisites-ProcessStart",
-		"InstallPreRequisites-ProcessFinished",
-		"InstallComponents-ProcessStart",
-		"InstallComponents-ProcessRunning-test1-Installed",
-		"InstallComponents-ProcessRunning-test2-Installed",
-		"InstallComponents-ProcessRunning-test3-Installed",
-		"InstallComponents-ProcessFinished",
-	}
-	assert.Equal(t, len(expectedEvents), len(receivedEvents),
-		fmt.Sprintf("Amount of expected and received events differ (got %v)", receivedEvents))
-	for _, expectedEvent := range expectedEvents {
-		assert.Equal(t, receivedEvents[expectedEvent], 1,
-			fmt.Sprintf("Expected event '%s' missing, got %v", expectedEvent, expectedEvents))
-	}
 }
 
 func processUpdateString(procUpd ProcessUpdate) string {
