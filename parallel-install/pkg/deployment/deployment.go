@@ -267,7 +267,7 @@ InstallLoop:
 	for {
 		select {
 		case cmp, ok := <-statusChan:
-			i.processUpdateComponent(InstallComponents, cmp)
+			i.processUpdateComponent(InstallComponents, cmp, ok)
 			if ok {
 				//Received a status update
 				if cmp.Status == components.StatusError {
@@ -320,7 +320,7 @@ UninstallLoop:
 	for {
 		select {
 		case cmp, ok := <-statusChan:
-			i.processUpdateComponent(UninstallComponents, cmp)
+			i.processUpdateComponent(UninstallComponents, cmp, ok)
 			if ok {
 				if cmp.Status == components.StatusError {
 					errCount++
@@ -386,13 +386,13 @@ func (i *Deployment) processUpdate(phase InstallationPhase, event ProcessEvent) 
 }
 
 // Send process update event related to a component
-func (i *Deployment) processUpdateComponent(phase InstallationPhase, comp components.KymaComponent) {
+func (i *Deployment) processUpdateComponent(phase InstallationPhase, comp components.KymaComponent, chanClosed bool) {
 	if i.ProcessUpdates == nil {
 		return
 	}
 	// define event type
 	event := ProcessRunning
-	if comp.Status == components.StatusError {
+	if comp.Status == components.StatusError || chanClosed {
 		event = ProcessExecutionFailure
 	}
 	// fire event

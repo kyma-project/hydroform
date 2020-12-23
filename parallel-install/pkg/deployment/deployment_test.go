@@ -2,6 +2,8 @@ package deployment
 
 import (
 	"context"
+	"fmt"
+	"sync"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -18,10 +20,71 @@ import (
 const cancelTimeout = 150 * time.Millisecond
 const quitTimeout = 250 * time.Millisecond
 
+func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
+	procUpdChan := make(chan ProcessUpdate)
+
+	// count the received events
+	receivedEvents := make(map[string]int)
+	var wg sync.WaitGroup
+	go func() {
+		wg.Add(1)
+		for procUpd := range procUpdChan {
+			receivedEvents[processUpdateString(procUpd)]++
+		}
+		fmt.Println("Die")
+		wg.Done()
+	}()
+
+	inst := newDeployment(procUpdChan)
+
+	kubeClient := fake.NewSimpleClientset()
+
+	hc := &mockHelmClient{}
+	provider := &mockProvider{
+		hc: hc,
+	}
+	overridesProvider := &mockOverridesProvider{}
+	eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+		WorkersCount: 2,
+		Log:          log.Printf,
+	})
+	err := inst.startKymaDeployment(kubeClient, provider, overridesProvider, eng)
+	assert.NoError(t, err)
+
+	close(procUpdChan)
+
+	wg.Wait()
+	fmt.Println("Test")
+	// verify we received all expected events
+	expectedEvents := []string{
+		"InstallPreRequisites-ProcessStart",
+		"InstallPreRequisites-ProcessFinished",
+		"InstallComponents-ProcessStart",
+		"InstallComponents-ProcessRunning-test1-Installed",
+		"InstallComponents-ProcessRunning-test2-Installed",
+		"InstallComponents-ProcessRunning-test3-Installed",
+		"InstallComponents-ProcessFinished",
+	}
+	assert.Equal(t, len(expectedEvents), len(receivedEvents),
+		fmt.Sprintf("Amount of expected and received events differ (got %v)", receivedEvents))
+	for _, expectedEvent := range expectedEvents {
+		assert.Equal(t, receivedEvents[expectedEvent], 1,
+			fmt.Sprintf("Expected event '%s' missing, got %v", expectedEvent, expectedEvents))
+	}
+}
+
+func processUpdateString(procUpd ProcessUpdate) string {
+	result := fmt.Sprintf("%s-%s", procUpd.Phase, procUpd.Event)
+	if procUpd.Component.Status != "" {
+		return fmt.Sprintf("%s-%s-%s", result, procUpd.Component.Name, procUpd.Component.Status)
+	}
+	return result
+}
+
 func TestDeployment_StartKymaDeployment(t *testing.T) {
 	t.Parallel()
 
-	i := newDeployment()
+	i := newDeployment(nil)
 
 	t.Run("should deploy Kyma", func(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset()
@@ -144,7 +207,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 		t.Run("due to quit timeout", func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset()
 
-			inst := newDeployment()
+			inst := newDeployment(nil)
 
 			// Changing it to higher amounts to minimize difference between cancel and quit timeout
 			// and give program enough time to process
@@ -183,7 +246,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 
 func TestDeployment_StartKymaUninstallation(t *testing.T) {
 
-	i := newDeployment()
+	i := newDeployment(nil)
 
 	t.Run("should uninstall Kyma", func(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset()
@@ -306,7 +369,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 		t.Run("due to quit timeout", func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset()
 
-			inst := newDeployment()
+			inst := newDeployment(nil)
 
 			// Changing it to higher amounts to minimize difference between cancel and quit timeout
 			// and give program enough time to process
@@ -359,9 +422,10 @@ func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name s
 	return nil
 }
 
-func newDeployment() Deployment {
+// Pass optionally an receiver-channel to get progress updates
+func newDeployment(procUpdates chan<- ProcessUpdate) Deployment {
 	return Deployment{
-
+		ProcessUpdates: procUpdates,
 		Cfg: config.Config{
 			CancelTimeout: cancelTimeout,
 			QuitTimeout:   quitTimeout,

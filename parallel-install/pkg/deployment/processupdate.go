@@ -1,37 +1,39 @@
 package deployment
 
-import "github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
+import (
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
+)
 
 // ProcessEvent represents an event fired during process executing
-type ProcessEvent uint
+type ProcessEvent string
 
 const (
 	// ProcessStart is set when main process gets started
-	ProcessStart ProcessEvent = iota
+	ProcessStart ProcessEvent = "ProcessStart"
 	// ProcessRunning is indicating a running main process
-	ProcessRunning ProcessEvent = iota
+	ProcessRunning ProcessEvent = "ProcessRunning"
 	// ProcessFinished indicates a successfully finished main process
-	ProcessFinished ProcessEvent = iota
+	ProcessFinished ProcessEvent = "ProcessFinished"
 	// ProcessExecutionFailure indicates a failure during the execution (install/uninstall of a component failed)
-	ProcessExecutionFailure ProcessEvent = iota
+	ProcessExecutionFailure ProcessEvent = "ProcessExecutionFailure"
 	// ProcessTimeoutFailure indicates an exceeded timeout
-	ProcessTimeoutFailure ProcessEvent = iota
+	ProcessTimeoutFailure ProcessEvent = "ProcessTimeoutFailure"
 	// ProcessForceQuitFailure indicates an cancelled main process
-	ProcessForceQuitFailure ProcessEvent = iota
+	ProcessForceQuitFailure ProcessEvent = "ProcessForceQuitFailure"
 )
 
 // InstallationPhase represents the current installation phase
-type InstallationPhase uint
+type InstallationPhase string
 
 const (
 	// InstallPreRequisites indicates the main process is installing pre-requisites
-	InstallPreRequisites InstallationPhase = iota
+	InstallPreRequisites InstallationPhase = "InstallPreRequisites"
 	// UninstallPreRequisites indicates the main process is removing pre-requisites
-	UninstallPreRequisites InstallationPhase = iota
+	UninstallPreRequisites InstallationPhase = "UninstallPreRequisites"
 	// InstallComponents indicates the main process is installing components
-	InstallComponents InstallationPhase = iota
+	InstallComponents InstallationPhase = "InstallComponents"
 	// UninstallComponents indicates the main process is removing components
-	UninstallComponents InstallationPhase = iota
+	UninstallComponents InstallationPhase = "UninstallComponents"
 )
 
 // ProcessUpdate is an update of the main process
