@@ -63,7 +63,7 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 	overridesProvider := &mockOverridesProvider{}
 	eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 		WorkersCount: 2,
-		Log:          log.Printf,
+		Verbose:      true,
 	})
 	err := inst.startKymaDeployment(kubeClient, provider, overridesProvider, eng)
 	assert.NoError(t, err)
@@ -97,7 +97,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 		overridesProvider := &mockOverridesProvider{}
 		eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 			WorkersCount: 2,
-			Log:          log.Printf,
+			Verbose:      true,
 		})
 
 		err := i.startKymaDeployment(kubeClient, provider, overridesProvider, eng)
@@ -118,7 +118,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Log:          log.Printf,
+				Verbose:      true,
 			})
 
 			start := time.Now()
@@ -151,7 +151,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Log:          log.Printf,
+				Verbose:      true,
 			})
 
 			start := time.Now()
@@ -185,7 +185,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Log:          log.Printf,
+				Verbose:      true,
 			})
 
 			start := time.Now()
@@ -224,7 +224,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Log:          log.Printf,
+				Verbose:      true,
 			})
 
 			start := time.Now()
@@ -259,7 +259,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 		overridesProvider := &mockOverridesProvider{}
 		eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 			WorkersCount: 2,
-			Log:          log.Printf,
+			Verbose:      true,
 		})
 
 		err := i.startKymaUninstallation(kubeClient, provider, eng)
@@ -280,7 +280,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Log:          log.Printf,
+				Verbose:      true,
 			})
 
 			start := time.Now()
@@ -313,7 +313,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Log:          log.Printf,
+				Verbose:      true,
 			})
 
 			start := time.Now()
@@ -347,7 +347,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Log:          log.Printf,
+				Verbose:      true,
 			})
 
 			start := time.Now()
@@ -386,7 +386,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Log:          log.Printf,
+				Verbose:      true,
 			})
 
 			start := time.Now()

@@ -13,7 +13,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
-	prereq "github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
 )
 
 type Deployment struct {
@@ -174,7 +174,13 @@ func (i *Deployment) deployPrerequisites(ctx context.Context, cancelFunc context
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false
 
-	prereqStatusChan := prereq.InstallPrerequisites(ctx, kubeClient, p)
+	prereq := prerequisites.Prerequisites{
+		Context:       ctx,
+		KubeClient:    kubeClient,
+		Prerequisites: p,
+		Log:           i.Cfg.Log,
+	}
+	prereqStatusChan := prereq.InstallPrerequisites()
 
 	i.processUpdate(InstallPreRequisites, ProcessStart)
 
@@ -214,7 +220,13 @@ func (i *Deployment) uninstallPrerequisites(ctx context.Context, cancelFunc cont
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false
 
-	prereqStatusChan := prereq.UninstallPrerequisites(ctx, kubeClient, p)
+	prereq := prerequisites.Prerequisites{
+		Context:       ctx,
+		KubeClient:    kubeClient,
+		Prerequisites: p,
+		Log:           i.Cfg.Log,
+	}
+	prereqStatusChan := prereq.UninstallPrerequisites()
 
 	i.processUpdate(UninstallPreRequisites, ProcessStart)
 
@@ -225,7 +237,7 @@ Prerequisites:
 			if ok {
 				if prerequisiteErr != nil {
 					i.processUpdate(UninstallPreRequisites, ProcessExecutionFailure)
-					config.Log("Failed to uninstall a prerequisite: %s", prerequisiteErr)
+					i.Cfg.Log("Failed to uninstall a prerequisite: %s", prerequisiteErr)
 				}
 			} else {
 				if timeoutOccurred {
@@ -361,7 +373,10 @@ func (i *Deployment) getConfig(kubeClient kubernetes.Interface) (overrides.Overr
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
-	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
+	engineCfg := engine.Config{
+		WorkersCount: i.Cfg.WorkersCount,
+		Verbose:      false,
+	}
 	eng := engine.NewEngine(overridesProvider, componentsProvider, engineCfg)
 
 	return overridesProvider, prerequisitesProvider, eng, nil

@@ -77,8 +77,6 @@ func main() {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
 
-	config.SetupLogger(log.Printf)
-
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		log.Printf("Failed to create kube client. Exiting...")

@@ -11,11 +11,18 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+// Prerequisites supports installation / uninstallation of Kyma prerequisites
+type Prerequisites struct {
+	Context       context.Context
+	KubeClient    kubernetes.Interface
+	Prerequisites []components.KymaComponent
+	Log           func(format string, v ...interface{}) //Logging function
+}
 
 const logPrefix = "[prerequisites/prerequisites.go]"
 
@@ -29,20 +36,20 @@ const logPrefix = "[prerequisites/prerequisites.go]"
 //
 //prerequisites provide information about all Components that are considered prerequisites for Kyma installation.
 //Such components are installed sequentially, in the same order as in the provided slice.
-func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.KymaComponent) <-chan error {
+func (p *Prerequisites) InstallPrerequisites() <-chan error {
 
 	statusChan := make(chan error)
 
 	go func() {
 		defer close(statusChan)
 
-		config.Log("Deploying kyma-installer namespace")
+		p.Log("Deploying kyma-installer namespace")
 
-		_, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), "kyma-installer", metav1.GetOptions{})
+		_, err := p.KubeClient.CoreV1().Namespaces().Get(context.Background(), "kyma-installer", metav1.GetOptions{})
 
 		if err != nil {
 			if errors.IsNotFound(err) {
-				nsErr := createNamespace(kubeClient)
+				nsErr := p.createNamespace()
 				if nsErr != nil {
 					statusChan <- fmt.Errorf("Unable to create kyma-installer namespace. Error: %v", nsErr)
 					return
@@ -52,26 +59,26 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 				return
 			}
 		} else {
-			nsErr := updateNamespace(kubeClient)
+			nsErr := p.updateNamespace()
 			if nsErr != nil {
 				statusChan <- fmt.Errorf("Unable to update kyma-installer namespace. Error: %v", nsErr)
 				return
 			}
 		}
 
-		for _, prerequisite := range prerequisites {
+		for _, prerequisite := range p.Prerequisites {
 			//TODO: Is there a better way to find out if Context is canceled?
-			if ctx.Err() != nil {
+			if p.Context.Err() != nil {
 				//Context is canceled or timed-out. Skip processing
-				config.Log("%s Finishing work: %v", logPrefix, ctx.Err())
+				p.Log("%s Finishing work: %v", logPrefix, p.Context.Err())
 				return //TODO: Consider returning information about "processing skipped because of timeout" via statusChan
 			}
 
-			config.Log("%s Installing component %s ", logPrefix, prerequisite.Name)
+			p.Log("%s Installing component %s ", logPrefix, prerequisite.Name)
 			//installation step
-			err := prerequisite.Deploy(ctx)
+			err := prerequisite.Deploy(p.Context)
 			if err != nil {
-				config.Log("%s Error installing prerequisite %s: %v (The installation will not continue)", logPrefix, prerequisite.Name, err)
+				p.Log("%s Error installing prerequisite %s: %v (The installation will not continue)", logPrefix, prerequisite.Name, err)
 				statusChan <- err
 				return
 			}
@@ -82,8 +89,8 @@ func InstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, 
 	return statusChan
 }
 
-func createNamespace(kubeClient kubernetes.Interface) error {
-	_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
+func (p *Prerequisites) createNamespace() error {
+	_, err := p.KubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "kyma-installer",
 			Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
@@ -97,8 +104,8 @@ func createNamespace(kubeClient kubernetes.Interface) error {
 	return nil
 }
 
-func updateNamespace(kubeClient kubernetes.Interface) error {
-	_, err := kubeClient.CoreV1().Namespaces().Update(context.Background(), &v1.Namespace{
+func (p *Prerequisites) updateNamespace() error {
+	_, err := p.KubeClient.CoreV1().Namespaces().Update(context.Background(), &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "kyma-installer",
 			Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
@@ -119,35 +126,35 @@ func updateNamespace(kubeClient kubernetes.Interface) error {
 //The cancellation is not immediate.
 //If the "cancel" signal appears during the uninstallation step (it's a blocking operation),
 //such a "cancel" condition is detected only after that step is over, and UninstallPrerequisites returns without an error.
-func UninstallPrerequisites(ctx context.Context, kubeClient kubernetes.Interface, prerequisites []components.KymaComponent) <-chan error {
+func (p *Prerequisites) UninstallPrerequisites() <-chan error {
 
 	statusChan := make(chan error)
 
 	go func() {
 		defer close(statusChan)
 
-		for i := len(prerequisites) - 1; i >= 0; i-- {
-			prereq := prerequisites[i]
+		for i := len(p.Prerequisites) - 1; i >= 0; i-- {
+			prereq := p.Prerequisites[i]
 			//TODO: Is there a better way to find out if Context is canceled?
-			if ctx.Err() != nil {
+			if p.Context.Err() != nil {
 				//Context is canceled or timed-out. Skip processing
-				config.Log("%s Finishing work: %v", logPrefix, ctx.Err())
+				p.Log("%s Finishing work: %v", logPrefix, p.Context.Err())
 				return //TODO: Consider returning information about "processing skipped because of timeout" via statusChan
 			}
 
-			config.Log("%s Uninstalling component %s ", logPrefix, prereq.Name)
+			p.Log("%s Uninstalling component %s ", logPrefix, prereq.Name)
 			//uninstallation step
-			err := prereq.Uninstall(ctx)
+			err := prereq.Uninstall(p.Context)
 			if err != nil {
-				config.Log("%s Error uninstalling prerequisite %s: %v (The uninstallation continues anyway)", logPrefix, prereq.Name, err)
+				p.Log("%s Error uninstalling prerequisite %s: %v (The uninstallation continues anyway)", logPrefix, prereq.Name, err)
 				statusChan <- err
 			}
 			statusChan <- nil //TODO: Is this necessary?
 		}
 
 		// TODO: Delete namespace deletion once xip-patch is gone.
-		config.Log("Deleting kyma-installer namespace")
-		err := kubeClient.CoreV1().Namespaces().Delete(context.Background(), "kyma-installer", metav1.DeleteOptions{})
+		p.Log("Deleting kyma-installer namespace")
+		err := p.KubeClient.CoreV1().Namespaces().Delete(context.Background(), "kyma-installer", metav1.DeleteOptions{})
 		if err != nil {
 			statusChan <- fmt.Errorf("Unable to delete kyma-installer namespace. Error: %v", err)
 			return

@@ -2,7 +2,6 @@
 package config
 
 import (
-	"log"
 	"time"
 )
 
@@ -28,13 +27,4 @@ type Config struct {
 	Log func(format string, v ...interface{})
 	//Maximum number of Helm revision saved per release
 	HelmMaxRevisionHistory int
-}
-
-// TODO: Remove this variable. Search for occurrences of config.Log
-// It is used in functions to avoid passing logger as a parameter
-var Log = log.Printf
-
-//It sets up the global logging function.
-func SetupLogger(log func(string, ...interface{})) {
-	Log = log
 }
