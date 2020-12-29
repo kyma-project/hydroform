@@ -28,14 +28,14 @@ type Component interface {
 //KymaComponent implements the Component interface.
 type KymaComponent struct {
 	//Name defines the Helm release name
-	Name            string
+	Name string
 	//Namespace defines the Helm release namespace
-	Namespace       string
+	Namespace string
 	//Profile defines the Kyma release namespace
-	Profile         string
-	Status          string
+	Profile string
+	Status  string
 	//ChartDir is a local filesystem directory with the component's chart.
-	ChartDir        string
+	ChartDir string
 	//OverridesGetter is a function that returns overrides for the release.
 	OverridesGetter func() map[string]interface{}
 	HelmClient      helm.ClientInterface
