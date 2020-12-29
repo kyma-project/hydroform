@@ -67,8 +67,16 @@ func (p *ComponentsProvider) GetComponents() ([]KymaComponent, error) {
 
 	var components []KymaComponent
 	for _, component := range installationCR.Spec.Components {
-		cmp := NewComponent(component.Name, component.Namespace, p.profile, path.Join(p.resourcesPath, component.Name), p.overridesProvider.OverridesGetterFunctionFor(component.Name), helmClient, p.log)
-		components = append(components, *cmp)
+		cmp := KymaComponent{
+			Name:            component.Name,
+			Namespace:       component.Namespace,
+			Profile:         p.profile,
+			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(component.Name),
+			ChartDir:        path.Join(p.resourcesPath, component.Name),
+			HelmClient:      helmClient,
+			Log:             p.log,
+		}
+		components = append(components, cmp)
 	}
 
 	return components, nil

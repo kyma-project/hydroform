@@ -52,8 +52,17 @@ func (p *PrerequisitesProvider) GetComponents() ([]KymaComponent, error) {
 		name := componentNamespacePair[0]
 		namespace := componentNamespacePair[1]
 
-		cmp := NewComponent(name, namespace, p.profile, path.Join(p.resourcesPath, name), p.overridesProvider.OverridesGetterFunctionFor(name), helmClient, p.log)
-		components = append(components, *cmp)
+		cmp := KymaComponent{
+			Name:            name,
+			Namespace:       namespace,
+			Profile:         p.profile,
+			ChartDir:        path.Join(p.resourcesPath, name),
+			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(name),
+			HelmClient:      helmClient,
+			Log:             p.log,
+		}
+
+		components = append(components, cmp)
 	}
 
 	return components, nil
