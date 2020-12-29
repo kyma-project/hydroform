@@ -88,9 +88,9 @@ func Test_initialize(t *testing.T) {
 					Runtime: types.Python38,
 					Triggers: []Trigger{
 						{
-							Version: "test-version",
-							Source:  "test-source",
-							Type:    "test-type",
+							EventTypeVersion: "test-version",
+							Source:           "test-source",
+							Type:             "test-type",
 						},
 					},
 				},
@@ -245,15 +245,39 @@ func Test_Synchronise(t *testing.T) {
 							DepsHandlerName:   packageJSON,
 						},
 					},
+					Env: []EnvVar{
+						{
+							Name:  "TEST_ENV",
+							Value: "test",
+						},
+						{
+							Name: "TEST_ENV_SECRET",
+							ValueFrom: &EnvVarSource{
+								SecretKeyRef: &SecretKeySelector{
+									Name: "secretName",
+									Key:  "secretKey",
+								},
+							},
+						},
+						{
+							Name: "TEST_ENV_CM",
+							ValueFrom: &EnvVarSource{
+								ConfigMapKeyRef: &ConfigMapKeySelector{
+									Name: "configMapName",
+									Key:  "configMapKey",
+								},
+							},
+						},
+					},
 					Resources: Resources{
 						Limits:   nil,
 						Requests: nil,
 					},
 					Triggers: []Trigger{
 						{
-							Version: "v1.0.0",
-							Source:  "the-source",
-							Type:    "t1",
+							EventTypeVersion: "v1.0.0",
+							Source:           "the-source",
+							Type:             "t1",
 						},
 					},
 				},
@@ -287,9 +311,9 @@ func Test_Synchronise(t *testing.T) {
 					},
 					Triggers: []Trigger{
 						{
-							Version: "v1.0.0",
-							Source:  "the-source",
-							Type:    "t1",
+							EventTypeVersion: "v1.0.0",
+							Source:           "the-source",
+							Type:             "t1",
 						},
 					},
 				},
@@ -417,6 +441,30 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 				"runtime": "nodejs12",
 				"source":  handlerJs,
 				"deps":    packageJSON,
+				"env": []interface{}{
+					map[string]interface{}{
+						"name":  "TEST_ENV",
+						"value": "test",
+					},
+					map[string]interface{}{
+						"name": "TEST_ENV_SECRET",
+						"valueFrom": map[string]interface{}{
+							"secretKeyRef": map[string]interface{}{
+								"name": "secretName",
+								"key":  "secretKey",
+							},
+						},
+					},
+					map[string]interface{}{
+						"name": "TEST_ENV_CM",
+						"valueFrom": map[string]interface{}{
+							"configMapKeyRef": map[string]interface{}{
+								"name": "configMapName",
+								"key":  "configMapKey",
+							},
+						},
+					},
+				},
 			},
 		}}, nil).Times(1)
 
@@ -475,9 +523,33 @@ func gitClient(ctrl *gomock.Controller, name, namespace string) client.Client {
 					},
 				},
 				"runtime": "nodejs12",
-				"source":  handlerJs,
+				"source":  name,
 				"deps":    packageJSON,
 				"type":    "git",
+				"env": []interface{}{
+					map[string]interface{}{
+						"name":  "TEST_ENV",
+						"value": "test",
+					},
+					map[string]interface{}{
+						"name": "TEST_ENV_SECRET",
+						"valueFrom": map[string]interface{}{
+							"secretKeyRef": map[string]interface{}{
+								"name": "secretName",
+								"key":  "secretKey",
+							},
+						},
+					},
+					map[string]interface{}{
+						"name": "TEST_ENV_CM",
+						"valueFrom": map[string]interface{}{
+							"configMapKeyRef": map[string]interface{}{
+								"name": "configMapName",
+								"key":  "configMapKey",
+							},
+						},
+					},
+				},
 			},
 		}}, nil).Times(1)
 

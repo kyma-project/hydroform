@@ -1,7 +1,12 @@
 package types
 
+import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 type GitRepository struct {
-	Spec GitRepositorySpec `json:"spec,omitempty"`
+	ApiVersion        string
+	Kind              string
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              GitRepositorySpec `json:"spec,omitempty"`
 }
 
 type GitRepositorySpec struct {
