@@ -29,6 +29,7 @@ type Component interface {
 type KymaComponent struct {
 	Name            string
 	Namespace       string
+	Profile         string
 	Status          string
 	ChartDir        string
 	OverridesGetter func() map[string]interface{}
@@ -42,10 +43,11 @@ type KymaComponent struct {
 //"chartDir" is a local filesystem directory with the component's chart.
 //
 //"overrides" is a function that returns overrides for the release.
-func NewComponent(name, namespace, chartDir string, overrides func() map[string]interface{}, helmClient helm.ClientInterface, log func(string, ...interface{})) *KymaComponent {
+func NewComponent(name, namespace, profile, chartDir string, overrides func() map[string]interface{}, helmClient helm.ClientInterface, log func(string, ...interface{})) *KymaComponent {
 	return &KymaComponent{
 		Name:            name,
 		Namespace:       namespace,
+		Profile:         profile,
 		ChartDir:        chartDir,
 		OverridesGetter: overrides,
 		HelmClient:      helmClient,
@@ -60,7 +62,7 @@ func (c *KymaComponent) Deploy(ctx context.Context) error {
 
 	overrides := c.OverridesGetter()
 
-	err := c.HelmClient.DeployRelease(ctx, c.ChartDir, c.Namespace, c.Name, overrides)
+	err := c.HelmClient.DeployRelease(ctx, c.ChartDir, c.Namespace, c.Name, overrides, c.Profile)
 	if err != nil {
 		c.Log("%s Error deploying %s: %v", logPrefix, c.Name, err)
 		return err

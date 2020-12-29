@@ -23,6 +23,7 @@ type ComponentsProvider struct {
 	componentListYaml string
 	helmConfig        helm.Config
 	log               func(format string, v ...interface{})
+	profile           string
 }
 
 //NewComponentsProvider returns a ComponentsProvider instance.
@@ -46,6 +47,7 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resour
 		componentListYaml: componentListYaml,
 		helmConfig:        helmCfg,
 		log:               cfg.Log,
+		profile:           cfg.Profile,
 	}
 }
 
@@ -65,15 +67,8 @@ func (p *ComponentsProvider) GetComponents() ([]KymaComponent, error) {
 
 	var components []KymaComponent
 	for _, component := range installationCR.Spec.Components {
-		component := KymaComponent{
-			Name:            component.Name,
-			Namespace:       component.Namespace,
-			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(component.Name),
-			ChartDir:        path.Join(p.resourcesPath, component.Name),
-			HelmClient:      helmClient,
-			Log:             p.log,
-		}
-		components = append(components, component)
+		cmp := NewComponent(component.Name, component.Namespace, p.profile, path.Join(p.resourcesPath, component.Name), p.overridesProvider.OverridesGetterFunctionFor(component.Name), helmClient, p.log)
+		components = append(components, *cmp)
 	}
 
 	return components, nil

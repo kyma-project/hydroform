@@ -16,6 +16,7 @@ type PrerequisitesProvider struct {
 	componentList     [][]string // TODO: replace with []struct{name, namespace string}
 	helmConfig        helm.Config
 	log               func(format string, v ...interface{})
+	profile           string
 }
 
 //NewPrerequisitesProvider returns a new PrerequisitesProvider instance.
@@ -38,6 +39,7 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, res
 		componentList:     componentList,
 		helmConfig:        helmCfg,
 		log:               cfg.Log,
+		profile:           cfg.Profile,
 	}
 }
 
@@ -50,14 +52,8 @@ func (p *PrerequisitesProvider) GetComponents() ([]KymaComponent, error) {
 		name := componentNamespacePair[0]
 		namespace := componentNamespacePair[1]
 
-		components = append(components, KymaComponent{
-			Name:            name,
-			Namespace:       namespace,
-			ChartDir:        path.Join(p.resourcesPath, name),
-			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(name),
-			HelmClient:      helmClient,
-			Log:             p.log,
-		})
+		cmp := NewComponent(name, namespace, p.profile, path.Join(p.resourcesPath, name), p.overridesProvider.OverridesGetterFunctionFor(name),helmClient, p.log)
+		components = append(components, *cmp)
 	}
 
 	return components, nil
