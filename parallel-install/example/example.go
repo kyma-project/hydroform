@@ -20,6 +20,7 @@ import (
 func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
 	profile := flag.String("profile", "", "Deployment profile")
+	verbose := flag.Bool("verbose", false, "Verbose mode")
 
 	flag.Parse()
 
@@ -62,7 +63,7 @@ func main() {
 		HelmTimeoutSeconds:            60 * 8,
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
-		Log:                           log.Printf,
+		Log:                           getLogFunc(*verbose),
 		HelmMaxRevisionHistory:        10,
 		Profile:                       *profile,
 	}
@@ -105,4 +106,13 @@ func getClientConfig(kubeconfig string) (*rest.Config, error) {
 		return clientcmd.BuildConfigFromFlags("", kubeconfig)
 	}
 	return rest.InClusterConfig()
+}
+
+func getLogFunc(verbose bool) func(string, ...interface{}) {
+	if verbose {
+		return log.Printf
+	}
+	return func(msg string, args ...interface{}) {
+		// do nothing
+	}
 }
