@@ -27,31 +27,19 @@ type Component interface {
 
 //KymaComponent implements the Component interface.
 type KymaComponent struct {
-	Name            string
-	Namespace       string
-	Status          string
-	ChartDir        string
+	//Name defines the Helm release name
+	Name string
+	//Namespace defines the Helm release namespace
+	Namespace string
+	//Profile defines the Kyma release namespace
+	Profile string
+	Status  string
+	//ChartDir is a local filesystem directory with the component's chart.
+	ChartDir string
+	//OverridesGetter is a function that returns overrides for the release.
 	OverridesGetter func() map[string]interface{}
 	HelmClient      helm.ClientInterface
 	Log             func(format string, v ...interface{})
-}
-
-//NewComponent instantiates a new KymaComponent.
-//"name" and "namespace" parameters define the Helm release name and namespace.
-//
-//"chartDir" is a local filesystem directory with the component's chart.
-//
-//"overrides" is a function that returns overrides for the release.
-func NewComponent(name, namespace, chartDir string, overrides func() map[string]interface{}, helmClient helm.ClientInterface, log func(string, ...interface{})) *KymaComponent {
-	return &KymaComponent{
-		Name:            name,
-		Namespace:       namespace,
-		ChartDir:        chartDir,
-		OverridesGetter: overrides,
-		HelmClient:      helmClient,
-		Status:          "NotStarted",
-		Log:             log,
-	}
 }
 
 //Deploy implements Component.Deploy
@@ -60,7 +48,7 @@ func (c *KymaComponent) Deploy(ctx context.Context) error {
 
 	overrides := c.OverridesGetter()
 
-	err := c.HelmClient.DeployRelease(ctx, c.ChartDir, c.Namespace, c.Name, overrides)
+	err := c.HelmClient.DeployRelease(ctx, c.ChartDir, c.Namespace, c.Name, overrides, c.Profile)
 	if err != nil {
 		c.Log("%s Error deploying %s: %v", logPrefix, c.Name, err)
 		return err

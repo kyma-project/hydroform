@@ -18,6 +18,8 @@ import (
 //main provides an example of how to integrate the parallel-install library with your code.
 func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
+	profile := flag.String("profile", "", "Deployment profile")
+
 	flag.Parse()
 
 	if kubeconfigPath == nil || *kubeconfigPath == "" {
@@ -61,6 +63,7 @@ func main() {
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
 		Log:                           log.Printf,
 		HelmMaxRevisionHistory:        10,
+		Profile:                       *profile,
 	}
 
 	installer, err := deployment.NewDeployment(prerequisitesContent,

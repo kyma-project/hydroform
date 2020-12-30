@@ -68,7 +68,7 @@ func New(client kubernetes.Interface, overridesYamls []string, log func(string, 
 func (p *Provider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {
 	return func() map[string]interface{} {
 		if val, ok := p.componentOverrides[name]; ok {
-			val = mergeMaps(val, p.overrides)
+			val = MergeMaps(val, p.overrides)
 			p.log("%s Overrides for %s: %v", logPrefix, name, val)
 			return val
 		}
@@ -107,8 +107,8 @@ func (p *Provider) ReadOverridesFromCluster() error {
 		}
 	}
 
-	p.overrides = mergeMaps(p.overrides, globalFromCluster)
-	p.overrides = mergeMaps(p.overrides, p.additionalOverrides) // always keep additionalOverrides on top
+	p.overrides = MergeMaps(p.overrides, globalFromCluster)
+	p.overrides = MergeMaps(p.overrides, p.additionalOverrides) // always keep additionalOverrides on top
 
 	//Read component overrides
 	if p.componentOverrides == nil {
@@ -139,8 +139,8 @@ func (p *Provider) ReadOverridesFromCluster() error {
 			}
 		}
 
-		p.componentOverrides[name] = mergeMaps(p.componentOverrides[name], componentsFromCluster)
-		p.componentOverrides[name] = mergeMaps(p.componentOverrides[name], p.additionalComponentOverrides[name]) // always keep additionalOverrides on top
+		p.componentOverrides[name] = MergeMaps(p.componentOverrides[name], componentsFromCluster)
+		p.componentOverrides[name] = MergeMaps(p.componentOverrides[name], p.additionalComponentOverrides[name]) // always keep additionalOverrides on top
 	}
 
 	p.log("%s Reading the overrides from the cluster completed successfully!", logPrefix)
@@ -167,8 +167,8 @@ func (p *Provider) parseAdditionalOverrides(overridesYaml string) error {
 		if k == "global" {
 			globalOverrides := make(map[string]interface{})
 			globalOverrides[k] = v
-			p.overrides = mergeMaps(p.overrides, globalOverrides)
-			p.additionalOverrides = mergeMaps(p.additionalOverrides, globalOverrides)
+			p.overrides = MergeMaps(p.overrides, globalOverrides)
+			p.additionalOverrides = MergeMaps(p.additionalOverrides, globalOverrides)
 		} else {
 			if p.additionalComponentOverrides[k] == nil {
 				p.additionalComponentOverrides[k] = make(map[string]interface{})
@@ -176,15 +176,15 @@ func (p *Provider) parseAdditionalOverrides(overridesYaml string) error {
 			if p.componentOverrides[k] == nil {
 				p.componentOverrides[k] = make(map[string]interface{})
 			}
-			p.componentOverrides[k] = mergeMaps(p.componentOverrides[k], v.(map[string]interface{}))
-			p.additionalComponentOverrides[k] = mergeMaps(p.additionalComponentOverrides[k], v.(map[string]interface{}))
+			p.componentOverrides[k] = MergeMaps(p.componentOverrides[k], v.(map[string]interface{}))
+			p.additionalComponentOverrides[k] = MergeMaps(p.additionalComponentOverrides[k], v.(map[string]interface{}))
 		}
 	}
 
 	return nil
 }
 
-func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
+func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
 	out := make(map[string]interface{}, len(a))
 	for k, v := range a {
 		out[k] = v
@@ -193,7 +193,7 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 		if v, ok := v.(map[string]interface{}); ok {
 			if bv, ok := out[k]; ok {
 				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = mergeMaps(bv, v)
+					out[k] = MergeMaps(bv, v)
 					continue
 				}
 			}

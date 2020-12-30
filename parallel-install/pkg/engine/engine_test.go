@@ -248,7 +248,7 @@ type mockHelmClientWithSemaphore struct {
 	tokensAcquiredChan chan bool
 }
 
-func (c *mockHelmClientWithSemaphore) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
+func (c *mockHelmClientWithSemaphore) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, profile string) error {
 	token := c.semaphore.TryAcquire(1)
 
 	if token {
@@ -294,7 +294,7 @@ type mockSimpleHelmClient struct {
 	componentsToFail []string
 }
 
-func (c *mockSimpleHelmClient) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
+func (c *mockSimpleHelmClient) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, profile string) error {
 	time.Sleep(time.Duration(componentProcessingTimeInMilliseconds) * time.Millisecond)
 	for i := 0; i < len(c.componentsToFail); i++ {
 		if name == c.componentsToFail[i] {
