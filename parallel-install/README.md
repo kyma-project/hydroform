@@ -32,7 +32,7 @@ See all available configuration options for the `config.Config` type:
 | BackoffInitialIntervalSeconds | `int` | `1` | Initial interval used for exponential backoff retry policy. |
 | BackoffMaxElapsedTimeSeconds | `int` | `30` | Maximum time used for exponential backoff retry policy. |
 | Log | `func(format string, v ...interface{})` | `fmt.Printf` | Function used for logging. |
-| Profile | `string` | `evaluation` | Deployment profile: "evaluation", "production", ""  |
+| Profile | `string` | `evaluation` | Deployment profile. The possible values are: "evaluation", "production", "".  |
 
 >**NOTE:** This library also fetches overrides from ConfigMaps present in the cluster. However, overrides provided through `NewDeployment` have a higher priority.
 
