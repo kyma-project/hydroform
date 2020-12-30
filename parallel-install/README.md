@@ -32,7 +32,7 @@ See all available configuration options for the `config.Config` type:
 | HelmTimeoutSeconds | `int` | `360` | Timeout for the underlying Helm client. |
 | BackoffInitialIntervalSeconds | `int` | `1` | Initial interval used for exponential backoff retry policy. |
 | BackoffMaxElapsedTimeSeconds | `int` | `30` | Maximum time used for exponential backoff retry policy. |
-| Log | `func(format string, v ...interface{})` | `fmt.Printf` | Function used for logging. To modify the logging behavior, set a custom logging function. E.g. for disabling any log-output, just provide an empty logging function implementation (`func(f string, v ...interface{}){}`) |
+| Log | `func(format string, v ...interface{})` | `fmt.Printf` | Function used for logging. To modify the logging behavior, set a custom logging function. For example, to disable any log output, provide an empty logging function implementation (`func(f string, v ...interface{}){}`). |
 | Profile | `string` | `evaluation` | Deployment profile. The possible values are: "evaluation", "production", "".  |
 
 >**NOTE:** This library also fetches overrides from ConfigMaps present in the cluster. However, overrides provided through `NewDeployment` have a higher priority.
