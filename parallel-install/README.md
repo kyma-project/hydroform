@@ -20,7 +20,7 @@ To do so, provide the `deployment.NewDeployment` function with necessary paramet
 | overridesYaml | `[]string` | `{ "foo: bar", "val: example" }` | List of Helm overrides. The latter the override, the higher is its priority. |
 | resourcesPath | `string` | `/go/src/github.com/kyma-project/kyma/resources` | Path to the Kyma resources directory. It contains subdirectories with all Kyma components' charts |
 | cfg | `config.Config` | - | Specifies fine-grained configuration for the deployment process. See the table with `config.Config` configuration options for details. |
-| processUpdates  | `chan<- deployment.ProcessUpdate` | - | The library caller can pass a channel to retrieve updates of the running install / uninstall process. |
+| processUpdates  | `chan<- deployment.ProcessUpdate` | - | The library caller can pass a channel to retrieve updates of the running installation or uninstallation process. |
 
 See all available configuration options for the `config.Config` type:
 
