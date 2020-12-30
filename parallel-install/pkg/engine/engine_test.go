@@ -29,14 +29,13 @@ func TestOneWorkerIsSpawned(t *testing.T) {
 
 	installationCfg := config.Config{
 		WorkersCount: 1,
-		Log:          t.Logf,
 	}
 	hc := &mockHelmClientWithSemaphore{
 		semaphore:          semaphore.NewWeighted(int64(1)),
 		tokensAcquiredChan: tokensAcquiredChan,
 	}
 	componentsProvider := &mockComponentsProvider{t, hc}
-	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
+	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Verbose: true}
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 
 	_, err := e.Deploy(context.TODO())
@@ -80,7 +79,7 @@ func TestFourWorkersAreSpawned(t *testing.T) {
 		tokensAcquiredChan: tokensAcquiredChan,
 	}
 	componentsProvider := &mockComponentsProvider{t, hc}
-	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
+	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Verbose: true}
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 
 	_, err := e.Deploy(context.TODO())
@@ -210,7 +209,7 @@ func TestContextCancelScenario(t *testing.T) {
 	}
 	hc := &mockSimpleHelmClient{}
 	componentsProvider := &mockComponentsProvider{t, hc}
-	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Log: t.Logf}
+	engineCfg := Config{WorkersCount: installationCfg.WorkersCount, Verbose: true}
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 
 	ctx, cancel := context.WithCancel(context.TODO())

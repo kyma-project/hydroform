@@ -9,9 +9,8 @@ package engine
 
 import (
 	"context"
+	"log"
 	"sync"
-
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
@@ -21,8 +20,8 @@ const logPrefix = "[engine/engine.go]"
 
 //Config defines configuration values for the Engine.
 type Config struct {
-	WorkersCount int                                   //Number of parallel processes for install/uninstall operations
-	Log          func(format string, v ...interface{}) //Logging function
+	WorkersCount int //Number of parallel processes for install/uninstall operations
+	Verbose      bool
 }
 
 //Engine implements Installation interface
@@ -84,11 +83,11 @@ func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, e
 
 		err = e.overridesProvider.ReadOverridesFromCluster()
 		if err != nil {
-			e.cfg.Log("%s error while reading overrides: %v", logPrefix, err)
+			e.debug("%s error while reading overrides: %v", logPrefix, err)
 			return
 		}
 
-		run(ctx, statusChan, cmps, "deploy", e.cfg.WorkersCount)
+		e.run(ctx, statusChan, cmps, "deploy", e.cfg.WorkersCount)
 
 	}()
 
@@ -107,21 +106,21 @@ func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent
 	go func() {
 		defer close(statusChan)
 
-		run(ctx, statusChan, cmps, "uninstall", e.cfg.WorkersCount)
+		e.run(ctx, statusChan, cmps, "uninstall", e.cfg.WorkersCount)
 	}()
 
 	return statusChan, nil
 }
 
 //Blocking function used to spawn a configured number of workers and then await their completion.
-func run(ctx context.Context, statusChan chan<- components.KymaComponent, cmps []components.KymaComponent, installationType string, workersCount int) {
+func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaComponent, cmps []components.KymaComponent, installationType string, workersCount int) {
 	//TODO: Size dependent on number of components?
 	jobChan := make(chan components.KymaComponent, 30)
 
 	//Fill the queue with jobs
 	for _, comp := range cmps {
-		if !enqueueJob(comp, jobChan) {
-			config.Log("%s Max capacity reached, component dismissed: %s", logPrefix, comp.Name)
+		if !e.enqueueJob(comp, jobChan) {
+			e.debug("%s Max capacity reached, component dismissed: %s", logPrefix, comp.Name)
 		}
 	}
 
@@ -131,7 +130,7 @@ func run(ctx context.Context, statusChan chan<- components.KymaComponent, cmps [
 	//TODO: Configurable number of workers
 	for i := 0; i < workersCount; i++ {
 		wg.Add(1)
-		go worker(ctx, &wg, jobChan, statusChan, installationType)
+		go e.worker(ctx, &wg, jobChan, statusChan, installationType)
 	}
 
 	// to stop the workers, first close the job channel
@@ -146,20 +145,20 @@ func run(ctx context.Context, statusChan chan<- components.KymaComponent, cmps [
 //Detects Context cancellation.
 //Context cancellation is not detected immediately. It's detected between component processing operations because such operations are blocking.
 //If the Context is cancelled, the worker quits immediately, skipping the remaining components.
-func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.KymaComponent, statusChan chan<- components.KymaComponent, installationType string) {
+func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.KymaComponent, statusChan chan<- components.KymaComponent, installationType string) {
 	defer wg.Done()
 
 	for {
 		select {
 		//TODO: Perhaps this should be removed/refactored. Golang choses cases randomly if both are possible, so it might chose processing component instead, and that is invalid.
 		case <-ctx.Done():
-			config.Log("%s Finishing work: %v", logPrefix, ctx.Err())
+			e.debug("%s Finishing work: %v", logPrefix, ctx.Err())
 			return
 
 		case component, ok := <-jobChan:
 			//TODO: Is there a better way to find out if Context is canceled?
 			if err := ctx.Err(); err != nil {
-				config.Log("%s Finishing work: %v.", logPrefix, err)
+				e.debug("%s Finishing work: %v.", logPrefix, err)
 				return
 			}
 			if ok {
@@ -179,18 +178,24 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.K
 					statusChan <- component
 				}
 			} else {
-				config.Log("%s Finishing work: no more jobs in queue.", logPrefix)
+				e.debug("%s Finishing work: no more jobs in queue.", logPrefix)
 				return
 			}
 		}
 	}
 }
 
-func enqueueJob(job components.KymaComponent, jobChan chan<- components.KymaComponent) bool {
+func (e *Engine) enqueueJob(job components.KymaComponent, jobChan chan<- components.KymaComponent) bool {
 	select {
 	case jobChan <- job:
 		return true
 	default:
 		return false
+	}
+}
+
+func (e *Engine) debug(msg string, vars ...interface{}) {
+	if e.cfg.Verbose {
+		log.Printf(msg, vars...)
 	}
 }

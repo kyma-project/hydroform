@@ -3,6 +3,7 @@ package helm
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -16,11 +17,20 @@ func TestNoBackoff(t *testing.T) {
 		return nil
 	}
 
-	err := retryWithBackoff(context.TODO(), o, 1*time.Millisecond, 10*time.Millisecond)
+	err := newClient().retryWithBackoff(context.TODO(), o, 1*time.Millisecond, 10*time.Millisecond)
 
 	expectedCount := 1
 	require.Equal(t, expectedCount, count, "Number of invocations not as expected")
 	require.NoError(t, err)
+}
+
+func newClient() *Client {
+	config := Config{
+		Log: func(msg string, params ...interface{}) {
+			fmt.Println(msg, params)
+		},
+	}
+	return NewClient(config)
 }
 
 func TestOneBackoff(t *testing.T) {
@@ -33,7 +43,7 @@ func TestOneBackoff(t *testing.T) {
 		return nil
 	}
 
-	err := retryWithBackoff(context.TODO(), o, 1*time.Millisecond, 10*time.Millisecond)
+	err := newClient().retryWithBackoff(context.TODO(), o, 1*time.Millisecond, 10*time.Millisecond)
 
 	expectedCount := 2
 	require.Equal(t, expectedCount, count, "Number of invocations not as expected")
@@ -48,7 +58,7 @@ func TestBackoffWithCancel(t *testing.T) {
 		return errors.New("failure")
 	}
 	//Ensure more than 4 retries are done in 20[ms]
-	err := retryWithBackoff(context.TODO(), o1, 1*time.Millisecond, 20*time.Millisecond)
+	err := newClient().retryWithBackoff(context.TODO(), o1, 1*time.Millisecond, 20*time.Millisecond)
 	require.Error(t, err)
 	require.Greater(t, count, 4)
 
@@ -72,7 +82,7 @@ func TestBackoffWithCancel(t *testing.T) {
 	}
 
 	startTime := time.Now()
-	err = retryWithBackoff(ctx, o2, 1*time.Millisecond, 2000*time.Millisecond)
+	err = newClient().retryWithBackoff(ctx, o2, 1*time.Millisecond, 2000*time.Millisecond)
 	endTime := time.Now()
 	timeDiff := endTime.Sub(startTime)
 	t.Log("Total operations run count:", count)

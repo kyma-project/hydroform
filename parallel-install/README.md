@@ -20,6 +20,7 @@ To do so, provide the `deployment.NewDeployment` function with necessary paramet
 | overridesYaml | `[]string` | `{ "foo: bar", "val: example" }` | List of Helm overrides. The latter the override, the higher is its priority. |
 | resourcesPath | `string` | `/go/src/github.com/kyma-project/kyma/resources` | Path to the Kyma resources directory. It contains subdirectories with all Kyma components' charts |
 | cfg | `config.Config` | - | Specifies fine-grained configuration for the deployment process. See the table with `config.Config` configuration options for details. |
+| processUpdates  | `chan<- deployment.ProcessUpdate` | - | The library caller can pass a channel to retrieve updates of the running installation or uninstallation process. |
 
 See all available configuration options for the `config.Config` type:
 
@@ -31,7 +32,7 @@ See all available configuration options for the `config.Config` type:
 | HelmTimeoutSeconds | `int` | `360` | Timeout for the underlying Helm client. |
 | BackoffInitialIntervalSeconds | `int` | `1` | Initial interval used for exponential backoff retry policy. |
 | BackoffMaxElapsedTimeSeconds | `int` | `30` | Maximum time used for exponential backoff retry policy. |
-| Log | `func(format string, v ...interface{})` | `fmt.Printf` | Function used for logging. |
+| Log | `func(format string, v ...interface{})` | `fmt.Printf` | Function used for logging. To modify the logging behavior, set a custom logging function. For example, to disable any log output, provide an empty logging function implementation (`func(f string, v ...interface{}){}`). |
 | Profile | `string` | `evaluation` | Deployment profile. The possible values are: "evaluation", "production", "".  |
 
 >**NOTE:** This library also fetches overrides from ConfigMaps present in the cluster. However, overrides provided through `NewDeployment` have a higher priority.
