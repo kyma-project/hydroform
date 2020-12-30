@@ -59,11 +59,28 @@ func Test_newFunction(t *testing.T) {
 							DepsHandlerName:   "test.my.deps",
 						},
 					},
-					Triggers: []workspace.Trigger{
+					Env: []workspace.EnvVar{
 						{
-							Version: "test-trigger-etv",
-							Source:  "test-trigger-source",
-							Type:    "test-trigger-type",
+							Name:  "TEST_ENV",
+							Value: "test",
+						},
+						{
+							Name: "TEST_ENV_SECRET",
+							ValueFrom: &workspace.EnvVarSource{
+								SecretKeyRef: &workspace.SecretKeySelector{
+									Name: "secretName",
+									Key:  "secretKey",
+								},
+							},
+						},
+						{
+							Name: "TEST_ENV_CM",
+							ValueFrom: &workspace.EnvVarSource{
+								ConfigMapKeyRef: &workspace.ConfigMapKeySelector{
+									Name: "configMapName",
+									Key:  "configMapKey",
+								},
+							},
 						},
 					},
 				},
@@ -73,11 +90,9 @@ func Test_newFunction(t *testing.T) {
 					"apiVersion": functionApiVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
-						"name":      "test-name",
-						"namespace": "test-ns",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -93,6 +108,33 @@ func Test_newFunction(t *testing.T) {
 						},
 						"source": "test-source-content",
 						"deps":   "test-deps-content",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
+						"env": []interface{}{
+							map[string]interface{}{
+								"name":  "TEST_ENV",
+								"value": "test",
+							},
+							map[string]interface{}{
+								"name": "TEST_ENV_SECRET",
+								"valueFrom": map[string]interface{}{
+									"secretKeyRef": map[string]interface{}{
+										"name": "secretName",
+										"key":  "secretKey",
+									},
+								},
+							},
+							map[string]interface{}{
+								"name": "TEST_ENV_CM",
+								"valueFrom": map[string]interface{}{
+									"configMapKeyRef": map[string]interface{}{
+										"name": "configMapName",
+										"key":  "configMapKey",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -135,9 +177,9 @@ func Test_newFunction(t *testing.T) {
 					},
 					Triggers: []workspace.Trigger{
 						{
-							Version: "test-trigger-etv",
-							Source:  "test-trigger-source",
-							Type:    "test-trigger-type",
+							EventTypeVersion: "test-trigger-etv",
+							Source:           "test-trigger-source",
+							Type:             "test-trigger-type",
 						},
 					},
 				},
@@ -147,11 +189,9 @@ func Test_newFunction(t *testing.T) {
 					"apiVersion": functionApiVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
-						"name":      "test-name",
-						"namespace": "test-ns",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -166,6 +206,225 @@ func Test_newFunction(t *testing.T) {
 							},
 						},
 						"source": "test-source-content",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "inline - minimal",
+			args: args{
+				readFile: func(filename string) ([]byte, error) {
+					switch filename {
+					case "/test/path/test.my.source":
+						return []byte("test-source-content"), nil
+					case "/test/path/test.my.deps":
+						return []byte("test-deps-content"), nil
+					default:
+						return []byte{}, nil
+					}
+				},
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Runtime:   types.Python38,
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceInline: workspace.SourceInline{
+							SourcePath:        "/test/path",
+							SourceHandlerName: "test.my.source",
+							DepsHandlerName:   "test.my.deps",
+						},
+					},
+				},
+			},
+			wantOut: unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": functionApiVersion,
+					"kind":       "Function",
+					"metadata": map[string]interface{}{
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
+					},
+					"spec": map[string]interface{}{
+						"runtime": "python38",
+						"source":  "test-source-content",
+						"deps":    "test-deps-content",
+					},
+				},
+			},
+		},
+		{
+			name: "inline - only resources requests",
+			args: args{
+				readFile: func(filename string) ([]byte, error) {
+					switch filename {
+					case "/test/path/test.my.source":
+						return []byte("test-source-content"), nil
+					case "/test/path/test.my.deps":
+						return []byte("test-deps-content"), nil
+					default:
+						return []byte{}, nil
+					}
+				},
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Runtime:   types.Python38,
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceInline: workspace.SourceInline{
+							SourcePath:        "/test/path",
+							SourceHandlerName: "test.my.source",
+							DepsHandlerName:   "test.my.deps",
+						},
+					},
+					Resources: workspace.Resources{
+						Requests: workspace.ResourceList{
+							workspace.ResourceNameCPU:    "1",
+							workspace.ResourceNameMemory: "10M",
+						},
+					},
+				},
+			},
+			wantOut: unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": functionApiVersion,
+					"kind":       "Function",
+					"metadata": map[string]interface{}{
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
+					},
+					"spec": map[string]interface{}{
+						"runtime": "python38",
+						"source":  "test-source-content",
+						"deps":    "test-deps-content",
+						"resources": map[string]interface{}{
+							"requests": workspace.ResourceList{
+								workspace.ResourceNameCPU:    "1",
+								workspace.ResourceNameMemory: "10M",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "inline - only resources limits",
+			args: args{
+				readFile: func(filename string) ([]byte, error) {
+					switch filename {
+					case "/test/path/test.my.source":
+						return []byte("test-source-content"), nil
+					case "/test/path/test.my.deps":
+						return []byte("test-deps-content"), nil
+					default:
+						return []byte{}, nil
+					}
+				},
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Runtime:   types.Python38,
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceInline: workspace.SourceInline{
+							SourcePath:        "/test/path",
+							SourceHandlerName: "test.my.source",
+							DepsHandlerName:   "test.my.deps",
+						},
+					},
+					Resources: workspace.Resources{
+						Limits: workspace.ResourceList{
+							workspace.ResourceNameCPU:    "1",
+							workspace.ResourceNameMemory: "10M",
+						},
+					},
+				},
+			},
+			wantOut: unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": functionApiVersion,
+					"kind":       "Function",
+					"metadata": map[string]interface{}{
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
+					},
+					"spec": map[string]interface{}{
+						"runtime": "python38",
+						"source":  "test-source-content",
+						"deps":    "test-deps-content",
+						"resources": map[string]interface{}{
+							"limits": workspace.ResourceList{
+								workspace.ResourceNameCPU:    "1",
+								workspace.ResourceNameMemory: "10M",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "inline - only resources cpu",
+			args: args{
+				readFile: func(filename string) ([]byte, error) {
+					switch filename {
+					case "/test/path/test.my.source":
+						return []byte("test-source-content"), nil
+					case "/test/path/test.my.deps":
+						return []byte("test-deps-content"), nil
+					default:
+						return []byte{}, nil
+					}
+				},
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Runtime:   types.Python38,
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceInline: workspace.SourceInline{
+							SourcePath:        "/test/path",
+							SourceHandlerName: "test.my.source",
+							DepsHandlerName:   "test.my.deps",
+						},
+					},
+					Resources: workspace.Resources{
+						Limits: workspace.ResourceList{
+							workspace.ResourceNameCPU: "1",
+						},
+						Requests: workspace.ResourceList{
+							workspace.ResourceNameCPU: "1",
+						},
+					},
+				},
+			},
+			wantOut: unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": functionApiVersion,
+					"kind":       "Function",
+					"metadata": map[string]interface{}{
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
+					},
+					"spec": map[string]interface{}{
+						"runtime": "python38",
+						"source":  "test-source-content",
+						"deps":    "test-deps-content",
+						"resources": map[string]interface{}{
+							"limits": workspace.ResourceList{
+								workspace.ResourceNameCPU: "1",
+							},
+							"requests": workspace.ResourceList{
+								workspace.ResourceNameCPU: "1",
+							},
+						},
 					},
 				},
 			},
@@ -194,6 +453,66 @@ func Test_newFunction(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "inline - only resources memory",
+			args: args{
+				readFile: func(filename string) ([]byte, error) {
+					switch filename {
+					case "/test/path/test.my.source":
+						return []byte("test-source-content"), nil
+					case "/test/path/test.my.deps":
+						return []byte("test-deps-content"), nil
+					default:
+						return []byte{}, nil
+					}
+				},
+				cfg: workspace.Cfg{
+					Name:      "test-name",
+					Namespace: "test-ns",
+					Runtime:   types.Python38,
+					Source: workspace.Source{
+						Type: workspace.SourceTypeGit,
+						SourceInline: workspace.SourceInline{
+							SourcePath:        "/test/path",
+							SourceHandlerName: "test.my.source",
+							DepsHandlerName:   "test.my.deps",
+						},
+					},
+					Resources: workspace.Resources{
+						Limits: workspace.ResourceList{
+							workspace.ResourceNameMemory: "10M",
+						},
+						Requests: workspace.ResourceList{
+							workspace.ResourceNameMemory: "10M",
+						},
+					},
+				},
+			},
+			wantOut: unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": functionApiVersion,
+					"kind":       "Function",
+					"metadata": map[string]interface{}{
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
+					},
+					"spec": map[string]interface{}{
+						"runtime": "python38",
+						"source":  "test-source-content",
+						"deps":    "test-deps-content",
+						"resources": map[string]interface{}{
+							"limits": workspace.ResourceList{
+								workspace.ResourceNameMemory: "10M",
+							},
+							"requests": workspace.ResourceList{
+								workspace.ResourceNameMemory: "10M",
+							},
+						},
+					},
+				},
+			},
 		},
 		{
 			name: "inline - unknown runtime err",
@@ -272,9 +591,33 @@ func Test_newGitFunction(t *testing.T) {
 					},
 					Triggers: []workspace.Trigger{
 						{
-							Version: "test-trigger-etv",
-							Source:  "test-trigger-source",
-							Type:    "test-trigger-type",
+							EventTypeVersion: "test-trigger-etv",
+							Source:           "test-trigger-source",
+							Type:             "test-trigger-type",
+						},
+					},
+					Env: []workspace.EnvVar{
+						{
+							Name:  "TEST_ENV",
+							Value: "test",
+						},
+						{
+							Name: "TEST_ENV_SECRET",
+							ValueFrom: &workspace.EnvVarSource{
+								SecretKeyRef: &workspace.SecretKeySelector{
+									Name: "secretName",
+									Key:  "secretKey",
+								},
+							},
+						},
+						{
+							Name: "TEST_ENV_CM",
+							ValueFrom: &workspace.EnvVarSource{
+								ConfigMapKeyRef: &workspace.ConfigMapKeySelector{
+									Name: "configMapName",
+									Key:  "configMapKey",
+								},
+							},
 						},
 					},
 				},
@@ -284,11 +627,9 @@ func Test_newGitFunction(t *testing.T) {
 					"apiVersion": functionApiVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
-						"name":      "test-name",
-						"namespace": "test-ns",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -306,6 +647,33 @@ func Test_newGitFunction(t *testing.T) {
 						"baseDir":   "test-base-dir",
 						"reference": "test-reference",
 						"type":      "git",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
+						"env": []interface{}{
+							map[string]interface{}{
+								"name":  "TEST_ENV",
+								"value": "test",
+							},
+							map[string]interface{}{
+								"name": "TEST_ENV_SECRET",
+								"valueFrom": map[string]interface{}{
+									"secretKeyRef": map[string]interface{}{
+										"name": "secretName",
+										"key":  "secretKey",
+									},
+								},
+							},
+							map[string]interface{}{
+								"name": "TEST_ENV_CM",
+								"valueFrom": map[string]interface{}{
+									"configMapKeyRef": map[string]interface{}{
+										"name": "configMapName",
+										"key":  "configMapKey",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -341,9 +709,9 @@ func Test_newGitFunction(t *testing.T) {
 					},
 					Triggers: []workspace.Trigger{
 						{
-							Version: "test-trigger-etv",
-							Source:  "test-trigger-source",
-							Type:    "test-trigger-type",
+							EventTypeVersion: "test-trigger-etv",
+							Source:           "test-trigger-source",
+							Type:             "test-trigger-type",
 						},
 					},
 				},
@@ -353,11 +721,9 @@ func Test_newGitFunction(t *testing.T) {
 					"apiVersion": functionApiVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
-						"name":      "test-name",
-						"namespace": "test-ns",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
+						"name":              "test-name",
+						"namespace":         "test-ns",
+						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python38",
@@ -375,6 +741,9 @@ func Test_newGitFunction(t *testing.T) {
 						"baseDir":   "test-base-dir",
 						"reference": "test-reference",
 						"type":      "git",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
 					},
 				},
 			},

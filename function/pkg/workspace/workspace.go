@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -98,10 +100,16 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		return err
 	}
 
+	if config.Resources.Limits != nil {
+		config.Resources.Limits = function.Spec.ResourceLimits()
+	}
+	if config.Resources.Requests != nil {
+		config.Resources.Requests = function.Spec.ResourceRequests()
+	}
+
 	config.Runtime = function.Spec.Runtime
-	config.Resources.Limits = function.Spec.ResourceLimits()
-	config.Resources.Requests = function.Spec.ResourceRequests()
 	config.Labels = function.Spec.Labels
+	config.Env = convertCoreV1EnvToEnvVar(function.Spec.Env)
 
 	ul, err := build("", operator.GVKTriggers).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -120,17 +128,18 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			}
 
 			config.Triggers = append(config.Triggers, Trigger{
-				Version: trigger.Spec.Filter.Attributes.Eventtypeversion,
-				Source:  trigger.Spec.Filter.Attributes.Source,
-				Type:    trigger.Spec.Filter.Attributes.Type,
-				Name:    trigger.ObjectMeta.Name,
+				EventTypeVersion: trigger.Spec.Filter.Attributes.EventTypeVersion,
+				Source:           trigger.Spec.Filter.Attributes.Source,
+				Type:             trigger.Spec.Filter.Attributes.Type,
+				Name:             trigger.ObjectMeta.Name,
 			})
 		}
 	}
 
 	if function.Spec.Type == "git" {
 		gitRepository := types.GitRepository{}
-		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, config.Name, v1.GetOptions{})
+
+		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, function.Spec.Source, v1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -142,9 +151,10 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		config.Source = Source{
 			Type: SourceTypeGit,
 			SourceGit: SourceGit{
-				URL:       gitRepository.Spec.URL,
-				Reference: function.Spec.Reference,
-				BaseDir:   function.Spec.BaseDir,
+				URL:        gitRepository.Spec.URL,
+				Repository: function.Spec.Source,
+				Reference:  function.Spec.Reference,
+				BaseDir:    function.Spec.BaseDir,
 			},
 		}
 		return initialize(config, outputPath, writerProvider)
@@ -177,4 +187,35 @@ func InlineFileNames(r types.Runtime) (SourceFileName, DepsFileName, bool) {
 	default:
 		return "", "", false
 	}
+}
+
+func convertCoreV1EnvToEnvVar(envs []corev1.EnvVar) []EnvVar {
+	outEnvs := make([]EnvVar, 0)
+	for _, env := range envs {
+
+		newEnv := EnvVar{
+			Name:  env.Name,
+			Value: env.Value,
+		}
+
+		if env.ValueFrom != nil {
+			newEnv.ValueFrom = &EnvVarSource{}
+
+			if env.ValueFrom.SecretKeyRef != nil {
+				newEnv.ValueFrom.SecretKeyRef = &SecretKeySelector{
+					Name: env.ValueFrom.SecretKeyRef.Name,
+					Key:  env.ValueFrom.SecretKeyRef.Key,
+				}
+			}
+
+			if env.ValueFrom.ConfigMapKeyRef != nil {
+				newEnv.ValueFrom.ConfigMapKeyRef = &ConfigMapKeySelector{
+					Name: env.ValueFrom.ConfigMapKeyRef.Name,
+					Key:  env.ValueFrom.ConfigMapKeyRef.Key,
+				}
+			}
+		}
+		outEnvs = append(outEnvs, newEnv)
+	}
+	return outEnvs
 }

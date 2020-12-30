@@ -27,4 +27,6 @@ type Config struct {
 	Log func(format string, v ...interface{})
 	//Maximum number of Helm revision saved per release
 	HelmMaxRevisionHistory int
+	//Installation / Upgrade profile: evaluation|production
+	Profile string
 }

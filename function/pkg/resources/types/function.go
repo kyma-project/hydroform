@@ -8,13 +8,14 @@ import (
 type SourceType string
 
 type FunctionSpec struct {
-	Source     string                      `json:"source"`
-	Deps       string                      `json:"deps,omitempty"`
-	Runtime    Runtime                     `json:"runtime,omitempty"`
-	Resources  corev1.ResourceRequirements `json:"resources,omitempty"`
-	Labels     map[string]string           `json:"labels,omitempty"`
-	Type       SourceType                  `json:"type,omitempty"`
+	Source     string                       `json:"source"`
+	Deps       string                       `json:"deps,omitempty"`
+	Runtime    Runtime                      `json:"runtime,omitempty"`
+	Resources  *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Labels     map[string]string            `json:"labels,omitempty"`
+	Type       SourceType                   `json:"type,omitempty"`
 	Repository `json:",inline,omitempty"`
+	Env        []corev1.EnvVar `json:"env,omitempty"`
 }
 
 func (s FunctionSpec) toMap(l corev1.ResourceList) map[string]interface{} {
@@ -40,6 +41,8 @@ func (s FunctionSpec) ResourceRequests() map[string]interface{} {
 }
 
 type Function struct {
+	ApiVersion        string
+	Kind              string
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              FunctionSpec `json:"spec,omitempty"`
 }

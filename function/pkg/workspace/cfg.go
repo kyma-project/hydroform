@@ -18,26 +18,37 @@ const (
 
 const CfgFilename = "config.yaml"
 
-type Attributes = map[string]interface{}
-
 type Trigger struct {
-	Name    string `yaml:"name"`
-	Version string `yaml:"version"`
-	Source  string `yaml:"source"`
-	Type    string `yaml:"type"`
-}
-
-func (t Trigger) Attributes() Attributes {
-	return map[string]interface{}{
-		"eventtypeversion": t.Version,
-		"source":           t.Source,
-		"type":             t.Type,
-	}
+	Name             string `yaml:"name"`
+	EventTypeVersion string `yaml:"eventTypeVersion"`
+	Source           string `yaml:"source"`
+	Type             string `yaml:"type"`
 }
 
 type Resources struct {
 	Limits   ResourceList `yaml:"limits,omitempty"`
 	Requests ResourceList `yaml:"requests,omitempty"`
+}
+
+type EnvVar struct {
+	Name      string        `yaml:"name"`
+	Value     string        `yaml:"value,omitempty"`
+	ValueFrom *EnvVarSource `yaml:"valueFrom,omitempty"`
+}
+
+type EnvVarSource struct {
+	ConfigMapKeyRef *ConfigMapKeySelector `yaml:"configMapKeyRef,omitempty"`
+	SecretKeyRef    *SecretKeySelector    `yaml:"secretKeyRef,omitempty"`
+}
+
+type ConfigMapKeySelector struct {
+	Name string `yaml:"name"`
+	Key  string `yaml:"key"`
+}
+
+type SecretKeySelector struct {
+	Name string `yaml:"name"`
+	Key  string `yaml:"key"`
 }
 
 type Cfg struct {
@@ -48,6 +59,7 @@ type Cfg struct {
 	Source    Source            `yaml:"source"`
 	Resources Resources         `yaml:"resource,omitempty"`
 	Triggers  []Trigger         `yaml:"triggers,omitempty"`
+	Env       []EnvVar          `yaml:"env,omitempty"`
 }
 
 type Source struct {

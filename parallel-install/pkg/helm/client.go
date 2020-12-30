@@ -10,6 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
+	"helm.sh/helm/v3/pkg/chartutil"
+
 	"helm.sh/helm/v3/pkg/storage/driver"
 
 	"github.com/cenkalti/backoff/v4"
@@ -47,7 +50,7 @@ type ClientInterface interface {
 	//Cancellation is possible when errors occur and the operation is re-tried.
 	//When the operation is re-tried, it is not guaranteed that the cancellation is handled immediately due to the blocking nature of Helm client calls.
 	//However, once the underlying Helm operation ends, the "cancel" condition is detected and the operation's result is returned without further retries.
-	DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error
+	DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, profile string) error
 	//UninstallRelease uninstalls a named chart from the cluster.
 	//The function retries on errors according to Config provided to the Client.
 	//
@@ -179,7 +182,7 @@ func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name s
 	return nil
 }
 
-func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}) error {
+func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overridesValues map[string]interface{}, profile string) error {
 	operation := func() error {
 		cfg, err := c.newActionConfig(namespace)
 		if err != nil {
@@ -191,18 +194,26 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 			return err
 		}
 
+		profileValues, err := getProfileValues(*chart, profile)
+		if err != nil {
+			return err
+		}
+
+		comboValues := overrides.MergeMaps(profileValues, overridesValues)
+
 		upgrade, err := c.isUpgrade(name, cfg)
+
 		if err != nil {
 			return err
 		}
 
 		if upgrade {
-			err = c.upgradeRelease(ctx, chartDir, namespace, name, overrides, cfg, chart)
+			err = c.upgradeRelease(ctx, chartDir, namespace, name, comboValues, cfg, chart)
 			if err != nil {
 				return err
 			}
 		} else {
-			err = c.installRelease(ctx, chartDir, namespace, name, overrides, cfg, chart)
+			err = c.installRelease(ctx, chartDir, namespace, name, comboValues, cfg, chart)
 			if err != nil {
 				return err
 			}
@@ -234,6 +245,24 @@ func (c *Client) isUpgrade(name string, cfg *action.Configuration) (bool, error)
 	}
 
 	return true, nil
+}
+
+func getProfileValues(ch chart.Chart, profileName string) (map[string]interface{}, error) {
+	var profile *chart.File
+	for _, f := range ch.Files {
+		if (f.Name == fmt.Sprintf("profile-%s.yaml", profileName)) || (f.Name == fmt.Sprintf("%s.yaml", profileName)) {
+			profile = f
+			break
+		}
+	}
+	if profile == nil {
+		return ch.Values, nil
+	}
+	profileValues, err := chartutil.ReadValues(profile.Data)
+	if err != nil {
+		return nil, err
+	}
+	return profileValues, nil
 }
 
 func (c *Client) retryWithBackoff(ctx context.Context, operation func() error, initialInterval, maxTime time.Duration) error {

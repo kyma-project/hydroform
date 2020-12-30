@@ -3,7 +3,11 @@ package unstructured
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -16,42 +20,46 @@ func NewTriggers(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
 	var list []unstructured.Unstructured
 
 	for _, triggerInfo := range cfg.Triggers {
-		trigger := unstructured.Unstructured{
-			Object: map[string]interface{}{},
-		}
-		triggerAttributes := triggerInfo.Attributes()
-		subscriberRef := asSubscriberRef(cfg)
-
 		triggerName := fmt.Sprintf(triggerNameFormat, cfg.Name, triggerInfo.Source)
 		if triggerInfo.Name != "" {
 			triggerName = triggerInfo.Name
 		}
 
-		decorators := Decorators{
-			decorateWithField(triggerApiVersion, "apiVersion"),
-			decorateWithField("Trigger", "kind"),
-			decorateWithMetadata(triggerName, cfg.Namespace),
-			decorateWithLabels(cfg.Labels),
-			decorateWithField("default", "spec", "broker"),
-			decorateWithMap(triggerAttributes, "spec", "filter", "attributes"),
-			decorateWithMap(subscriberRef, "spec", "subscriber", "ref"),
+		t := types.Trigger{
+			ApiVersion: triggerApiVersion,
+			Kind:       "Trigger",
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      triggerName,
+				Namespace: cfg.Namespace,
+				Labels:    cfg.Labels,
+			},
+			Spec: types.TriggerSpec{
+				Filter: types.TriggerFilter{
+					Attributes: types.Attributes{
+						EventTypeVersion: triggerInfo.EventTypeVersion,
+						Source:           triggerInfo.Source,
+						Type:             triggerInfo.Type,
+					},
+				},
+				Subscriber: types.TriggerSubscriber{
+					Reference: types.TriggerReference{
+						ApiVersion: "v1",
+						Kind:       "Service",
+						Name:       cfg.Name,
+						Namespace:  cfg.Namespace,
+					},
+				},
+				Broker: "default",
+			},
 		}
 
-		if err := decorate(&trigger, decorators); err != nil {
-			return list, err
+		unstructuredTrigger, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&t)
+		if err != nil {
+			return nil, err
 		}
-		list = append(list, trigger)
+		list = append(list, unstructured.Unstructured{Object: unstructuredTrigger})
+
 	}
+
 	return list, nil
-}
-
-type subscriberRef = map[string]interface{}
-
-func asSubscriberRef(cfg workspace.Cfg) subscriberRef {
-	return map[string]interface{}{
-		"apiVersion": "v1",
-		"kind":       "Service",
-		"name":       cfg.Name,
-		"namespace":  cfg.Namespace,
-	}
 }
