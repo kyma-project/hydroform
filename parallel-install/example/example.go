@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"io/ioutil"
 	"log"
@@ -10,6 +11,7 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
 	"k8s.io/client-go/rest"
@@ -69,14 +71,22 @@ func main() {
 	}
 
 	// used to receive progress updates of the install/uninstall process
-	progressChan := make(chan<- deployment.ProcessUpdate)
+	var progressCh chan deployment.ProcessUpdate
+	if !(*verbose) {
+		progressCh = make(chan deployment.ProcessUpdate)
+		ctx := renderProgress(progressCh)
+		defer func() {
+			close(progressCh)
+			<-ctx.Done()
+		}()
+	}
 
 	installer, err := deployment.NewDeployment(prerequisitesContent,
 		string(componentsContent),
 		[]string{string(overridesContent)},
 		resourcesPath,
 		installationCfg,
-		progressChan)
+		progressCh)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
@@ -115,4 +125,34 @@ func getLogFunc(verbose bool) func(string, ...interface{}) {
 	return func(msg string, args ...interface{}) {
 		// do nothing
 	}
+}
+
+func renderProgress(progressCh chan deployment.ProcessUpdate) context.Context {
+	context, cancel := context.WithCancel(context.Background())
+
+	showCompStatus := func(comp components.KymaComponent) {
+		if comp.Name != "" {
+			log.Printf("Status of component '%s': %s", comp.Name, comp.Status)
+		}
+	}
+	go func() {
+		defer cancel()
+
+		for update := range progressCh {
+			switch update.Event {
+			case deployment.ProcessStart:
+				log.Printf("Starting installation phase '%s'", update.Phase)
+			case deployment.ProcessRunning:
+				showCompStatus(update.Component)
+			case deployment.ProcessFinished:
+				log.Printf("Finished installation phase '%s' successfully", update.Phase)
+			default:
+				//any failure case
+				log.Printf("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
+				showCompStatus(update.Component)
+			}
+		}
+	}()
+
+	return context
 }
