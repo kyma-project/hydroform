@@ -28,7 +28,9 @@ type Deployment struct {
 	ResourcesPath string
 	Cfg           config.Config
 	// Used to send progress events of a running install/uninstall process
-	ProcessUpdates chan<- ProcessUpdate
+	ProcessUpdates   chan<- ProcessUpdate
+	kubeClient       kubernetes.Interface
+	metadataProvider metadata.MetadataProvider
 }
 
 type Installer interface {
@@ -36,12 +38,12 @@ type Installer interface {
 	//This method will block until deployment is finished or an error or timeout occurs.
 	//If the deployment is not finished in configured config.Config.QuitTimeout,
 	//the method returns with an error. Some worker goroutines may still run in the background.
-	StartKymaDeployment(kubeClient kubernetes.Interface) error
+	StartKymaDeployment() error
 	//StartKymaUninstallation uninstalls Kyma from the cluster.
 	//This method will block until uninstallation is finished or an error or timeout occurs.
 	//If the uninstallation is not finished in configured config.Config.QuitTimeout,
 	//the method returns with an error. Some worker goroutines may still run in the background.
-	StartKymaUninstallation(kubeClient kubernetes.Interface) error
+	StartKymaUninstallation() error
 }
 
 //NewDeployment should be used to create Deployment instances.
@@ -54,7 +56,7 @@ type Installer interface {
 //See overrides.New for details about the overrides contract.
 //
 //resourcesPath is a local filesystem path where components' charts are located.
-func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
+func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config, processUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) (*Deployment, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Deployment. Resource path is required.")
 	}
@@ -62,39 +64,41 @@ func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYam
 		return nil, fmt.Errorf("Unable to create Deployment. Components YAML file content is required.")
 	}
 
+	metadataProvider := metadata.New(kubeClient, cfg.Profile, cfg.Version)
+
 	return &Deployment{
-		Prerequisites:  prerequisites,
-		ComponentsYaml: componentsYaml,
-		OverridesYamls: overridesYamls,
-		ResourcesPath:  resourcesPath,
-		Cfg:            cfg,
-		ProcessUpdates: processUpdates,
+		Prerequisites:    prerequisites,
+		ComponentsYaml:   componentsYaml,
+		OverridesYamls:   overridesYamls,
+		ResourcesPath:    resourcesPath,
+		Cfg:              cfg,
+		ProcessUpdates:   processUpdates,
+		kubeClient:       kubeClient,
+		metadataProvider: metadataProvider,
 	}, nil
 }
 
 //StartKymaDeployment implements the Installer.StartKymaDeployment contract.
-func (i *Deployment) StartKymaDeployment(kubeClient kubernetes.Interface) error {
-	metadataProvider := metadata.New(kubeClient, i.Cfg.Profile, i.Cfg.Version)
-
-	err := metadataProvider.WriteKymaDeploymentInProgress()
+func (i *Deployment) StartKymaDeployment() error {
+	err := i.metadataProvider.WriteKymaDeploymentInProgress()
 	if err != nil {
 		return err
 	}
 
-	overridesProvider, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
+	overridesProvider, prerequisitesProvider, engine, err := i.getConfig()
 	if err != nil {
 		return err
 	}
 
-	err = i.startKymaDeployment(kubeClient, prerequisitesProvider, overridesProvider, engine)
+	err = i.startKymaDeployment(prerequisitesProvider, overridesProvider, engine)
 	if err != nil {
-		metaDataErr := metadataProvider.WriteKymaDeploymentError(err.Error())
+		metaDataErr := i.metadataProvider.WriteKymaDeploymentError(err.Error())
 		if metaDataErr != nil {
 			return metaDataErr
 		}
 	}
 
-	err = metadataProvider.WriteKymaDeployed()
+	err = i.metadataProvider.WriteKymaDeployed()
 	if err != nil {
 		return err
 	}
@@ -103,27 +107,26 @@ func (i *Deployment) StartKymaDeployment(kubeClient kubernetes.Interface) error 
 }
 
 //StartKymaUninstallation implements the Installer.StartKymaUninstallation contract.
-func (i *Deployment) StartKymaUninstallation(kubeClient kubernetes.Interface) error {
-	_, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
+func (i *Deployment) StartKymaUninstallation() error {
+	_, prerequisitesProvider, engine, err := i.getConfig()
 	if err != nil {
 		return err
 	}
 
-	metadataProvider := metadata.New(kubeClient, i.Cfg.Profile, i.Cfg.Version)
-	err = metadataProvider.WriteKymaUninstallationInProgress()
+	err = i.metadataProvider.WriteKymaUninstallationInProgress()
 	if err != nil {
 		return err
 	}
 
-	err = i.startKymaUninstallation(kubeClient, prerequisitesProvider, engine)
+	err = i.startKymaUninstallation(prerequisitesProvider, engine)
 	if err != nil {
-		metaDataErr := metadataProvider.WriteKymaUninstallationError(err.Error())
+		metaDataErr := i.metadataProvider.WriteKymaUninstallationError(err.Error())
 		if metaDataErr != nil {
 			return metaDataErr
 		}
 	}
 
-	err = metadataProvider.DeleteKymaMetadata()
+	err = i.metadataProvider.DeleteKymaMetadata()
 	if err != nil {
 		return err
 	}
@@ -131,7 +134,7 @@ func (i *Deployment) StartKymaUninstallation(kubeClient kubernetes.Interface) er
 	return nil
 }
 
-func (i *Deployment) startKymaDeployment(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
+func (i *Deployment) startKymaDeployment(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -150,7 +153,7 @@ func (i *Deployment) startKymaDeployment(kubeClient kubernetes.Interface, prereq
 	quitTimeout := i.Cfg.QuitTimeout
 
 	startTime := time.Now()
-	err = i.deployPrerequisites(cancelCtx, cancel, kubeClient, prerequisites, cancelTimeout, quitTimeout)
+	err = i.deployPrerequisites(cancelCtx, cancel, i.kubeClient, prerequisites, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -169,7 +172,7 @@ func (i *Deployment) startKymaDeployment(kubeClient kubernetes.Interface, prereq
 	return nil
 }
 
-func (i *Deployment) startKymaUninstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, eng *engine.Engine) error {
+func (i *Deployment) startKymaUninstallation(prerequisitesProvider components.Provider, eng *engine.Engine) error {
 	i.Cfg.Log("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -195,7 +198,7 @@ func (i *Deployment) startKymaUninstallation(kubeClient kubernetes.Interface, pr
 		return err
 	}
 
-	err = i.uninstallPrerequisites(cancelCtx, cancel, kubeClient, prerequisites, cancelTimeout, quitTimeout)
+	err = i.uninstallPrerequisites(cancelCtx, cancel, i.kubeClient, prerequisites, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -406,8 +409,8 @@ UninstallLoop:
 	return nil
 }
 
-func (i *Deployment) getConfig(kubeClient kubernetes.Interface) (overrides.OverridesProvider, components.Provider, *engine.Engine, error) {
-	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls, i.Cfg.Log)
+func (i *Deployment) getConfig() (overrides.OverridesProvider, components.Provider, *engine.Engine, error) {
+	overridesProvider, err := overrides.New(i.kubeClient, i.OverridesYamls, i.Cfg.Log)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider. Exiting...")
 	}

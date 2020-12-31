@@ -87,30 +87,31 @@ func main() {
 		}()
 	}
 
-	installer, err := deployment.NewDeployment(prerequisitesContent,
-		string(componentsContent),
-		[]string{string(overridesContent)},
-		resourcesPath,
-		installationCfg,
-		progressCh)
-	if err != nil {
-		log.Fatalf("Failed to create installer: %v", err)
-	}
-
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		log.Printf("Failed to create kube client. Exiting...")
 		os.Exit(1)
 	}
 
-	err = installer.StartKymaDeployment(kubeClient)
+	installer, err := deployment.NewDeployment(prerequisitesContent,
+		string(componentsContent),
+		[]string{string(overridesContent)},
+		resourcesPath,
+		installationCfg,
+		progressCh,
+		kubeClient)
+	if err != nil {
+		log.Fatalf("Failed to create installer: %v", err)
+	}
+
+	err = installer.StartKymaDeployment()
 	if err != nil {
 		log.Printf("Failed to deploy Kyma: %v", err)
 	} else {
 		log.Println("Kyma deployed!")
 	}
 
-	err = installer.StartKymaUninstallation(kubeClient)
+	err = installer.StartKymaUninstallation()
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}
