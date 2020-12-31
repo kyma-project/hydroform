@@ -5,11 +5,12 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 var metadataName = "kyma"
+
 //TODO it's in default ns cause at starting installation kyma-installer ns doesn't exist, this needs to be changed and metadata should be written to protected ns
 var metadataNamespace = "default"
 
