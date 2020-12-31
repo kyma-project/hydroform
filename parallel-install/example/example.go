@@ -19,11 +19,16 @@ import (
 func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
 	profile := flag.String("profile", "", "Deployment profile")
+	version := flag.String("version", "", "Kyma version")
 
 	flag.Parse()
 
 	if kubeconfigPath == nil || *kubeconfigPath == "" {
 		log.Fatalf("kubeconfig is required")
+	}
+
+	if version == nil || *version == "" {
+		log.Fatalf("version is required")
 	}
 
 	goPath := os.Getenv("GOPATH")
@@ -64,6 +69,7 @@ func main() {
 		Log:                           log.Printf,
 		HelmMaxRevisionHistory:        10,
 		Profile:                       *profile,
+		Version:                       *version,
 	}
 
 	installer, err := deployment.NewDeployment(prerequisitesContent,

@@ -30,6 +30,8 @@ type Config struct {
 	HelmMaxRevisionHistory int
 	//Installation / Upgrade profile: evaluation|production
 	Profile string
+	//Kyma deployment version
+	Version string
 }
 
 // TODO: Remove this variable. Search for occurrences of config.Log

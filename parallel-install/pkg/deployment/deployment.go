@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -70,11 +71,53 @@ func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYam
 
 //StartKymaDeployment implements the Installer.StartKymaDeployment contract.
 func (i *Deployment) StartKymaDeployment(kubeClient kubernetes.Interface) error {
+	metadataProvider := metadata.New(kubeClient)
+	//TODO refactoring needed: something like metadatProvider.WriteKymaProgress
+	meta := &metadata.KymaMetadata{
+		Version: i.Cfg.Version,
+		Profile: i.Cfg.Profile,
+		Status: "Deployment in progress",
+	}
+
+	err := metadataProvider.WriteKKymaMetadata(meta)
+	if err != nil {
+		return err
+	}
+
 	overridesProvider, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
 	if err != nil {
 		return err
 	}
-	return i.startKymaDeployment(kubeClient, prerequisitesProvider, overridesProvider, engine)
+
+	err = i.startKymaDeployment(kubeClient, prerequisitesProvider, overridesProvider, engine)
+	if err != nil {
+		//TODO refactoring needed: something like metadatProvider.WriteKymaError
+		meta := &metadata.KymaMetadata{
+			Version: i.Cfg.Version,
+			Profile: i.Cfg.Profile,
+			Status: "Deployment error",
+			Reason: err.Error(),
+		}
+
+		err := metadataProvider.WriteKKymaMetadata(meta)
+		if err != nil {
+			return err
+		}
+	}
+
+	//TODO refactoring needed: something like metadatProvider.WriteKymaDeployed
+	meta = &metadata.KymaMetadata{
+		Version: i.Cfg.Version,
+		Profile: i.Cfg.Profile,
+		Status: "Deployed",
+	}
+
+	err = metadataProvider.WriteKKymaMetadata(meta)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //StartKymaUninstallation implements the Installer.StartKymaUninstallation contract.
@@ -83,7 +126,42 @@ func (i *Deployment) StartKymaUninstallation(kubeClient kubernetes.Interface) er
 	if err != nil {
 		return err
 	}
-	return i.startKymaUninstallation(kubeClient, prerequisitesProvider, engine)
+
+	metadataProvider := metadata.New(kubeClient)
+	//TODO refactoring needed: something like metadatProvider.WriteKymaProgress
+	meta := &metadata.KymaMetadata{
+		Version: i.Cfg.Version,
+		Profile: i.Cfg.Profile,
+		Status: "Uninstallation in progress",
+	}
+
+	err = metadataProvider.WriteKKymaMetadata(meta)
+	if err != nil {
+		return err
+	}
+
+	err = i.startKymaUninstallation(kubeClient, prerequisitesProvider, engine)
+	if err!=nil{
+		//TODO refactoring needed: something like metadatProvider.WriteKymaError
+		meta := &metadata.KymaMetadata{
+			Version: i.Cfg.Version,
+			Profile: i.Cfg.Profile,
+			Status: "Uninstallation error",
+			Reason: err.Error(),
+		}
+
+		err := metadataProvider.WriteKKymaMetadata(meta)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = metadataProvider.DeleteKymaMetadata()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (i *Deployment) startKymaDeployment(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {

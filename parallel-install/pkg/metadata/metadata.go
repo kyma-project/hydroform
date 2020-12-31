@@ -12,11 +12,13 @@ import (
 type MetadataProvider interface {
 	ReadKymaMetadata() (*KymaMetadata, error)
 	WriteKKymaMetadata(data *KymaMetadata) error
+	DeleteKymaMetadata() error
 }
 
 type KymaMetadata struct {
 	Profile string
 	Version string
+	//TODO enum needed
 	Status  string
 	Reason  string
 }
@@ -33,7 +35,8 @@ func New(client kubernetes.Interface) MetadataProvider {
 
 func (p *Provider) ReadKymaMetadata() (*KymaMetadata, error) {
 	//TODO retries
-	kymaMetadataCM, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").Get(context.TODO(), "kyma", metav1.GetOptions{})
+	//TODO it's in default ns cause at starting installation kyma-installer ns doesn't exist, this needs to be changed and metadata should be written to protected ns
+	kymaMetadataCM, err := p.kubeClient.CoreV1().ConfigMaps("default").Get(context.TODO(), "kyma", metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return &KymaMetadata{}, nil
@@ -50,19 +53,19 @@ func (p *Provider) WriteKKymaMetadata(data *KymaMetadata) error {
 	cmData := metadataToCM(data)
 
 	//TODO retries
-	kymaMetadataCM, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").Get(context.TODO(), "kyma", metav1.GetOptions{})
+	kymaMetadataCM, err := p.kubeClient.CoreV1().ConfigMaps("default").Get(context.TODO(), "kyma", metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			//TODO save CM
 			cmToSave := &v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "kyma",
-					Namespace: "kyma-installer",
+					Namespace: "default",
 				},
 				Data: cmData,
 			}
 
-			_, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").Create(context.TODO(), cmToSave, metav1.CreateOptions{})
+			_, err := p.kubeClient.CoreV1().ConfigMaps("default").Create(context.TODO(), cmToSave, metav1.CreateOptions{})
 			if err != nil {
 				return err
 			}
@@ -73,7 +76,17 @@ func (p *Provider) WriteKKymaMetadata(data *KymaMetadata) error {
 
 	//TODO update CM
 	kymaMetadataCM.Data = cmData
-	_, err = p.kubeClient.CoreV1().ConfigMaps("kyma-installer").Update(context.TODO(), kymaMetadataCM, metav1.UpdateOptions{})
+	_, err = p.kubeClient.CoreV1().ConfigMaps("default").Update(context.TODO(), kymaMetadataCM, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Provider) DeleteKymaMetadata() error {
+	//TODO retries
+	err := p.kubeClient.CoreV1().ConfigMaps("default").Delete(context.TODO(), "kyma", metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
