@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"helm.sh/helm/v3/pkg/chartutil"
+
 	"helm.sh/helm/v3/pkg/storage/driver"
 
 	"github.com/cenkalti/backoff/v4"
@@ -74,7 +74,7 @@ func NewClient(cfg Config) *Client {
 
 func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) error {
 
-	cfg, err := newActionConfig(namespace)
+	cfg, err := c.newActionConfig(namespace)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 
 	initialInterval := time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
 	maxElapsedTime := time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
-	err = retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
+	err = c.retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
 	if err != nil {
 		return fmt.Errorf("Error: Failed to uninstall %s within the configured time. Error: %v", name, err)
 	}
@@ -184,7 +184,7 @@ func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name s
 
 func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overridesValues map[string]interface{}, profile string) error {
 	operation := func() error {
-		cfg, err := newActionConfig(namespace)
+		cfg, err := c.newActionConfig(namespace)
 		if err != nil {
 			return err
 		}
@@ -201,7 +201,8 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 
 		comboValues := overrides.MergeMaps(profileValues, overridesValues)
 
-		upgrade, err := isUpgrade(name, cfg)
+		upgrade, err := c.isUpgrade(name, cfg)
+
 		if err != nil {
 			return err
 		}
@@ -222,7 +223,7 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 
 	initialInterval := time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
 	maxElapsedTime := time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
-	err := retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
+	err := c.retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
 	if err != nil {
 		return fmt.Errorf("Error: Failed to deploy %s within the configured time. Error: %v", name, err)
 	}
@@ -230,7 +231,7 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 	return nil
 }
 
-func isUpgrade(name string, cfg *action.Configuration) (bool, error) {
+func (c *Client) isUpgrade(name string, cfg *action.Configuration) (bool, error) {
 	history := action.NewHistory(cfg)
 	history.Max = 1
 
@@ -264,7 +265,7 @@ func getProfileValues(ch chart.Chart, profileName string) (map[string]interface{
 	return profileValues, nil
 }
 
-func retryWithBackoff(ctx context.Context, operation func() error, initialInterval, maxTime time.Duration) error {
+func (c *Client) retryWithBackoff(ctx context.Context, operation func() error, initialInterval, maxTime time.Duration) error {
 
 	exponentialBackoff := backoff.NewExponentialBackOff()
 	exponentialBackoff.InitialInterval = initialInterval
@@ -277,12 +278,12 @@ func retryWithBackoff(ctx context.Context, operation func() error, initialInterv
 	return nil
 }
 
-func newActionConfig(namespace string) (*action.Configuration, error) {
+func (c *Client) newActionConfig(namespace string) (*action.Configuration, error) {
 	clientGetter := genericclioptions.NewConfigFlags(false)
 	clientGetter.Namespace = &namespace
 
 	cfg := new(action.Configuration)
-	if err := cfg.Init(clientGetter, namespace, "secrets", config.Log); err != nil {
+	if err := cfg.Init(clientGetter, namespace, "secrets", c.cfg.Log); err != nil {
 		return nil, err
 	}
 

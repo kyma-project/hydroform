@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"io/ioutil"
-	"k8s.io/client-go/kubernetes"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
 	"k8s.io/client-go/rest"
@@ -20,6 +23,7 @@ func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
 	profile := flag.String("profile", "", "Deployment profile")
 	version := flag.String("version", "", "Kyma version")
+	verbose := flag.Bool("verbose", false, "Verbose mode")
 
 	flag.Parse()
 
@@ -66,22 +70,32 @@ func main() {
 		HelmTimeoutSeconds:            60 * 8,
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
-		Log:                           log.Printf,
+		Log:                           getLogFunc(*verbose),
 		HelmMaxRevisionHistory:        10,
 		Profile:                       *profile,
 		Version:                       *version,
+	}
+
+	// used to receive progress updates of the install/uninstall process
+	var progressCh chan deployment.ProcessUpdate
+	if !(*verbose) {
+		progressCh = make(chan deployment.ProcessUpdate)
+		ctx := renderProgress(progressCh)
+		defer func() {
+			close(progressCh)
+			<-ctx.Done()
+		}()
 	}
 
 	installer, err := deployment.NewDeployment(prerequisitesContent,
 		string(componentsContent),
 		[]string{string(overridesContent)},
 		resourcesPath,
-		installationCfg)
+		installationCfg,
+		progressCh)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
-
-	config.SetupLogger(log.Printf)
 
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
@@ -108,4 +122,43 @@ func getClientConfig(kubeconfig string) (*rest.Config, error) {
 		return clientcmd.BuildConfigFromFlags("", kubeconfig)
 	}
 	return rest.InClusterConfig()
+}
+
+func getLogFunc(verbose bool) func(string, ...interface{}) {
+	if verbose {
+		return log.Printf
+	}
+	return func(msg string, args ...interface{}) {
+		// do nothing
+	}
+}
+
+func renderProgress(progressCh chan deployment.ProcessUpdate) context.Context {
+	context, cancel := context.WithCancel(context.Background())
+
+	showCompStatus := func(comp components.KymaComponent) {
+		if comp.Name != "" {
+			log.Printf("Status of component '%s': %s", comp.Name, comp.Status)
+		}
+	}
+	go func() {
+		defer cancel()
+
+		for update := range progressCh {
+			switch update.Event {
+			case deployment.ProcessStart:
+				log.Printf("Starting installation phase '%s'", update.Phase)
+			case deployment.ProcessRunning:
+				showCompStatus(update.Component)
+			case deployment.ProcessFinished:
+				log.Printf("Finished installation phase '%s' successfully", update.Phase)
+			default:
+				//any failure case
+				log.Printf("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
+				showCompStatus(update.Component)
+			}
+		}
+	}()
+
+	return context
 }

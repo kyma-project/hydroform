@@ -2,7 +2,6 @@
 package config
 
 import (
-	"log"
 	"time"
 )
 
@@ -32,13 +31,4 @@ type Config struct {
 	Profile string
 	//Kyma deployment version
 	Version string
-}
-
-// TODO: Remove this variable. Search for occurrences of config.Log
-// It is used in functions to avoid passing logger as a parameter
-var Log = log.Printf
-
-//It sets up the global logging function.
-func SetupLogger(log func(string, ...interface{})) {
-	Log = log
 }

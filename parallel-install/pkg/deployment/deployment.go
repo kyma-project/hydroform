@@ -14,7 +14,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
-	prereq "github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
 )
 
 type Deployment struct {
@@ -27,6 +27,8 @@ type Deployment struct {
 	// Root dir in a local filesystem with subdirectories containing components' Helm charts
 	ResourcesPath string
 	Cfg           config.Config
+	// Used to send progress events of a running install/uninstall process
+	ProcessUpdates chan<- ProcessUpdate
 }
 
 type Installer interface {
@@ -52,7 +54,7 @@ type Installer interface {
 //See overrides.New for details about the overrides contract.
 //
 //resourcesPath is a local filesystem path where components' charts are located.
-func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config) (*Deployment, error) {
+func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Deployment. Resource path is required.")
 	}
@@ -66,6 +68,7 @@ func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYam
 		OverridesYamls: overridesYamls,
 		ResourcesPath:  resourcesPath,
 		Cfg:            cfg,
+		ProcessUpdates: processUpdates,
 	}, nil
 }
 
@@ -213,7 +216,15 @@ func (i *Deployment) deployPrerequisites(ctx context.Context, cancelFunc context
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false
 
-	prereqStatusChan := prereq.InstallPrerequisites(ctx, kubeClient, p)
+	prereq := prerequisites.Prerequisites{
+		Context:       ctx,
+		KubeClient:    kubeClient,
+		Prerequisites: p,
+		Log:           i.Cfg.Log,
+	}
+	prereqStatusChan := prereq.InstallPrerequisites()
+
+	i.processUpdate(InstallPreRequisites, ProcessStart)
 
 Prerequisites:
 	for {
@@ -221,10 +232,12 @@ Prerequisites:
 		case prerequisiteErr, ok := <-prereqStatusChan:
 			if ok {
 				if prerequisiteErr != nil {
+					i.processUpdate(InstallPreRequisites, ProcessExecutionFailure)
 					return fmt.Errorf("Kyma deployment failed due to an error: %s", prerequisiteErr)
 				}
 			} else {
 				if timeoutOccurred {
+					i.processUpdate(InstallPreRequisites, ProcessTimeoutFailure)
 					return fmt.Errorf("Kyma prerequisites deployment failed due to the timeout")
 				}
 				break Prerequisites
@@ -234,10 +247,12 @@ Prerequisites:
 			i.Cfg.Log("Timeout reached. Cancelling deployment")
 			cancelFunc()
 		case <-quitTimeoutChan:
+			i.processUpdate(InstallPreRequisites, ProcessForceQuitFailure)
 			i.Cfg.Log("Deployment doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Force quit: Kyma prerequisites deployment failed due to the timeout")
 		}
 	}
+	i.processUpdate(InstallPreRequisites, ProcessFinished)
 	return nil
 }
 
@@ -247,7 +262,15 @@ func (i *Deployment) uninstallPrerequisites(ctx context.Context, cancelFunc cont
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false
 
-	prereqStatusChan := prereq.UninstallPrerequisites(ctx, kubeClient, p)
+	prereq := prerequisites.Prerequisites{
+		Context:       ctx,
+		KubeClient:    kubeClient,
+		Prerequisites: p,
+		Log:           i.Cfg.Log,
+	}
+	prereqStatusChan := prereq.UninstallPrerequisites()
+
+	i.processUpdate(UninstallPreRequisites, ProcessStart)
 
 Prerequisites:
 	for {
@@ -255,10 +278,12 @@ Prerequisites:
 		case prerequisiteErr, ok := <-prereqStatusChan:
 			if ok {
 				if prerequisiteErr != nil {
-					config.Log("Failed to uninstall a prerequisite: %s", prerequisiteErr)
+					i.processUpdate(UninstallPreRequisites, ProcessExecutionFailure)
+					i.Cfg.Log("Failed to uninstall a prerequisite: %s", prerequisiteErr)
 				}
 			} else {
 				if timeoutOccurred {
+					i.processUpdate(UninstallPreRequisites, ProcessTimeoutFailure)
 					return fmt.Errorf("Kyma prerequisites uninstallation failed due to the timeout")
 				}
 				break Prerequisites
@@ -268,10 +293,12 @@ Prerequisites:
 			i.Cfg.Log("Timeout reached. Cancelling uninstallation")
 			cancelFunc()
 		case <-quitTimeoutChan:
+			i.processUpdate(UninstallPreRequisites, ProcessForceQuitFailure)
 			i.Cfg.Log("Uninstallation doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Force quit: Kyma prerequisites uninstallation failed due to the timeout")
 		}
 	}
+	i.processUpdate(UninstallPreRequisites, ProcessFinished)
 	return nil
 }
 
@@ -287,11 +314,15 @@ func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.Ca
 		return fmt.Errorf("Kyma deployment failed. Error: %v", err)
 	}
 
+	i.processUpdate(InstallComponents, ProcessStart)
+
 	//Await completion
+InstallLoop:
 	for {
 		select {
 		case cmp, ok := <-statusChan:
 			if ok {
+				i.processUpdateComponent(InstallComponents, cmp)
 				//Received a status update
 				if cmp.Status == components.StatusError {
 					errCount++
@@ -304,20 +335,24 @@ func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.Ca
 					return fmt.Errorf("Kyma deployment failed due to errors in %d component(s)", errCount)
 				}
 				if timeoutOccurred {
+					i.processUpdate(InstallComponents, ProcessTimeoutFailure)
 					i.logStatuses(statusMap)
 					return fmt.Errorf("Kyma deployment failed due to the timeout")
 				}
-				return nil
+				break InstallLoop
 			}
 		case <-cancelTimeoutChan:
 			timeoutOccurred = true
 			i.Cfg.Log("Timeout occurred after %v minutes. Cancelling deployment", cancelTimeout.Minutes())
 			cancelFunc()
 		case <-quitTimeoutChan:
+			i.processUpdate(InstallComponents, ProcessForceQuitFailure)
 			i.Cfg.Log("Deployment doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Force quit: Kyma deployment failed due to the timeout")
 		}
 	}
+	i.processUpdate(InstallComponents, ProcessFinished)
+	return nil
 }
 
 func (i *Deployment) uninstallComponents(ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
@@ -331,12 +366,16 @@ func (i *Deployment) uninstallComponents(ctx context.Context, cancelFunc context
 	if err != nil {
 		return err
 	}
+
+	i.processUpdate(UninstallComponents, ProcessStart)
+
 	//Await completion
-Loop:
+UninstallLoop:
 	for {
 		select {
 		case cmp, ok := <-statusChan:
 			if ok {
+				i.processUpdateComponent(UninstallComponents, cmp)
 				if cmp.Status == components.StatusError {
 					errCount++
 				}
@@ -347,20 +386,23 @@ Loop:
 					return fmt.Errorf("Kyma uninstallation failed due to errors in %d component(s)", errCount)
 				}
 				if timeoutOccured {
+					i.processUpdate(UninstallComponents, ProcessTimeoutFailure)
 					i.logStatuses(statusMap)
 					return fmt.Errorf("Kyma uninstallation failed due to the timeout")
 				}
-				break Loop
+				break UninstallLoop
 			}
 		case <-cancelTimeoutChan:
 			timeoutOccured = true
 			i.Cfg.Log("Timeout occurred after %v minutes. Cancelling uninstallation", cancelTimeout.Minutes())
 			cancelFunc()
 		case <-quitTimeoutChan:
+			i.processUpdate(UninstallComponents, ProcessForceQuitFailure)
 			i.Cfg.Log("Uninstallation doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Force quit: Kyma uninstallation failed due to the timeout")
 		}
 	}
+	i.processUpdate(UninstallComponents, ProcessFinished)
 	return nil
 }
 
@@ -373,7 +415,10 @@ func (i *Deployment) getConfig(kubeClient kubernetes.Interface) (overrides.Overr
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.ResourcesPath, i.Prerequisites, i.Cfg)
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.ResourcesPath, i.ComponentsYaml, i.Cfg)
 
-	engineCfg := engine.Config{WorkersCount: i.Cfg.WorkersCount}
+	engineCfg := engine.Config{
+		WorkersCount: i.Cfg.WorkersCount,
+		Verbose:      false,
+	}
 	eng := engine.NewEngine(overridesProvider, componentsProvider, engineCfg)
 
 	return overridesProvider, prerequisitesProvider, eng, nil
@@ -382,4 +427,35 @@ func (i *Deployment) getConfig(kubeClient kubernetes.Interface) (overrides.Overr
 func calculateDuration(start time.Time, end time.Time, duration time.Duration) time.Duration {
 	elapsedTime := end.Sub(start)
 	return duration - elapsedTime
+}
+
+// Send process update event
+func (i *Deployment) processUpdate(phase InstallationPhase, event ProcessEvent) {
+	if i.ProcessUpdates == nil {
+		return
+	}
+	// fire event
+	i.ProcessUpdates <- ProcessUpdate{
+		Event:     event,
+		Phase:     phase,
+		Component: components.KymaComponent{},
+	}
+}
+
+// Send process update event related to a component
+func (i *Deployment) processUpdateComponent(phase InstallationPhase, comp components.KymaComponent) {
+	if i.ProcessUpdates == nil {
+		return
+	}
+	// define event type
+	event := ProcessRunning
+	if comp.Status == components.StatusError {
+		event = ProcessExecutionFailure
+	}
+	// fire event
+	i.ProcessUpdates <- ProcessUpdate{
+		Event:     event,
+		Phase:     phase,
+		Component: comp,
+	}
 }
