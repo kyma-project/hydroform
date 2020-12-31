@@ -60,53 +60,53 @@ func (p *Provider) ReadKymaMetadata() (*KymaMetadata, error) {
 	return kymaMetaData, nil
 }
 
-func (p *Provider) WriteKymaDeploymentInProgress() error{
+func (p *Provider) WriteKymaDeploymentInProgress() error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
-		Status: "Deployment in progress",
+		Status:  "Deployment in progress",
 	}
 
 	return p.writeKymaMetadata(meta)
 }
 
-func (p *Provider) WriteKymaUninstallationInProgress() error{
+func (p *Provider) WriteKymaUninstallationInProgress() error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
-		Status: "Uninstallation in progress",
+		Status:  "Uninstallation in progress",
 	}
 
 	return p.writeKymaMetadata(meta)
 }
 
-func (p *Provider) WriteKymaDeploymentError(error string) error{
+func (p *Provider) WriteKymaDeploymentError(error string) error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
-		Status: "Deployment error",
-		Reason: error,
+		Status:  "Deployment error",
+		Reason:  error,
 	}
 
 	return p.writeKymaMetadata(meta)
 }
 
-func (p *Provider) WriteKymaUninstallationError(error string) error{
+func (p *Provider) WriteKymaUninstallationError(error string) error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
-		Status: "Uninstallation error",
-		Reason: error,
+		Status:  "Uninstallation error",
+		Reason:  error,
 	}
 
 	return p.writeKymaMetadata(meta)
 }
 
-func (p *Provider) WriteKymaDeployed() error{
+func (p *Provider) WriteKymaDeployed() error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
-		Status: "Deployed",
+		Status:  "Deployed",
 	}
 
 	return p.writeKymaMetadata(meta)
