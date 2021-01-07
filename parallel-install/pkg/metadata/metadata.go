@@ -17,7 +17,7 @@ var metadataName = "kyma"
 var metadataNamespace = "default"
 
 var initialInterval = time.Duration(3) * time.Second
-var maxElapsedTime = time.Duration(30) * time.Second
+var maxElapsedTime = time.Duration(20) * time.Second
 
 type MetadataProvider interface {
 	ReadKymaMetadata() (*KymaMetadata, error)
