@@ -111,6 +111,14 @@ func main() {
 		log.Println("Kyma deployed!")
 	}
 
+	kymaMeta, err := installer.ReadKymaMetadata()
+	if err != nil {
+		log.Printf("Failed to read Kyma metadata: %v", err)
+	}
+
+	log.Printf("Kyma version: %s", kymaMeta.Version)
+	log.Printf("Kyma status: %s", kymaMeta.Status)
+
 	err = installer.StartKymaUninstallation()
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)

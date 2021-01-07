@@ -41,6 +41,7 @@ Once you have a configured `Deployment` instance, use the following functions ac
 
 - `StartKymaDeployment` - Starts the deployment process. First, prerequisites are deployed linearly. Then, the components' deployment continues in parallel.
 - `StartKymaUninstallation` - Starts the uninstallation process. The library uninstalls the components first, then it proceeds with the prerequisites' uninstallation in reverse order.
+- `ReadKymaMetadata` - Retrieves Kyma metadata, e.g. version.
 
 ### Example
 

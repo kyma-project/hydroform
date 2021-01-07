@@ -2,7 +2,9 @@ package metadata
 
 import (
 	"context"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +15,9 @@ var metadataName = "kyma"
 
 //TODO it's in default ns cause at starting installation kyma-installer ns doesn't exist, this needs to be changed and metadata should be written to protected ns
 var metadataNamespace = "default"
+
+var initialInterval = time.Duration(3) * time.Second
+var maxElapsedTime = time.Duration(30) * time.Second
 
 type MetadataProvider interface {
 	ReadKymaMetadata() (*KymaMetadata, error)
@@ -47,13 +52,25 @@ func New(client kubernetes.Interface, profile, version string) MetadataProvider 
 }
 
 func (p *Provider) ReadKymaMetadata() (*KymaMetadata, error) {
-	//TODO retries
-	kymaMetadataCM, err := p.kubeClient.CoreV1().ConfigMaps(metadataNamespace).Get(context.TODO(), metadataName, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return &KymaMetadata{}, nil
+	kymaMetadataCM := &v1.ConfigMap{}
+	var err error
+
+	exponentialBackoff := backoff.NewExponentialBackOff()
+	exponentialBackoff.InitialInterval = initialInterval
+	exponentialBackoff.MaxElapsedTime = maxElapsedTime
+
+	retryErr := retryOperation(func() error {
+		kymaMetadataCM, err = p.kubeClient.CoreV1().ConfigMaps(metadataNamespace).Get(context.TODO(), metadataName, metav1.GetOptions{})
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				return err
+			}
 		}
-		return nil, err
+
+		return nil
+	})
+	if retryErr != nil {
+		return nil, retryErr
 	}
 
 	kymaMetaData := cmToMetadata(kymaMetadataCM.Data)
@@ -68,7 +85,9 @@ func (p *Provider) WriteKymaDeploymentInProgress() error {
 		Status:  "Deployment in progress",
 	}
 
-	return p.writeKymaMetadata(meta)
+	return retryOperation(func() error {
+		return p.writeKymaMetadata(meta)
+	})
 }
 
 func (p *Provider) WriteKymaUninstallationInProgress() error {
@@ -78,29 +97,35 @@ func (p *Provider) WriteKymaUninstallationInProgress() error {
 		Status:  "Uninstallation in progress",
 	}
 
-	return p.writeKymaMetadata(meta)
+	return retryOperation(func() error {
+		return p.writeKymaMetadata(meta)
+	})
 }
 
-func (p *Provider) WriteKymaDeploymentError(error string) error {
+func (p *Provider) WriteKymaDeploymentError(reason string) error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
 		Status:  "Deployment error",
-		Reason:  error,
+		Reason:  reason,
 	}
 
-	return p.writeKymaMetadata(meta)
+	return retryOperation(func() error {
+		return p.writeKymaMetadata(meta)
+	})
 }
 
-func (p *Provider) WriteKymaUninstallationError(error string) error {
+func (p *Provider) WriteKymaUninstallationError(reason string) error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
 		Status:  "Uninstallation error",
-		Reason:  error,
+		Reason:  reason,
 	}
 
-	return p.writeKymaMetadata(meta)
+	return retryOperation(func() error {
+		return p.writeKymaMetadata(meta)
+	})
 }
 
 func (p *Provider) WriteKymaDeployed() error {
@@ -110,17 +135,17 @@ func (p *Provider) WriteKymaDeployed() error {
 		Status:  "Deployed",
 	}
 
-	return p.writeKymaMetadata(meta)
+	return retryOperation(func() error {
+		return p.writeKymaMetadata(meta)
+	})
 }
 
 func (p *Provider) writeKymaMetadata(data *KymaMetadata) error {
 	cmData := metadataToCM(data)
 
-	//TODO retries
 	kymaMetadataCM, err := p.kubeClient.CoreV1().ConfigMaps(metadataNamespace).Get(context.TODO(), metadataName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			//TODO save CM
 			cmToSave := &v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      metadataName,
@@ -138,7 +163,6 @@ func (p *Provider) writeKymaMetadata(data *KymaMetadata) error {
 		return err
 	}
 
-	//TODO update CM
 	kymaMetadataCM.Data = cmData
 	_, err = p.kubeClient.CoreV1().ConfigMaps(metadataNamespace).Update(context.TODO(), kymaMetadataCM, metav1.UpdateOptions{})
 	if err != nil {
@@ -149,13 +173,13 @@ func (p *Provider) writeKymaMetadata(data *KymaMetadata) error {
 }
 
 func (p *Provider) DeleteKymaMetadata() error {
-	//TODO retries
-	err := p.kubeClient.CoreV1().ConfigMaps(metadataNamespace).Delete(context.TODO(), metadataName, metav1.DeleteOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return retryOperation(func() error {
+		err := p.kubeClient.CoreV1().ConfigMaps(metadataNamespace).Delete(context.TODO(), metadataName, metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func metadataToCM(data *KymaMetadata) map[string]string {
@@ -175,4 +199,12 @@ func cmToMetadata(data map[string]string) *KymaMetadata {
 		Status:  data["status"],
 		Reason:  data["reason"],
 	}
+}
+
+func retryOperation(operation func() error) error {
+	exponentialBackoff := backoff.NewExponentialBackOff()
+	exponentialBackoff.InitialInterval = initialInterval
+	exponentialBackoff.MaxElapsedTime = maxElapsedTime
+
+	return backoff.Retry(operation, exponentialBackoff)
 }

@@ -44,6 +44,8 @@ type Installer interface {
 	//If the uninstallation is not finished in configured config.Config.QuitTimeout,
 	//the method returns with an error. Some worker goroutines may still run in the background.
 	StartKymaUninstallation() error
+	//ReadKymaMetadata retrieves Kyma metadata from the cluster
+	ReadKymaMetadata() (*metadata.KymaMetadata, error)
 }
 
 //NewDeployment should be used to create Deployment instances.
@@ -132,6 +134,10 @@ func (i *Deployment) StartKymaUninstallation() error {
 	}
 
 	return nil
+}
+
+func (i *Deployment) ReadKymaMetadata() (*metadata.KymaMetadata, error){
+	return i.metadataProvider.ReadKymaMetadata()
 }
 
 func (i *Deployment) startKymaDeployment(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
