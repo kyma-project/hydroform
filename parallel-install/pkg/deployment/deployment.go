@@ -136,7 +136,8 @@ func (i *Deployment) StartKymaUninstallation() error {
 	return nil
 }
 
-func (i *Deployment) ReadKymaMetadata() (*metadata.KymaMetadata, error){
+//ReadKymaMetadata implements the Installer.ReadKymaMetadata contract.
+func (i *Deployment) ReadKymaMetadata() (*metadata.KymaMetadata, error) {
 	return i.metadataProvider.ReadKymaMetadata()
 }
 
