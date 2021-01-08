@@ -9,6 +9,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+
+	"gopkg.in/yaml.v3"
 )
 
 func Test_ReadOverridesFromCluster(t *testing.T) {
@@ -41,14 +43,18 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	)
 
 	// Read additional overrides file
-	content, err := ioutil.ReadFile("../test/data/overrides.yaml")
+	data, err := ioutil.ReadFile("../test/data/overrides.yaml")
+	var overrides map[string]interface{}
+	err = yaml.Unmarshal(data, &overrides)
 	require.NoError(t, err)
 
-	contentWithCollidingOverrides, err := ioutil.ReadFile("../test/data/overrides-colliding.yaml")
+	data, err = ioutil.ReadFile("../test/data/overrides-colliding.yaml")
+	var overridesColliding map[string]interface{}
+	err = yaml.Unmarshal(data, &overridesColliding)
 	require.NoError(t, err)
 
 	t.Run("Should properly read overrides with no colliding data", func(t *testing.T) {
-		testProvider, err := New(k8sMock, []string{string(content)}, log.Printf)
+		testProvider, err := New(k8sMock, overrides, log.Printf)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -67,7 +73,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	})
 
 	t.Run("Should not duplicate additional overrides when reading overrides many times", func(t *testing.T) {
-		testProvider, err := New(k8sMock, []string{string(content)}, log.Printf)
+		testProvider, err := New(k8sMock, overrides, log.Printf)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -92,7 +98,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	})
 
 	t.Run("Should always put additionalOverrides on top of other overrides", func(t *testing.T) {
-		testProvider, err := New(k8sMock, []string{string(contentWithCollidingOverrides)}, log.Printf)
+		testProvider, err := New(k8sMock, overridesColliding, log.Printf)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -111,29 +117,6 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 		globalOverrides, ok := res2["global"].(map[string]interface{})
 		require.True(t, ok)
 		require.Equal(t, 2, len(res2["global"].(map[string]interface{})), "Number of global overrides not as expected")
-		require.Equal(t, "changed", globalOverrides["globalOverride1"], "Override from additional overrides not on top of regular overrides")
-	})
-
-	t.Run("Should properly read additional overrides from multiple files", func(t *testing.T) {
-		testProvider, err := New(k8sMock, []string{string(content), string(contentWithCollidingOverrides)}, log.Printf)
-		require.NoError(t, err)
-
-		err = testProvider.ReadOverridesFromCluster()
-		require.NoError(t, err)
-
-		// Monitoring should have two sample component overrides with one overridden by additional overrides + one from additional overrides
-		// + global overrides under one "global" key - two global overrides from this file with one overridden by additional overrides
-		res := testProvider.OverridesGetterFunctionFor(component)()
-		require.Equal(t, 4, len(res), "Number of component overrides not as expected")
-		require.Equal(t, "changed", res["componentOverride1"], "Override from additional overrides not on top of regular overrides")
-
-		// Another component without any component override should only have two global overrides with one overridden by additional overrides + one from additional overrides
-		res2 := testProvider.OverridesGetterFunctionFor("anotherComponent")()
-		require.Contains(t, res2, "global")
-		require.Equal(t, 1, len(res2))
-		globalOverrides, ok := res2["global"].(map[string]interface{})
-		require.True(t, ok)
-		require.Equal(t, 3, len(globalOverrides), "Number of global overrides not as expected")
 		require.Equal(t, "changed", globalOverrides["globalOverride1"], "Override from additional overrides not on top of regular overrides")
 	})
 }
