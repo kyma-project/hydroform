@@ -2,6 +2,8 @@
 package config
 
 import (
+	"fmt"
+	"os"
 	"time"
 )
 
@@ -33,4 +35,28 @@ type Config struct {
 	ResourcePath string
 	// Path to Kyma CRDs
 	CrdPath string
+}
+
+// Validate the given configuration options
+func (c *Config) Validate() error {
+	if c.WorkersCount <= 1 {
+		return fmt.Errorf("Workers count cannot be <= 0")
+	}
+	if err := c.pathExists(c.ResourcePath, "Resource path"); err != nil {
+		return err
+	}
+	if err := c.pathExists(c.CrdPath, "CRD path"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Config) pathExists(path string, description string) error {
+	if path == "" {
+		return fmt.Errorf("%s is empty", description)
+	}
+	if _, err := os.Stat(c.ResourcePath); os.IsNotExist(err) {
+		return fmt.Errorf("%s '%s' not found", description, path)
+	}
+	return nil
 }

@@ -52,6 +52,11 @@ func NewDeployment(componentsListPath string, overrides Overrides, cfg config.Co
 	if err != nil {
 		return nil, err
 	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &Deployment{
 		componentList:  clList,
 		cfg:            cfg,
