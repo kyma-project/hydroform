@@ -20,6 +20,8 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
 )
 
+var kymaNamespace = "kyma-system"
+
 type Deployment struct {
 	// Slice of pairs: [component, namespace]
 	Prerequisites [][]string
@@ -479,7 +481,7 @@ func (i *Deployment) processUpdateComponent(phase InstallationPhase, comp compon
 }
 
 func (i *Deployment) deployKymaNamespace() error {
-	_, err := i.kubeClient.CoreV1().Namespaces().Get(context.Background(), "kyma-system", metav1.GetOptions{})
+	_, err := i.kubeClient.CoreV1().Namespaces().Get(context.Background(), kymaNamespace, metav1.GetOptions{})
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -502,7 +504,7 @@ func (i *Deployment) deployKymaNamespace() error {
 func (i *Deployment) createKymaNamespace() error {
 	_, err := i.kubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "kyma-system",
+			Name: kymaNamespace,
 		},
 	}, metav1.CreateOptions{})
 
@@ -516,7 +518,7 @@ func (i *Deployment) createKymaNamespace() error {
 func (i *Deployment) updateKymaNamespace() error {
 	_, err := i.kubeClient.CoreV1().Namespaces().Update(context.Background(), &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "kyma-system",
+			Name: kymaNamespace,
 		},
 	}, metav1.UpdateOptions{})
 
@@ -528,5 +530,5 @@ func (i *Deployment) updateKymaNamespace() error {
 }
 
 func (i *Deployment) deleteKymaNamespace() error {
-	return i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), "kyma-system", metav1.DeleteOptions{})
+	return i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), kymaNamespace, metav1.DeleteOptions{})
 }

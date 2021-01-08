@@ -12,11 +12,29 @@ import (
 )
 
 var metadataName = "kyma"
-
 var metadataNamespace = "kyma-system"
-
 var initialInterval = time.Duration(3) * time.Second
 var maxElapsedTime = time.Duration(20) * time.Second
+
+// StatusEnum describes deployment / uninstallation status
+type StatusEnum string
+
+const (
+	//DeploymentInProgress means deployment of kyma is in progress
+	DeploymentInProgress StatusEnum = "DeploymentInProgress"
+
+	//UninstallationInProgress means uninstallation of kyma is in progress
+	UninstallationInProgress StatusEnum = "Uninstallation in progress"
+
+	//DeploymentError means error occurred during kyma deployment
+	DeploymentError StatusEnum = "DeploymentError"
+
+	//UninstallationError means error occurred during kyma uninstallation
+	UninstallationError StatusEnum = "UninstallationError"
+
+	//UninstallationError means kyma deployed successfuly
+	Deployed StatusEnum = "Deployed"
+)
 
 type MetadataProvider interface {
 	ReadKymaMetadata() (*KymaMetadata, error)
@@ -30,9 +48,8 @@ type MetadataProvider interface {
 type KymaMetadata struct {
 	Profile string
 	Version string
-	//TODO enum needed
-	Status string
-	Reason string
+	Status  StatusEnum
+	Reason  string
 }
 
 type Provider struct {
@@ -80,7 +97,7 @@ func (p *Provider) WriteKymaDeploymentInProgress() error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
-		Status:  "Deployment in progress",
+		Status:  DeploymentInProgress,
 	}
 
 	return retryOperation(func() error {
@@ -92,7 +109,7 @@ func (p *Provider) WriteKymaUninstallationInProgress() error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
-		Status:  "Uninstallation in progress",
+		Status:  UninstallationInProgress,
 	}
 
 	return retryOperation(func() error {
@@ -104,7 +121,7 @@ func (p *Provider) WriteKymaDeploymentError(reason string) error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
-		Status:  "Deployment error",
+		Status:  DeploymentError,
 		Reason:  reason,
 	}
 
@@ -117,7 +134,7 @@ func (p *Provider) WriteKymaUninstallationError(reason string) error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
-		Status:  "Uninstallation error",
+		Status:  UninstallationError,
 		Reason:  reason,
 	}
 
@@ -130,7 +147,7 @@ func (p *Provider) WriteKymaDeployed() error {
 	meta := &KymaMetadata{
 		Version: p.version,
 		Profile: p.profile,
-		Status:  "Deployed",
+		Status:  Deployed,
 	}
 
 	return retryOperation(func() error {
@@ -174,7 +191,7 @@ func metadataToCM(data *KymaMetadata) map[string]string {
 	CMData := make(map[string]string)
 	CMData["profile"] = data.Profile
 	CMData["version"] = data.Version
-	CMData["status"] = data.Status
+	CMData["status"] = string(data.Status)
 	CMData["reason"] = data.Reason
 
 	return CMData
@@ -184,7 +201,7 @@ func cmToMetadata(data map[string]string) *KymaMetadata {
 	return &KymaMetadata{
 		Profile: data["profile"],
 		Version: data["version"],
-		Status:  data["status"],
+		Status:  StatusEnum(data["status"]),
 		Reason:  data["reason"],
 	}
 }
