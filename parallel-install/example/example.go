@@ -3,10 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
+	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -35,28 +34,13 @@ func main() {
 		log.Fatalf("Please set GOPATH")
 	}
 
-	resourcesPath := filepath.Join(goPath, "src", "github.com", "kyma-project", "kyma", "resources")
-
 	restConfig, err := getClientConfig(*kubeconfigPath)
 	if err != nil {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
 	}
 
-	prerequisitesContent := [][]string{
-		{"cluster-essentials", "kyma-system"},
-		{"istio", "istio-system"},
-		{"xip-patch", "kyma-installer"},
-	}
-
-	componentsContent, err := ioutil.ReadFile("../pkg/test/data/installationCR.yaml")
-	if err != nil {
-		log.Fatalf("Failed to read installation CR file: %v", err)
-	}
-
-	overridesContent, err := ioutil.ReadFile("../pkg/test/data/overrides.yaml")
-	if err != nil {
-		log.Fatalf("Failed to read overrides file: %v", err)
-	}
+	overrides := deployment.Overrides{}
+	overrides.AddFile("../pkg/test/data/overrides.yaml")
 
 	installationCfg := config.Config{
 		WorkersCount:                  4,
@@ -68,6 +52,8 @@ func main() {
 		Log:                           getLogFunc(*verbose),
 		HelmMaxRevisionHistory:        10,
 		Profile:                       *profile,
+		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
+		CrdPath:                       fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources/cluster-essentials/files", goPath),
 	}
 
 	// used to receive progress updates of the install/uninstall process
@@ -81,12 +67,7 @@ func main() {
 		}()
 	}
 
-	installer, err := deployment.NewDeployment(prerequisitesContent,
-		string(componentsContent),
-		[]string{string(overridesContent)},
-		resourcesPath,
-		installationCfg,
-		progressCh)
+	installer, err := deployment.NewDeployment("./components.yaml", overrides, installationCfg, progressCh)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}

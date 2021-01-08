@@ -40,15 +40,14 @@ type Installer interface {
 
 //NewDeployment should be used to create Deployment instances.
 //
-//prerequisites is a slice of pairs: [component-name, namespace]
+//componentsListPath contains the path to the components list file
 //
-//componentsYaml is a string containing an Deployment CR in the YAML format.
+//overrides bundles all overrides which have to be considered by HELM
 //
-//overridesYamls contains data in the YAML format.
-//See overrides.New for details about the overrides contract.
+//cfg includes configuration parameters for the installer lib
 //
-//resourcesPath is a local filesystem path where components' charts are located.
-func NewDeployment(componentsListPath string, cfg config.Config, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
+//processUpdates can be an optional feedback channel provided by the caller
+func NewDeployment(componentsListPath string, overrides Overrides, cfg config.Config, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
 	clList, err := components.NewComponentList(componentsListPath)
 	if err != nil {
 		return nil, err
@@ -56,6 +55,7 @@ func NewDeployment(componentsListPath string, cfg config.Config, processUpdates 
 	return &Deployment{
 		componentList:  clList,
 		cfg:            cfg,
+		overrides:      overrides,
 		processUpdates: processUpdates,
 	}, nil
 }
