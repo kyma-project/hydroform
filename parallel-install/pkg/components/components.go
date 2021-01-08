@@ -7,8 +7,6 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
-	"github.com/kyma-project/kyma/components/kyma-operator/pkg/apis/installer/v1alpha1"
-	"gopkg.in/yaml.v3"
 )
 
 //Provider is an entity that produces a list of components for Kyma installation or uninstallation.
@@ -20,7 +18,7 @@ type Provider interface {
 type ComponentsProvider struct {
 	overridesProvider overrides.OverridesProvider
 	resourcesPath     string //A root directory where subdirectories of components' charts are located.
-	componentListYaml string
+	components        []ComponentDefinition
 	helmConfig        helm.Config
 	log               func(format string, v ...interface{})
 	profile           string
@@ -31,7 +29,7 @@ type ComponentsProvider struct {
 //resourcesPath is a directory where subdirectories of components' charts are located.
 //
 //componentListYaml is a string containing YAML with an Installation CR.
-func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, componentListYaml string, cfg config.Config) *ComponentsProvider {
+func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, components []ComponentDefinition, cfg config.Config) *ComponentsProvider {
 
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
@@ -44,7 +42,7 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resour
 	return &ComponentsProvider{
 		overridesProvider: overridesProvider,
 		resourcesPath:     resourcesPath,
-		componentListYaml: componentListYaml,
+		components:        components,
 		helmConfig:        helmCfg,
 		log:               cfg.Log,
 		profile:           cfg.Profile,
@@ -55,18 +53,12 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resour
 func (p *ComponentsProvider) GetComponents() ([]KymaComponent, error) {
 	helmClient := helm.NewClient(p.helmConfig)
 
-	var installationCR v1alpha1.Installation
-	err := yaml.Unmarshal([]byte(p.componentListYaml), &installationCR)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(installationCR.Spec.Components) < 1 {
+	if len(p.components) < 1 {
 		return nil, fmt.Errorf("Could not find any components to install on Installation CR")
 	}
 
 	var components []KymaComponent
-	for _, component := range installationCR.Spec.Components {
+	for _, component := range p.components {
 		cmp := KymaComponent{
 			Name:            component.Name,
 			Namespace:       component.Namespace,

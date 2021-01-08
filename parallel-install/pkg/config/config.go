@@ -29,4 +29,8 @@ type Config struct {
 	HelmMaxRevisionHistory int
 	//Installation / Upgrade profile: evaluation|production
 	Profile string
+	// Path to Kyma resources
+	ResourcePath string
+	// Path to Kyma CRDs
+	CrdPath string
 }
