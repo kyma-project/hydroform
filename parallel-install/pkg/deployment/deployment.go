@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -82,7 +85,12 @@ func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYam
 
 //StartKymaDeployment implements the Installer.StartKymaDeployment contract.
 func (i *Deployment) StartKymaDeployment() error {
-	err := i.metadataProvider.WriteKymaDeploymentInProgress()
+	err := i.deployKymaNamespace()
+	if err != nil {
+		return err
+	}
+
+	err = i.metadataProvider.WriteKymaDeploymentInProgress()
 	if err != nil {
 		return err
 	}
@@ -128,7 +136,7 @@ func (i *Deployment) StartKymaUninstallation() error {
 		}
 	}
 
-	err = i.metadataProvider.DeleteKymaMetadata()
+	err = i.deleteKymaNamespace()
 	if err != nil {
 		return err
 	}
@@ -468,4 +476,57 @@ func (i *Deployment) processUpdateComponent(phase InstallationPhase, comp compon
 		Phase:     phase,
 		Component: comp,
 	}
+}
+
+func (i *Deployment) deployKymaNamespace() error {
+	_, err := i.kubeClient.CoreV1().Namespaces().Get(context.Background(), "kyma-system", metav1.GetOptions{})
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			nsErr := i.createKymaNamespace()
+			if nsErr != nil {
+				return nsErr
+			}
+		} else {
+			return err
+		}
+	} else {
+		nsErr := i.updateKymaNamespace()
+		if nsErr != nil {
+			return nsErr
+		}
+	}
+	return nil
+}
+
+func (i *Deployment) createKymaNamespace() error {
+	_, err := i.kubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "kyma-system",
+		},
+	}, metav1.CreateOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Deployment) updateKymaNamespace() error {
+	_, err := i.kubeClient.CoreV1().Namespaces().Update(context.Background(), &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "kyma-system",
+		},
+	}, metav1.UpdateOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Deployment) deleteKymaNamespace() error {
+	return i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), "kyma-system", metav1.DeleteOptions{})
 }

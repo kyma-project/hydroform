@@ -13,8 +13,7 @@ import (
 
 var metadataName = "kyma"
 
-//TODO it's in default ns cause at starting installation kyma-installer ns doesn't exist, this needs to be changed and metadata should be written to protected ns
-var metadataNamespace = "default"
+var metadataNamespace = "kyma-system"
 
 var initialInterval = time.Duration(3) * time.Second
 var maxElapsedTime = time.Duration(20) * time.Second
@@ -26,7 +25,6 @@ type MetadataProvider interface {
 	WriteKymaDeployed() error
 	WriteKymaUninstallationInProgress() error
 	WriteKymaUninstallationError(error string) error
-	DeleteKymaMetadata() error
 }
 
 type KymaMetadata struct {
@@ -170,16 +168,6 @@ func (p *Provider) writeKymaMetadata(data *KymaMetadata) error {
 	}
 
 	return nil
-}
-
-func (p *Provider) DeleteKymaMetadata() error {
-	return retryOperation(func() error {
-		err := p.kubeClient.CoreV1().ConfigMaps(metadataNamespace).Delete(context.TODO(), metadataName, metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-		return nil
-	})
 }
 
 func metadataToCM(data *KymaMetadata) map[string]string {
