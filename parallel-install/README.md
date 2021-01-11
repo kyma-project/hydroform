@@ -16,7 +16,7 @@ To do so, provide the `deployment.NewDeployment` function with necessary paramet
 | Parameter | Type | Example value | Description |
 | --- | --- | --- | --- |
 | componentsListPath | `string` | `/kyma/components.yaml` | List of prerequisites and components used by the installer library. |
-| overrides | `deployment.Overrides{}` | - | An instance of `deployment.Overrides` including all override which HELM has to consider.  |
+| overrides | `deployment.Overrides{}` | - | An instance of `deployment.Overrides` including all overrides which Helm has to consider.  |
 | cfg | `config.Config` | - | Specifies fine-grained configuration for the deployment process. See the table with `config.Config` configuration options for details. |
 | processUpdates  | `chan<- deployment.ProcessUpdate` | - | The library caller can pass a channel to retrieve updates of the running installation or uninstallation process. |
 
