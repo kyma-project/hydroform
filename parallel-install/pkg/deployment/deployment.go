@@ -38,21 +38,6 @@ type Deployment struct {
 	metadataProvider metadata.MetadataProvider
 }
 
-type Installer interface {
-	//StartKymaDeployment deploys Kyma on the cluster.
-	//This method will block until deployment is finished or an error or timeout occurs.
-	//If the deployment is not finished in configured config.Config.QuitTimeout,
-	//the method returns with an error. Some worker goroutines may still run in the background.
-	StartKymaDeployment() error
-	//StartKymaUninstallation uninstalls Kyma from the cluster.
-	//This method will block until uninstallation is finished or an error or timeout occurs.
-	//If the uninstallation is not finished in configured config.Config.QuitTimeout,
-	//the method returns with an error. Some worker goroutines may still run in the background.
-	StartKymaUninstallation() error
-	//ReadKymaMetadata retrieves Kyma metadata from the cluster
-	ReadKymaMetadata() (*metadata.KymaMetadata, error)
-}
-
 //NewDeployment should be used to create Deployment instances.
 //
 //prerequisites is a slice of pairs: [component-name, namespace]
@@ -85,7 +70,7 @@ func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYam
 	}, nil
 }
 
-//StartKymaDeployment implements the Installer.StartKymaDeployment contract.
+//StartKymaDeployment deploys Kyma to a cluster
 func (i *Deployment) StartKymaDeployment() error {
 	err := i.deployKymaNamespace()
 	if err != nil {
@@ -118,7 +103,7 @@ func (i *Deployment) StartKymaDeployment() error {
 	return nil
 }
 
-//StartKymaUninstallation implements the Installer.StartKymaUninstallation contract.
+//StartKymaUninstallation removes Kyma from a cluster
 func (i *Deployment) StartKymaUninstallation() error {
 	_, prerequisitesProvider, engine, err := i.getConfig()
 	if err != nil {
@@ -146,7 +131,7 @@ func (i *Deployment) StartKymaUninstallation() error {
 	return nil
 }
 
-//ReadKymaMetadata implements the Installer.ReadKymaMetadata contract.
+//ReadKymaMetadata returns Kyma metadata
 func (i *Deployment) ReadKymaMetadata() (*metadata.KymaMetadata, error) {
 	return i.metadataProvider.ReadKymaMetadata()
 }
