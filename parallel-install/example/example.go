@@ -3,10 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
+	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -22,7 +21,7 @@ import (
 func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
 	profile := flag.String("profile", "", "Deployment profile")
-	version := flag.String("version", "", "Kyma version")
+	version := flag.String("version", "latest", "Kyma version")
 	verbose := flag.Bool("verbose", false, "Verbose mode")
 
 	flag.Parse()
@@ -40,28 +39,13 @@ func main() {
 		log.Fatalf("Please set GOPATH")
 	}
 
-	resourcesPath := filepath.Join(goPath, "src", "github.com", "kyma-project", "kyma", "resources")
-
 	restConfig, err := getClientConfig(*kubeconfigPath)
 	if err != nil {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
 	}
 
-	prerequisitesContent := [][]string{
-		{"cluster-essentials", "kyma-system"},
-		{"istio", "istio-system"},
-		{"xip-patch", "kyma-installer"},
-	}
-
-	componentsContent, err := ioutil.ReadFile("../pkg/test/data/installationCR.yaml")
-	if err != nil {
-		log.Fatalf("Failed to read installation CR file: %v", err)
-	}
-
-	overridesContent, err := ioutil.ReadFile("../pkg/test/data/overrides.yaml")
-	if err != nil {
-		log.Fatalf("Failed to read overrides file: %v", err)
-	}
+	overrides := deployment.Overrides{}
+	overrides.AddFile("./overrides.yaml")
 
 	installationCfg := config.Config{
 		WorkersCount:                  4,
@@ -73,6 +57,9 @@ func main() {
 		Log:                           getLogFunc(*verbose),
 		HelmMaxRevisionHistory:        10,
 		Profile:                       *profile,
+		ComponentsListFile:            "./components.yaml",
+		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
+		CrdPath:                       fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources/cluster-essentials/files", goPath),
 		Version:                       *version,
 	}
 
@@ -93,13 +80,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	installer, err := deployment.NewDeployment(prerequisitesContent,
-		string(componentsContent),
-		[]string{string(overridesContent)},
-		resourcesPath,
-		installationCfg,
-		progressCh,
-		kubeClient)
+	installer, err := deployment.NewDeployment(installationCfg, overrides, kubeClient, progressCh)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}

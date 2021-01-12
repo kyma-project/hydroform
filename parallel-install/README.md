@@ -15,10 +15,7 @@ To do so, provide the `deployment.NewDeployment` function with necessary paramet
 
 | Parameter | Type | Example value | Description |
 | --- | --- | --- | --- |
-| prerequisites | `[][]string` | `{"cluster-essentials", "kyma-system"}, {"istio", "istio-system"},` | Array of the component's name and Namespace pairs. These components will be deployed first, linearly, in a declared order. |
-| componentsYaml | `string` | - | Content of the [Installation CR](https://kyma-project.io/docs/#custom-resource-installation). Components will be extracted and deployed in parallel. |
-| overridesYaml | `[]string` | `{ "foo: bar", "val: example" }` | List of Helm overrides. The latter the override, the higher is its priority. |
-| resourcesPath | `string` | `/go/src/github.com/kyma-project/kyma/resources` | Path to the Kyma resources directory. It contains subdirectories with all Kyma components' charts |
+| overrides | `deployment.Overrides{}` | - | An instance of `deployment.Overrides` including all overrides which Helm has to consider.  |
 | cfg | `config.Config` | - | Specifies fine-grained configuration for the deployment process. See the table with `config.Config` configuration options for details. |
 | processUpdates  | `chan<- deployment.ProcessUpdate` | - | The library caller can pass a channel to retrieve updates of the running installation or uninstallation process. |
 
@@ -34,6 +31,10 @@ See all available configuration options for the `config.Config` type:
 | BackoffMaxElapsedTimeSeconds | `int` | `30` | Maximum time used for exponential backoff retry policy. |
 | Log | `func(format string, v ...interface{})` | `fmt.Printf` | Function used for logging. To modify the logging behavior, set a custom logging function. For example, to disable any log output, provide an empty logging function implementation (`func(f string, v ...interface{}){}`). |
 | Profile | `string` | `evaluation` | Deployment profile. The possible values are: "evaluation", "production", "".  |
+| ComponentsListFile | `string` | `/kyma/components.yaml` | List of prerequisites and components used by the installer library. |
+| ResourcePath | `string` | `$GOPATH/src/github.com/kyma-project/kyma/resources` | Path to Kyma resources. |
+| CrdPath | `string` | `$GOPATH/src/github.com/kyma-project/kyma/resources/cluster-essentials/files` | Path to Kyma CRD resources. |
+| Version | `string` | `1.18.1` | The Kyma version. |
 
 >**NOTE:** This library also fetches overrides from ConfigMaps present in the cluster. However, overrides provided through `NewDeployment` have a higher priority.
 

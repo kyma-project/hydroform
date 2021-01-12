@@ -1,9 +1,10 @@
 package components
 
 import (
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"log"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"github.com/stretchr/testify/require"
@@ -28,10 +29,14 @@ func Test_PrerequisiteGetComponents(t *testing.T) {
 		},
 	)
 
-	overridesProvider, err := overrides.New(k8sMock, []string{""}, log.Printf)
+	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), log.Printf)
 	require.NoError(t, err)
 
-	componentList := [][]string{[]string{"prerequisite1", "namespace1"}}
+	compDef := ComponentDefinition{
+		Name:      "prerequisite1",
+		Namespace: "namespace1",
+	}
+	componentList := []ComponentDefinition{compDef}
 
 	installationCfg := config.Config{}
 
@@ -40,4 +45,6 @@ func Test_PrerequisiteGetComponents(t *testing.T) {
 	res, err := provider.GetComponents()
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res), "Number of prerequisite components not as expected")
+	require.Equal(t, compDef.Name, res[0].Name)
+	require.Equal(t, compDef.Namespace, res[0].Namespace)
 }

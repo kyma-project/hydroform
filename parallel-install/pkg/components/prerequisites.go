@@ -12,8 +12,8 @@ import (
 //It implements the Provider interface.
 type PrerequisitesProvider struct {
 	overridesProvider overrides.OverridesProvider
-	resourcesPath     string     ////A root directory where subdirectories of components' charts are located.
-	componentList     [][]string // TODO: replace with []struct{name, namespace string}
+	resourcesPath     string ////A root directory where subdirectories of components' charts are located.
+	components        []ComponentDefinition
 	helmConfig        helm.Config
 	log               func(format string, v ...interface{})
 	profile           string
@@ -24,7 +24,7 @@ type PrerequisitesProvider struct {
 //resourcesPath is a directory where subdirectories of components' charts are located.
 //
 //componentList is a slice of pairs: [component-name, namespace]
-func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, componentList [][]string, cfg config.Config) *PrerequisitesProvider {
+func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, components []ComponentDefinition, cfg config.Config) *PrerequisitesProvider {
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
 		BackoffInitialIntervalSeconds: cfg.BackoffInitialIntervalSeconds,
@@ -36,7 +36,7 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, res
 	return &PrerequisitesProvider{
 		overridesProvider: overridesProvider,
 		resourcesPath:     resourcesPath,
-		componentList:     componentList,
+		components:        components,
 		helmConfig:        helmCfg,
 		log:               cfg.Log,
 		profile:           cfg.Profile,
@@ -48,16 +48,13 @@ func (p *PrerequisitesProvider) GetComponents() ([]KymaComponent, error) {
 	helmClient := helm.NewClient(p.helmConfig)
 
 	var components []KymaComponent
-	for _, componentNamespacePair := range p.componentList {
-		name := componentNamespacePair[0]
-		namespace := componentNamespacePair[1]
-
+	for _, component := range p.components {
 		cmp := KymaComponent{
-			Name:            name,
-			Namespace:       namespace,
+			Name:            component.Name,
+			Namespace:       component.Namespace,
 			Profile:         p.profile,
-			ChartDir:        path.Join(p.resourcesPath, name),
-			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(name),
+			ChartDir:        path.Join(p.resourcesPath, component.Name),
+			OverridesGetter: p.overridesProvider.OverridesGetterFunctionFor(component.Name),
 			HelmClient:      helmClient,
 			Log:             p.log,
 		}

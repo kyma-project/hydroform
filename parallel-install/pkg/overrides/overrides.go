@@ -7,7 +7,6 @@ package overrides
 import (
 	"context"
 
-	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -47,19 +46,15 @@ type OverridesProvider interface {
 //There is one difference from the plain Helm's values.yaml file: These are not values for a single release but for the entire Kyma installation.
 //Because of that, you have to put values for a specific Component (e.g: Component name is "foo") under a key equal to the component's name (i.e: "foo").
 //You can also put overrides under a "global" key. These will merge with the top-level "global" Helm key for every Helm chart.
-func New(client kubernetes.Interface, overridesYamls []string, log func(string, ...interface{})) (OverridesProvider, error) {
+func New(client kubernetes.Interface, overrides map[string]interface{}, log func(string, ...interface{})) (OverridesProvider, error) {
 	provider := Provider{
 		kubeClient: client,
 		log:        log,
 	}
 
-	for _, overridesYaml := range overridesYamls {
-		if overridesYaml != "" {
-			err := provider.parseAdditionalOverrides(overridesYaml)
-			if err != nil {
-				return nil, err
-			}
-		}
+	err := provider.parseAdditionalOverrides(overrides)
+	if err != nil {
+		return nil, err
 	}
 
 	return &provider, nil
@@ -147,7 +142,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 	return nil
 }
 
-func (p *Provider) parseAdditionalOverrides(overridesYaml string) error {
+func (p *Provider) parseAdditionalOverrides(additionalOverrides map[string]interface{}) error {
 
 	if p.additionalComponentOverrides == nil {
 		p.additionalComponentOverrides = make(map[string]map[string]interface{})
@@ -155,12 +150,6 @@ func (p *Provider) parseAdditionalOverrides(overridesYaml string) error {
 
 	if p.componentOverrides == nil {
 		p.componentOverrides = make(map[string]map[string]interface{})
-	}
-
-	var additionalOverrides map[string]interface{}
-	err := yaml.Unmarshal([]byte(overridesYaml), &additionalOverrides)
-	if err != nil {
-		return err
 	}
 
 	for k, v := range additionalOverrides {

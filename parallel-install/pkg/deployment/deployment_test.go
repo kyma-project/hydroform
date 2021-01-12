@@ -204,8 +204,8 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 
 			// Changing it to higher amounts to minimize difference between cancel and quit timeout
 			// and give program enough time to process
-			inst.Cfg.CancelTimeout = 240 * time.Millisecond
-			inst.Cfg.QuitTimeout = 260 * time.Millisecond
+			inst.cfg.CancelTimeout = 240 * time.Millisecond
+			inst.cfg.QuitTimeout = 260 * time.Millisecond
 
 			hc := &mockHelmClient{
 				componentProcessingTime: 70,
@@ -359,8 +359,8 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 
 			// Changing it to higher amounts to minimize difference between cancel and quit timeout
 			// and give program enough time to process
-			inst.Cfg.CancelTimeout = 240 * time.Millisecond
-			inst.Cfg.QuitTimeout = 260 * time.Millisecond
+			inst.cfg.CancelTimeout = 240 * time.Millisecond
+			inst.cfg.QuitTimeout = 260 * time.Millisecond
 
 			hc := &mockHelmClient{
 				componentProcessingTime: 70,
@@ -411,8 +411,8 @@ func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name s
 // Pass optionally an receiver-channel to get progress updates
 func newDeployment(procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) Deployment {
 	return Deployment{
-		ProcessUpdates: procUpdates,
-		Cfg: config.Config{
+		processUpdates: procUpdates,
+		cfg: config.Config{
 			CancelTimeout: cancelTimeout,
 			QuitTimeout:   quitTimeout,
 			Log:           log.Printf,

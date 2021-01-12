@@ -1,10 +1,10 @@
 package components
 
 import (
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
-	"io/ioutil"
 	"log"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"github.com/stretchr/testify/require"
@@ -29,18 +29,25 @@ func Test_GetComponents(t *testing.T) {
 		},
 	)
 
-	overridesProvider, err := overrides.New(k8sMock, []string{""}, log.Printf)
-	require.NoError(t, err)
-
-	// Read components file
-	content, err := ioutil.ReadFile("../test/data/installationCR.yaml")
+	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), log.Printf)
 	require.NoError(t, err)
 
 	installationCfg := config.Config{}
 
-	provider := NewComponentsProvider(overridesProvider, "", string(content), installationCfg)
+	components := []ComponentDefinition{
+		ComponentDefinition{
+			Name:      "comp1",
+			Namespace: "ns1",
+		},
+		ComponentDefinition{
+			Name:      "comp2",
+			Namespace: "ns2",
+		},
+	}
+
+	provider := NewComponentsProvider(overridesProvider, "", components, installationCfg)
 
 	res, err := provider.GetComponents()
 	require.NoError(t, err)
-	require.Equal(t, 21, len(res), "Number of components not as expected")
+	require.Equal(t, 2, len(res), "Number of components not as expected")
 }
