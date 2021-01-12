@@ -12,8 +12,8 @@ import (
 //It implements the Provider interface.
 type PrerequisitesProvider struct {
 	overridesProvider overrides.OverridesProvider
-	resourcesPath     string                ////A root directory where subdirectories of components' charts are located.
-	components        []ComponentDefinition // TODO: replace with []struct{name, namespace string}
+	resourcesPath     string ////A root directory where subdirectories of components' charts are located.
+	components        []ComponentDefinition
 	helmConfig        helm.Config
 	log               func(format string, v ...interface{})
 	profile           string
