@@ -65,7 +65,7 @@ func (c *Config) pathExists(path string, description string) error {
 	if path == "" {
 		return fmt.Errorf("%s is empty", description)
 	}
-	if _, err := os.Stat(c.ResourcePath); os.IsNotExist(err) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return fmt.Errorf("%s '%s' not found", description, path)
 	}
 	return nil
