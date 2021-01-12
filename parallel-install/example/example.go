@@ -21,12 +21,17 @@ import (
 func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
 	profile := flag.String("profile", "", "Deployment profile")
+	version := flag.String("version", "latest", "Kyma version")
 	verbose := flag.Bool("verbose", false, "Verbose mode")
 
 	flag.Parse()
 
 	if kubeconfigPath == nil || *kubeconfigPath == "" {
 		log.Fatalf("kubeconfig is required")
+	}
+
+	if version == nil || *version == "" {
+		log.Fatalf("version is required")
 	}
 
 	goPath := os.Getenv("GOPATH")
@@ -55,6 +60,7 @@ func main() {
 		ComponentsListFile:            "./components.yaml",
 		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
 		CrdPath:                       fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources/cluster-essentials/files", goPath),
+		Version:                       *version,
 	}
 
 	// used to receive progress updates of the install/uninstall process
@@ -68,25 +74,33 @@ func main() {
 		}()
 	}
 
-	installer, err := deployment.NewDeployment(overrides, installationCfg, progressCh)
-	if err != nil {
-		log.Fatalf("Failed to create installer: %v", err)
-	}
-
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		log.Printf("Failed to create kube client. Exiting...")
 		os.Exit(1)
 	}
 
-	err = installer.StartKymaDeployment(kubeClient)
+	installer, err := deployment.NewDeployment(installationCfg, overrides, kubeClient, progressCh)
+	if err != nil {
+		log.Fatalf("Failed to create installer: %v", err)
+	}
+
+	err = installer.StartKymaDeployment()
 	if err != nil {
 		log.Printf("Failed to deploy Kyma: %v", err)
 	} else {
 		log.Println("Kyma deployed!")
 	}
 
-	err = installer.StartKymaUninstallation(kubeClient)
+	kymaMeta, err := installer.ReadKymaMetadata()
+	if err != nil {
+		log.Printf("Failed to read Kyma metadata: %v", err)
+	}
+
+	log.Printf("Kyma version: %s", kymaMeta.Version)
+	log.Printf("Kyma status: %s", kymaMeta.Status)
+
+	err = installer.StartKymaUninstallation()
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}

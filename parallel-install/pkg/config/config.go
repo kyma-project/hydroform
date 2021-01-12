@@ -37,6 +37,8 @@ type Config struct {
 	ResourcePath string
 	// Path to Kyma CRDs
 	CrdPath string
+	//Kyma version
+	Version string
 }
 
 // Validate the given configuration options
@@ -52,6 +54,9 @@ func (c *Config) Validate() error {
 	}
 	if err := c.pathExists(c.CrdPath, "CRD path"); err != nil {
 		return err
+	}
+	if c.Version == "" {
+		return fmt.Errorf("Version is empty")
 	}
 	return nil
 }

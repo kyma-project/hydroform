@@ -9,6 +9,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
 	//"k8s.io/client-go/kubernetes/fake"
@@ -52,9 +53,9 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 		wg.Done()
 	}()
 
-	inst := newDeployment(procUpdChan)
-
 	kubeClient := fake.NewSimpleClientset()
+
+	inst := newDeployment(procUpdChan, kubeClient)
 
 	hc := &mockHelmClient{}
 	provider := &mockProvider{
@@ -65,7 +66,7 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 		WorkersCount: 2,
 		Verbose:      true,
 	})
-	err := inst.startKymaDeployment(kubeClient, provider, overridesProvider, eng)
+	err := inst.startKymaDeployment(provider, overridesProvider, eng)
 	assert.NoError(t, err)
 
 	close(procUpdChan)
@@ -85,11 +86,10 @@ func processUpdateString(procUpd ProcessUpdate) string {
 func TestDeployment_StartKymaDeployment(t *testing.T) {
 	t.Parallel()
 
-	i := newDeployment(nil)
+	kubeClient := fake.NewSimpleClientset()
+	i := newDeployment(nil, kubeClient)
 
 	t.Run("should deploy Kyma", func(t *testing.T) {
-		kubeClient := fake.NewSimpleClientset()
-
 		hc := &mockHelmClient{}
 		provider := &mockProvider{
 			hc: hc,
@@ -100,15 +100,13 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			Verbose:      true,
 		})
 
-		err := i.startKymaDeployment(kubeClient, provider, overridesProvider, eng)
+		err := i.startKymaDeployment(provider, overridesProvider, eng)
 
 		assert.NoError(t, err)
 	})
 
 	t.Run("should fail to deploy Kyma prerequisites", func(t *testing.T) {
 		t.Run("due to cancel timeout", func(t *testing.T) {
-			kubeClient := fake.NewSimpleClientset()
-
 			hc := &mockHelmClient{
 				componentProcessingTime: 200,
 			}
@@ -122,7 +120,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := i.startKymaDeployment(kubeClient, provider, overridesProvider, eng)
+			err := i.startKymaDeployment(provider, overridesProvider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -140,8 +138,6 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			assert.Less(t, elapsed.Milliseconds(), int64(220))
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
-			kubeClient := fake.NewSimpleClientset()
-
 			hc := &mockHelmClient{
 				componentProcessingTime: 300,
 			}
@@ -155,7 +151,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := i.startKymaDeployment(kubeClient, provider, overridesProvider, eng)
+			err := i.startKymaDeployment(provider, overridesProvider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -174,8 +170,6 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 
 	t.Run("should deploy prerequisites and fail to deploy Kyma components", func(t *testing.T) {
 		t.Run("due to cancel timeout", func(t *testing.T) {
-			kubeClient := fake.NewSimpleClientset()
-
 			hc := &mockHelmClient{
 				componentProcessingTime: 40,
 			}
@@ -189,7 +183,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := i.startKymaDeployment(kubeClient, provider, overridesProvider, eng)
+			err := i.startKymaDeployment(provider, overridesProvider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -206,9 +200,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			assert.Less(t, elapsed.Milliseconds(), int64(190))
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
-			kubeClient := fake.NewSimpleClientset()
-
-			inst := newDeployment(nil)
+			inst := newDeployment(nil, kubeClient)
 
 			// Changing it to higher amounts to minimize difference between cancel and quit timeout
 			// and give program enough time to process
@@ -228,7 +220,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := inst.startKymaDeployment(kubeClient, provider, overridesProvider, eng)
+			err := inst.startKymaDeployment(provider, overridesProvider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -247,11 +239,10 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 
 func TestDeployment_StartKymaUninstallation(t *testing.T) {
 
-	i := newDeployment(nil)
+	kubeClient := fake.NewSimpleClientset()
+	i := newDeployment(nil, kubeClient)
 
 	t.Run("should uninstall Kyma", func(t *testing.T) {
-		kubeClient := fake.NewSimpleClientset()
-
 		hc := &mockHelmClient{}
 		provider := &mockProvider{
 			hc: hc,
@@ -262,15 +253,13 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			Verbose:      true,
 		})
 
-		err := i.startKymaUninstallation(kubeClient, provider, eng)
+		err := i.startKymaUninstallation(provider, eng)
 
 		assert.NoError(t, err)
 	})
 
 	t.Run("should fail to uninstall Kyma components", func(t *testing.T) {
 		t.Run("due to cancel timeout", func(t *testing.T) {
-			kubeClient := fake.NewSimpleClientset()
-
 			hc := &mockHelmClient{
 				componentProcessingTime: 200,
 			}
@@ -284,7 +273,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := i.startKymaUninstallation(kubeClient, provider, eng)
+			err := i.startKymaUninstallation(provider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -302,8 +291,6 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			assert.Less(t, elapsed.Milliseconds(), int64(220))
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
-			kubeClient := fake.NewSimpleClientset()
-
 			hc := &mockHelmClient{
 				componentProcessingTime: 300,
 			}
@@ -317,7 +304,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := i.startKymaUninstallation(kubeClient, provider, eng)
+			err := i.startKymaUninstallation(provider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -336,8 +323,6 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 
 	t.Run("should uninstall components and fail to deploy Kyma prerequisites", func(t *testing.T) {
 		t.Run("due to cancel timeout", func(t *testing.T) {
-			kubeClient := fake.NewSimpleClientset()
-
 			hc := &mockHelmClient{
 				componentProcessingTime: 40,
 			}
@@ -351,7 +336,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := i.startKymaUninstallation(kubeClient, provider, eng)
+			err := i.startKymaUninstallation(provider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -370,7 +355,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 		t.Run("due to quit timeout", func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset()
 
-			inst := newDeployment(nil)
+			inst := newDeployment(nil, kubeClient)
 
 			// Changing it to higher amounts to minimize difference between cancel and quit timeout
 			// and give program enough time to process
@@ -390,7 +375,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			})
 
 			start := time.Now()
-			err := inst.startKymaUninstallation(kubeClient, provider, eng)
+			err := inst.startKymaUninstallation(provider, eng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -424,7 +409,7 @@ func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name s
 }
 
 // Pass optionally an receiver-channel to get progress updates
-func newDeployment(procUpdates chan<- ProcessUpdate) Deployment {
+func newDeployment(procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) Deployment {
 	return Deployment{
 		processUpdates: procUpdates,
 		cfg: config.Config{
@@ -432,6 +417,7 @@ func newDeployment(procUpdates chan<- ProcessUpdate) Deployment {
 			QuitTimeout:   quitTimeout,
 			Log:           log.Printf,
 		},
+		kubeClient: kubeClient,
 	}
 }
 

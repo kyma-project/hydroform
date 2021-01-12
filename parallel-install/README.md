@@ -34,6 +34,7 @@ See all available configuration options for the `config.Config` type:
 | ComponentsListFile | `string` | `/kyma/components.yaml` | List of prerequisites and components used by the installer library. |
 | ResourcePath | `string` | `$GOPATH/src/github.com/kyma-project/kyma/resources` | Path to Kyma resources. |
 | CrdPath | `string` | `$GOPATH/src/github.com/kyma-project/kyma/resources/cluster-essentials/files` | Path to Kyma CRD resources. |
+| Version | `string` | `1.18.1` | The Kyma version. |
 
 >**NOTE:** This library also fetches overrides from ConfigMaps present in the cluster. However, overrides provided through `NewDeployment` have a higher priority.
 
@@ -41,6 +42,7 @@ Once you have a configured `Deployment` instance, use the following functions ac
 
 - `StartKymaDeployment` - Starts the deployment process. First, prerequisites are deployed linearly. Then, the components' deployment continues in parallel.
 - `StartKymaUninstallation` - Starts the uninstallation process. The library uninstalls the components first, then it proceeds with the prerequisites' uninstallation in reverse order.
+- `ReadKymaMetadata` - Retrieves Kyma metadata, such as Kyma version.
 
 ### Example
 
