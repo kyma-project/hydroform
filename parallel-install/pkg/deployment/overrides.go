@@ -74,9 +74,10 @@ func (o *Overrides) mergeMaps(a, b map[string]interface{}) map[string]interface{
 // AddFile adds overrides defined in a file
 func (o *Overrides) AddFile(file string) error {
 	for _, ext := range supportedFileExt {
-		strings.HasSuffix(file, fmt.Sprintf(".%s", ext))
-		o.files = append(o.files, file)
-		return nil
+		if strings.HasSuffix(file, fmt.Sprintf(".%s", ext)) {
+			o.files = append(o.files, file)
+			return nil
+		}
 	}
 	return fmt.Errorf("Unsupported override file extension. Supported extensions are: %s", strings.Join(supportedFileExt, ", "))
 }

@@ -35,3 +35,15 @@ func Test_MergeOverrides(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expected, result)
 }
+
+func Test_AddFile(t *testing.T) {
+	var err error
+
+	overrides := Overrides{}
+	err = overrides.AddFile("../test/data/deployment-overrides1.yaml")
+	require.NoError(t, err)
+	err = overrides.AddFile("../test/data/deployment-overrides2.json")
+	require.NoError(t, err)
+	err = overrides.AddFile("../test/data/overrides.xml") // unsupported format
+	require.Error(t, err)
+}
