@@ -31,6 +31,8 @@ type Config struct {
 	HelmMaxRevisionHistory int
 	//Installation / Upgrade profile: evaluation|production
 	Profile string
+	// Path to Kyma components list
+	ComponentsListFile string
 	// Path to Kyma resources
 	ResourcePath string
 	// Path to Kyma CRDs
@@ -41,6 +43,9 @@ type Config struct {
 func (c *Config) Validate() error {
 	if c.WorkersCount <= 1 {
 		return fmt.Errorf("Workers count cannot be <= 0")
+	}
+	if err := c.pathExists(c.ComponentsListFile, "Components list"); err != nil {
+		return err
 	}
 	if err := c.pathExists(c.ResourcePath, "Resource path"); err != nil {
 		return err

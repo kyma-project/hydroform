@@ -40,20 +40,18 @@ type Installer interface {
 
 //NewDeployment should be used to create Deployment instances.
 //
-//componentsListPath contains the path to the components list file
-//
 //overrides bundles all overrides which have to be considered by Helm
 //
 //cfg includes configuration parameters for the installer lib
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func NewDeployment(componentsListPath string, overrides Overrides, cfg config.Config, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
-	clList, err := components.NewComponentList(componentsListPath)
-	if err != nil {
+func NewDeployment(overrides Overrides, cfg config.Config, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
+	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
 
-	if err := cfg.Validate(); err != nil {
+	clList, err := components.NewComponentList(cfg.ComponentsListFile)
+	if err != nil {
 		return nil, err
 	}
 

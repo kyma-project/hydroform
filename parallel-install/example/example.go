@@ -52,6 +52,7 @@ func main() {
 		Log:                           getLogFunc(*verbose),
 		HelmMaxRevisionHistory:        10,
 		Profile:                       *profile,
+		ComponentsListFile:            "./components.yaml",
 		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
 		CrdPath:                       fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources/cluster-essentials/files", goPath),
 	}
@@ -67,7 +68,7 @@ func main() {
 		}()
 	}
 
-	installer, err := deployment.NewDeployment("./components.yaml", overrides, installationCfg, progressCh)
+	installer, err := deployment.NewDeployment(overrides, installationCfg, progressCh)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
