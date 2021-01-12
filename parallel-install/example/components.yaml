@@ -1,5 +1,5 @@
 ---
-namespace: kyma-system
+defaultNamespace: kyma-system
 prerequisites:
   - name: "cluster-essentials"
   - name: "istio"

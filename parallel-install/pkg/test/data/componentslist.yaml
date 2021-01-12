@@ -1,4 +1,5 @@
-namespace: "testns"
+---
+defaultNamespace: "testns"
 prerequisites:
   - name: "prereqcomp1"
     namespace: "prereqns1"
@@ -8,4 +9,3 @@ components:
   - name: "comp2"
     namespace: "compns2"
   - name: "comp3"
-

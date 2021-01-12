@@ -54,7 +54,7 @@ func (cl *ComponentList) load(componentsListPath string) error {
 	// read prerequisites
 	for _, compDef := range componentList.Prerequisites {
 		if compDef.Namespace == "" {
-			compDef.Namespace = componentList.Namespace
+			compDef.Namespace = componentList.DefaultNamespace
 		}
 		cl.prerequisites = append(cl.prerequisites, compDef)
 	}
@@ -62,7 +62,7 @@ func (cl *ComponentList) load(componentsListPath string) error {
 	// read components
 	for _, compDef := range componentList.Components {
 		if compDef.Namespace == "" {
-			compDef.Namespace = componentList.Namespace
+			compDef.Namespace = componentList.DefaultNamespace
 		}
 		cl.components = append(cl.components, compDef)
 	}
@@ -82,9 +82,9 @@ func (cl *ComponentList) GetPrerequisites() []ComponentDefinition {
 
 // CompListFile is for components list marshalling
 type CompListFile struct {
-	Namespace     string
-	Prerequisites []ComponentDefinition
-	Components    []ComponentDefinition
+	DefaultNamespace string `yaml:"defaultNamespace" json:"defaultNamespace"`
+	Prerequisites    []ComponentDefinition
+	Components       []ComponentDefinition
 }
 
 // ComponentDefinition defines a component in components list
