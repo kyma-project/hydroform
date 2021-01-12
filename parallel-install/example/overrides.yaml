@@ -1,0 +1,448 @@
+global:
+  isLocalEnv: false
+  ingress:
+    domainName: local.kyma.dev
+  environment:
+    gardener: false
+  domainName: local.kyma.dev
+  tlsCrt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURQVENDQWlXZ0F3SUJBZ0lSQVByWW0wbGhVdUdkeVNCTHo4d3g5VGd3RFFZSktvWklodmNOQVFFTEJRQXcKTURFVk1CTUdBMVVFQ2hNTVkyVnlkQzF0WVc1aFoyVnlNUmN3RlFZRFZRUURFdzVzYjJOaGJDMXJlVzFoTFdSbApkakFlRncweU1EQTNNamt3T1RJek5UTmFGdzB6TURBM01qY3dPVEl6TlROYU1EQXhGVEFUQmdOVkJBb1RER05sCmNuUXRiV0Z1WVdkbGNqRVhNQlVHQTFVRUF4TU9iRzlqWVd3dGEzbHRZUzFrWlhZd2dnRWlNQTBHQ1NxR1NJYjMKRFFFQkFRVUFBNElCRHdBd2dnRUtBb0lCQVFDemE4VEV5UjIyTFRKN3A2aXg0M2E3WTVVblovRkNicGNOQkdEbQpxaDRiRGZLcjFvMm1CYldWdUhDbTVBdTBkeHZnbUdyd0tvZzJMY0N1bEd5UXVlK1JLQ0RIVFBJVjdqZEJwZHJhCkNZMXQrNjlJMkJWV0xiblFNVEZmOWw3Vy8yZFFFU0ExZHZQajhMZmlrcEQvUEQ5ekdHR0FQa2hlenVNRU80dUwKaUxXSloyYmpYK1dtaGZXb0lrOG5oak5YNVBFN2l4alMvNnB3QU56eXk2NW95NDJPaHNuYXlDR1grbmhFVk5SRApUejEraEMvdjJaOS9lRG1OdHdjT1hJSk4relZtUTJ4VHh2Sm0rbDUwYzlnenZTY3YzQXg0dUJsOTk3UnVlcUszCmdZMVRmVklFQ0FOTE9hb29jRG5kcW1FY1lBb25SeGJKK0M2U1RJYlhuUVAyMmYxQkFnTUJBQUdqVWpCUU1BNEcKQTFVZER3RUIvd1FFQXdJRm9EQVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBVEFNQmdOVkhSTUJBZjhFQWpBQQpNQnNHQTFVZEVRUVVNQktDRUNvdWJHOWpZV3d1YTNsdFlTNWtaWFl3RFFZSktvWklodmNOQVFFTEJRQURnZ0VCCkFBUnVOd0VadW1PK2h0dDBZSWpMN2VmelA3UjllK2U4NzJNVGJjSGtyQVhmT2hvQWF0bkw5cGhaTHhKbVNpa1IKY0tJYkJneDM3RG5ka2dPY3doNURTT2NrdHBsdk9sL2NwMHMwVmFWbjJ6UEk4Szk4L0R0bEU5bVAyMHRLbE90RwpaYWRhdkdrejhXbDFoRzhaNXdteXNJNWlEZHNpajVMUVJ6Rk04YmRGUUJiRGkxbzRvZWhIRTNXbjJjU3NTUFlDCkUxZTdsM00ySTdwQ3daT2lFMDY1THZEeEszWFExVFRMR2oxcy9hYzRNZUxCaXlEN29qb25MQmJNYXRiaVJCOUIKYlBlQS9OUlBaSHR4TDArQ2Nvb1JndmpBNEJMNEtYaFhxZHZzTFpiQWlZc0xTWk0yRHU0ZWZ1Q25SVUh1bW1xNQpVNnNOOUg4WXZxaWI4K3B1c0VpTUttND0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+
+tracing:
+  # jaeger-operator:
+  resources:
+    limits:
+      cpu: 50m
+      memory: 100Mi
+    requests:
+      cpu: 10m
+      memory: 40Mi
+
+  jaeger:
+    spec:
+      resources:
+        limits:
+          cpu: 50m
+          memory: 60Mi
+        requests:
+          cpu: 10m
+          memory: 40Mi
+      storage:
+        type: memory
+        options:
+          memory:
+            max-traces: 10000
+
+  kcproxy:
+    resources:
+      limits:
+        cpu: 50m
+        memory: 20Mi
+      requests:
+        cpu: 10m
+        memory: 5Mi
+
+kiali:
+  kiali:
+    spec:
+      resources:
+        limits:
+          cpu: 50m
+          memory: 70Mi
+        requests:
+          cpu: 10m
+          memory: 20Mi
+
+service-manager-proxy:
+  resources:
+    limits:
+      memory: 96Mi
+      cpu: 100m
+    requests:
+      memory: 24Mi
+      cpu: 20m
+
+application-connector:
+  application-broker:
+    ctrl:
+      resources:
+        limits:
+          memory: 96Mi
+          cpu: 100m
+        requests:
+          memory: 28Mi
+          cpu: 20m
+  application-operator:
+    controller:
+      resources:
+        profile: "evaluation"
+        limits:
+          cpu: 50m
+          memory: 128Mi
+        requests:
+          cpu: 25m
+          memory: 40Mi
+  connector-service:
+    deployment:
+      resources:
+        limits:
+          cpu: 5m
+          memory: 24Mi
+        requests:
+          cpu: 1m
+          memory: 16Mi
+  application-registry:
+    deployment:
+      resources:
+        limits:
+          cpu: 20m
+          memory: 64Mi
+        requests:
+          cpu: 10m
+          memory: 32Mi
+  connection-token-handler:
+    deployment:
+      resources:
+        limits:
+          cpu: 5m
+          memory: 24Mi
+        requests:
+          cpu: 1m
+          memory: 16Mi
+
+knative-provisioner-natss:
+  knative-provisioner-natss:
+    controller:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+    dispatcher:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+
+service-catalog:
+  catalog:
+    webhook:
+      # Webhook resource requests and limits
+      # Ref: http://kubernetes.io/docs/user-guide/compute-resources/
+      resources:
+        requests:
+          cpu: 20m
+          memory: 20Mi
+        limits:
+          cpu: 100m
+          memory: 30Mi
+
+    controllerManager:
+      replicas: 1
+      # Controller Manager resource requests and limits
+      # Ref: http://kubernetes.io/docs/user-guide/compute-resources/
+      resources:
+        requests:
+          cpu: 20m
+          memory: 35Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+
+istio:
+  monitoring:
+    enabled: false
+    dashboards:
+      enabled: false
+    istioServiceMonitor:
+      enabled: false
+      scrapeInterval: ""
+
+  istio_operator_cluster_file: istio-operator-1-7-cluster-evaluation.yaml
+  istio_operator_minikube_file: istio-operator-1-7-minikube-evaluation.yaml
+
+serverless:
+  webhook:
+    values:
+      buildJob:
+        resources:
+          defaultPreset: "slow"
+      function:
+        replicas:
+          defaultPreset: "S"
+        resources:
+          defaultPreset: "XS"
+    deployment:
+      resources:
+        requests:
+          cpu: 10m
+
+  docker-registry:
+    resources:
+      requests:
+        cpu: 10m
+
+nats-streaming:
+  global:
+    natsStreaming:
+      resources:
+        requests:
+          memory: 32M
+          cpu: 10m
+
+knative-eventing:
+  knative-eventing:
+    webhook:
+      failurePolicy: Ignore
+      webhookMatchExp:
+        - key: gardener.cloud/purpose
+          operator: NotIn
+          values:
+            - kube-system
+            - kyma-system
+            - kyma-installer
+            - istio-system
+        - key: name
+          operator: NotIn
+          values:
+            - kube-system
+    eventingWebhook:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+    eventingController:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 25Mi
+    sourcesController:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 25Mi
+
+rafter:
+  controller-manager:
+    pod:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+
+  upload-service:
+    pod:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+
+  asyncapi-service:
+    pod:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+
+  front-matter-service:
+    pod:
+      resources:
+        requests:
+          cpu: 20m
+          memory: 32Mi
+
+helm-broker:
+  ctrl:
+    resources:
+      limits:
+        memory: 96Mi
+        cpu: 100m
+      requests:
+        memory: 32Mi
+        cpu: 30m
+
+  broker:
+    resources:
+      limits:
+        memory: 256Mi
+        cpu: 60m
+      requests:
+        memory: 60Mi
+        cpu: 20m
+
+  etcd-stateful:
+    etcd:
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 20m
+          memory: 28Mi
+
+  addons-ui:
+    resources:
+      requests:
+        cpu: 1m
+        memory: 16Mi
+      limits:
+        cpu: 30m
+        memory: 32Mi
+
+ory:
+  global:
+    ory:
+      hydra:
+        persistence:
+          enabled: false
+          postgresql:
+            enabled: false
+          gcloud:
+            enabled: false
+  hydra:
+    replicaCount: 1
+    hydra:
+      autoMigrate: false
+    deployment:
+      resources:
+        requests:
+          cpu: "10m"
+  oathkeeper:
+    replicaCount: 1
+    deployment:
+      resources:
+        requests:
+          cpu: "10m"
+  hpa:
+    oathkeeper:
+      enabled: false
+    hydra:
+      enabled: false
+
+apiserver-proxy:
+  hpa:
+    enabled: false
+
+monitoring:
+  prometheus:
+    prometheusSpec:
+      resources:
+        limits:
+          cpu: 600m
+          memory: 1500Mi
+        requests:
+          cpu: 150m
+          memory: 1000Mi
+      retention: 6h
+      retentionSize: 1GB
+
+  grafana:
+    persistence:
+      enabled: "false"
+
+service-catalog-addons:
+  service-binding-usage-controller":
+    resources:
+      limits:
+        memory: 76Mi
+        cpu: 100m
+      requests:
+        memory: 24Mi
+        cpu: 20m
+
+  service-catalog-ui:
+    resources:
+      requests:
+        cpu: 1m
+        memory: 16Mi
+      limits:
+        cpu: 40m
+        memory: 64Mi
+
+knative-eventing-kafka:
+  dispatcher:
+    memoryRequest: 25Mi
+    cpuRequest: 150m
+
+  controller:
+    memoryRequest: 12Mi
+    cpuRequest: 20m
+
+event-sources:
+  deployment:
+    resources:
+      requests:
+        cpu: 5m
+        memory: 25Mi
+
+logging:
+  loki:
+    resources:
+      limits:
+        cpu: 100m
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+    persistence:
+      enabled: false
+
+  fluent-bit:
+    resources:
+      limits:
+        cpu: 50m
+        memory: 128Mi
+      requests:
+        cpu: 20m
+        memory: 40Mi
+
+  logui:
+    resources:
+      requests:
+        cpu: 1m
+        memory: 3Mi
+      limits:
+        cpu: 30m
+        memory: 8Mi
+
+cluster-essentials:
+  pod-preset:
+    webhook:
+      replicaCount: 1
+      timeout: "10"
+      pdb:
+        enabled: "false"
+      resources:
+        requests:
+          cpu: 20m
+          memory: 20Mi
+        limits:
+          cpu: 100m
+          memory: 30Mi
+
+console:
+  pamela:
+    enabled: false
+  web:
+    console:
+      resources:
+        requests:
+          cpu: 2m
+          memory: 2Mi
+        limits:
+          cpu: 40m
+          memory: 16Mi
+    core-ui:
+      resources:
+        requests:
+          cpu: 2m
+          memory: 16Mi
+        limits:
+          cpu: 40m
+          memory: 32Mi
+  backend:
+    resources:
+      requests:
+        cpu: 2m
+        memory: 40Mi
+      limits:
+        cpu: 50m
+        memory: 80Mi

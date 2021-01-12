@@ -40,7 +40,7 @@ func main() {
 	}
 
 	overrides := deployment.Overrides{}
-	overrides.AddFile("../pkg/test/data/overrides.yaml")
+	overrides.AddFile("./overrides.yaml")
 
 	installationCfg := config.Config{
 		WorkersCount:                  4,
