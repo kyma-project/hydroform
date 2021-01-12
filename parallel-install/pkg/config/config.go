@@ -29,4 +29,6 @@ type Config struct {
 	HelmMaxRevisionHistory int
 	//Installation / Upgrade profile: evaluation|production
 	Profile string
+	//Kyma deployment version
+	Version string
 }

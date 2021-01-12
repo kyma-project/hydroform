@@ -7,6 +7,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -15,6 +19,8 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
 )
+
+var kymaNamespace = "kyma-system"
 
 type Deployment struct {
 	// Slice of pairs: [component, namespace]
@@ -27,20 +33,9 @@ type Deployment struct {
 	ResourcesPath string
 	Cfg           config.Config
 	// Used to send progress events of a running install/uninstall process
-	ProcessUpdates chan<- ProcessUpdate
-}
-
-type Installer interface {
-	//StartKymaDeployment deploys Kyma on the cluster.
-	//This method will block until deployment is finished or an error or timeout occurs.
-	//If the deployment is not finished in configured config.Config.QuitTimeout,
-	//the method returns with an error. Some worker goroutines may still run in the background.
-	StartKymaDeployment(kubeClient kubernetes.Interface) error
-	//StartKymaUninstallation uninstalls Kyma from the cluster.
-	//This method will block until uninstallation is finished or an error or timeout occurs.
-	//If the uninstallation is not finished in configured config.Config.QuitTimeout,
-	//the method returns with an error. Some worker goroutines may still run in the background.
-	StartKymaUninstallation(kubeClient kubernetes.Interface) error
+	ProcessUpdates   chan<- ProcessUpdate
+	kubeClient       kubernetes.Interface
+	metadataProvider metadata.MetadataProvider
 }
 
 //NewDeployment should be used to create Deployment instances.
@@ -53,7 +48,7 @@ type Installer interface {
 //See overrides.New for details about the overrides contract.
 //
 //resourcesPath is a local filesystem path where components' charts are located.
-func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
+func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYamls []string, resourcesPath string, cfg config.Config, processUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) (*Deployment, error) {
 	if resourcesPath == "" {
 		return nil, fmt.Errorf("Unable to create Deployment. Resource path is required.")
 	}
@@ -61,35 +56,87 @@ func NewDeployment(prerequisites [][]string, componentsYaml string, overridesYam
 		return nil, fmt.Errorf("Unable to create Deployment. Components YAML file content is required.")
 	}
 
+	metadataProvider := metadata.New(kubeClient, cfg.Profile, cfg.Version)
+
 	return &Deployment{
-		Prerequisites:  prerequisites,
-		ComponentsYaml: componentsYaml,
-		OverridesYamls: overridesYamls,
-		ResourcesPath:  resourcesPath,
-		Cfg:            cfg,
-		ProcessUpdates: processUpdates,
+		Prerequisites:    prerequisites,
+		ComponentsYaml:   componentsYaml,
+		OverridesYamls:   overridesYamls,
+		ResourcesPath:    resourcesPath,
+		Cfg:              cfg,
+		ProcessUpdates:   processUpdates,
+		kubeClient:       kubeClient,
+		metadataProvider: metadataProvider,
 	}, nil
 }
 
-//StartKymaDeployment implements the Installer.StartKymaDeployment contract.
-func (i *Deployment) StartKymaDeployment(kubeClient kubernetes.Interface) error {
-	overridesProvider, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
+//StartKymaDeployment deploys Kyma to a cluster
+func (i *Deployment) StartKymaDeployment() error {
+	err := i.deployKymaNamespace()
 	if err != nil {
 		return err
 	}
-	return i.startKymaDeployment(kubeClient, prerequisitesProvider, overridesProvider, engine)
-}
 
-//StartKymaUninstallation implements the Installer.StartKymaUninstallation contract.
-func (i *Deployment) StartKymaUninstallation(kubeClient kubernetes.Interface) error {
-	_, prerequisitesProvider, engine, err := i.getConfig(kubeClient)
+	err = i.metadataProvider.WriteKymaDeploymentInProgress()
 	if err != nil {
 		return err
 	}
-	return i.startKymaUninstallation(kubeClient, prerequisitesProvider, engine)
+
+	overridesProvider, prerequisitesProvider, engine, err := i.getConfig()
+	if err != nil {
+		return err
+	}
+
+	err = i.startKymaDeployment(prerequisitesProvider, overridesProvider, engine)
+	if err != nil {
+		metaDataErr := i.metadataProvider.WriteKymaDeploymentError(err.Error())
+		if metaDataErr != nil {
+			return metaDataErr
+		}
+	}
+
+	err = i.metadataProvider.WriteKymaDeployed()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (i *Deployment) startKymaDeployment(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
+//StartKymaUninstallation removes Kyma from a cluster
+func (i *Deployment) StartKymaUninstallation() error {
+	_, prerequisitesProvider, engine, err := i.getConfig()
+	if err != nil {
+		return err
+	}
+
+	err = i.metadataProvider.WriteKymaUninstallationInProgress()
+	if err != nil {
+		return err
+	}
+
+	err = i.startKymaUninstallation(prerequisitesProvider, engine)
+	if err != nil {
+		metaDataErr := i.metadataProvider.WriteKymaUninstallationError(err.Error())
+		if metaDataErr != nil {
+			return metaDataErr
+		}
+	}
+
+	err = i.deleteKymaNamespace()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//ReadKymaMetadata returns Kyma metadata
+func (i *Deployment) ReadKymaMetadata() (*metadata.KymaMetadata, error) {
+	return i.metadataProvider.ReadKymaMetadata()
+}
+
+func (i *Deployment) startKymaDeployment(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -108,7 +155,7 @@ func (i *Deployment) startKymaDeployment(kubeClient kubernetes.Interface, prereq
 	quitTimeout := i.Cfg.QuitTimeout
 
 	startTime := time.Now()
-	err = i.deployPrerequisites(cancelCtx, cancel, kubeClient, prerequisites, cancelTimeout, quitTimeout)
+	err = i.deployPrerequisites(cancelCtx, cancel, i.kubeClient, prerequisites, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -127,7 +174,7 @@ func (i *Deployment) startKymaDeployment(kubeClient kubernetes.Interface, prereq
 	return nil
 }
 
-func (i *Deployment) startKymaUninstallation(kubeClient kubernetes.Interface, prerequisitesProvider components.Provider, eng *engine.Engine) error {
+func (i *Deployment) startKymaUninstallation(prerequisitesProvider components.Provider, eng *engine.Engine) error {
 	i.Cfg.Log("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -153,7 +200,7 @@ func (i *Deployment) startKymaUninstallation(kubeClient kubernetes.Interface, pr
 		return err
 	}
 
-	err = i.uninstallPrerequisites(cancelCtx, cancel, kubeClient, prerequisites, cancelTimeout, quitTimeout)
+	err = i.uninstallPrerequisites(cancelCtx, cancel, i.kubeClient, prerequisites, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -364,8 +411,8 @@ UninstallLoop:
 	return nil
 }
 
-func (i *Deployment) getConfig(kubeClient kubernetes.Interface) (overrides.OverridesProvider, components.Provider, *engine.Engine, error) {
-	overridesProvider, err := overrides.New(kubeClient, i.OverridesYamls, i.Cfg.Log)
+func (i *Deployment) getConfig() (overrides.OverridesProvider, components.Provider, *engine.Engine, error) {
+	overridesProvider, err := overrides.New(i.kubeClient, i.OverridesYamls, i.Cfg.Log)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider. Exiting...")
 	}
@@ -416,4 +463,57 @@ func (i *Deployment) processUpdateComponent(phase InstallationPhase, comp compon
 		Phase:     phase,
 		Component: comp,
 	}
+}
+
+func (i *Deployment) deployKymaNamespace() error {
+	_, err := i.kubeClient.CoreV1().Namespaces().Get(context.Background(), kymaNamespace, metav1.GetOptions{})
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			nsErr := i.createKymaNamespace()
+			if nsErr != nil {
+				return nsErr
+			}
+		} else {
+			return err
+		}
+	} else {
+		nsErr := i.updateKymaNamespace()
+		if nsErr != nil {
+			return nsErr
+		}
+	}
+	return nil
+}
+
+func (i *Deployment) createKymaNamespace() error {
+	_, err := i.kubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: kymaNamespace,
+		},
+	}, metav1.CreateOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Deployment) updateKymaNamespace() error {
+	_, err := i.kubeClient.CoreV1().Namespaces().Update(context.Background(), &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: kymaNamespace,
+		},
+	}, metav1.UpdateOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Deployment) deleteKymaNamespace() error {
+	return i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), kymaNamespace, metav1.DeleteOptions{})
 }
