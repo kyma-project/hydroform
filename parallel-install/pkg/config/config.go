@@ -43,7 +43,7 @@ type Config struct {
 
 // Validate the given configuration options
 func (c *Config) Validate() error {
-	if c.WorkersCount <= 1 {
+	if c.WorkersCount <= 0 {
 		return fmt.Errorf("Workers count cannot be <= 0")
 	}
 	if err := c.pathExists(c.ComponentsListFile, "Components list"); err != nil {
