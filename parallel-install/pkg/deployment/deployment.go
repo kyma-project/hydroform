@@ -42,7 +42,7 @@ type Installer interface {
 //
 //componentsListPath contains the path to the components list file
 //
-//overrides bundles all overrides which have to be considered by HELM
+//overrides bundles all overrides which have to be considered by Helm
 //
 //cfg includes configuration parameters for the installer lib
 //
