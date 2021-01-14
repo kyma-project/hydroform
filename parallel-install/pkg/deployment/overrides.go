@@ -69,8 +69,15 @@ func (o *Overrides) AddFile(file string) error {
 }
 
 // AddOverrides adds overrides for a chart
-func (o *Overrides) AddOverrides(chart string, overrides map[string]interface{}) {
+func (o *Overrides) AddOverrides(chart string, overrides map[string]interface{}) error {
+	if chart == "" {
+		return fmt.Errorf("Chart name cannot be empty when adding overrides")
+	}
+	if len(overrides) < 1 {
+		return fmt.Errorf("Empty overrides map provided for chart '%s'", chart)
+	}
 	overridesMap := make(map[string]interface{})
 	overridesMap[chart] = overrides
 	o.overrides = append(o.overrides, overridesMap)
+	return nil
 }
