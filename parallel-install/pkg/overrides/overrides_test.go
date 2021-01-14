@@ -119,4 +119,12 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 		require.Equal(t, 2, len(res2["global"].(map[string]interface{})), "Number of global overrides not as expected")
 		require.Equal(t, "changed", globalOverrides["globalOverride1"], "Override from additional overrides not on top of regular overrides")
 	})
+
+	t.Run("Test non-nested overrides", func(t *testing.T) {
+		illegalOverrides := make(map[string]interface{})
+		illegalOverrides["componentX"] = "value1"
+		illegalOverrides["componentY"] = "value2"
+		_, err := New(k8sMock, illegalOverrides, log.Printf)
+		require.Error(t, err)
+	})
 }

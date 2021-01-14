@@ -1,5 +1,7 @@
 {
-    "key1": "value1json",
-    "key3": "value3json",
-    "key4": "value4json"
+    "chart": {
+        "key1": "value1json",
+        "key3": "value3json",
+        "key4": "value4json"
+    }
 }

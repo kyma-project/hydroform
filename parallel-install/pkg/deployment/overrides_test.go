@@ -17,11 +17,11 @@ func Test_MergeOverrides(t *testing.T) {
 
 	override1 := make(map[string]interface{})
 	override1["key4"] = "value4override1"
-	overrides.AddOverrides(override1)
+	overrides.AddOverrides("chart", override1)
 
 	override2 := make(map[string]interface{})
 	override2["key5"] = "value5override2"
-	overrides.AddOverrides(override2)
+	overrides.AddOverrides("chart", override2)
 
 	// read expected result
 	data, err := ioutil.ReadFile("../test/data/deployment-overrides-result.yaml")
