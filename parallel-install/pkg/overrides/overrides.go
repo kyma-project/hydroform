@@ -6,6 +6,7 @@ package overrides
 
 import (
 	"context"
+	"fmt"
 
 	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -165,8 +166,13 @@ func (p *Provider) parseAdditionalOverrides(additionalOverrides map[string]inter
 			if p.componentOverrides[k] == nil {
 				p.componentOverrides[k] = make(map[string]interface{})
 			}
-			p.componentOverrides[k] = MergeMaps(p.componentOverrides[k], v.(map[string]interface{}))
-			p.additionalComponentOverrides[k] = MergeMaps(p.additionalComponentOverrides[k], v.(map[string]interface{}))
+
+			if vTypeSafe, ok := v.(map[string]interface{}); ok {
+				p.componentOverrides[k] = MergeMaps(p.componentOverrides[k], vTypeSafe)
+				p.additionalComponentOverrides[k] = MergeMaps(p.additionalComponentOverrides[k], vTypeSafe)
+			} else {
+				return fmt.Errorf("Cannot add override '%s=%s' as the value has to be a map", k, v)
+			}
 		}
 	}
 

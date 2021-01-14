@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/imdario/mergo"
 	"gopkg.in/yaml.v3"
 )
 
@@ -41,34 +42,19 @@ func (o *Overrides) Merge() (map[string]interface{}, error) {
 			return nil, err
 		}
 		// merge
-		result = o.mergeMaps(result, fileOverrides)
+		if err := mergo.Map(&result, fileOverrides, mergo.WithOverride); err != nil {
+			return nil, err
+		}
 	}
 
 	//merge overrides
 	for _, override := range o.overrides {
-		result = o.mergeMaps(result, override)
+		if err := mergo.Map(&result, override, mergo.WithOverride); err != nil {
+			return nil, err
+		}
 	}
 
 	return result, nil
-}
-
-func (o *Overrides) mergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
-	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
-			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = o.mergeMaps(bv, v)
-					continue
-				}
-			}
-		}
-		out[k] = v
-	}
-	return out
 }
 
 // AddFile adds overrides defined in a file
@@ -82,7 +68,16 @@ func (o *Overrides) AddFile(file string) error {
 	return fmt.Errorf("Unsupported override file extension. Supported extensions are: %s", strings.Join(supportedFileExt, ", "))
 }
 
-// AddOverrides adds another override
-func (o *Overrides) AddOverrides(overrides map[string]interface{}) {
-	o.overrides = append(o.overrides, overrides)
+// AddOverrides adds overrides for a chart
+func (o *Overrides) AddOverrides(chart string, overrides map[string]interface{}) error {
+	if chart == "" {
+		return fmt.Errorf("Chart name cannot be empty when adding overrides")
+	}
+	if len(overrides) < 1 {
+		return fmt.Errorf("Empty overrides map provided for chart '%s'", chart)
+	}
+	overridesMap := make(map[string]interface{})
+	overridesMap[chart] = overrides
+	o.overrides = append(o.overrides, overridesMap)
+	return nil
 }
