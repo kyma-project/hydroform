@@ -36,13 +36,19 @@ const (
 	Deployed StatusEnum = "Deployed"
 )
 
+//Attributes represents common metadata attributes
+type Attributes struct {
+	Profile string
+	Version string
+}
+
 type MetadataProvider interface {
 	ReadKymaMetadata() (*KymaMetadata, error)
-	WriteKymaDeploymentInProgress() error
-	WriteKymaDeploymentError(error string) error
-	WriteKymaDeployed() error
-	WriteKymaUninstallationInProgress() error
-	WriteKymaUninstallationError(error string) error
+	WriteKymaDeploymentInProgress(attr Attributes) error
+	WriteKymaDeploymentError(attr Attributes, reason string) error
+	WriteKymaDeployed(attr Attributes) error
+	WriteKymaUninstallationInProgress(attr Attributes) error
+	WriteKymaUninstallationError(attr Attributes, reason string) error
 }
 
 type KymaMetadata struct {
@@ -54,15 +60,11 @@ type KymaMetadata struct {
 
 type Provider struct {
 	kubeClient kubernetes.Interface
-	profile    string
-	version    string
 }
 
-func New(client kubernetes.Interface, profile, version string) MetadataProvider {
+func New(client kubernetes.Interface) MetadataProvider {
 	return &Provider{
 		kubeClient: client,
-		profile:    profile,
-		version:    version,
 	}
 }
 
@@ -93,10 +95,10 @@ func (p *Provider) ReadKymaMetadata() (*KymaMetadata, error) {
 	return kymaMetaData, nil
 }
 
-func (p *Provider) WriteKymaDeploymentInProgress() error {
+func (p *Provider) WriteKymaDeploymentInProgress(attr Attributes) error {
 	meta := &KymaMetadata{
-		Version: p.version,
-		Profile: p.profile,
+		Version: attr.Version,
+		Profile: attr.Profile,
 		Status:  DeploymentInProgress,
 	}
 
@@ -105,10 +107,10 @@ func (p *Provider) WriteKymaDeploymentInProgress() error {
 	})
 }
 
-func (p *Provider) WriteKymaUninstallationInProgress() error {
+func (p *Provider) WriteKymaUninstallationInProgress(attr Attributes) error {
 	meta := &KymaMetadata{
-		Version: p.version,
-		Profile: p.profile,
+		Version: attr.Version,
+		Profile: attr.Profile,
 		Status:  UninstallationInProgress,
 	}
 
@@ -117,10 +119,10 @@ func (p *Provider) WriteKymaUninstallationInProgress() error {
 	})
 }
 
-func (p *Provider) WriteKymaDeploymentError(reason string) error {
+func (p *Provider) WriteKymaDeploymentError(attr Attributes, reason string) error {
 	meta := &KymaMetadata{
-		Version: p.version,
-		Profile: p.profile,
+		Version: attr.Version,
+		Profile: attr.Profile,
 		Status:  DeploymentError,
 		Reason:  reason,
 	}
@@ -130,10 +132,10 @@ func (p *Provider) WriteKymaDeploymentError(reason string) error {
 	})
 }
 
-func (p *Provider) WriteKymaUninstallationError(reason string) error {
+func (p *Provider) WriteKymaUninstallationError(attr Attributes, reason string) error {
 	meta := &KymaMetadata{
-		Version: p.version,
-		Profile: p.profile,
+		Version: attr.Version,
+		Profile: attr.Profile,
 		Status:  UninstallationError,
 		Reason:  reason,
 	}
@@ -143,10 +145,10 @@ func (p *Provider) WriteKymaUninstallationError(reason string) error {
 	})
 }
 
-func (p *Provider) WriteKymaDeployed() error {
+func (p *Provider) WriteKymaDeployed(attr Attributes) error {
 	meta := &KymaMetadata{
-		Version: p.version,
-		Profile: p.profile,
+		Version: attr.Version,
+		Profile: attr.Profile,
 		Status:  Deployed,
 	}
 
