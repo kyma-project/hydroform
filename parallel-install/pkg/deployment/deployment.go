@@ -52,7 +52,7 @@ func NewDeployment(cfg config.Config, overrides Overrides, kubeClient kubernetes
 		return nil, err
 	}
 
-	metadataProvider := metadata.New(kubeClient, cfg.Profile, cfg.Version)
+	metadataProvider := metadata.New(kubeClient)
 
 	return &Deployment{
 		componentList:    clList,
@@ -71,7 +71,12 @@ func (i *Deployment) StartKymaDeployment() error {
 		return err
 	}
 
-	err = i.metadataProvider.WriteKymaDeploymentInProgress()
+	attr := metadata.Attributes{
+		Version: i.cfg.Version,
+		Profile: i.cfg.Profile,
+	}
+
+	err = i.metadataProvider.WriteKymaDeploymentInProgress(attr)
 	if err != nil {
 		return err
 	}
@@ -83,13 +88,13 @@ func (i *Deployment) StartKymaDeployment() error {
 
 	err = i.startKymaDeployment(prerequisitesProvider, overridesProvider, engine)
 	if err != nil {
-		metaDataErr := i.metadataProvider.WriteKymaDeploymentError(err.Error())
+		metaDataErr := i.metadataProvider.WriteKymaDeploymentError(attr, err.Error())
 		if metaDataErr != nil {
 			return metaDataErr
 		}
 	}
 
-	err = i.metadataProvider.WriteKymaDeployed()
+	err = i.metadataProvider.WriteKymaDeployed(attr)
 	if err != nil {
 		return err
 	}
@@ -104,14 +109,19 @@ func (i *Deployment) StartKymaUninstallation() error {
 		return err
 	}
 
-	err = i.metadataProvider.WriteKymaUninstallationInProgress()
+	attr := metadata.Attributes{
+		Version: i.cfg.Version,
+		Profile: i.cfg.Profile,
+	}
+
+	err = i.metadataProvider.WriteKymaUninstallationInProgress(attr)
 	if err != nil {
 		return err
 	}
 
 	err = i.startKymaUninstallation(prerequisitesProvider, engine)
 	if err != nil {
-		metaDataErr := i.metadataProvider.WriteKymaUninstallationError(err.Error())
+		metaDataErr := i.metadataProvider.WriteKymaUninstallationError(attr, err.Error())
 		if metaDataErr != nil {
 			return metaDataErr
 		}
