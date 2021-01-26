@@ -2,6 +2,8 @@ package metadata
 
 import (
 	"context"
+	"io/ioutil"
+	"path/filepath"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -32,30 +34,47 @@ const (
 	//UninstallationError means error occurred during kyma uninstallation
 	UninstallationError StatusEnum = "UninstallationError"
 
-	//UninstallationError means kyma deployed successfuly
+	//Deployed means kyma deployed successfuly
 	Deployed StatusEnum = "Deployed"
 )
 
 //Attributes represents common metadata attributes
 type Attributes struct {
-	Profile string
-	Version string
+	profile             string
+	version             string
+	componentListData   []byte
+	componentListFormat string
+}
+
+func NewAttributes(profile string, version string, componentListFile string) (*Attributes, error) {
+	compListData, err := ioutil.ReadFile(componentListFile)
+	if err != nil {
+		return nil, err
+	}
+	return &Attributes{
+		profile:             profile,
+		version:             version,
+		componentListData:   compListData,
+		componentListFormat: filepath.Ext(componentListFile),
+	}, nil
 }
 
 type MetadataProvider interface {
 	ReadKymaMetadata() (*KymaMetadata, error)
-	WriteKymaDeploymentInProgress(attr Attributes) error
-	WriteKymaDeploymentError(attr Attributes, reason string) error
-	WriteKymaDeployed(attr Attributes) error
-	WriteKymaUninstallationInProgress(attr Attributes) error
-	WriteKymaUninstallationError(attr Attributes, reason string) error
+	WriteKymaDeploymentInProgress(attr *Attributes) error
+	WriteKymaDeploymentError(attr *Attributes, reason string) error
+	WriteKymaDeployed(attr *Attributes) error
+	WriteKymaUninstallationInProgress(attr *Attributes) error
+	WriteKymaUninstallationError(attr *Attributes, reason string) error
 }
 
 type KymaMetadata struct {
-	Profile string
-	Version string
-	Status  StatusEnum
-	Reason  string
+	Profile             string
+	Version             string
+	ComponentListData   []byte
+	ComponentListFormat string
+	Status              StatusEnum
+	Reason              string
 }
 
 type Provider struct {
@@ -95,11 +114,13 @@ func (p *Provider) ReadKymaMetadata() (*KymaMetadata, error) {
 	return kymaMetaData, nil
 }
 
-func (p *Provider) WriteKymaDeploymentInProgress(attr Attributes) error {
+func (p *Provider) WriteKymaDeploymentInProgress(attr *Attributes) error {
 	meta := &KymaMetadata{
-		Version: attr.Version,
-		Profile: attr.Profile,
-		Status:  DeploymentInProgress,
+		Version:             attr.version,
+		Profile:             attr.profile,
+		ComponentListData:   attr.componentListData,
+		ComponentListFormat: attr.componentListFormat,
+		Status:              DeploymentInProgress,
 	}
 
 	return retryOperation(func() error {
@@ -107,11 +128,13 @@ func (p *Provider) WriteKymaDeploymentInProgress(attr Attributes) error {
 	})
 }
 
-func (p *Provider) WriteKymaUninstallationInProgress(attr Attributes) error {
+func (p *Provider) WriteKymaUninstallationInProgress(attr *Attributes) error {
 	meta := &KymaMetadata{
-		Version: attr.Version,
-		Profile: attr.Profile,
-		Status:  UninstallationInProgress,
+		Version:             attr.version,
+		Profile:             attr.profile,
+		ComponentListData:   attr.componentListData,
+		ComponentListFormat: attr.componentListFormat,
+		Status:              UninstallationInProgress,
 	}
 
 	return retryOperation(func() error {
@@ -119,12 +142,14 @@ func (p *Provider) WriteKymaUninstallationInProgress(attr Attributes) error {
 	})
 }
 
-func (p *Provider) WriteKymaDeploymentError(attr Attributes, reason string) error {
+func (p *Provider) WriteKymaDeploymentError(attr *Attributes, reason string) error {
 	meta := &KymaMetadata{
-		Version: attr.Version,
-		Profile: attr.Profile,
-		Status:  DeploymentError,
-		Reason:  reason,
+		Version:             attr.version,
+		Profile:             attr.profile,
+		ComponentListData:   attr.componentListData,
+		ComponentListFormat: attr.componentListFormat,
+		Status:              DeploymentError,
+		Reason:              reason,
 	}
 
 	return retryOperation(func() error {
@@ -132,12 +157,14 @@ func (p *Provider) WriteKymaDeploymentError(attr Attributes, reason string) erro
 	})
 }
 
-func (p *Provider) WriteKymaUninstallationError(attr Attributes, reason string) error {
+func (p *Provider) WriteKymaUninstallationError(attr *Attributes, reason string) error {
 	meta := &KymaMetadata{
-		Version: attr.Version,
-		Profile: attr.Profile,
-		Status:  UninstallationError,
-		Reason:  reason,
+		Version:             attr.version,
+		Profile:             attr.profile,
+		ComponentListData:   attr.componentListData,
+		ComponentListFormat: attr.componentListFormat,
+		Status:              UninstallationError,
+		Reason:              reason,
 	}
 
 	return retryOperation(func() error {
@@ -145,11 +172,13 @@ func (p *Provider) WriteKymaUninstallationError(attr Attributes, reason string) 
 	})
 }
 
-func (p *Provider) WriteKymaDeployed(attr Attributes) error {
+func (p *Provider) WriteKymaDeployed(attr *Attributes) error {
 	meta := &KymaMetadata{
-		Version: attr.Version,
-		Profile: attr.Profile,
-		Status:  Deployed,
+		Version:             attr.version,
+		Profile:             attr.profile,
+		ComponentListData:   attr.componentListData,
+		ComponentListFormat: attr.componentListFormat,
+		Status:              Deployed,
 	}
 
 	return retryOperation(func() error {
@@ -193,6 +222,8 @@ func metadataToCM(data *KymaMetadata) map[string]string {
 	CMData := make(map[string]string)
 	CMData["profile"] = data.Profile
 	CMData["version"] = data.Version
+	CMData["clData"] = string(data.ComponentListData)
+	CMData["clFormat"] = data.ComponentListFormat
 	CMData["status"] = string(data.Status)
 	CMData["reason"] = data.Reason
 
@@ -201,10 +232,12 @@ func metadataToCM(data *KymaMetadata) map[string]string {
 
 func cmToMetadata(data map[string]string) *KymaMetadata {
 	return &KymaMetadata{
-		Profile: data["profile"],
-		Version: data["version"],
-		Status:  StatusEnum(data["status"]),
-		Reason:  data["reason"],
+		Profile:             data["profile"],
+		Version:             data["version"],
+		ComponentListData:   []byte(data["clData"]),
+		ComponentListFormat: data["clFormat"],
+		Status:              StatusEnum(data["status"]),
+		Reason:              data["reason"],
 	}
 }
 

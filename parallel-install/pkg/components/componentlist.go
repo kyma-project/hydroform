@@ -5,19 +5,54 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
 
 // ComponentList collects component definitions
 type ComponentList struct {
-	prerequisites []ComponentDefinition
-	components    []ComponentDefinition
+	Prerequisites []ComponentDefinition
+	Components    []ComponentDefinition
 }
 
-// NewComponentList creates a new component list
-func NewComponentList(componentsListPath string) (*ComponentList, error) {
+// ComponentDefinition defines a component in components list
+type ComponentDefinition struct {
+	Name      string
+	Namespace string
+}
+
+// ComponentListData is the raw component list
+type ComponentListData struct {
+	DefaultNamespace string `yaml:"defaultNamespace" json:"defaultNamespace"`
+	Prerequisites    []ComponentDefinition
+	Components       []ComponentDefinition
+}
+
+func (cld *ComponentListData) process() *ComponentList {
+	compList := &ComponentList{}
+
+	// read prerequisites
+	for _, compDef := range cld.Prerequisites {
+		if compDef.Namespace == "" {
+			compDef.Namespace = cld.DefaultNamespace
+		}
+		compList.Prerequisites = append(compList.Prerequisites, compDef)
+	}
+
+	// read components
+	for _, compDef := range cld.Components {
+		if compDef.Namespace == "" {
+			compDef.Namespace = cld.DefaultNamespace
+		}
+		compList.Components = append(compList.Components, compDef)
+	}
+
+	return compList
+}
+
+// NewComponentListFromFile creates a new component list
+func NewComponentListFromFile(componentsListPath string) (*ComponentList, error) {
 	if componentsListPath == "" {
 		return nil, fmt.Errorf("Path to components list file is required")
 	}
@@ -25,70 +60,37 @@ func NewComponentList(componentsListPath string) (*ComponentList, error) {
 		return nil, fmt.Errorf("Components list file '%s' not found", componentsListPath)
 	}
 
-	clList := &ComponentList{}
-	if err := clList.load(componentsListPath); err != nil {
+	data, err := ioutil.ReadFile(componentsListPath)
+	if err != nil {
 		return nil, err
 	}
 
-	return clList, nil
+	switch filepath.Ext(componentsListPath) {
+	case ".json":
+		return NewComponentListFromJSON(data)
+	case ".yaml":
+		return NewComponentListFromYAML(data)
+	case ".yml":
+		return NewComponentListFromYAML(data)
+	default:
+		return nil, fmt.Errorf("File format of components list is not supported")
+	}
 }
 
-func (cl *ComponentList) load(componentsListPath string) error {
-	var componentList CompListFile
-
-	// read file
-	data, err := ioutil.ReadFile(componentsListPath)
-	if err != nil {
-		return err
+//NewComponentListFromYAML creates a component list object from YAML data
+func NewComponentListFromYAML(data []byte) (*ComponentList, error) {
+	var compListData *ComponentListData
+	if err := yaml.Unmarshal(data, &compListData); err != nil {
+		return nil, err
 	}
-
-	if strings.HasSuffix(componentsListPath, ".json") {
-		err = json.Unmarshal(data, &componentList)
-	} else {
-		err = yaml.Unmarshal(data, &componentList)
-	}
-	if err != nil {
-		return err
-	}
-
-	// read prerequisites
-	for _, compDef := range componentList.Prerequisites {
-		if compDef.Namespace == "" {
-			compDef.Namespace = componentList.DefaultNamespace
-		}
-		cl.prerequisites = append(cl.prerequisites, compDef)
-	}
-
-	// read components
-	for _, compDef := range componentList.Components {
-		if compDef.Namespace == "" {
-			compDef.Namespace = componentList.DefaultNamespace
-		}
-		cl.components = append(cl.components, compDef)
-	}
-
-	return nil
+	return compListData.process(), nil
 }
 
-// GetComponents returns all components on the list
-func (cl *ComponentList) GetComponents() []ComponentDefinition {
-	return cl.components
-}
-
-// GetPrerequisites returns all components on the list
-func (cl *ComponentList) GetPrerequisites() []ComponentDefinition {
-	return cl.prerequisites
-}
-
-// CompListFile is for components list marshalling
-type CompListFile struct {
-	DefaultNamespace string `yaml:"defaultNamespace" json:"defaultNamespace"`
-	Prerequisites    []ComponentDefinition
-	Components       []ComponentDefinition
-}
-
-// ComponentDefinition defines a component in components list
-type ComponentDefinition struct {
-	Name      string
-	Namespace string
+//NewComponentListFromJSON creates a component list object from JSON data
+func NewComponentListFromJSON(data []byte) (*ComponentList, error) {
+	var compListData *ComponentListData
+	if err := json.Unmarshal(data, &compListData); err != nil {
+		return nil, err
+	}
+	return compListData.process(), nil
 }

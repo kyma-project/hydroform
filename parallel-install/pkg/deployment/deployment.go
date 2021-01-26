@@ -47,7 +47,7 @@ func NewDeployment(cfg config.Config, overrides Overrides, kubeClient kubernetes
 		return nil, err
 	}
 
-	clList, err := components.NewComponentList(cfg.ComponentsListFile)
+	clList, err := components.NewComponentListFromFile(cfg.ComponentsListFile)
 	if err != nil {
 		return nil, err
 	}
@@ -71,9 +71,9 @@ func (i *Deployment) StartKymaDeployment() error {
 		return err
 	}
 
-	attr := metadata.Attributes{
-		Version: i.cfg.Version,
-		Profile: i.cfg.Profile,
+	attr, err := metadata.NewAttributes(i.cfg.Version, i.cfg.Profile, i.cfg.ComponentsListFile)
+	if err != nil {
+		return err
 	}
 
 	err = i.metadataProvider.WriteKymaDeploymentInProgress(attr)
@@ -109,9 +109,9 @@ func (i *Deployment) StartKymaUninstallation() error {
 		return err
 	}
 
-	attr := metadata.Attributes{
-		Version: i.cfg.Version,
-		Profile: i.cfg.Profile,
+	attr, err := metadata.NewAttributes(i.cfg.Version, i.cfg.Profile, i.cfg.ComponentsListFile)
+	if err != nil {
+		return err
 	}
 
 	err = i.metadataProvider.WriteKymaUninstallationInProgress(attr)
@@ -426,8 +426,8 @@ func (i *Deployment) getConfig() (overrides.OverridesProvider, components.Provid
 		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider. Exiting...")
 	}
 
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.GetPrerequisites(), i.cfg)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.GetComponents(), i.cfg)
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.Prerequisites, i.cfg)
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.Components, i.cfg)
 
 	engineCfg := engine.Config{
 		WorkersCount: i.cfg.WorkersCount,
