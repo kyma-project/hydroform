@@ -1,7 +1,6 @@
 package components
 
 import (
-	"log"
 	"testing"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -29,7 +28,7 @@ func Test_GetComponents(t *testing.T) {
 		},
 	)
 
-	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), log.Printf)
+	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), true)
 	require.NoError(t, err)
 
 	installationCfg := config.Config{}

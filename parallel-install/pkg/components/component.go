@@ -2,6 +2,7 @@ package components
 
 import (
 	"context"
+	"go.uber.org/zap"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 )
@@ -39,37 +40,37 @@ type KymaComponent struct {
 	//OverridesGetter is a function that returns overrides for the release.
 	OverridesGetter func() map[string]interface{}
 	HelmClient      helm.ClientInterface
-	Log             func(format string, v ...interface{})
+	Log             *zap.SugaredLogger
 }
 
 //Deploy implements Component.Deploy
 func (c *KymaComponent) Deploy(ctx context.Context) error {
-	c.Log("%s Deploying %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
+	c.Log.Infof("%s Deploying %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
 	overrides := c.OverridesGetter()
 
 	err := c.HelmClient.DeployRelease(ctx, c.ChartDir, c.Namespace, c.Name, overrides, c.Profile)
 	if err != nil {
-		c.Log("%s Error deploying %s: %v", logPrefix, c.Name, err)
+		c.Log.Errorf("%s Error deploying %s: %v", logPrefix, c.Name, err)
 		return err
 	}
 
-	c.Log("%s Deployed %s in %s", logPrefix, c.Name, c.Namespace)
+	c.Log.Infof("%s Deployed %s in %s", logPrefix, c.Name, c.Namespace)
 
 	return nil
 }
 
 //Uninstall implements Component.Uninstall.
 func (c *KymaComponent) Uninstall(ctx context.Context) error {
-	c.Log("%s Uninstalling %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
+	c.Log.Infof("%s Uninstalling %s in %s from %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
 
 	err := c.HelmClient.UninstallRelease(ctx, c.Namespace, c.Name)
 	if err != nil {
-		c.Log("%s Error uninstalling %s: %v", logPrefix, c.Name, err)
+		c.Log.Infof("%s Error uninstalling %s: %v", logPrefix, c.Name, err)
 		return err
 	}
 
-	c.Log("%s Uninstalled %s in %s", logPrefix, c.Name, c.Namespace)
+	c.Log.Infof("%s Uninstalled %s in %s", logPrefix, c.Name, c.Namespace)
 
 	return nil
 }

@@ -7,6 +7,8 @@ package overrides
 import (
 	"context"
 	"fmt"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"go.uber.org/zap"
 
 	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +28,7 @@ type Provider struct {
 	componentOverrides           map[string]map[string]interface{}
 	additionalComponentOverrides map[string]map[string]interface{}
 	kubeClient                   kubernetes.Interface
-	log                          func(format string, v ...interface{})
+	log                          *zap.SugaredLogger
 }
 
 //OverridesProvider defines the contract for reading overrides for a given Helm release.
@@ -47,10 +49,10 @@ type OverridesProvider interface {
 //There is one difference from the plain Helm's values.yaml file: These are not values for a single release but for the entire Kyma installation.
 //Because of that, you have to put values for a specific Component (e.g: Component name is "foo") under a key equal to the component's name (i.e: "foo").
 //You can also put overrides under a "global" key. These will merge with the top-level "global" Helm key for every Helm chart.
-func New(client kubernetes.Interface, overrides map[string]interface{}, log func(string, ...interface{})) (OverridesProvider, error) {
+func New(client kubernetes.Interface, overrides map[string]interface{}, verbose bool) (OverridesProvider, error) {
 	provider := Provider{
 		kubeClient: client,
-		log:        log,
+		log:        logger.NewLogger(verbose),
 	}
 
 	err := provider.parseAdditionalOverrides(overrides)
@@ -65,10 +67,10 @@ func (p *Provider) OverridesGetterFunctionFor(name string) func() map[string]int
 	return func() map[string]interface{} {
 		if val, ok := p.componentOverrides[name]; ok {
 			val = MergeMaps(val, p.overrides)
-			p.log("%s Overrides for %s: %v", logPrefix, name, val)
+			p.log.Infof("%s Overrides for %s: %v", logPrefix, name, val)
 			return val
 		}
-		p.log("%s Overrides for %s: %v", logPrefix, name, p.overrides)
+		p.log.Infof("%s Overrides for %s: %v", logPrefix, name, p.overrides)
 		return p.overrides
 	}
 }
@@ -84,7 +86,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 
 	var globalValues []string
 	for _, cm := range globalOverrideCMs.Items {
-		p.log("%s %s data %v", logPrefix, cm.Name, cm.Data)
+		p.log.Infof("%s %s data %v", logPrefix, cm.Name, cm.Data)
 		for k, v := range cm.Data {
 			globalValues = append(globalValues, k+"="+v)
 		}
@@ -98,7 +100,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 
 	for _, value := range globalValues {
 		if err := strvals.ParseInto(value, globalFromCluster); err != nil {
-			p.log("%s Error parsing global overrides: %v", logPrefix, err)
+			p.log.Errorf("%s Error parsing global overrides: %v", logPrefix, err)
 			return err
 		}
 	}
@@ -114,7 +116,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 	componentOverrideCMs, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), componentListOpts)
 
 	for _, cm := range componentOverrideCMs.Items {
-		p.log("%s %s data %v", logPrefix, cm.Name, cm.Data)
+		p.log.Infof("%s %s data %v", logPrefix, cm.Name, cm.Data)
 		var componentValues []string
 		name := cm.Labels["component"]
 
@@ -130,7 +132,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 
 		for _, value := range componentValues {
 			if err := strvals.ParseInto(value, componentsFromCluster); err != nil {
-				p.log("%s Error parsing overrides for %s: %v", logPrefix, name, err)
+				p.log.Infof("%s Error parsing overrides for %s: %v", logPrefix, name, err)
 				return err
 			}
 		}
@@ -139,7 +141,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 		p.componentOverrides[name] = MergeMaps(p.componentOverrides[name], p.additionalComponentOverrides[name]) // always keep additionalOverrides on top
 	}
 
-	p.log("%s Reading the overrides from the cluster completed successfully!", logPrefix)
+	p.log.Infof("%s Reading the overrides from the cluster completed successfully!", logPrefix)
 	return nil
 }
 

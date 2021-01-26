@@ -4,7 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"go.uber.org/zap"
 	"os"
 	"time"
 
@@ -26,17 +27,19 @@ func main() {
 
 	flag.Parse()
 
+	log := logger.NewLogger(*verbose)
+
 	if kubeconfigPath == nil || *kubeconfigPath == "" {
-		log.Fatalf("kubeconfig is required")
+		log.Fatal("kubeconfig is required")
 	}
 
 	if version == nil || *version == "" {
-		log.Fatalf("version is required")
+		log.Fatal("version is required")
 	}
 
 	goPath := os.Getenv("GOPATH")
 	if goPath == "" {
-		log.Fatalf("Please set GOPATH")
+		log.Fatal("Please set GOPATH")
 	}
 
 	restConfig, err := getClientConfig(*kubeconfigPath)
@@ -54,7 +57,7 @@ func main() {
 		HelmTimeoutSeconds:            60 * 8,
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
-		Log:                           getLogFunc(*verbose),
+		Verbose:                       *verbose,
 		HelmMaxRevisionHistory:        10,
 		Profile:                       *profile,
 		ComponentsListFile:            "./components.yaml",
@@ -67,7 +70,7 @@ func main() {
 	var progressCh chan deployment.ProcessUpdate
 	if !(*verbose) {
 		progressCh = make(chan deployment.ProcessUpdate)
-		ctx := renderProgress(progressCh)
+		ctx := renderProgress(progressCh, log)
 		defer func() {
 			close(progressCh)
 			<-ctx.Done()
@@ -76,7 +79,7 @@ func main() {
 
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		log.Printf("Failed to create kube client. Exiting...")
+		log.Error("Failed to create kube client. Exiting...")
 		os.Exit(1)
 	}
 
@@ -88,18 +91,18 @@ func main() {
 
 	err = deployer.StartKymaDeployment()
 	if err != nil {
-		log.Printf("Failed to deploy Kyma: %v", err)
+		log.Errorf("Failed to deploy Kyma: %v", err)
 	} else {
-		log.Println("Kyma deployed!")
+		log.Error("Kyma deployed!")
 	}
 
 	kymaMeta, err := deployer.ReadKymaMetadata()
 	if err != nil {
-		log.Printf("Failed to read Kyma metadata: %v", err)
+		log.Errorf("Failed to read Kyma metadata: %v", err)
 	}
 
-	log.Printf("Kyma version: %s", kymaMeta.Version)
-	log.Printf("Kyma status: %s", kymaMeta.Status)
+	log.Infof("Kyma version: %s", kymaMeta.Version)
+	log.Infof("Kyma status: %s", kymaMeta.Status)
 
 	//Delete Kyma
 	deleter, err := deployment.NewDeletion(installationCfg, overrides, kubeClient, progressCh)
@@ -110,7 +113,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}
-	log.Println("Kyma uninstalled!")
+	log.Info("Kyma uninstalled!")
 }
 
 func getClientConfig(kubeconfig string) (*rest.Config, error) {
@@ -120,21 +123,12 @@ func getClientConfig(kubeconfig string) (*rest.Config, error) {
 	return rest.InClusterConfig()
 }
 
-func getLogFunc(verbose bool) func(string, ...interface{}) {
-	if verbose {
-		return log.Printf
-	}
-	return func(msg string, args ...interface{}) {
-		// do nothing
-	}
-}
-
-func renderProgress(progressCh chan deployment.ProcessUpdate) context.Context {
+func renderProgress(progressCh chan deployment.ProcessUpdate, log *zap.SugaredLogger) context.Context {
 	context, cancel := context.WithCancel(context.Background())
 
 	showCompStatus := func(comp components.KymaComponent) {
 		if comp.Name != "" {
-			log.Printf("Status of component '%s': %s", comp.Name, comp.Status)
+			log.Infof("Status of component '%s': %s", comp.Name, comp.Status)
 		}
 	}
 	go func() {
@@ -143,14 +137,14 @@ func renderProgress(progressCh chan deployment.ProcessUpdate) context.Context {
 		for update := range progressCh {
 			switch update.Event {
 			case deployment.ProcessStart:
-				log.Printf("Starting installation phase '%s'", update.Phase)
+				log.Infof("Starting installation phase '%s'", update.Phase)
 			case deployment.ProcessRunning:
 				showCompStatus(update.Component)
 			case deployment.ProcessFinished:
-				log.Printf("Finished installation phase '%s' successfully", update.Phase)
+				log.Infof("Finished installation phase '%s' successfully", update.Phase)
 			default:
 				//any failure case
-				log.Printf("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
+				log.Infof("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
 				showCompStatus(update.Component)
 			}
 		}

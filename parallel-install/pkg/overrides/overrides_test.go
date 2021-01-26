@@ -2,7 +2,6 @@ package overrides
 
 import (
 	"io/ioutil"
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -52,9 +51,10 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	var overridesColliding map[string]interface{}
 	err = yaml.Unmarshal(data, &overridesColliding)
 	require.NoError(t, err)
+	verboseLogging := true
 
 	t.Run("Should properly read overrides with no colliding data", func(t *testing.T) {
-		testProvider, err := New(k8sMock, overrides, log.Printf)
+		testProvider, err := New(k8sMock, overrides, verboseLogging)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -73,7 +73,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	})
 
 	t.Run("Should not duplicate additional overrides when reading overrides many times", func(t *testing.T) {
-		testProvider, err := New(k8sMock, overrides, log.Printf)
+		testProvider, err := New(k8sMock, overrides, verboseLogging)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -98,7 +98,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	})
 
 	t.Run("Should always put additionalOverrides on top of other overrides", func(t *testing.T) {
-		testProvider, err := New(k8sMock, overridesColliding, log.Printf)
+		testProvider, err := New(k8sMock, overridesColliding, verboseLogging)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -124,7 +124,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 		illegalOverrides := make(map[string]interface{})
 		illegalOverrides["componentX"] = "value1"
 		illegalOverrides["componentY"] = "value2"
-		_, err := New(k8sMock, illegalOverrides, log.Printf)
+		_, err := New(k8sMock, illegalOverrides, verboseLogging)
 		require.Error(t, err)
 	})
 }

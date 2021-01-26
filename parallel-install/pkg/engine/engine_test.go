@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"testing"
 	"time"
 
@@ -72,7 +73,6 @@ func TestFourWorkersAreSpawned(t *testing.T) {
 	overridesProvider := &mockOverridesProvider{}
 	installationCfg := config.Config{
 		WorkersCount: 4,
-		Log:          t.Logf,
 	}
 	hc := &mockHelmClientWithSemaphore{
 		semaphore:          semaphore.NewWeighted(int64(3)),
@@ -205,7 +205,6 @@ func TestContextCancelScenario(t *testing.T) {
 	overridesProvider := &mockOverridesProvider{}
 	installationCfg := config.Config{
 		WorkersCount: 2,
-		Log:          t.Logf,
 	}
 	hc := &mockSimpleHelmClient{}
 	componentsProvider := &mockComponentsProvider{t, hc}
@@ -281,7 +280,7 @@ func (p *mockComponentsProvider) GetComponents() ([]components.KymaComponent, er
 			Namespace:       "test",
 			OverridesGetter: func() map[string]interface{} { return nil },
 			HelmClient:      p.hc,
-			Log:             p.t.Logf,
+			Log:             logger.NewLogger(true),
 		}
 		comps = append(comps, component)
 	}

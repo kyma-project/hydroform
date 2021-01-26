@@ -26,7 +26,7 @@ type Config struct {
 	//Maximum time used for exponent backoff retry policy
 	BackoffMaxElapsedTimeSeconds int
 	//Logger to use
-	Log func(format string, v ...interface{})
+	Verbose bool
 	//Maximum number of Helm revision saved per release
 	HelmMaxRevisionHistory int
 	//Installation / Upgrade profile: evaluation|production

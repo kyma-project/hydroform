@@ -1,6 +1,8 @@
 package components
 
 import (
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"go.uber.org/zap"
 	"path"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -15,7 +17,7 @@ type PrerequisitesProvider struct {
 	resourcesPath     string ////A root directory where subdirectories of components' charts are located.
 	components        []ComponentDefinition
 	helmConfig        helm.Config
-	log               func(format string, v ...interface{})
+	log               *zap.SugaredLogger
 	profile           string
 }
 
@@ -29,7 +31,7 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, res
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
 		BackoffInitialIntervalSeconds: cfg.BackoffInitialIntervalSeconds,
 		BackoffMaxElapsedTimeSeconds:  cfg.BackoffMaxElapsedTimeSeconds,
-		Log:                           cfg.Log,
+		Log:                           logger.NewLogger(cfg.Verbose),
 		MaxHistory:                    cfg.HelmMaxRevisionHistory,
 	}
 
@@ -38,7 +40,7 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, res
 		resourcesPath:     resourcesPath,
 		components:        components,
 		helmConfig:        helmCfg,
-		log:               cfg.Log,
+		log:               logger.NewLogger(cfg.Verbose),
 		profile:           cfg.Profile,
 	}
 }

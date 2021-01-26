@@ -7,6 +7,7 @@ package prerequisites
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 
@@ -21,7 +22,7 @@ type Prerequisites struct {
 	Context       context.Context
 	KubeClient    kubernetes.Interface
 	Prerequisites []components.KymaComponent
-	Log           func(format string, v ...interface{}) //Logging function
+	Log           *zap.SugaredLogger
 }
 
 const logPrefix = "[prerequisites/prerequisites.go]"
@@ -43,7 +44,7 @@ func (p *Prerequisites) InstallPrerequisites() <-chan error {
 	go func() {
 		defer close(statusChan)
 
-		p.Log("Deploying kyma-installer namespace")
+		p.Log.Info("Deploying kyma-installer namespace")
 
 		_, err := p.KubeClient.CoreV1().Namespaces().Get(context.Background(), "kyma-installer", metav1.GetOptions{})
 
@@ -70,15 +71,15 @@ func (p *Prerequisites) InstallPrerequisites() <-chan error {
 			//TODO: Is there a better way to find out if Context is canceled?
 			if p.Context.Err() != nil {
 				//Context is canceled or timed-out. Skip processing
-				p.Log("%s Finishing work: %v", logPrefix, p.Context.Err())
+				p.Log.Infof("%s Finishing work: %v", logPrefix, p.Context.Err())
 				return //TODO: Consider returning information about "processing skipped because of timeout" via statusChan
 			}
 
-			p.Log("%s Installing component %s ", logPrefix, prerequisite.Name)
+			p.Log.Infof("%s Installing component %s ", logPrefix, prerequisite.Name)
 			//installation step
 			err := prerequisite.Deploy(p.Context)
 			if err != nil {
-				p.Log("%s Error installing prerequisite %s: %v (The installation will not continue)", logPrefix, prerequisite.Name, err)
+				p.Log.Infof("%s Error installing prerequisite %s: %v (The installation will not continue)", logPrefix, prerequisite.Name, err)
 				statusChan <- err
 				return
 			}
@@ -138,22 +139,22 @@ func (p *Prerequisites) UninstallPrerequisites() <-chan error {
 			//TODO: Is there a better way to find out if Context is canceled?
 			if p.Context.Err() != nil {
 				//Context is canceled or timed-out. Skip processing
-				p.Log("%s Finishing work: %v", logPrefix, p.Context.Err())
+				prereq.Log.Errorf("%s Finishing work: %v", logPrefix, p.Context.Err())
 				return //TODO: Consider returning information about "processing skipped because of timeout" via statusChan
 			}
 
-			p.Log("%s Uninstalling component %s ", logPrefix, prereq.Name)
+			prereq.Log.Infof("%s Uninstalling component %s ", logPrefix, prereq.Name)
 			//uninstallation step
 			err := prereq.Uninstall(p.Context)
 			if err != nil {
-				p.Log("%s Error uninstalling prerequisite %s: %v (The uninstallation continues anyway)", logPrefix, prereq.Name, err)
+				prereq.Log.Errorf("%s Error uninstalling prerequisite %s: %v (The uninstallation continues anyway)", logPrefix, prereq.Name, err)
 				statusChan <- err
 			}
 			statusChan <- nil //TODO: Is this necessary?
 		}
 
 		// TODO: Delete namespace deletion once xip-patch is gone.
-		p.Log("Deleting kyma-installer namespace")
+		p.Log.Info("Deleting kyma-installer namespace")
 		err := p.KubeClient.CoreV1().Namespaces().Delete(context.Background(), "kyma-installer", metav1.DeleteOptions{})
 		if err != nil {
 			statusChan <- fmt.Errorf("Unable to delete kyma-installer namespace. Error: %v", err)
