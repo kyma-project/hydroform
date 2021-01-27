@@ -4,12 +4,13 @@ package deployment
 import (
 	"context"
 	"fmt"
-	"log"
+	"sync"
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -20,7 +21,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
 )
 
-var kymaNamespace = "kyma-system"
+var kymaNamespaces = []string{"kyma-system", "kyma-integration", "istio-system", "knative-eventing", "natss"}
 
 type Deployment struct {
 	// Contains list of components to install (inclusive pre-requisites)
@@ -66,7 +67,7 @@ func NewDeployment(cfg config.Config, overrides Overrides, kubeClient kubernetes
 
 //StartKymaDeployment deploys Kyma to a cluster
 func (i *Deployment) StartKymaDeployment() error {
-	err := i.deployKymaNamespace()
+	err := i.deployKymaNamespaces(kymaNamespaces)
 	if err != nil {
 		return err
 	}
@@ -127,7 +128,7 @@ func (i *Deployment) StartKymaUninstallation() error {
 		}
 	}
 
-	err = i.deleteKymaNamespace()
+	err = i.deleteKymaNamespaces(kymaNamespaces)
 	if err != nil {
 		return err
 	}
@@ -194,7 +195,7 @@ func (i *Deployment) startKymaUninstallation(prerequisitesProvider components.Pr
 	}
 	endTime := time.Now()
 
-	log.Print("Kyma prerequisites uninstallation")
+	i.cfg.Log("Kyma prerequisites uninstallation")
 
 	cancelTimeout = calculateDuration(startTime, endTime, i.cfg.CancelTimeout)
 	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
@@ -474,31 +475,33 @@ func (i *Deployment) processUpdateComponent(phase InstallationPhase, comp compon
 	}
 }
 
-func (i *Deployment) deployKymaNamespace() error {
-	_, err := i.kubeClient.CoreV1().Namespaces().Get(context.Background(), kymaNamespace, metav1.GetOptions{})
+func (i *Deployment) deployKymaNamespaces(namespaces []string) error {
+	for _, namespace := range namespaces {
+		_, err := i.kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
 
-	if err != nil {
-		if errors.IsNotFound(err) {
-			nsErr := i.createKymaNamespace()
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				nsErr := i.createKymaNamespace(namespace)
+				if nsErr != nil {
+					return nsErr
+				}
+			} else {
+				return err
+			}
+		} else {
+			nsErr := i.updateKymaNamespace(namespace)
 			if nsErr != nil {
 				return nsErr
 			}
-		} else {
-			return err
-		}
-	} else {
-		nsErr := i.updateKymaNamespace()
-		if nsErr != nil {
-			return nsErr
 		}
 	}
 	return nil
 }
 
-func (i *Deployment) createKymaNamespace() error {
+func (i *Deployment) createKymaNamespace(namespace string) error {
 	_, err := i.kubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: kymaNamespace,
+			Name: namespace,
 		},
 	}, metav1.CreateOptions{})
 
@@ -509,10 +512,10 @@ func (i *Deployment) createKymaNamespace() error {
 	return nil
 }
 
-func (i *Deployment) updateKymaNamespace() error {
+func (i *Deployment) updateKymaNamespace(namespace string) error {
 	_, err := i.kubeClient.CoreV1().Namespaces().Update(context.Background(), &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: kymaNamespace,
+			Name: namespace,
 		},
 	}, metav1.UpdateOptions{})
 
@@ -523,6 +526,37 @@ func (i *Deployment) updateKymaNamespace() error {
 	return nil
 }
 
-func (i *Deployment) deleteKymaNamespace() error {
-	return i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), kymaNamespace, metav1.DeleteOptions{})
+func (i *Deployment) deleteKymaNamespaces(namespaces []string) error {
+	var wg sync.WaitGroup
+	wg.Add(len(namespaces))
+
+	finishedCh := make(chan bool)
+	errorCh := make(chan error)
+
+	// start deletion in seprate goroutines
+	for _, namespace := range namespaces {
+		go func(ns string) {
+			defer wg.Done()
+			errorCh <- i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{})
+		}(namespace)
+	}
+
+	// wait until parallel deletion is finished
+	go func() {
+		wg.Wait()
+		close(errorCh)
+		close(finishedCh)
+	}()
+
+	// process deletion results
+	var errWrapped error
+	select {
+	case <-finishedCh:
+	case err := <-errorCh:
+		if err != nil {
+			errWrapped = errors.Wrap(err, errWrapped.Error())
+		}
+	}
+
+	return errWrapped
 }
