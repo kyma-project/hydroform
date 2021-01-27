@@ -139,7 +139,7 @@ func metadataToCM(data *KymaMetadata) map[string]string {
 	CMData["profile"] = data.Profile
 	CMData["version"] = data.Version
 	CMData["clData"] = string(data.ComponentListData)
-	CMData["clFormat"] = data.ComponentListFormat
+	CMData["clFile"] = data.ComponentListFile
 	CMData["status"] = string(data.Status)
 	CMData["reason"] = data.Reason
 
@@ -148,12 +148,12 @@ func metadataToCM(data *KymaMetadata) map[string]string {
 
 func cmToMetadata(data map[string]string) *KymaMetadata {
 	return &KymaMetadata{
-		Profile:             data["profile"],
-		Version:             data["version"],
-		ComponentListData:   []byte(data["clData"]),
-		ComponentListFormat: data["clFormat"],
-		Status:              StatusEnum(data["status"]),
-		Reason:              data["reason"],
+		Profile:           data["profile"],
+		Version:           data["version"],
+		ComponentListData: []byte(data["clData"]),
+		ComponentListFile: data["clFile"],
+		Status:            StatusEnum(data["status"]),
+		Reason:            data["reason"],
 	}
 }
 

@@ -21,19 +21,19 @@ const (
 )
 
 type KymaMetadata struct {
-	Profile             string
-	Version             string
-	ComponentListData   []byte
-	ComponentListFormat string
-	Status              StatusEnum
-	Reason              string
+	Profile           string
+	Version           string
+	ComponentListData []byte
+	ComponentListFile string
+	Status            StatusEnum
+	Reason            string
 }
 
 func (km *KymaMetadata) withAttributes(attr *Attributes) *KymaMetadata {
 	km.Version = attr.version
 	km.Profile = attr.profile
 	km.ComponentListData = attr.componentListData
-	km.ComponentListFormat = attr.componentListFormat
+	km.ComponentListFile = attr.componentListFile
 	return km
 }
 

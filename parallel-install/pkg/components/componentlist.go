@@ -51,8 +51,8 @@ func (cld *ComponentListData) process() *ComponentList {
 	return compList
 }
 
-// NewComponentListFromFile creates a new component list
-func NewComponentListFromFile(componentsListPath string) (*ComponentList, error) {
+// NewComponentList creates a new component list
+func NewComponentList(componentsListPath string) (*ComponentList, error) {
 	if componentsListPath == "" {
 		return nil, fmt.Errorf("Path to components list file is required")
 	}
@@ -65,32 +65,19 @@ func NewComponentListFromFile(componentsListPath string) (*ComponentList, error)
 		return nil, err
 	}
 
-	switch filepath.Ext(componentsListPath) {
-	case ".json":
-		return NewComponentListFromJSON(data)
-	case ".yaml":
-		return NewComponentListFromYAML(data)
-	case ".yml":
-		return NewComponentListFromYAML(data)
-	default:
-		return nil, fmt.Errorf("File format of components list is not supported")
-	}
-}
-
-//NewComponentListFromYAML creates a component list object from YAML data
-func NewComponentListFromYAML(data []byte) (*ComponentList, error) {
 	var compListData *ComponentListData
-	if err := yaml.Unmarshal(data, &compListData); err != nil {
-		return nil, err
+	fileExt := filepath.Ext(componentsListPath)
+	if fileExt == ".json" {
+		if err := json.Unmarshal(data, &compListData); err != nil {
+			return nil, err
+		}
+	} else if fileExt == ".yaml" || fileExt == ".yml" {
+		if err := yaml.Unmarshal(data, &compListData); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("File extension '%s' is not supported for component list files", fileExt)
 	}
-	return compListData.process(), nil
-}
 
-//NewComponentListFromJSON creates a component list object from JSON data
-func NewComponentListFromJSON(data []byte) (*ComponentList, error) {
-	var compListData *ComponentListData
-	if err := json.Unmarshal(data, &compListData); err != nil {
-		return nil, err
-	}
 	return compListData.process(), nil
 }

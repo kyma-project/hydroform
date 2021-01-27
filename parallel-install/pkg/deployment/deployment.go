@@ -47,7 +47,7 @@ func NewDeployment(cfg config.Config, overrides Overrides, kubeClient kubernetes
 		return nil, err
 	}
 
-	clList, err := components.NewComponentListFromFile(cfg.ComponentsListFile)
+	clList, err := components.NewComponentList(cfg.ComponentsListFile)
 	if err != nil {
 		return nil, err
 	}
