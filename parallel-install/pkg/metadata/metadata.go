@@ -16,7 +16,7 @@ const (
 	//UninstallationError means error occurred during kyma uninstallation
 	UninstallationError StatusEnum = "UninstallationError"
 
-	//Deployed means kyma deployed successfuly
+	//Deployed means kyma deployed successfully
 	Deployed StatusEnum = "Deployed"
 )
 
