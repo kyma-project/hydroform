@@ -133,7 +133,8 @@ func (i *Deployment) StartKymaUninstallation() error {
 		return err
 	}
 
-	if err := i.metadataProvider.DeleteKymaMetadata(); err != nil {
+	err = i.metadataProvider.DeleteKymaMetadata()
+	if err != nil {
 		return err
 	}
 
