@@ -23,6 +23,7 @@ type MetadataProvider interface {
 	WriteKymaDeployed(attr *Attributes) error
 	WriteKymaUninstallationInProgress(attr *Attributes) error
 	WriteKymaUninstallationError(attr *Attributes, reason string) error
+	DeleteKymaMetadata() error
 }
 
 type Provider struct {
@@ -100,6 +101,12 @@ func (p *Provider) WriteKymaDeployed(attr *Attributes) error {
 	return retryOperation(func() error {
 		return p.writeKymaMetadata(meta)
 	})
+}
+
+//DeleteKymaMetadata removes Kyma metadata from the cluster
+func (p *Provider) DeleteKymaMetadata() error {
+	err := p.kubeClient.CoreV1().ConfigMaps(metadataNamespace).Delete(context.TODO(), metadataName, metav1.DeleteOptions{})
+	return err
 }
 
 func (p *Provider) writeKymaMetadata(data *KymaMetadata) error {
