@@ -8,12 +8,12 @@ import (
 
 func TestGetComponentList(t *testing.T) {
 	t.Run("From YAML", func(t *testing.T) {
-		clList, err := NewComponentListFromFile("../test/data/componentlist.yaml")
+		clList, err := NewComponentList("../test/data/componentlist.yaml")
 		require.NoError(t, err)
 		verifyComponentList(t, clList)
 	})
 	t.Run("From JSON", func(t *testing.T) {
-		clList, err := NewComponentListFromFile("../test/data/componentlist.json")
+		clList, err := NewComponentList("../test/data/componentlist.json")
 		require.NoError(t, err)
 		verifyComponentList(t, clList)
 	})
