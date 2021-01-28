@@ -537,7 +537,7 @@ func (i *Deployment) deleteKymaNamespaces(namespaces []string) error {
 	finishedCh := make(chan bool)
 	errorCh := make(chan error)
 
-	// start deletion in seprate goroutines
+	// start deletion in goroutines
 	for _, namespace := range namespaces {
 		go func(ns string) {
 			defer wg.Done()
