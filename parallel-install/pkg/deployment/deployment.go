@@ -541,7 +541,22 @@ func (i *Deployment) deleteKymaNamespaces(namespaces []string) error {
 	for _, namespace := range namespaces {
 		go func(ns string) {
 			defer wg.Done()
-			errorCh <- i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{})
+			//remove namespace
+			if err := i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{}); err != nil {
+				errorCh <- err
+			}
+			//HACK: drop kyma-system finalizers -> TBD: remove this hack after issue is fixed (https://github.com/kyma-project/kyma/issues/10470)
+			if ns == "kyma-system" {
+				_, err := i.kubeClient.CoreV1().Namespaces().Finalize(context.Background(), &v1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       ns,
+						Finalizers: []string{},
+					},
+				}, metav1.UpdateOptions{})
+				if err != nil {
+					errorCh <- err
+				}
+			}
 		}(namespace)
 	}
 
