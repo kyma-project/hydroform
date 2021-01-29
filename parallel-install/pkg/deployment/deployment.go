@@ -21,7 +21,8 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
 )
 
-var kymaNamespaces = []string{"kyma-system"}
+//TODO: has to be taken from component list! See https://github.com/kyma-incubator/hydroform/issues/181
+var kymaNamespaces = []string{"kyma-system", "kyma-integration", "istio-system", "knative-eventing", "natss"}
 
 type Deployment struct {
 	// Contains list of components to install (inclusive pre-requisites)
