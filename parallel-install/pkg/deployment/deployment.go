@@ -570,17 +570,18 @@ func (i *Deployment) deleteKymaNamespaces(namespaces []string) error {
 
 	// process deletion results
 	var errWrapped error
-	select {
-	case <-finishedCh:
-	case err := <-errorCh:
-		if err != nil {
-			if errWrapped == nil {
-				errWrapped = err
-			} else {
-				errWrapped = errors.Wrap(err, errWrapped.Error())
+	for {
+		select {
+		case <-finishedCh:
+			return errWrapped
+		case err := <-errorCh:
+			if err != nil {
+				if errWrapped == nil {
+					errWrapped = err
+				} else {
+					errWrapped = errors.Wrap(err, errWrapped.Error())
+				}
 			}
 		}
 	}
-
-	return errWrapped
 }
