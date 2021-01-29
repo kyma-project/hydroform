@@ -6,12 +6,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_CLGetComponents(t *testing.T) {
-	clList, err := NewComponentList("../test/data/componentslist.yaml")
-	require.NoError(t, err)
+func TestGetComponentList(t *testing.T) {
+	t.Run("From YAML", func(t *testing.T) {
+		clList, err := NewComponentList("../test/data/componentlist.yaml")
+		require.NoError(t, err)
+		verifyComponentList(t, clList)
+	})
+	t.Run("From JSON", func(t *testing.T) {
+		clList, err := NewComponentList("../test/data/componentlist.json")
+		require.NoError(t, err)
+		verifyComponentList(t, clList)
+	})
+}
 
-	prereqs := clList.GetPrerequisites()
-	comps := clList.GetComponents()
+func verifyComponentList(t *testing.T, clList *ComponentList) {
+	prereqs := clList.Prerequisites
+	comps := clList.Components
 	// verify amount of components
 
 	require.Equal(t, 2, len(prereqs), "Different amount of prerequisite components")
