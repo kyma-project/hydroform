@@ -574,7 +574,11 @@ func (i *Deployment) deleteKymaNamespaces(namespaces []string) error {
 	case <-finishedCh:
 	case err := <-errorCh:
 		if err != nil {
-			errWrapped = errors.Wrap(err, errWrapped.Error())
+			if errWrapped == nil {
+				errWrapped = err
+			} else {
+				errWrapped = errors.Wrap(err, errWrapped.Error())
+			}
 		}
 	}
 
