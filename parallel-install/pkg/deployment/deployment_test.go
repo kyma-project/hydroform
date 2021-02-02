@@ -240,7 +240,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 func TestDeployment_StartKymaUninstallation(t *testing.T) {
 
 	kubeClient := fake.NewSimpleClientset()
-	i := newDeployment(nil, kubeClient)
+	i := newDeletion(nil, kubeClient)
 
 	t.Run("should uninstall Kyma", func(t *testing.T) {
 		hc := &mockHelmClient{}
@@ -355,7 +355,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 		t.Run("due to quit timeout", func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset()
 
-			inst := newDeployment(nil, kubeClient)
+			inst := newDeletion(nil, kubeClient)
 
 			// Changing it to higher amounts to minimize difference between cancel and quit timeout
 			// and give program enough time to process
@@ -409,16 +409,33 @@ func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name s
 }
 
 // Pass optionally an receiver-channel to get progress updates
-func newDeployment(procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) Deployment {
-	return Deployment{
-		processUpdates: procUpdates,
-		cfg: config.Config{
-			CancelTimeout: cancelTimeout,
-			QuitTimeout:   quitTimeout,
-			Log:           log.Printf,
-		},
-		kubeClient: kubeClient,
+func newDeployment(procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) *Deployment {
+	config := config.Config{
+		CancelTimeout:      cancelTimeout,
+		QuitTimeout:        quitTimeout,
+		Log:                log.Printf,
+		ComponentsListFile: "../test/data/componentlist.yaml",
 	}
+	core, err := newCore(config, Overrides{}, kubeClient, procUpdates)
+	if err != nil {
+		panic(err)
+	}
+	return &Deployment{core}
+}
+
+// Pass optionally an receiver-channel to get progress updates
+func newDeletion(procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) *Deletion {
+	config := config.Config{
+		CancelTimeout:      cancelTimeout,
+		QuitTimeout:        quitTimeout,
+		Log:                log.Printf,
+		ComponentsListFile: "../test/data/componentlist.yaml",
+	}
+	core, err := newCore(config, Overrides{}, kubeClient, procUpdates)
+	if err != nil {
+		panic(err)
+	}
+	return &Deletion{core}
 }
 
 type mockProvider struct {

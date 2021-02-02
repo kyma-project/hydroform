@@ -41,12 +41,20 @@ type Config struct {
 	Version string
 }
 
-// Validate the given configuration options
-func (c *Config) Validate() error {
+// ValidateDeletion verifies that deletion specific options are provided
+func (c *Config) ValidateDeletion() error {
 	if c.WorkersCount <= 0 {
 		return fmt.Errorf("Workers count cannot be <= 0")
 	}
 	if err := c.pathExists(c.ComponentsListFile, "Components list"); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ValidateDeployment verifies that deployment specific options are provided
+func (c *Config) ValidateDeployment() error {
+	if err := c.ValidateDeletion(); err != nil { //deployment requires all core options
 		return err
 	}
 	if err := c.pathExists(c.ResourcePath, "Resource path"); err != nil {
