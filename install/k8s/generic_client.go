@@ -3,6 +3,8 @@ package k8s
 import (
 	"context"
 	"fmt"
+	. "github.com/kyma-incubator/hydroform/install/merger"
+	"github.com/kyma-incubator/hydroform/install/merger/types"
 
 	"github.com/kyma-incubator/hydroform/install/util"
 
@@ -12,14 +14,14 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	corev1 "k8s.io/api/core/v1"
+	. "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	corev1Client "k8s.io/client-go/kubernetes/typed/core/v1"
+	. "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 //go:generate mockery -name=RESTMapper
@@ -40,10 +42,10 @@ type GenericClient struct {
 	restMapper    RESTMapper
 	k8sClientSet  kubernetes.Interface
 	dynamicClient dynamic.Interface
-	coreClient    corev1Client.CoreV1Interface
+	coreClient    CoreV1Interface
 }
 
-func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desiredPhase corev1.PodPhase, timeout, checkInterval time.Duration) error {
+func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desiredPhase PodPhase, timeout, checkInterval time.Duration) error {
 	return util.WaitFor(checkInterval, timeout, func() (bool, error) {
 		pods, err := c.coreClient.Pods(namespace).List(context.Background(), v1.ListOptions{LabelSelector: labelSelector})
 		if err != nil {
@@ -68,7 +70,7 @@ func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desire
 	})
 }
 
-func (c GenericClient) ApplyConfigMaps(configMaps []*corev1.ConfigMap, namespace string) error {
+func (c GenericClient) ApplyConfigMaps(configMaps []*ConfigMap, namespace string) error {
 	client := c.coreClient.ConfigMaps(namespace)
 
 	for _, cm := range configMaps {
@@ -87,25 +89,14 @@ func (c GenericClient) ApplyConfigMaps(configMaps []*corev1.ConfigMap, namespace
 	return nil
 }
 
-func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) error {
-	oldCM, err := client.Get(context.Background(), cm.Name, v1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	mergedData := MergeStringMaps(oldCM.Data, cm.Data)
-
-	cm.Data = mergedData
-
-	_, err = client.Update(context.Background(), cm, v1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (c GenericClient) updateConfigMap(client ConfigMapInterface, cm *ConfigMap) error {
+	return Update(types.ConfigMapOverride{
+		NewItem: cm,
+		Client:  client,
+	})
 }
 
-func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) error {
+func (c GenericClient) ApplySecrets(secrets []*Secret, namespace string) error {
 	client := c.coreClient.Secrets(namespace)
 
 	for _, sec := range secrets {
@@ -125,22 +116,11 @@ func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) 
 	return nil
 }
 
-func (c GenericClient) updateSecret(client corev1Client.SecretInterface, secret *corev1.Secret) error {
-	oldSecret, err := client.Get(context.Background(), secret.Name, v1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	mergedData := MergeByteMaps(oldSecret.Data, secret.Data)
-
-	secret.Data = mergedData
-
-	_, err = client.Update(context.Background(), secret, v1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (c GenericClient) updateSecret(client SecretInterface, secret *Secret) error {
+	return Update(types.SecretOverride{
+		NewItem: secret,
+		Client:  client,
+	})
 }
 
 func (c GenericClient) CreateResources(resources []K8sObject) ([]*unstructured.Unstructured, error) {
@@ -208,7 +188,7 @@ func (c GenericClient) updateObject(client dynamic.ResourceInterface, unstructur
 		return nil, err
 	}
 
-	merged := MergeMaps(unstructuredObject.Object, get.Object)
+	merged := util.MergeMaps(unstructuredObject.Object, get.Object)
 
 	newObject := &unstructured.Unstructured{Object: merged}
 

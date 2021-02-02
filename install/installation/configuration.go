@@ -2,6 +2,7 @@ package installation
 
 import (
 	"fmt"
+	. "github.com/kyma-incubator/hydroform/install/merger"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +20,8 @@ type ComponentConfiguration struct {
 	Component string
 	// Configuration specifies configuration for the component
 	Configuration ConfigEntries
+	// DuplicateResolution specifies system behaviour when config is already defined
+	OnConflict string
 }
 
 type ConfigEntry struct {
@@ -62,6 +65,10 @@ func configurationToK8sResources(configuration Configuration) ([]*corev1.ConfigM
 
 	for _, configs := range configuration.ComponentConfiguration {
 		configMap, secret := k8sResourcesFromConfiguration(configs.Component, configs.Component, configs.Configuration)
+
+		configMap.ObjectMeta.Labels[OnConflictLabel] = configs.OnConflict
+		secret.ObjectMeta.Labels[OnConflictLabel] = configs.OnConflict
+
 		configMaps = append(configMaps, configMap)
 		secrets = append(secrets, secret)
 	}

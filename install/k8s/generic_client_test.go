@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"github.com/kyma-incubator/hydroform/install/util"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"strings"
 	"testing"
@@ -331,7 +332,7 @@ func TestGenericClient_ApplyResources(t *testing.T) {
 		newResource, err := runtime.DefaultUnstructuredConverter.ToUnstructured(resourcesToApply[0].Object)
 		require.NoError(t, err)
 
-		expectedObj := MergeMaps(newResource, oldResource)
+		expectedObj := util.MergeMaps(newResource, oldResource)
 
 		//when
 		appliedResources, err := client.ApplyResources(resourcesToApply)
