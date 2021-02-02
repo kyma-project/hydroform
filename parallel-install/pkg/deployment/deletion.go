@@ -22,6 +22,7 @@ import (
 //TODO: has to be taken from component list! See https://github.com/kyma-incubator/hydroform/issues/181
 var kymaNamespaces = []string{"kyma-system", "kyma-integration", "istio-system", "knative-eventing", "natss"}
 
+//Deletion removed Kyma from a cluster
 type Deletion struct {
 	*core
 }

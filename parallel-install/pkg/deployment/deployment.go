@@ -19,6 +19,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
 )
 
+//Deployment deploys Kyma on a cluster
 type Deployment struct {
 	*core
 }
