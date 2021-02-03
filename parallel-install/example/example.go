@@ -104,7 +104,7 @@ func main() {
 	//Delete Kyma
 	deleter, err := deployment.NewDeletion(installationCfg, overrides, kubeClient, progressCh)
 	if err != nil {
-		log.Fatalf("Failed to create installer: %v", err)
+		log.Fatalf("Failed to create deleter: %v", err)
 	}
 	err = deleter.StartKymaUninstallation()
 	if err != nil {
