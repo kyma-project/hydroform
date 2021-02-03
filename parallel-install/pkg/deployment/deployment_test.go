@@ -50,7 +50,7 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 
 	kubeClient := fake.NewSimpleClientset()
 
-	inst := newDeployment(procUpdChan, kubeClient)
+	inst := newDeployment(t, procUpdChan, kubeClient)
 
 	hc := &mockHelmClient{}
 	provider := &mockProvider{
@@ -82,7 +82,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 	t.Parallel()
 
 	kubeClient := fake.NewSimpleClientset()
-	i := newDeployment(nil, kubeClient)
+	i := newDeployment(t, nil, kubeClient)
 
 	t.Run("should deploy Kyma", func(t *testing.T) {
 		hc := &mockHelmClient{}
@@ -195,7 +195,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			assert.Less(t, elapsed.Milliseconds(), int64(190))
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
-			inst := newDeployment(nil, kubeClient)
+			inst := newDeployment(t, nil, kubeClient)
 
 			// Changing it to higher amounts to minimize difference between cancel and quit timeout
 			// and give program enough time to process
@@ -233,7 +233,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 }
 
 // Pass optionally an receiver-channel to get progress updates
-func newDeployment(procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) *Deployment {
+func newDeployment(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) *Deployment {
 	config := config.Config{
 		CancelTimeout:      cancelTimeout,
 		QuitTimeout:        quitTimeout,
@@ -242,7 +242,7 @@ func newDeployment(procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Inter
 	}
 	core, err := newCore(config, Overrides{}, kubeClient, procUpdates)
 	if err != nil {
-		panic(err)
+		assert.NoError(t, err)
 	}
 	return &Deployment{core}
 }
