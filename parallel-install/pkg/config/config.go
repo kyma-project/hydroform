@@ -41,8 +41,8 @@ type Config struct {
 	Version string
 }
 
-// ValidateDeletion verifies that deletion specific options are provided
-func (c *Config) ValidateDeletion() error {
+// validate verifies that mandatory options are provided
+func (c *Config) validate() error {
 	if c.WorkersCount <= 0 {
 		return fmt.Errorf("Workers count cannot be <= 0")
 	}
@@ -52,9 +52,17 @@ func (c *Config) ValidateDeletion() error {
 	return nil
 }
 
+// ValidateDeletion verifies that deletion specific options are provided
+func (c *Config) ValidateDeletion() error {
+	if err := c.validate(); err != nil { //deployment requires all core options
+		return err
+	}
+	return nil
+}
+
 // ValidateDeployment verifies that deployment specific options are provided
 func (c *Config) ValidateDeployment() error {
-	if err := c.ValidateDeletion(); err != nil { //deployment requires all core options
+	if err := c.validate(); err != nil { //deployment requires all core options
 		return err
 	}
 	if err := c.pathExists(c.ResourcePath, "Resource path"); err != nil {

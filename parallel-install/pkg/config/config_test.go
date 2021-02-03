@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_ConfigValidation(t *testing.T) {
+func Test_ValidateDeletion(t *testing.T) {
 	var config Config
 	var err error
 
@@ -30,6 +30,11 @@ func Test_ConfigValidation(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
 	})
+}
+
+func Test_ValidateDeployment(t *testing.T) {
+	var config Config
+	var err error
 
 	t.Run("Resource path not found", func(t *testing.T) {
 		_, fpath, _, ok := runtime.Caller(0)
