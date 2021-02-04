@@ -140,7 +140,7 @@ func isK3dCluster(kubeClient kubernetes.Interface) bool {
 		return false
 	}
 	for _, node := range nodeList.Items {
-		if strings.HasPrefix("k3d-", node.GetName()) {
+		if strings.HasPrefix(node.GetName(), "k3d-") {
 			return true
 		}
 	}
