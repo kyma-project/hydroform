@@ -81,3 +81,17 @@ func NewComponentList(componentsListPath string) (*ComponentList, error) {
 
 	return compListData.process(), nil
 }
+
+//Remove drops any component defintion with this particular name (independent whether it is listed as prequisite or component)
+func (cl *ComponentList) Remove(compName string) {
+	for idx, comp := range cl.Prerequisites {
+		if comp.Name == compName {
+			cl.Prerequisites = append(cl.Prerequisites[:idx], cl.Prerequisites[idx+1:]...)
+		}
+	}
+	for idx, comp := range cl.Components {
+		if comp.Name == compName {
+			cl.Components = append(cl.Components[:idx], cl.Components[idx+1:]...)
+		}
+	}
+}

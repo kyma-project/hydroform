@@ -8,9 +8,11 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 )
 
+//these constants are used in Deletion and Deployment tests
 const cancelTimeout = 150 * time.Millisecond
 const quitTimeout = 250 * time.Millisecond
 
+//mockHelmClient is used in test-cases of core extending objects, like Deletion an Deployment tests
 type mockHelmClient struct {
 	componentProcessingTime int
 }
@@ -26,6 +28,7 @@ func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name s
 	return nil
 }
 
+//mockProvider is used in test-cases of core extending objects, like Deletion an Deployment tests
 type mockProvider struct {
 	hc *mockHelmClient
 }
@@ -56,6 +59,7 @@ func (p *mockProvider) GetComponents() ([]components.KymaComponent, error) {
 	}, nil
 }
 
+//mockOverridesProvider is used in test-cases of core extending objects, like Deletion an Deployment tests
 type mockOverridesProvider struct{}
 
 func (o *mockOverridesProvider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {

@@ -2,10 +2,13 @@
 package deployment
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -13,6 +16,9 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 )
+
+//these components will be removed from component list if running on a local cluster
+var incompatibleLocalComponents = []string{"apiserver-proxy", "iam-kubeconfig-service"}
 
 type core struct {
 	// Contains list of components to install (inclusive pre-requisites)
@@ -38,6 +44,11 @@ func newCore(cfg config.Config, overrides Overrides, kubeClient kubernetes.Inter
 	clList, err := components.NewComponentList(cfg.ComponentsListFile)
 	if err != nil {
 		return nil, err
+	}
+
+	if isK3dCluster(kubeClient) {
+		cfg.Log("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
+		removeFromComponentList(clList, incompatibleLocalComponents)
 	}
 
 	metadataProvider := metadata.New(kubeClient)
@@ -120,5 +131,24 @@ func (i *core) processUpdateComponent(phase InstallationPhase, comp components.K
 		Event:     event,
 		Phase:     phase,
 		Component: comp,
+	}
+}
+
+func isK3dCluster(kubeClient kubernetes.Interface) bool {
+	nodeList, err := kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return false
+	}
+	for _, node := range nodeList.Items {
+		if strings.HasPrefix("k3d-", node.GetName()) {
+			return true
+		}
+	}
+	return false
+}
+
+func removeFromComponentList(cl *components.ComponentList, componentNames []string) {
+	for _, compName := range componentNames {
+		cl.Remove(compName)
 	}
 }
