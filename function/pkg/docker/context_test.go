@@ -25,7 +25,7 @@ func TestInline(t *testing.T) {
 
 	t.Run("should create new context and end without error", func(t *testing.T) {
 		counter := 0
-		got, err := Inline(ContextOpts{
+		got, err := InlineContext(ContextOpts{
 			DirPrefix:  "test-context-",
 			Dockerfile: "test-dockerfile",
 			SrcDir:     path,
@@ -46,7 +46,7 @@ func TestInline(t *testing.T) {
 
 	t.Run("should return error while creating new tmp dir", func(t *testing.T) {
 		counter := 0
-		got, err := Inline(ContextOpts{
+		got, err := InlineContext(ContextOpts{
 			DirPrefix:  "test-context/-",
 			Dockerfile: "test-dockerfile",
 			SrcDir:     path,
@@ -66,7 +66,7 @@ func TestInline(t *testing.T) {
 
 	t.Run("should return error while creating new src dir", func(t *testing.T) {
 		counter := 0
-		got, err := Inline(ContextOpts{
+		got, err := InlineContext(ContextOpts{
 			DirPrefix:  "test-context-",
 			Dockerfile: "test-dockerfile",
 			SrcDir:     path,
@@ -85,7 +85,7 @@ func TestInline(t *testing.T) {
 
 	t.Run("should return error while creating file in context", func(t *testing.T) {
 		counter := 0
-		got, err := Inline(ContextOpts{
+		got, err := InlineContext(ContextOpts{
 			DirPrefix:  "test-context-",
 			Dockerfile: "test-dockerfile",
 			SrcDir:     path,
@@ -108,7 +108,7 @@ func TestInline(t *testing.T) {
 		require.NoError(t, err)
 		defer f4.Close()
 		counter := 0
-		got, err := Inline(ContextOpts{
+		got, err := InlineContext(ContextOpts{
 			DirPrefix:  "test-context-",
 			Dockerfile: "test-dockerfile",
 			SrcDir:     path,
@@ -129,7 +129,7 @@ func TestInline(t *testing.T) {
 
 	t.Run("should return error while creating dockerfile", func(t *testing.T) {
 		counter := 0
-		got, err := Inline(ContextOpts{
+		got, err := InlineContext(ContextOpts{
 			DirPrefix:  "test-context-",
 			Dockerfile: "test-dockerfile",
 			SrcDir:     path,

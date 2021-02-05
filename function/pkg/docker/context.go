@@ -21,7 +21,7 @@ const (
 	dockerfileFilename = "Dockerfile"
 )
 
-func Inline(args ContextOpts, logf func(string, ...interface{})) (string, error) {
+func InlineContext(args ContextOpts, logf func(string, ...interface{})) (string, error) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), fmt.Sprintf(tmpDirFormat, args.DirPrefix))
 	if err != nil {
 		return tmpDir, err
