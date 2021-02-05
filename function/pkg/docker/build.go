@@ -31,7 +31,7 @@ func BuildImage(ctx context.Context, c ImageClient, opts BuildOpts) (*types.Imag
 	defer reader.Close()
 
 	response, err := c.ImageBuild(ctx, reader, types.ImageBuildOptions{
-		Tags:           opts.Tags,
+		Tags: opts.Tags,
 	})
 	if err != nil {
 		return nil, err
@@ -72,4 +72,3 @@ func FollowBuild(readCloser io.Reader, log func(...interface{})) error {
 	}
 	return nil
 }
-
