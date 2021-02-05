@@ -1,6 +1,6 @@
 package runtimes
 
-const Node12Dockerfile = `FROM eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f
+const Nodejs12Dockerfile = `FROM eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f
 USER root
 ENV KUBELESS_INSTALL_VOLUME=/kubeless
 

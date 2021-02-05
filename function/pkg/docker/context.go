@@ -3,10 +3,9 @@ package docker
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/docker/docker/pkg/ioutils"
 )
 
 type ContextOpts struct {
@@ -22,8 +21,8 @@ const (
 	dockerfileFilename = "Dockerfile"
 )
 
-func InlineContext(args ContextOpts, logf func(string, ...interface{})) (string, error) {
-	tmpDir, err := ioutils.TempDir(os.TempDir(), fmt.Sprintf(tmpDirFormat, args.DirPrefix))
+func Inline(args ContextOpts, logf func(string, ...interface{})) (string, error) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), fmt.Sprintf(tmpDirFormat, args.DirPrefix))
 	if err != nil {
 		return tmpDir, err
 	}
@@ -54,7 +53,7 @@ func InlineContext(args ContextOpts, logf func(string, ...interface{})) (string,
 
 	_, err = file.Write([]byte(args.Dockerfile))
 
-	return tmpDir, nil
+	return tmpDir, err
 }
 
 func copyFile(from, to string) error {
@@ -62,19 +61,15 @@ func copyFile(from, to string) error {
 	if err != nil {
 		return err
 	}
-
 	defer out.Close()
 
 	in, err := os.Open(from)
-	defer in.Close()
 	if err != nil {
 		return err
 	}
+	defer in.Close()
 
 	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }

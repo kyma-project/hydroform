@@ -3,12 +3,25 @@ package docker
 import (
 	"context"
 	"fmt"
+	"io"
+	"time"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
-	"io"
+	"github.com/opencontainers/runc/Godeps/_workspace/src/github.com/opencontainers/runtime-spec/specs-go"
 )
+
+//go:generate mockgen -source=run.go -destination=automock/run.go
+
+type ContainerClient interface {
+	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig,
+		networkingConfig *network.NetworkingConfig, platform *specs.Platform, containerName string) (container.ContainerCreateCreatedBody, error)
+	ContainerStart(ctx context.Context, containerID string, options types.ContainerStartOptions) error
+	ContainerAttach(ctx context.Context, container string, options types.ContainerAttachOptions) (types.HijackedResponse, error)
+	ContainerStop(ctx context.Context, containerID string, timeout *time.Duration) error
+}
 
 type RunOpts struct {
 	Ports         map[string]string
@@ -17,7 +30,7 @@ type RunOpts struct {
 	ImageName     string
 }
 
-func RunContainer(c *client.Client, ctx context.Context, opts RunOpts) (string, error) {
+func RunContainer(ctx context.Context, c ContainerClient, opts RunOpts) (string, error) {
 	body, err := c.ContainerCreate(ctx, &container.Config{
 		Env:          opts.Envs,
 		ExposedPorts: portSet(opts.Ports),
@@ -39,7 +52,7 @@ func RunContainer(c *client.Client, ctx context.Context, opts RunOpts) (string, 
 	return body.ID, nil
 }
 
-func FollowRun(c *client.Client, ctx context.Context, ID string, log func(...interface{})) error {
+func FollowRun(ctx context.Context, c ContainerClient, ID string, log func(...interface{})) error {
 	buf, err := c.ContainerAttach(ctx, ID, types.ContainerAttachOptions{
 		Stdout: true,
 		Stderr: true,
@@ -57,6 +70,7 @@ func FollowRun(c *client.Client, ctx context.Context, ID string, log func(...int
 		}
 		if e != nil {
 			err = e
+			break
 		}
 
 		log(string(line))
@@ -65,7 +79,7 @@ func FollowRun(c *client.Client, ctx context.Context, ID string, log func(...int
 	return err
 }
 
-func Stop(c *client.Client, ctx context.Context, ID string, log func(...interface{})) func() {
+func Stop(ctx context.Context, c ContainerClient, ID string, log func(...interface{})) func() {
 	return func() {
 		log("\r- Ctrl+C pressed in Terminal\n", fmt.Sprintf("Removing container %s...\n", ID))
 		c.ContainerStop(ctx, ID, nil)

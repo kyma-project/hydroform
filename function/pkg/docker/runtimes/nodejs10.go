@@ -1,6 +1,6 @@
 package runtimes
 
-const Node10Dockerfile = `FROM eu.gcr.io/kyma-project/function-runtime-nodejs10:cc7dd53f
+const Nodejs10Dockerfile = `FROM eu.gcr.io/kyma-project/function-runtime-nodejs10:cc7dd53f
 USER root
 ENV KUBELESS_INSTALL_VOLUME=/kubeless
 

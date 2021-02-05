@@ -9,18 +9,22 @@ import (
 	"gopkg.in/square/go-jose.v2/json"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 )
+
+//go:generate mockgen -source=build.go -destination=automock/build.go
+
+type ImageClient interface {
+	ImageBuild(ctx context.Context, buildContext io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error)
+}
 
 type BuildOpts struct {
 	Context string
 	Tags    []string
 }
 
-func BuildImage(c *client.Client, ctx context.Context, opts BuildOpts) (*types.ImageBuildResponse, error) {
-	tar := &archive.TarOptions{}
-	reader, err := archive.TarWithOptions(opts.Context, tar)
+func BuildImage(ctx context.Context, c ImageClient, opts BuildOpts) (*types.ImageBuildResponse, error) {
+	reader, err := archive.TarWithOptions(opts.Context, &archive.TarOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +50,7 @@ type ResultEntry struct {
 	Error       string      `json:"error,omitempty"`
 }
 
-func FollowBuild(readCloser io.ReadCloser, log func(...interface{})) error {
+func FollowBuild(readCloser io.Reader, log func(...interface{})) error {
 	buf := bufio.NewReader(readCloser)
 	for {
 		line, err := buf.ReadBytes('\n')
@@ -61,7 +65,7 @@ func FollowBuild(readCloser io.ReadCloser, log func(...interface{})) error {
 			return err
 		}
 		if entryResult.Error != "" {
-			err := errors.Errorf("image build failed", entryResult.Error)
+			err := errors.Errorf("image build failed: %s", entryResult.ErrorDetail.Message)
 			return err
 		}
 		log(entryResult.Stream)

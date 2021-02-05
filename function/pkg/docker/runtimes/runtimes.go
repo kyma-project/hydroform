@@ -6,28 +6,28 @@ import (
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 )
 
+const ServerPort = "8080"
+
 func Dockerfile(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
-		return Node12Dockerfile
+		return Nodejs12Dockerfile
 	case types.Nodejs10:
-		return Node10Dockerfile
+		return Nodejs10Dockerfile
 	case types.Python38:
 		return Python38Dockerfile
 	default:
-		return Node12Dockerfile
+		return Nodejs12Dockerfile
 	}
 }
 
 func ContainerEnvs(runtime types.Runtime, debug bool) []string {
-	envs := []string{
+	return append([]string{
 		fmt.Sprintf("FUNC_RUNTIME=%s", runtime),
 		"FUNC_HANDLER=main",
 		"MOD_NAME=handler",
 		"FUNC_PORT=8080",
-	}
-
-	return append(envs, runtimeEnvs(runtime, debug)...)
+	}, runtimeEnvs(runtime, debug)...)
 }
 
 func runtimeEnvs(runtime types.Runtime, debug bool) []string {
@@ -46,9 +46,8 @@ func runtimeEnvs(runtime types.Runtime, debug bool) []string {
 		return envs
 	case types.Python38:
 		envs := []string{Python38Path}
-		if debug {
-			// TODO
-		}
+		// TODO
+		//if debug { }
 		return envs
 	default:
 		envs := []string{Nodejs12Path}
@@ -59,18 +58,7 @@ func runtimeEnvs(runtime types.Runtime, debug bool) []string {
 	}
 }
 
-func ContainerPorts(runtime types.Runtime, exposedPort string, debug bool) map[string]string {
-	ports := map[string]string{
-		"8080": exposedPort,
-	}
-	if debug {
-		port := runtimeDebugPort(runtime)
-		ports[port] = port
-	}
-	return ports
-}
-
-func runtimeDebugPort(runtime types.Runtime) string {
+func RuntimeDebugPort(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
 		return Nodejs12DebugEndpoint
