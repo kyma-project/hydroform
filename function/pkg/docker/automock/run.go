@@ -10,7 +10,7 @@ import (
 	container "github.com/docker/docker/api/types/container"
 	network "github.com/docker/docker/api/types/network"
 	gomock "github.com/golang/mock/gomock"
-	specs "github.com/opencontainers/runc/Godeps/_workspace/src/github.com/opencontainers/runtime-spec/specs-go"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	reflect "reflect"
 	time "time"
 )
@@ -39,7 +39,7 @@ func (m *MockContainerClient) EXPECT() *MockContainerClientMockRecorder {
 }
 
 // ContainerCreate mocks base method
-func (m *MockContainerClient) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *specs.Platform, containerName string) (container.ContainerCreateCreatedBody, error) {
+func (m *MockContainerClient) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *v1.Platform, containerName string) (container.ContainerCreateCreatedBody, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerCreate", ctx, config, hostConfig, networkingConfig, platform, containerName)
 	ret0, _ := ret[0].(container.ContainerCreateCreatedBody)

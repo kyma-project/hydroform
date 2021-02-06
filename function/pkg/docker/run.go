@@ -10,7 +10,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
-	"github.com/opencontainers/runc/Godeps/_workspace/src/github.com/opencontainers/runtime-spec/specs-go"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 //go:generate mockgen -source=run.go -destination=automock/run.go
