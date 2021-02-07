@@ -13,6 +13,8 @@ type Configuration struct {
 	Configuration ConfigEntries
 	// ComponentConfiguration specifies configuration for individual components
 	ComponentConfiguration []ComponentConfiguration
+	// OnConflict specifies system behaviour when global config is already defined
+	OnConflict string
 }
 
 type ComponentConfiguration struct {
@@ -20,7 +22,7 @@ type ComponentConfiguration struct {
 	Component string
 	// Configuration specifies configuration for the component
 	Configuration ConfigEntries
-	// DuplicateResolution specifies system behaviour when config is already defined
+	// OnConflict specifies system behaviour when config is already defined
 	OnConflict string
 }
 
@@ -60,6 +62,10 @@ func configurationToK8sResources(configuration Configuration) ([]*corev1.ConfigM
 	secrets := make([]*corev1.Secret, 0, len(configuration.ComponentConfiguration)+1)
 
 	configMap, secret := k8sResourcesFromConfiguration("global", "", configuration.Configuration)
+
+	configMap.ObjectMeta.Labels[OnConflictLabel] = configuration.OnConflict
+	secret.ObjectMeta.Labels[OnConflictLabel] = configuration.OnConflict
+
 	configMaps = append(configMaps, configMap)
 	secrets = append(secrets, secret)
 

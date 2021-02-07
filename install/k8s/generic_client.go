@@ -90,7 +90,7 @@ func (c GenericClient) ApplyConfigMaps(configMaps []*ConfigMap, namespace string
 }
 
 func (c GenericClient) updateConfigMap(client ConfigMapInterface, cm *ConfigMap) error {
-	return Update(types.ConfigMapOverride{
+	return Update(&types.ConfigMapOverride{
 		NewItem: cm,
 		Client:  client,
 	})
@@ -117,7 +117,7 @@ func (c GenericClient) ApplySecrets(secrets []*Secret, namespace string) error {
 }
 
 func (c GenericClient) updateSecret(client SecretInterface, secret *Secret) error {
-	return Update(types.SecretOverride{
+	return Update(&types.SecretOverride{
 		NewItem: secret,
 		Client:  client,
 	})

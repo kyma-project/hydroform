@@ -1,28 +1,25 @@
 package merger
 
 const (
-	OnConflictLabel   = "on-conflict"
-	ReplaceOnConflict = "replace"
+	OnConflictLabel   string = "on-conflict"
+	ReplaceOnConflict string = "replace"
 )
 
 type Data interface {
-	Name() string
-	Labels() map[string]string
-
-	LoadOld() (Data, error)
+	Labels() *map[string]string
 	Update() error
-	Merge(old Data) error
+	Merge() error
 }
 
-func Update(secret Data) error {
-	if !isReplaceOnConflict(secret.Labels()) {
-		err2 := merge(secret)
-		if err2 != nil {
-			return err2
+func Update(data Data) error {
+	if !isReplaceOnConflict(*data.Labels()) {
+		err := data.Merge()
+		if err != nil {
+			return err
 		}
 	}
 
-	err := secret.Update()
+	err := data.Update()
 	if err != nil {
 		return err
 	}
@@ -30,16 +27,7 @@ func Update(secret Data) error {
 	return nil
 }
 
-func merge(secret Data) error {
-	oldSecret, err := secret.LoadOld()
-	if err != nil {
-		return err
-	}
-
-	return secret.Merge(oldSecret)
-}
-
-func isReplaceOnConflict(cm map[string]string) bool {
-	val, ok := cm[OnConflictLabel]
+func isReplaceOnConflict(labels map[string]string) bool {
+	val, ok := labels[OnConflictLabel]
 	return ok && val == ReplaceOnConflict
 }
