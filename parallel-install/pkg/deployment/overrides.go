@@ -8,13 +8,12 @@ import (
 	"strings"
 
 	"github.com/imdario/mergo"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/interceptors"
 	"gopkg.in/yaml.v3"
 )
 
 var (
-	supportedFileExt           = []string{"yaml", "yml", "json"}
-	defaultOverrideInterceptor = &interceptors.DefaultOverrideInterceptor{}
+	supportedFileExt   = []string{"yaml", "yml", "json"}
+	defaultInterceptor = &defaultOverrideInterceptor{}
 )
 
 type interceptorOps string
@@ -26,8 +25,19 @@ const (
 
 // OverrideInterceptor is controlling access to override values
 type OverrideInterceptor interface {
-	String(value interface{}) string
-	Intercept(value interface{}) (interface{}, error)
+	String(o *Overrides, value interface{}) string
+	Intercept(o *Overrides, value interface{}) (interface{}, error)
+}
+
+type defaultOverrideInterceptor struct {
+}
+
+func (doi *defaultOverrideInterceptor) String(o *Overrides, value interface{}) string {
+	return fmt.Sprintf("%v", value)
+}
+
+func (doi *defaultOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
+	return value, nil
 }
 
 // Overrides manages override merges
@@ -129,13 +139,13 @@ func (o *Overrides) interceptValue(path string, value interface{}, ops intercept
 	var interceptor OverrideInterceptor
 	interceptor, exists := o.interceptors[path]
 	if !exists {
-		interceptor = defaultOverrideInterceptor
+		interceptor = defaultInterceptor
 	}
 	//apply interceptor
 	if ops == interceptorOpsString {
-		return interceptor.String(value), nil
+		return interceptor.String(o, value), nil
 	}
-	return interceptor.Intercept(value)
+	return interceptor.Intercept(o, value)
 }
 
 // AddFile adds overrides defined in a file

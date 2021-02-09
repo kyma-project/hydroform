@@ -75,11 +75,11 @@ func Test_AddOverrides(t *testing.T) {
 type replaceOverrideInterceptor struct {
 }
 
-func (roi *replaceOverrideInterceptor) String(value interface{}) string {
+func (roi *replaceOverrideInterceptor) String(o *Overrides, value interface{}) string {
 	return fmt.Sprintf("%v", value)
 }
 
-func (roi *replaceOverrideInterceptor) Intercept(value interface{}) (interface{}, error) {
+func (roi *replaceOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
 	return "intercepted", nil
 }
 
@@ -87,11 +87,11 @@ func (roi *replaceOverrideInterceptor) Intercept(value interface{}) (interface{}
 type failingOverrideInterceptor struct {
 }
 
-func (roi *failingOverrideInterceptor) String(value interface{}) string {
+func (roi *failingOverrideInterceptor) String(o *Overrides, value interface{}) string {
 	return fmt.Sprintf("%v", value)
 }
 
-func (roi *failingOverrideInterceptor) Intercept(value interface{}) (interface{}, error) {
+func (roi *failingOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("Interceptor failed")
 }
 
@@ -99,11 +99,11 @@ func (roi *failingOverrideInterceptor) Intercept(value interface{}) (interface{}
 type stringerOverrideInterceptor struct {
 }
 
-func (roi *stringerOverrideInterceptor) String(value interface{}) string {
+func (roi *stringerOverrideInterceptor) String(o *Overrides, value interface{}) string {
 	return fmt.Sprintf("string-%v", value)
 }
 
-func (roi *stringerOverrideInterceptor) Intercept(value interface{}) (interface{}, error) {
+func (roi *stringerOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("Interceptor failed")
 }
 
