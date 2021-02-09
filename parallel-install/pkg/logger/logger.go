@@ -4,6 +4,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Interface describes logger APi.
 type Interface interface {
 	// Info prints info message.
 	Info(args ...interface{})
