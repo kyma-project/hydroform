@@ -778,7 +778,7 @@ func TestCheckInstallationState(t *testing.T) {
 		}
 
 		//when
-		state, err := kymaInstaller.CheckInstallationState()
+		state, err := kymaInstaller.CheckInstallationState(nil)
 
 		//then
 		require.NoError(t, err)
@@ -805,7 +805,7 @@ func TestCheckInstallationState(t *testing.T) {
 		}
 
 		//when
-		_, err = kymaInstaller.CheckInstallationState()
+		_, err = kymaInstaller.CheckInstallationState(nil)
 
 		//then
 		require.Error(t, err)

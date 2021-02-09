@@ -317,7 +317,7 @@ func (k KymaInstaller) StartInstallation(context context.Context) (<-chan Instal
 	return stateChannel, errorChannel, nil
 }
 
-func (k KymaInstaller) CheckInstallationState() (InstallationState, error) {
+func (k KymaInstaller) CheckInstallationState(installationClient installationTyped.InstallationInterface) (InstallationState, error) {
 	return checkInstallationState(k.installationClient)
 }
 func (k KymaInstaller) TriggerUninstall() error {
