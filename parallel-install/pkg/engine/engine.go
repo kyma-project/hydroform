@@ -10,7 +10,6 @@ package engine
 import (
 	"context"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"go.uber.org/zap"
 	"sync"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -21,8 +20,8 @@ const logPrefix = "[engine/engine.go]"
 
 //Config defines configuration values for the Engine.
 type Config struct {
-	WorkersCount int //Number of parallel processes for install/uninstall operations
-	Verbose      bool
+	WorkersCount int              //Number of parallel processes for install/uninstall operations
+	Log          logger.Interface //Logger to be used
 }
 
 //Engine implements Installation interface
@@ -30,7 +29,6 @@ type Engine struct {
 	overridesProvider  overrides.OverridesProvider
 	componentsProvider components.Provider
 	cfg                Config
-	log                *zap.SugaredLogger
 }
 
 //NewEngine returns new Engine instance
@@ -39,7 +37,6 @@ func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider
 		overridesProvider:  overridesProvider,
 		componentsProvider: componentsProvider,
 		cfg:                cfg,
-		log:                logger.NewLogger(cfg.Verbose),
 	}
 }
 
@@ -86,7 +83,7 @@ func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, e
 
 		err = e.overridesProvider.ReadOverridesFromCluster()
 		if err != nil {
-			e.log.Errorf("%s error while reading overrides: %v", logPrefix, err)
+			e.cfg.Log.Errorf("%s error while reading overrides: %v", logPrefix, err)
 			return
 		}
 
@@ -123,7 +120,7 @@ func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaCompo
 	//Fill the queue with jobs
 	for _, comp := range cmps {
 		if !e.enqueueJob(comp, jobChan) {
-			e.log.Errorf("%s Max capacity reached, component dismissed: %s", logPrefix, comp.Name)
+			e.cfg.Log.Errorf("%s Max capacity reached, component dismissed: %s", logPrefix, comp.Name)
 		}
 	}
 
@@ -155,13 +152,13 @@ func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan 
 		select {
 		//TODO: Perhaps this should be removed/refactored. Golang choses cases randomly if both are possible, so it might chose processing component instead, and that is invalid.
 		case <-ctx.Done():
-			e.log.Infof("%s Finishing work: %v", logPrefix, ctx.Err())
+			e.cfg.Log.Infof("%s Finishing work: %v", logPrefix, ctx.Err())
 			return
 
 		case component, ok := <-jobChan:
 			//TODO: Is there a better way to find out if Context is canceled?
 			if err := ctx.Err(); err != nil {
-				e.log.Infof("%s Finishing work: %v.", logPrefix, err)
+				e.cfg.Log.Infof("%s Finishing work: %v.", logPrefix, err)
 				return
 			}
 			if ok {
@@ -181,7 +178,7 @@ func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan 
 					statusChan <- component
 				}
 			} else {
-				e.log.Infof("%s Finishing work: no more jobs in queue.", logPrefix)
+				e.cfg.Log.Infof("%s Finishing work: no more jobs in queue.", logPrefix)
 				return
 			}
 		}

@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"os"
 	"time"
 )
@@ -26,7 +27,7 @@ type Config struct {
 	//Maximum time used for exponent backoff retry policy
 	BackoffMaxElapsedTimeSeconds int
 	//Logger to use
-	Verbose bool
+	Log logger.Interface
 	//Maximum number of Helm revision saved per release
 	HelmMaxRevisionHistory int
 	//Installation / Upgrade profile: evaluation|production

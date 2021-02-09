@@ -8,8 +8,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"go.uber.org/zap"
-
 	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -28,7 +26,7 @@ type Provider struct {
 	componentOverrides           map[string]map[string]interface{}
 	additionalComponentOverrides map[string]map[string]interface{}
 	kubeClient                   kubernetes.Interface
-	log                          *zap.SugaredLogger
+	log                          logger.Interface
 }
 
 //OverridesProvider defines the contract for reading overrides for a given Helm release.
@@ -49,10 +47,10 @@ type OverridesProvider interface {
 //There is one difference from the plain Helm's values.yaml file: These are not values for a single release but for the entire Kyma installation.
 //Because of that, you have to put values for a specific Component (e.g: Component name is "foo") under a key equal to the component's name (i.e: "foo").
 //You can also put overrides under a "global" key. These will merge with the top-level "global" Helm key for every Helm chart.
-func New(client kubernetes.Interface, overrides map[string]interface{}, verbose bool) (OverridesProvider, error) {
+func New(client kubernetes.Interface, overrides map[string]interface{}, log logger.Interface) (OverridesProvider, error) {
 	provider := Provider{
 		kubeClient: client,
-		log:        logger.NewLogger(verbose),
+		log:        log,
 	}
 
 	err := provider.parseAdditionalOverrides(overrides)

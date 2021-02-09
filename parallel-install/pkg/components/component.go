@@ -2,9 +2,8 @@ package components
 
 import (
 	"context"
-	"go.uber.org/zap"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 )
 
 const StatusError = "Error"
@@ -40,7 +39,7 @@ type KymaComponent struct {
 	//OverridesGetter is a function that returns overrides for the release.
 	OverridesGetter func() map[string]interface{}
 	HelmClient      helm.ClientInterface
-	Log             *zap.SugaredLogger
+	Log             logger.Interface
 }
 
 //Deploy implements Component.Deploy

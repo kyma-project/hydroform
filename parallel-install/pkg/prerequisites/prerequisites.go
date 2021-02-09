@@ -7,8 +7,7 @@ package prerequisites
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
-
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -22,7 +21,7 @@ type Prerequisites struct {
 	Context       context.Context
 	KubeClient    kubernetes.Interface
 	Prerequisites []components.KymaComponent
-	Log           *zap.SugaredLogger
+	Log           logger.Interface
 }
 
 const logPrefix = "[prerequisites/prerequisites.go]"

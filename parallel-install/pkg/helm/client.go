@@ -7,7 +7,7 @@ package helm
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"log"
 	"strings"
 	"time"
@@ -29,11 +29,11 @@ const logPrefix = "[helm/client.go]"
 
 //Config provides configuration for the Client.
 type Config struct {
-	HelmTimeoutSeconds            int                //Underlying native Helm client processing timeout
-	BackoffInitialIntervalSeconds int                //Initial interval for the exponential backoff retry algorithm
-	BackoffMaxElapsedTimeSeconds  int                //Maximum time for the exponential backoff retry algorithm
-	MaxHistory                    int                //Maximum number of revisions saved per release
-	Log                           *zap.SugaredLogger //Used for logging
+	HelmTimeoutSeconds            int              //Underlying native Helm client processing timeout
+	BackoffInitialIntervalSeconds int              //Initial interval for the exponential backoff retry algorithm
+	BackoffMaxElapsedTimeSeconds  int              //Maximum time for the exponential backoff retry algorithm
+	MaxHistory                    int              //Maximum number of revisions saved per release
+	Log                           logger.Interface //Used for logging
 }
 
 //Client implements the ClientInterface.

@@ -1,6 +1,7 @@
 package overrides
 
 import (
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"io/ioutil"
 	"testing"
 
@@ -51,10 +52,10 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	var overridesColliding map[string]interface{}
 	err = yaml.Unmarshal(data, &overridesColliding)
 	require.NoError(t, err)
-	verboseLogging := true
+	log := logger.NewLogger(true)
 
 	t.Run("Should properly read overrides with no colliding data", func(t *testing.T) {
-		testProvider, err := New(k8sMock, overrides, verboseLogging)
+		testProvider, err := New(k8sMock, overrides, log)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -73,7 +74,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	})
 
 	t.Run("Should not duplicate additional overrides when reading overrides many times", func(t *testing.T) {
-		testProvider, err := New(k8sMock, overrides, verboseLogging)
+		testProvider, err := New(k8sMock, overrides, log)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -98,7 +99,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 	})
 
 	t.Run("Should always put additionalOverrides on top of other overrides", func(t *testing.T) {
-		testProvider, err := New(k8sMock, overridesColliding, verboseLogging)
+		testProvider, err := New(k8sMock, overridesColliding, log)
 		require.NoError(t, err)
 
 		err = testProvider.ReadOverridesFromCluster()
@@ -124,7 +125,7 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 		illegalOverrides := make(map[string]interface{})
 		illegalOverrides["componentX"] = "value1"
 		illegalOverrides["componentY"] = "value2"
-		_, err := New(k8sMock, illegalOverrides, verboseLogging)
+		_, err := New(k8sMock, illegalOverrides, log)
 		require.Error(t, err)
 	})
 }

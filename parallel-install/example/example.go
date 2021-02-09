@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"go.uber.org/zap"
 	"os"
 	"time"
 
@@ -57,7 +56,7 @@ func main() {
 		HelmTimeoutSeconds:            60 * 8,
 		BackoffInitialIntervalSeconds: 3,
 		BackoffMaxElapsedTimeSeconds:  60 * 5,
-		Verbose:                       *verbose,
+		Log:                           log,
 		HelmMaxRevisionHistory:        10,
 		Profile:                       *profile,
 		ComponentsListFile:            "./components.yaml",
@@ -123,7 +122,7 @@ func getClientConfig(kubeconfig string) (*rest.Config, error) {
 	return rest.InClusterConfig()
 }
 
-func renderProgress(progressCh chan deployment.ProcessUpdate, log *zap.SugaredLogger) context.Context {
+func renderProgress(progressCh chan deployment.ProcessUpdate, log logger.Interface) context.Context {
 	context, cancel := context.WithCancel(context.Background())
 
 	showCompStatus := func(comp components.KymaComponent) {
