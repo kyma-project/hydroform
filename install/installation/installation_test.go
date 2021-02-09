@@ -287,6 +287,28 @@ func TestKymaInstaller_PrepareInstallation(t *testing.T) {
 		// then
 		require.NoError(t, err)
 	})
+
+	t.Run("should implement installer interface", func(t *testing.T) {
+		// given
+		dynamicClient := dynamicFake.NewSimpleDynamicClient(resourcesSchema)
+		k8sClientSet := fake.NewSimpleClientset(runningTillerPod)
+		installationClientSet := installationFake.NewSimpleClientset(&v1alpha1.Installation{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      kymaInstallationName,
+				Namespace: defaultInstallationResourceNamespace,
+			},
+		})
+
+		mapper := dummyRestMapper{}
+
+		kymaInstaller := newKymaInstaller(mapper, dynamicClient, k8sClientSet, installationClientSet)
+
+		// when
+		var installer Installer = kymaInstaller
+
+		// then
+		require.NotNil(t, installer)
+	})
 }
 
 func TestKymaInstaller_PrepareUpgrade(t *testing.T) {
@@ -830,7 +852,7 @@ func TestTriggerUninstall(t *testing.T) {
 		}
 
 		//when
-		err = kymaInstaller.TriggerUninstall()
+		err = kymaInstaller.TriggerUninstall(nil)
 
 		//then
 		require.NoError(t, err)
@@ -850,7 +872,7 @@ func TestTriggerUninstall(t *testing.T) {
 		}
 
 		//when
-		err := kymaInstaller.TriggerUninstall()
+		err := kymaInstaller.TriggerUninstall(nil)
 
 		//then
 		require.Error(t, err)

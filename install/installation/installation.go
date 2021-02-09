@@ -320,7 +320,7 @@ func (k KymaInstaller) StartInstallation(context context.Context) (<-chan Instal
 func (k KymaInstaller) CheckInstallationState(installationClient installationTyped.InstallationInterface) (InstallationState, error) {
 	return checkInstallationState(k.installationClient)
 }
-func (k KymaInstaller) TriggerUninstall() error {
+func (k KymaInstaller) TriggerUninstall(installationClient installationTyped.InstallationInterface) error {
 	return triggerUninstall(k.installationClient)
 }
 
