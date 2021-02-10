@@ -2,7 +2,7 @@ package installation
 
 import (
 	"fmt"
-	. "github.com/kyma-incubator/hydroform/install/merger"
+	"github.com/kyma-incubator/hydroform/install/k8s"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,8 +63,8 @@ func configurationToK8sResources(configuration Configuration) ([]*corev1.ConfigM
 
 	configMap, secret := k8sResourcesFromConfiguration("global", "", configuration.Configuration)
 
-	configMap.ObjectMeta.Labels[OnConflictLabel] = configuration.OnConflict
-	secret.ObjectMeta.Labels[OnConflictLabel] = configuration.OnConflict
+	configMap.ObjectMeta.Labels[k8s.OnConflictLabel] = configuration.OnConflict
+	secret.ObjectMeta.Labels[k8s.OnConflictLabel] = configuration.OnConflict
 
 	configMaps = append(configMaps, configMap)
 	secrets = append(secrets, secret)
@@ -72,8 +72,8 @@ func configurationToK8sResources(configuration Configuration) ([]*corev1.ConfigM
 	for _, configs := range configuration.ComponentConfiguration {
 		configMap, secret := k8sResourcesFromConfiguration(configs.Component, configs.Component, configs.Configuration)
 
-		configMap.ObjectMeta.Labels[OnConflictLabel] = configs.OnConflict
-		secret.ObjectMeta.Labels[OnConflictLabel] = configs.OnConflict
+		configMap.ObjectMeta.Labels[k8s.OnConflictLabel] = configs.OnConflict
+		secret.ObjectMeta.Labels[k8s.OnConflictLabel] = configs.OnConflict
 
 		configMaps = append(configMaps, configMap)
 		secrets = append(secrets, secret)

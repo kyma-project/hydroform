@@ -3,9 +3,6 @@ package k8s
 import (
 	"context"
 	"fmt"
-	. "github.com/kyma-incubator/hydroform/install/merger"
-	"github.com/kyma-incubator/hydroform/install/merger/types"
-
 	"github.com/kyma-incubator/hydroform/install/util"
 
 	"time"
@@ -15,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	. "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -22,6 +20,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	. "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1Client "k8s.io/client-go/kubernetes/typed/core/v1"
+)
+
+const (
+	OnConflictLabel   string = "on-conflict"
+	ReplaceOnConflict string = "replace"
 )
 
 //go:generate mockery -name=RESTMapper
@@ -89,11 +93,31 @@ func (c GenericClient) ApplyConfigMaps(configMaps []*ConfigMap, namespace string
 	return nil
 }
 
-func (c GenericClient) updateConfigMap(client ConfigMapInterface, cm *ConfigMap) error {
-	return Update(&types.ConfigMapOverride{
-		NewItem: cm,
-		Client:  client,
-	})
+func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) error {
+	oldCM, err := client.Get(context.Background(), cm.Name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if isMergeConfigMap(cm) {
+		cm.Data = util.MergeStringMaps(oldCM.Data, cm.Data)
+	}
+
+	_, err = client.Update(context.Background(), cm, v1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func isMergeConfigMap(data *corev1.ConfigMap) bool {
+	labels := data.Labels
+	if labels == nil {
+		return true
+	}
+
+	return isMerge(labels)
 }
 
 func (c GenericClient) ApplySecrets(secrets []*Secret, namespace string) error {
@@ -116,11 +140,36 @@ func (c GenericClient) ApplySecrets(secrets []*Secret, namespace string) error {
 	return nil
 }
 
-func (c GenericClient) updateSecret(client SecretInterface, secret *Secret) error {
-	return Update(&types.SecretOverride{
-		NewItem: secret,
-		Client:  client,
-	})
+func (c GenericClient) updateSecret(client corev1Client.SecretInterface, cm *corev1.Secret) error {
+	oldCM, err := client.Get(context.Background(), cm.Name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if isMergeSecret(cm) {
+		cm.Data = util.MergeByteMaps(oldCM.Data, cm.Data)
+	}
+
+	_, err = client.Update(context.Background(), cm, v1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func isMergeSecret(data *corev1.Secret) bool {
+	labels := data.Labels
+	if labels == nil {
+		return true
+	}
+
+	return isMerge(labels)
+}
+
+func isMerge(labels map[string]string) bool {
+	val, ok := labels[OnConflictLabel]
+	return !ok || val != ReplaceOnConflict
 }
 
 func (c GenericClient) CreateResources(resources []K8sObject) ([]*unstructured.Unstructured, error) {

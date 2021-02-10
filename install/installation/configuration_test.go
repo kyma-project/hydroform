@@ -1,7 +1,7 @@
 package installation
 
 import (
-	"github.com/kyma-incubator/hydroform/install/merger"
+	"github.com/kyma-incubator/hydroform/install/k8s"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -88,20 +88,20 @@ func TestConfiguration_configurationToK8sResources(t *testing.T) {
 				{
 					Component:     "testComponent",
 					Configuration: entries,
-					OnConflict:    merger.ReplaceOnConflict,
+					OnConflict:    k8s.ReplaceOnConflict,
 				},
 			},
-			OnConflict: merger.ReplaceOnConflict,
+			OnConflict: k8s.ReplaceOnConflict,
 		})
 
 		keys := make([]string, 0)
 		for _, entry := range maps {
-			assert.Equal(t, merger.ReplaceOnConflict, entry.ObjectMeta.Labels[merger.OnConflictLabel])
+			assert.Equal(t, k8s.ReplaceOnConflict, entry.ObjectMeta.Labels[k8s.OnConflictLabel])
 			keys = append(keys, entry.Name)
 		}
 
 		for _, entry := range secrets {
-			assert.Equal(t, merger.ReplaceOnConflict, entry.ObjectMeta.Labels[merger.OnConflictLabel])
+			assert.Equal(t, k8s.ReplaceOnConflict, entry.ObjectMeta.Labels[k8s.OnConflictLabel])
 			keys = append(keys, entry.Name)
 		}
 
