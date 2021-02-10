@@ -9,13 +9,14 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type SecretClient interface {
+	Update(ctx context.Context, configMap *Secret, opts v1.UpdateOptions) (*Secret, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*Secret, error)
+}
+
 type SecretOverride struct {
 	NewItem *Secret
 	Client  SecretClient
-}
-
-func (s SecretOverride) Name() string {
-	return s.NewItem.Name
 }
 
 func (s SecretOverride) Labels() *map[string]string {

@@ -1,55 +1,44 @@
 package merger
 
 import (
+	"github.com/kyma-incubator/hydroform/install/merger/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"testing"
 )
-
-type DataImpl struct {
-	labels      map[string]string
-	updateCount int
-	mergeCount  int
-}
-
-func NewData() *DataImpl {
-	return &DataImpl{
-		labels: map[string]string{
-			"label": "value",
-		},
-	}
-}
-
-func (d *DataImpl) Labels() *map[string]string {
-	return &d.labels
-}
-
-func (d *DataImpl) Update() error {
-	d.updateCount += 1
-	return nil
-}
-
-func (d *DataImpl) Merge() error {
-	d.mergeCount += 1
-	return nil
-}
 
 func TestMerger_PrepareInstallation(t *testing.T) {
 
 	t.Run("should replace data if replace flag is specified", func(t *testing.T) {
-		data := NewData()
-		data.labels[OnConflictLabel] = ReplaceOnConflict
-		err := data.Update()
+		// given
+		labels := map[string]string{
+			OnConflictLabel: ReplaceOnConflict,
+		}
+		data := &mocks.Data{}
+		data.On("Labels").Return(&labels)
+		data.On("Update").Return(nil)
+
+		// when
+		err := Update(data)
+
+		// then
 		assert.NoError(t, err)
-		assert.Equal(t, 0, data.mergeCount)
-		assert.Equal(t, 1, data.updateCount)
+		mock.AssertExpectationsForObjects(t, data)
 	})
 
-	t.Run("should merge data if replace flag is specified", func(t *testing.T) {
-		data := NewData()
+	t.Run("should merge data if no flag at all", func(t *testing.T) {
+		// given
+		data := &mocks.Data{}
+		data.On("Labels").Return(nil)
+		data.On("Merge").Return(nil)
+		data.On("Update").Return(nil)
+
+		// when
 		err := Update(data)
+
+		// then
 		assert.NoError(t, err)
-		assert.Equal(t, 1, data.mergeCount)
-		assert.Equal(t, 1, data.updateCount)
+		mock.AssertExpectationsForObjects(t, data)
 	})
 
 }

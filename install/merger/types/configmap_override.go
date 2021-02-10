@@ -2,10 +2,17 @@ package types
 
 import (
 	"context"
-	. "github.com/kyma-incubator/hydroform/install/util"
+	"github.com/kyma-incubator/hydroform/install/util"
+
 	. "k8s.io/api/core/v1"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type ConfigMapClient interface {
+	Update(ctx context.Context, configMap *ConfigMap, opts v1.UpdateOptions) (*ConfigMap, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*ConfigMap, error)
+}
 
 type ConfigMapOverride struct {
 	NewItem *ConfigMap
@@ -24,7 +31,7 @@ func (s ConfigMapOverride) Update() error {
 func (s ConfigMapOverride) Merge() error {
 	old, err := s.Client.Get(context.Background(), s.NewItem.Name, v1.GetOptions{})
 	if err == nil {
-		MergeStringMaps(old.Data, s.NewItem.Data)
+		util.MergeStringMaps(old.Data, s.NewItem.Data)
 	}
 
 	return err

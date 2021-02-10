@@ -12,22 +12,22 @@ type Data interface {
 }
 
 func Update(data Data) error {
-	if !isReplaceOnConflict(*data.Labels()) {
+	if isMerge(data) {
 		err := data.Merge()
 		if err != nil {
 			return err
 		}
 	}
 
-	err := data.Update()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return data.Update()
 }
 
-func isReplaceOnConflict(labels map[string]string) bool {
-	val, ok := labels[OnConflictLabel]
-	return ok && val == ReplaceOnConflict
+func isMerge(data Data) bool {
+	labels := data.Labels()
+	if labels == nil {
+		return true
+	}
+
+	val, ok := (*labels)[OnConflictLabel]
+	return !ok || val != ReplaceOnConflict
 }
