@@ -11,7 +11,6 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	. "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	. "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1Client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
@@ -46,10 +44,10 @@ type GenericClient struct {
 	restMapper    RESTMapper
 	k8sClientSet  kubernetes.Interface
 	dynamicClient dynamic.Interface
-	coreClient    CoreV1Interface
+	coreClient    corev1Client.CoreV1Interface
 }
 
-func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desiredPhase PodPhase, timeout, checkInterval time.Duration) error {
+func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desiredPhase corev1.PodPhase, timeout, checkInterval time.Duration) error {
 	return util.WaitFor(checkInterval, timeout, func() (bool, error) {
 		pods, err := c.coreClient.Pods(namespace).List(context.Background(), v1.ListOptions{LabelSelector: labelSelector})
 		if err != nil {
@@ -74,7 +72,7 @@ func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desire
 	})
 }
 
-func (c GenericClient) ApplyConfigMaps(configMaps []*ConfigMap, namespace string) error {
+func (c GenericClient) ApplyConfigMaps(configMaps []*corev1.ConfigMap, namespace string) error {
 	client := c.coreClient.ConfigMaps(namespace)
 
 	for _, cm := range configMaps {
@@ -99,7 +97,7 @@ func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, c
 		return err
 	}
 
-	if isMergeConfigMap(cm) {
+	if isMerge(cm.Labels) {
 		cm.Data = util.MergeStringMaps(oldCM.Data, cm.Data)
 	}
 
@@ -111,16 +109,7 @@ func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, c
 	return nil
 }
 
-func isMergeConfigMap(data *corev1.ConfigMap) bool {
-	labels := data.Labels
-	if labels == nil {
-		return true
-	}
-
-	return isMerge(labels)
-}
-
-func (c GenericClient) ApplySecrets(secrets []*Secret, namespace string) error {
+func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) error {
 	client := c.coreClient.Secrets(namespace)
 
 	for _, sec := range secrets {
@@ -146,7 +135,7 @@ func (c GenericClient) updateSecret(client corev1Client.SecretInterface, cm *cor
 		return err
 	}
 
-	if isMergeSecret(cm) {
+	if isMerge(cm.Labels) {
 		cm.Data = util.MergeByteMaps(oldCM.Data, cm.Data)
 	}
 
@@ -158,16 +147,11 @@ func (c GenericClient) updateSecret(client corev1Client.SecretInterface, cm *cor
 	return nil
 }
 
-func isMergeSecret(data *corev1.Secret) bool {
-	labels := data.Labels
+func isMerge(labels map[string]string) bool {
 	if labels == nil {
 		return true
 	}
 
-	return isMerge(labels)
-}
-
-func isMerge(labels map[string]string) bool {
 	val, ok := labels[OnConflictLabel]
 	return !ok || val != ReplaceOnConflict
 }

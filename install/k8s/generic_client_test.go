@@ -208,7 +208,7 @@ func TestGenericClient_ApplyConfigMaps(t *testing.T) {
 			assert.True(t, cm.Data[key] == value)
 		}
 
-		for key, _ := range existingData {
+		for key := range existingData {
 			assert.Empty(t, cm.Data[key])
 		}
 	})
@@ -247,13 +247,7 @@ func TestGenericClient_ApplyConfigMaps(t *testing.T) {
 		cm, err := cmClient.Get(context.Background(), "test1", v12.GetOptions{})
 		require.NoError(t, err)
 
-		for key, value := range cmsToApply[0].Data {
-			assert.True(t, cm.Data[key] == value)
-		}
-
-		for key, value := range existingData {
-			assert.True(t, cm.Data[key] == value)
-		}
+		assert.Equal(t, cmsToApply[0].Data, cm.Data)
 	})
 }
 
@@ -336,15 +330,12 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, secretsToApply[0].Data, secret.Data)
 
-		for key, _ := range secretsToApply[0].Data {
+		for key := range secretsToApply[0].Data {
 			_, ok := secret.Data[key]
 			assert.True(t, ok)
 		}
 
-		for key, _ := range existingData {
-			_, ok := secret.Data[key]
-			assert.False(t, ok)
-		}
+		assert.Equal(t, secretsToApply[0].Data, secret.Data)
 	})
 
 	t.Run("should merge secret if replace flag is not specified", func(t *testing.T) {
@@ -378,12 +369,12 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 		secret, err := secretClient.Get(context.Background(), "test1", v12.GetOptions{})
 		require.NoError(t, err)
 
-		for key, _ := range secretsToApply[0].Data {
+		for key := range secretsToApply[0].Data {
 			_, ok := secret.Data[key]
 			assert.True(t, ok)
 		}
 
-		for key, _ := range existingData {
+		for key := range existingData {
 			_, ok := secret.Data[key]
 			assert.True(t, ok)
 		}
