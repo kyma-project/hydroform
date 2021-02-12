@@ -1,9 +1,9 @@
 module github.com/kyma-incubator/hydroform/function-examples
 
 go 1.14
-replace (
-	github.com/kyma-incubator/hydroform/function => /Users/rjankowski/Go/src/github.com/kyma-incubator/hydroform/function
- )
+//replace (
+//	github.com/kyma-incubator/hydroform/function => /Users/rjankowski/Go/src/github.com/kyma-incubator/hydroform/function
+// )
 require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
