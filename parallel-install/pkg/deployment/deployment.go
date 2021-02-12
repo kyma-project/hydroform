@@ -77,7 +77,7 @@ func (i *Deployment) startKymaDeployment(prerequisitesProvider components.Provid
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	i.cfg.Log("Kyma prerequisites deployment")
+	i.cfg.Log.Errorf("Kyma prerequisites deployment")
 
 	prerequisites, err := prerequisitesProvider.GetComponents()
 	if err != nil {
@@ -98,7 +98,7 @@ func (i *Deployment) startKymaDeployment(prerequisitesProvider components.Provid
 	}
 	endTime := time.Now()
 
-	i.cfg.Log("Kyma deployment")
+	i.cfg.Log.Info("Kyma deployment")
 
 	cancelTimeout = calculateDuration(startTime, endTime, i.cfg.CancelTimeout)
 	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
@@ -145,11 +145,11 @@ Prerequisites:
 			}
 		case <-cancelTimeoutChan:
 			timeoutOccurred = true
-			i.cfg.Log("Timeout reached. Cancelling deployment")
+			i.cfg.Log.Error("Timeout reached. Cancelling deployment")
 			cancelFunc()
 		case <-quitTimeoutChan:
 			i.processUpdate(InstallPreRequisites, ProcessForceQuitFailure)
-			i.cfg.Log("Deployment doesn't stop after it's canceled. Enforcing quit")
+			i.cfg.Log.Error("Deployment doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Force quit: Kyma prerequisites deployment failed due to the timeout")
 		}
 	}
@@ -198,11 +198,11 @@ InstallLoop:
 			}
 		case <-cancelTimeoutChan:
 			timeoutOccurred = true
-			i.cfg.Log("Timeout occurred after %v minutes. Cancelling deployment", cancelTimeout.Minutes())
+			i.cfg.Log.Errorf("Timeout occurred after %v minutes. Cancelling deployment", cancelTimeout.Minutes())
 			cancelFunc()
 		case <-quitTimeoutChan:
 			i.processUpdate(InstallComponents, ProcessForceQuitFailure)
-			i.cfg.Log("Deployment doesn't stop after it's canceled. Enforcing quit")
+			i.cfg.Log.Errorf("Deployment doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Force quit: Kyma deployment failed due to the timeout")
 		}
 	}
