@@ -31,6 +31,7 @@ type RunOpts struct {
 	ImageName     string
 	WorkDir       string
 	Commands      []string
+	User          string
 }
 
 func RunContainer(ctx context.Context, c ContainerClient, opts RunOpts) (string, error) {
@@ -39,6 +40,7 @@ func RunContainer(ctx context.Context, c ContainerClient, opts RunOpts) (string,
 		ExposedPorts: portSet(opts.Ports),
 		Image:        opts.ImageName,
 		Shell:        opts.Commands,
+		User:         opts.User,
 	}, &container.HostConfig{
 		PortBindings: portMap(opts.Ports),
 		AutoRemove:   true,

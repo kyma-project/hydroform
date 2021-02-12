@@ -10,7 +10,7 @@ COPY /src $KUBELESS_INSTALL_VOLUME
 USER 1000
 `
 
-const (
-	Python38Path          = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.8/site-packages:$(KUBELESS_INSTALL_VOLUME)"
-	Python38DebugEndpoint = `5678`
-)
+//const (
+//	Python38Path          = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.8/site-packages:$(KUBELESS_INSTALL_VOLUME)"
+//	Python38DebugEndpoint = `5678`
+//)

@@ -7,7 +7,7 @@ go 1.14
 require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
-	github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0
+	github.com/docker/docker v20.10.3+incompatible
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/kyma-incubator/hydroform/function v0.0.0-20201027094432-8e584f2623f7

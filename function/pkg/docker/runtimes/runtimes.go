@@ -6,7 +6,20 @@ import (
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 )
 
-const ServerPort = "8080"
+const (
+	ServerPort = "8080"
+
+	Nodejs10Path          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
+	Nodejs10DebugOption   = "--inspect=0.0.0.0"
+	Nodejs10DebugEndpoint = `9229`
+
+	Nodejs12Path          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
+	Nodejs12DebugOption   = "--inspect=0.0.0.0"
+	Nodejs12DebugEndpoint = `9229`
+
+	Python38Path          = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.8/site-packages:$(KUBELESS_INSTALL_VOLUME)"
+	Python38DebugEndpoint = `5678`
+)
 
 func Dockerfile(runtime types.Runtime) string {
 	switch runtime {
@@ -78,7 +91,7 @@ func ContainerCommands(runtime types.Runtime) []string {
 	case types.Nodejs10:
 		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
 	case types.Python38:
-		return []string{"", ""} //TODO
+		return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py"}
 	default:
 		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
 	}
@@ -94,5 +107,18 @@ func ContainerImages(runtime types.Runtime) string {
 		return "eu.gcr.io/kyma-project/function-runtime-python38:cc7dd53f"
 	default:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f"
+	}
+}
+
+func ContainerUser(runtime types.Runtime) string {
+	switch runtime {
+	case types.Nodejs12:
+		return ""
+	case types.Nodejs10:
+		return ""
+	case types.Python38:
+		return "root"
+	default:
+		return ""
 	}
 }

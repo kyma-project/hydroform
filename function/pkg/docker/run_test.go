@@ -206,6 +206,7 @@ func TestRunContainer(t *testing.T) {
 					Envs:          []string{"env1=test1", "env2=test2"},
 					ContainerName: "test-cname",
 					ImageName:     "test-iname",
+					Commands:      []string{},
 				},
 			},
 			want:    id,

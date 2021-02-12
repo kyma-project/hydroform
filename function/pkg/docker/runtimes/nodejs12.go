@@ -10,8 +10,8 @@ COPY /src $KUBELESS_INSTALL_VOLUME
 USER 1000
 `
 
-const (
-	Nodejs12Path          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
-	Nodejs12DebugOption   = "--inspect=0.0.0.0"
-	Nodejs12DebugEndpoint = `9229`
-)
+//const (
+//	Nodejs12Path          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
+//	Nodejs12DebugOption   = "--inspect=0.0.0.0"
+//	Nodejs12DebugEndpoint = `9229`
+//)
