@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_ConfigValidation(t *testing.T) {
+func Test_ValidateDeletion(t *testing.T) {
 	var config Config
 	var err error
 
@@ -16,7 +16,7 @@ func Test_ConfigValidation(t *testing.T) {
 		config = Config{
 			WorkersCount: 0,
 		}
-		err = config.Validate()
+		err = config.ValidateDeletion()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "Workers count cannot be")
 	})
@@ -26,10 +26,15 @@ func Test_ConfigValidation(t *testing.T) {
 			WorkersCount:       1,
 			ComponentsListFile: "/a/file/which/doesnot/exist.json",
 		}
-		err = config.Validate()
+		err = config.ValidateDeletion()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
 	})
+}
+
+func Test_ValidateDeployment(t *testing.T) {
+	var config Config
+	var err error
 
 	t.Run("Resource path not found", func(t *testing.T) {
 		_, fpath, _, ok := runtime.Caller(0)
@@ -39,7 +44,7 @@ func Test_ConfigValidation(t *testing.T) {
 			ComponentsListFile: fpath,
 			ResourcePath:       "/a/dir/which/doesnot/exist",
 		}
-		err = config.Validate()
+		err = config.ValidateDeployment()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
 	})
@@ -53,7 +58,7 @@ func Test_ConfigValidation(t *testing.T) {
 			ResourcePath:       filepath.Dir(fpath),
 			CrdPath:            "/a/dir/which/doesnot/exist",
 		}
-		err = config.Validate()
+		err = config.ValidateDeployment()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
 	})
@@ -67,7 +72,7 @@ func Test_ConfigValidation(t *testing.T) {
 			ResourcePath:       filepath.Dir(fpath),
 			CrdPath:            filepath.Dir(fpath),
 		}
-		err = config.Validate()
+		err = config.ValidateDeployment()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "Version is empty")
 	})
@@ -82,7 +87,7 @@ func Test_ConfigValidation(t *testing.T) {
 			CrdPath:            filepath.Dir(fpath),
 			Version:            "abc",
 		}
-		err = config.Validate()
+		err = config.ValidateDeployment()
 		assert.NoError(t, err)
 	})
 }
