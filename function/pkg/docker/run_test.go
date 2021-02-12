@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"github.com/docker/docker/api/types/mount"
 	"io"
 	"strings"
 	"testing"
@@ -172,6 +173,7 @@ func TestRunContainer(t *testing.T) {
 							"9229": {},
 						},
 						Image: "test-iname",
+						Shell: []string{},
 					},
 						&container.HostConfig{
 							PortBindings: nat.PortMap{
@@ -179,6 +181,13 @@ func TestRunContainer(t *testing.T) {
 								"9229": []nat.PortBinding{{HostPort: "9229"}},
 							},
 							AutoRemove: true,
+							Mounts: []mount.Mount{
+								{
+									Type:   mount.TypeBind,
+									Source: "",
+									Target: "/kubeless",
+								},
+							},
 						},
 						gomock.Nil(), gomock.Nil(), "test-cname").
 						Return(container.ContainerCreateCreatedBody{ID: id}, nil).Times(1)

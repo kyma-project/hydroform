@@ -70,3 +70,29 @@ func RuntimeDebugPort(runtime types.Runtime) string {
 		return Nodejs12DebugEndpoint
 	}
 }
+
+func ContainerCommands(runtime types.Runtime) []string {
+	switch runtime {
+	case types.Nodejs12:
+		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
+	case types.Nodejs10:
+		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
+	case types.Python38:
+		return []string{"", ""} //TODO
+	default:
+		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
+	}
+}
+
+func ContainerImages(runtime types.Runtime) string {
+	switch runtime {
+	case types.Nodejs12:
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f"
+	case types.Nodejs10:
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs10:cc7dd53f"
+	case types.Python38:
+		return "eu.gcr.io/kyma-project/function-runtime-python38:cc7dd53f"
+	default:
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f"
+	}
+}

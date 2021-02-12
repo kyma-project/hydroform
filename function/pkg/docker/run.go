@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"github.com/docker/docker/api/types/mount"
 	"io"
 	"time"
 
@@ -28,6 +29,8 @@ type RunOpts struct {
 	Envs          []string
 	ContainerName string
 	ImageName     string
+	WorkDir       string
+	Commands      []string
 }
 
 func RunContainer(ctx context.Context, c ContainerClient, opts RunOpts) (string, error) {
@@ -35,9 +38,17 @@ func RunContainer(ctx context.Context, c ContainerClient, opts RunOpts) (string,
 		Env:          opts.Envs,
 		ExposedPorts: portSet(opts.Ports),
 		Image:        opts.ImageName,
+		Shell:        opts.Commands,
 	}, &container.HostConfig{
 		PortBindings: portMap(opts.Ports),
 		AutoRemove:   true,
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: opts.WorkDir,
+				Target: "/kubeless",
+			},
+		},
 	}, nil, nil,
 		opts.ContainerName)
 	if err != nil {
