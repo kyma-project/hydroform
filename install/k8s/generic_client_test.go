@@ -228,7 +228,7 @@ func TestGenericClient_ApplyConfigMaps(t *testing.T) {
 			cm, err := cmClient.Get(context.Background(), "test1", v12.GetOptions{})
 			require.NoError(t, err)
 
-			tt.assert(t, tt.toApply, tt.existing, cm.Data)
+			tt.assert(t, tt.toApply, cm.Data, tt.existing)
 		})
 	}
 }
@@ -290,7 +290,7 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 				assert.Equal(t, changes, afterUpdate)
 			},
 		}, {
-			"should replace Secrets if replace flag is not specified",
+			"should merge Secrets if replace flag is not specified",
 			map[string][]byte{"key1": []byte("value1")},
 			map[string][]byte{"key2": []byte("value2"), "key3": []byte("value3")},
 			map[string]string{},
@@ -319,7 +319,7 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 						Namespace: namespace,
 						Labels:    tt.labels,
 					},
-					Data: tt.existing,
+					Data: tt.toApply,
 				},
 			}
 
@@ -329,12 +329,11 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 			// then
 			require.NoError(t, err)
 
-			mockClientSet.CoreV1().RESTClient()
 			client := mockClientSet.CoreV1().Secrets(namespace)
 			secret, err := client.Get(context.Background(), "test1", v12.GetOptions{})
 			require.NoError(t, err)
 
-			tt.assert(t, tt.toApply, tt.existing, secret.Data)
+			tt.assert(t, tt.toApply, secret.Data, tt.existing)
 		})
 	}
 }
