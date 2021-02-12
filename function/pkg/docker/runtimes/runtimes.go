@@ -21,25 +21,13 @@ const (
 	Python38DebugEndpoint = `5678`
 )
 
-func Dockerfile(runtime types.Runtime) string {
-	switch runtime {
-	case types.Nodejs12:
-		return Nodejs12Dockerfile
-	case types.Nodejs10:
-		return Nodejs10Dockerfile
-	case types.Python38:
-		return Python38Dockerfile
-	default:
-		return Nodejs12Dockerfile
-	}
-}
-
 func ContainerEnvs(runtime types.Runtime, debug bool) []string {
 	return append([]string{
 		fmt.Sprintf("FUNC_RUNTIME=%s", runtime),
 		"FUNC_HANDLER=main",
 		"MOD_NAME=handler",
 		"FUNC_PORT=8080",
+		"KUBELESS_INSTALL_VOLUME=/kubeless",
 	}, runtimeEnvs(runtime, debug)...)
 }
 
@@ -113,12 +101,12 @@ func ContainerImages(runtime types.Runtime) string {
 func ContainerUser(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
-		return ""
+		return "1000"
 	case types.Nodejs10:
-		return ""
+		return "1000"
 	case types.Python38:
 		return "root"
 	default:
-		return ""
+		return "1000"
 	}
 }

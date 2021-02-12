@@ -28,6 +28,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Nodejs12Path,
 			},
 		},
@@ -42,6 +43,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Nodejs12Path,
 				fmt.Sprintf("NODE_OPTIONS=%s", Nodejs12DebugOption),
 			},
@@ -57,6 +59,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Nodejs12Path,
 			},
 		},
@@ -71,6 +74,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Nodejs12Path,
 				fmt.Sprintf("NODE_OPTIONS=%s", Nodejs12DebugOption),
 			},
@@ -86,6 +90,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Nodejs10Path,
 			},
 		},
@@ -100,6 +105,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Nodejs10Path,
 				fmt.Sprintf("NODE_OPTIONS=%s", Nodejs10DebugOption),
 			},
@@ -115,6 +121,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Python38Path,
 			},
 		},
@@ -129,6 +136,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Python38Path,
 				// TODO
 			},
@@ -138,43 +146,6 @@ func TestContainerEnvs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ContainerEnvs(tt.args.runtime, tt.args.debug); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ContainerEnvs() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestDockerfile(t *testing.T) {
-	tests := []struct {
-		name    string
-		runtime types.Runtime
-		want    string
-	}{
-		{
-			name:    "should return default dockerfile",
-			runtime: "",
-			want:    Nodejs12Dockerfile,
-		},
-
-		{
-			name:    "should return Nodejs12 dockerfile",
-			runtime: types.Nodejs12,
-			want:    Nodejs12Dockerfile,
-		},
-		{
-			name:    "should return Nodejs10 dockerfile",
-			runtime: types.Nodejs10,
-			want:    Nodejs10Dockerfile,
-		},
-		{
-			name:    "should return Python38 dockerfile",
-			runtime: types.Python38,
-			want:    Python38Dockerfile,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := Dockerfile(tt.runtime); got != tt.want {
-				t.Errorf("Dockerfile() = %v, want %v", got, tt.want)
 			}
 		})
 	}

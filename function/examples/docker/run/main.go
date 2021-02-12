@@ -11,7 +11,7 @@ import (
 func main() {
 	runOpts := docker.RunOpts{
 		Ports:         map[string]string{"8080": "8080"},
-		Envs:          []string{"FUNC_HANDLER=main", "MOD_NAME=handler", "FUNC_PORT=8080", "FUNC_RUNTIME=nodejs12", "NODE_PATH='$(KUBELESS_INSTALL_VOLUME)/node_modules'"},
+		Envs:          []string{"FUNC_HANDLER=main", "MOD_NAME=handler", "FUNC_PORT=8080", "FUNC_RUNTIME=nodejs12", "NODE_PATH='$(KUBELESS_INSTALL_VOLUME)/node_modules'", "KUBELESS_INSTALL_VOLUME=/kubeless"},
 		ContainerName: "test123",
 		ImageName:     "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f",
 		WorkDir:       "/tmp/tmpfunc/",
