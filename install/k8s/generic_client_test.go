@@ -167,88 +167,70 @@ func TestGenericClient_ApplyConfigMaps(t *testing.T) {
 		assert.Equal(t, cmsToApply[1].Data, cm2.Data)
 	})
 
-	t.Run("should replace ConfigMap if replace flag is specified", func(t *testing.T) {
-		// given
-		existingData := map[string]string{"key1": "value1"}
-		existingCMs := []runtime.Object{
-			&v1.ConfigMap{
-				ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
-				Data:       existingData,
+	tests := []struct {
+		name     string
+		existing map[string]string
+		toApply  map[string]string
+		labels   map[string]string
+		assert   func(t *testing.T, changes, afterUpdate, beforeUpdated map[string]string)
+	}{
+		{
+			"should replace ConfigMap if replace flag is specified",
+			map[string]string{"key1": "value1"},
+			map[string]string{"key2": "value2", "key3": "value3"},
+			map[string]string{OnConflictLabel: ReplaceOnConflict},
+			func(t *testing.T, changes, afterUpdate, _ map[string]string) {
+				assert.Equal(t, changes, afterUpdate)
 			},
-		}
+		}, {
+			"should merge ConfigMap if replace flag is not specified",
+			map[string]string{"key1": "value1"},
+			map[string]string{"key2": "value2", "key3": "value3"},
+			map[string]string{},
+			func(t *testing.T, changes, afterUpdate, beforeUpdated map[string]string) {
+				assert.Equal(t, util.MergeStringMaps(changes, beforeUpdated), afterUpdate)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given
 
-		cmsToApply := []*v1.ConfigMap{
-			{
-				ObjectMeta: v12.ObjectMeta{
-					Name:      "test1",
-					Namespace: namespace,
-					Labels: map[string]string{
-						OnConflictLabel: ReplaceOnConflict,
+			existingCMs := []runtime.Object{
+				&v1.ConfigMap{
+					ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
+					Data:       tt.existing,
+				},
+			}
+
+			k8sClientSet := fake.NewSimpleClientset(existingCMs...)
+
+			client := NewGenericClient(nil, nil, k8sClientSet)
+
+			cmsToApply := []*v1.ConfigMap{
+				{
+					ObjectMeta: v12.ObjectMeta{
+						Name:      "test1",
+						Namespace: namespace,
+						Labels:    tt.labels,
 					},
+					Data: tt.toApply,
 				},
-				Data: map[string]string{"key2": "value2", "key3": "value3"},
-			},
-		}
+			}
 
-		k8sClientSet := fake.NewSimpleClientset(existingCMs...)
+			// when
+			err := client.ApplyConfigMaps(cmsToApply, namespace)
 
-		client := NewGenericClient(nil, nil, k8sClientSet)
+			// then
+			require.NoError(t, err)
 
-		// when
-		err := client.ApplyConfigMaps(cmsToApply, namespace)
+			cmClient := k8sClientSet.CoreV1().ConfigMaps(namespace)
+			cm, err := cmClient.Get(context.Background(), "test1", v12.GetOptions{})
+			require.NoError(t, err)
 
-		// then
-		require.NoError(t, err)
-
-		cmClient := k8sClientSet.CoreV1().ConfigMaps(namespace)
-		cm, err := cmClient.Get(context.Background(), "test1", v12.GetOptions{})
-		require.NoError(t, err)
-
-		for key, value := range cmsToApply[0].Data {
-			assert.True(t, cm.Data[key] == value)
-		}
-
-		for key := range existingData {
-			assert.Empty(t, cm.Data[key])
-		}
-	})
-
-	t.Run("should merge ConfigMap if replace flag is not specified", func(t *testing.T) {
-		// given
-		existingData := map[string]string{"key1": "value1"}
-		existingCMs := []runtime.Object{
-			&v1.ConfigMap{
-				ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
-				Data:       existingData,
-			},
-		}
-
-		cmsToApply := []*v1.ConfigMap{
-			{
-				ObjectMeta: v12.ObjectMeta{
-					Name:      "test1",
-					Namespace: namespace,
-				},
-				Data: map[string]string{"key2": "value2", "key3": "value3"},
-			},
-		}
-
-		k8sClientSet := fake.NewSimpleClientset(existingCMs...)
-
-		client := NewGenericClient(nil, nil, k8sClientSet)
-
-		// when
-		err := client.ApplyConfigMaps(cmsToApply, namespace)
-
-		// then
-		require.NoError(t, err)
-
-		cmClient := k8sClientSet.CoreV1().ConfigMaps(namespace)
-		cm, err := cmClient.Get(context.Background(), "test1", v12.GetOptions{})
-		require.NoError(t, err)
-
-		assert.Equal(t, cmsToApply[0].Data, cm.Data)
-	})
+			tt.assert(t, tt.toApply, tt.existing, cm.Data)
+		})
+	}
 }
 
 func TestGenericClient_ApplySecrets(t *testing.T) {
@@ -292,93 +274,69 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 		assert.Equal(t, secretsToApply[1].Data, secret2.Data)
 	})
 
-	t.Run("should replace secret if replace flag is specified", func(t *testing.T) {
-		// given
-		existingData := map[string][]byte{"key1": []byte("value1")}
-		existingSecrets := []runtime.Object{
-			&v1.Secret{
-				ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
-				Data:       existingData,
+	tests := []struct {
+		name     string
+		existing map[string][]byte
+		toApply  map[string][]byte
+		labels   map[string]string
+		assert   func(t *testing.T, changes, afterUpdate, beforeUpdated map[string][]byte)
+	}{
+		{
+			"should replace Secrets if replace flag is specified",
+			map[string][]byte{"key1": []byte("value1")},
+			map[string][]byte{"key2": []byte("value2"), "key3": []byte("value3")},
+			map[string]string{OnConflictLabel: ReplaceOnConflict},
+			func(t *testing.T, changes, afterUpdate, _ map[string][]byte) {
+				assert.Equal(t, changes, afterUpdate)
 			},
-		}
-
-		secretsToApply := []*v1.Secret{
-			{
-				ObjectMeta: v12.ObjectMeta{
-					Name:      "test1",
-					Namespace: namespace,
-					Labels: map[string]string{
-						OnConflictLabel: ReplaceOnConflict,
-					},
+		}, {
+			"should replace Secrets if replace flag is not specified",
+			map[string][]byte{"key1": []byte("value1")},
+			map[string][]byte{"key2": []byte("value2"), "key3": []byte("value3")},
+			map[string]string{},
+			func(t *testing.T, changes, afterUpdate, beforeUpdated map[string][]byte) {
+				assert.Equal(t, util.MergeByteMaps(changes, beforeUpdated), afterUpdate)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given
+			existingCMs := []runtime.Object{
+				&v1.Secret{
+					ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
+					Data:       tt.existing,
 				},
-				Data: map[string][]byte{"key2": []byte("value2"), "key3": []byte("value3")},
-			},
-		}
+			}
 
-		k8sClientSet := fake.NewSimpleClientset(existingSecrets...)
+			mockClientSet := fake.NewSimpleClientset(existingCMs...)
+			genericClient := NewGenericClient(nil, nil, mockClientSet)
 
-		client := NewGenericClient(nil, nil, k8sClientSet)
+			cmsToApply := []*v1.Secret{
+				{
+					ObjectMeta: v12.ObjectMeta{
+						Name:      "test1",
+						Namespace: namespace,
+						Labels:    tt.labels,
+					},
+					Data: tt.existing,
+				},
+			}
 
-		// when
-		err := client.ApplySecrets(secretsToApply, namespace)
+			// when
+			err := genericClient.ApplySecrets(cmsToApply, namespace)
 
-		// then
-		require.NoError(t, err)
+			// then
+			require.NoError(t, err)
 
-		secretClient := k8sClientSet.CoreV1().Secrets(namespace)
-		secret, err := secretClient.Get(context.Background(), "test1", v12.GetOptions{})
-		require.NoError(t, err)
-		assert.Equal(t, secretsToApply[0].Data, secret.Data)
+			mockClientSet.CoreV1().RESTClient()
+			client := mockClientSet.CoreV1().Secrets(namespace)
+			secret, err := client.Get(context.Background(), "test1", v12.GetOptions{})
+			require.NoError(t, err)
 
-		for key := range secretsToApply[0].Data {
-			_, ok := secret.Data[key]
-			assert.True(t, ok)
-		}
-
-		assert.Equal(t, secretsToApply[0].Data, secret.Data)
-	})
-
-	t.Run("should merge secret if replace flag is not specified", func(t *testing.T) {
-		// given
-		existingData := map[string][]byte{"key1": []byte("value1")}
-		existingSecrets := []runtime.Object{
-			&v1.Secret{
-				ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
-				Data:       existingData,
-			},
-		}
-
-		secretsToApply := []*v1.Secret{
-			{
-				ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
-				Data:       map[string][]byte{"key2": []byte("value2"), "key3": []byte("value3")},
-			},
-		}
-
-		k8sClientSet := fake.NewSimpleClientset(existingSecrets...)
-
-		client := NewGenericClient(nil, nil, k8sClientSet)
-
-		// when
-		err := client.ApplySecrets(secretsToApply, namespace)
-
-		// then
-		require.NoError(t, err)
-
-		secretClient := k8sClientSet.CoreV1().Secrets(namespace)
-		secret, err := secretClient.Get(context.Background(), "test1", v12.GetOptions{})
-		require.NoError(t, err)
-
-		for key := range secretsToApply[0].Data {
-			_, ok := secret.Data[key]
-			assert.True(t, ok)
-		}
-
-		for key := range existingData {
-			_, ok := secret.Data[key]
-			assert.True(t, ok)
-		}
-	})
+			tt.assert(t, tt.toApply, tt.existing, secret.Data)
+		})
+	}
 }
 
 func TestGenericClient_CreateResources(t *testing.T) {
