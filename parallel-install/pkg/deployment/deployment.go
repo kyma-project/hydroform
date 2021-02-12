@@ -66,14 +66,11 @@ func (i *Deployment) StartKymaDeployment() error {
 		if metaDataErr != nil {
 			return metaDataErr
 		}
-	}
-
-	err = i.metadataProvider.WriteKymaDeployed(attr)
-	if err != nil {
 		return err
 	}
 
-	return nil
+	err = i.metadataProvider.WriteKymaDeployed(attr)
+	return err
 }
 
 func (i *Deployment) startKymaDeployment(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
