@@ -22,13 +22,14 @@ type ContainerClient interface {
 	ContainerStart(ctx context.Context, containerID string, options types.ContainerStartOptions) error
 	ContainerAttach(ctx context.Context, container string, options types.ContainerAttachOptions) (types.HijackedResponse, error)
 	ContainerStop(ctx context.Context, containerID string, timeout *time.Duration) error
+	ContainerExecCreate(ctx context.Context, container string, config types.ExecConfig) (types.IDResponse, error)
 }
 
 type RunOpts struct {
 	Ports         map[string]string
 	Envs          []string
 	ContainerName string
-	ImageName     string
+	Image         string
 	WorkDir       string
 	Commands      []string
 	User          string
@@ -38,8 +39,8 @@ func RunContainer(ctx context.Context, c ContainerClient, opts RunOpts) (string,
 	body, err := c.ContainerCreate(ctx, &container.Config{
 		Env:          opts.Envs,
 		ExposedPorts: portSet(opts.Ports),
-		Image:        opts.ImageName,
-		Shell:        opts.Commands,
+		Image:        opts.Image,
+		Cmd:          []string{"/bin/sh", "-c", "/kubeless-npm-install.sh ; node kubeless.js"},
 		User:         opts.User,
 	}, &container.HostConfig{
 		PortBindings: portMap(opts.Ports),
