@@ -186,3 +186,152 @@ func TestRuntimeDebugPort(t *testing.T) {
 		})
 	}
 }
+
+func TestContainerCommands(t *testing.T) {
+	type args struct {
+		runtime types.Runtime
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "should return commands for empty runtime",
+			args: args{
+				runtime: "",
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "node kubeless.js",
+			},
+		},
+		{
+			name: "should return commands for Nodejs12",
+			args: args{
+				runtime: types.Nodejs12,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "node kubeless.js",
+			},
+		},
+		{
+			name: "should return commands for Nodejs10",
+			args: args{
+				runtime: types.Nodejs10,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "node kubeless.js",
+			},
+		},
+		{
+			name: "should return commands for Python38",
+			args: args{
+				runtime: types.Python38,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ContainerCommands(tt.args.runtime); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ContainerCommands() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestContainerImage(t *testing.T) {
+	type args struct {
+		runtime types.Runtime
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "should return image for empty runtime",
+			args: args{
+				runtime: "",
+			},
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f",
+		},
+		{
+			name: "should return image for Nodejs12",
+			args: args{
+				runtime: types.Nodejs12,
+			},
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f",
+		},
+		{
+			name: "should return image for Nodejs10",
+			args: args{
+				runtime: types.Nodejs10,
+			},
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs10:cc7dd53f",
+		},
+		{
+			name: "should return image for Python38",
+			args: args{
+				runtime: types.Python38,
+			},
+			want: "eu.gcr.io/kyma-project/function-runtime-python38:cc7dd53f",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ContainerImage(tt.args.runtime); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ContainerImage() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestContainerUser(t *testing.T) {
+	type args struct {
+		runtime types.Runtime
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "should return user for empty runtime",
+			args: args{
+				runtime: "",
+			},
+			want: "1000",
+		},
+		{
+			name: "should return user for Nodejs12",
+			args: args{
+				runtime: types.Nodejs12,
+			},
+			want: "1000",
+		},
+		{
+			name: "should return user for Nodejs10",
+			args: args{
+				runtime: types.Nodejs10,
+			},
+			want: "1000",
+		},
+		{
+			name: "should return user for Python38",
+			args: args{
+				runtime: types.Python38,
+			},
+			want: "root",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ContainerUser(tt.args.runtime); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ContainerUser() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

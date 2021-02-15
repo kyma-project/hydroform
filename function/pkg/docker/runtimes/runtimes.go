@@ -85,7 +85,7 @@ func ContainerCommands(runtime types.Runtime) []string {
 	}
 }
 
-func ContainerImages(runtime types.Runtime) string {
+func ContainerImage(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f"
