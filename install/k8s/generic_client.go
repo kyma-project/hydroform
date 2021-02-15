@@ -24,6 +24,7 @@ import (
 const (
 	OnConflictLabel   string = "on-conflict"
 	ReplaceOnConflict string = "replace"
+	MergeOnConflict   string = "merge"
 )
 
 //go:generate mockery -name=RESTMapper
