@@ -5,17 +5,20 @@ import (
 	"fmt"
 	"github.com/docker/docker/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/docker"
+	"github.com/kyma-incubator/hydroform/function/pkg/docker/runtimes"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 func main() {
 	runOpts := docker.RunOpts{
 		Ports:         map[string]string{"8080": "8080"},
-		Envs:          []string{"FUNC_HANDLER=main", "MOD_NAME=handler", "FUNC_PORT=8080", "FUNC_RUNTIME=nodejs12", "NODE_PATH='$(KUBELESS_INSTALL_VOLUME)/node_modules'", "KUBELESS_INSTALL_VOLUME=/kubeless"},
+		Envs:          runtimes.ContainerEnvs(types.Nodejs12, false),
 		ContainerName: "test123",
-		Image:         "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f",
+		Image:         runtimes.ContainerImage(types.Nodejs12),
 		WorkDir:       "/tmp/tmpfunc/",
-		Commands:      []string{"/kubeless-npm-install.sh", "node kubeless.js"},
+		Commands:      runtimes.ContainerCommands(types.Nodejs12),
+		User:          runtimes.ContainerUser(types.Nodejs12),
 	}
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {

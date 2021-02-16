@@ -2,7 +2,8 @@ module github.com/kyma-incubator/hydroform/function-examples
 
 go 1.14
 
-replace github.com/kyma-incubator/hydroform/function => github.com/pPrecel/hydroform/function v0.0.0-20210215125022-fb78e6cb381b
+//replace github.com/kyma-incubator/hydroform/function => github.com/pPrecel/hydroform/function 2bae0404bc9d1ec28031c64776f9f96768b9e878
+replace github.com/kyma-incubator/hydroform/function => github.com/pPrecel/hydroform/function v0.0.0-20210216092427-2bae0404bc9d
 
 require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect
