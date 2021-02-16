@@ -72,16 +72,16 @@ func RuntimeDebugPort(runtime types.Runtime) string {
 	}
 }
 
-func ContainerCommands(runtime types.Runtime) []string {
+func ContainerCommands(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
-		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
+		return "/kubeless-npm-install.sh ; node kubeless.js"
 	case types.Nodejs10:
-		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
+		return "/kubeless-npm-install.sh ; node kubeless.js"
 	case types.Python38:
-		return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py"}
+		return "pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt ; python kubeless.py"
 	default:
-		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
+		return "/kubeless-npm-install.sh ; node kubeless.js"
 	}
 }
 

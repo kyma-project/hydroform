@@ -173,7 +173,7 @@ func TestRunContainer(t *testing.T) {
 							"9229": {},
 						},
 						Image: "test-iname",
-						Shell: []string{},
+						Cmd:   []string{"/bin/sh", "-c", "/kubeless-npm-install.sh ; node kubeless.js"},
 					},
 						&container.HostConfig{
 							PortBindings: nat.PortMap{
@@ -206,7 +206,7 @@ func TestRunContainer(t *testing.T) {
 					Envs:          []string{"env1=test1", "env2=test2"},
 					ContainerName: "test-cname",
 					Image:         "test-iname",
-					Commands:      []string{},
+					Commands:      "/kubeless-npm-install.sh ; node kubeless.js",
 				},
 			},
 			want:    id,
