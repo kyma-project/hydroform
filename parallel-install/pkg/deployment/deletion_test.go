@@ -3,12 +3,11 @@ package deployment
 import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
-	//"k8s.io/client-go/kubernetes/fake"
-	"log"
 	"testing"
 	"time"
 )
@@ -26,7 +25,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 		overridesProvider := &mockOverridesProvider{}
 		eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 			WorkersCount: 2,
-			Verbose:      true,
+			Log:          logger.NewLogger(true),
 		})
 
 		err := i.startKymaUninstallation(provider, eng)
@@ -45,7 +44,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Verbose:      true,
+				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
@@ -76,7 +75,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Verbose:      true,
+				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
@@ -108,7 +107,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Verbose:      true,
+				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
@@ -147,7 +146,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Verbose:      true,
+				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
@@ -174,7 +173,7 @@ func newDeletion(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient kube
 	config := config.Config{
 		CancelTimeout:      cancelTimeout,
 		QuitTimeout:        quitTimeout,
-		Log:                log.Printf,
+		Log:                logger.NewLogger(true),
 		ComponentsListFile: "../test/data/componentlist.yaml",
 	}
 	core, err := newCore(config, Overrides{}, kubeClient, procUpdates)
