@@ -2,9 +2,10 @@ package installation
 
 import (
 	"fmt"
-
+	"github.com/kyma-incubator/hydroform/install/k8s"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type Configuration struct {
@@ -52,24 +53,28 @@ func (c *ConfigEntries) Set(key, value string, secret bool) {
 	*c = append(*c, ConfigEntry{Key: key, Value: value, Secret: secret})
 }
 
-func configurationToK8sResources(configuration Configuration) ([]*corev1.ConfigMap, []*corev1.Secret) {
-	configMaps := make([]*corev1.ConfigMap, 0, len(configuration.ComponentConfiguration)+1)
-	secrets := make([]*corev1.Secret, 0, len(configuration.ComponentConfiguration)+1)
+func configurationToK8sResources(configuration Configuration) ([]*unstructured.Unstructured, error) {
+	var unstructuredArray []*unstructured.Unstructured
 
-	configMap, secret := k8sResourcesFromConfiguration("global", "", configuration.Configuration)
-	configMaps = append(configMaps, configMap)
-	secrets = append(secrets, secret)
-
-	for _, configs := range configuration.ComponentConfiguration {
-		configMap, secret := k8sResourcesFromConfiguration(configs.Component, configs.Component, configs.Configuration)
-		configMaps = append(configMaps, configMap)
-		secrets = append(secrets, secret)
+	k8sResources, err := k8sResourcesFromConfiguration("global", "", configuration.Configuration)
+	if err != nil {
+		return nil, err
 	}
 
-	return configMaps, secrets
+	unstructuredArray = append(unstructuredArray, k8sResources...)
+
+	for _, configs := range configuration.ComponentConfiguration {
+		k8sResources, err := k8sResourcesFromConfiguration(configs.Component, configs.Component, configs.Configuration)
+		if err != nil {
+			return nil, err
+		}
+		unstructuredArray = append(unstructuredArray, k8sResources...)
+	}
+
+	return unstructuredArray, nil
 }
 
-func k8sResourcesFromConfiguration(namePrefix, component string, configuration []ConfigEntry) (*corev1.ConfigMap, *corev1.Secret) {
+func k8sResourcesFromConfiguration(namePrefix, component string, configuration []ConfigEntry) ([]*unstructured.Unstructured, error) {
 	configMap := newOverridesConfigMap(namePrefix, component)
 	secret := newOverridesSecret(namePrefix, component)
 
@@ -81,11 +86,27 @@ func k8sResourcesFromConfiguration(namePrefix, component string, configuration [
 		configMap.Data[confEntry.Key] = confEntry.Value
 	}
 
-	return configMap, secret
+	var output []*unstructured.Unstructured
+
+	output, err := appendUnstructured(output, configMap)
+	if err != nil {
+		return nil, err
+	}
+
+	output, err = appendUnstructured(output, secret)
+	if err != nil {
+		return nil, err
+	}
+
+	return output, nil
 }
 
 func newOverridesConfigMap(namePrefix, component string) *corev1.ConfigMap {
 	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-installer-config", namePrefix),
 			Namespace: kymaInstallerNamespace,
@@ -103,8 +124,21 @@ func newOverridesConfigMap(namePrefix, component string) *corev1.ConfigMap {
 	return configMap
 }
 
+func appendUnstructured(items []*unstructured.Unstructured, item metav1.Object) ([]*unstructured.Unstructured, error) {
+	unstructuredArray, err := k8s.ToUnstructured(item)
+	if err != nil {
+		return nil, err
+	}
+	items = append(items, unstructuredArray)
+	return items, nil
+}
+
 func newOverridesSecret(namePrefix, component string) *corev1.Secret {
 	secret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-installer-config", namePrefix),
 			Namespace: kymaInstallerNamespace,

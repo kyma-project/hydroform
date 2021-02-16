@@ -2,6 +2,8 @@ package k8s
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,4 +33,12 @@ func ParseYamlToK8sObjects(decoder runtime.Decoder, yamlContent string) ([]K8sOb
 	}
 
 	return objects, nil
+}
+
+func ToUnstructured(object metav1.Object) (*unstructured.Unstructured, error) {
+	unstructuredObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(object)
+	if err != nil {
+		return nil, err
+	}
+	return &unstructured.Unstructured{Object: unstructuredObj}, nil
 }

@@ -451,16 +451,14 @@ func (k KymaInstaller) deployInstaller(installerYaml string, createResourcesFunc
 }
 
 func (k KymaInstaller) applyConfiguration(configuration Configuration) error {
-	configMaps, secrets := configurationToK8sResources(configuration)
-
-	err := k.k8sGenericClient.ApplyConfigMaps(configMaps, kymaInstallerNamespace)
+	unstructuredConfigs, err := configurationToK8sResources(configuration)
 	if err != nil {
-		return fmt.Errorf("failed to create configuration config maps: %s", err.Error())
+		return err
 	}
 
-	err = k.k8sGenericClient.ApplySecrets(secrets, kymaInstallerNamespace)
+	err = k.k8sGenericClient.Apply(unstructuredConfigs)
 	if err != nil {
-		return fmt.Errorf("failed to create configuration secrets: %s", err.Error())
+		return fmt.Errorf("failed to create configuration config maps and secrets: %s", err.Error())
 	}
 
 	return nil

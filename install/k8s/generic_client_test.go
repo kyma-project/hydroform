@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"strings"
 	"testing"
 	"time"
@@ -136,15 +137,17 @@ func TestGenericClient_ApplyConfigMaps(t *testing.T) {
 			},
 		}
 
-		cmsToApply := []*v1.ConfigMap{
-			{
-				ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
-				Data:       map[string]string{"key1": "value1", "key2": "value2"},
-			},
-			{
-				ObjectMeta: v12.ObjectMeta{Name: "test2", Namespace: namespace},
-				Data:       map[string]string{"key1": "value1"},
-			},
+		configMap1 := v1.ConfigMap{
+			ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
+			Data:       map[string]string{"key1": "value1", "key2": "value2"},
+		}
+		configMap2 := v1.ConfigMap{
+			ObjectMeta: v12.ObjectMeta{Name: "test2", Namespace: namespace},
+			Data:       map[string]string{"key1": "value1"},
+		}
+		cmToApply := []v12.Object{
+			&configMap1,
+			&configMap2,
 		}
 
 		k8sClientSet := fake.NewSimpleClientset(existingCMs...)
@@ -152,7 +155,7 @@ func TestGenericClient_ApplyConfigMaps(t *testing.T) {
 		client := NewGenericClient(nil, nil, k8sClientSet)
 
 		// when
-		err := client.ApplyConfigMaps(cmsToApply, namespace)
+		err := client.Apply(convertToUnstructured(t, cmToApply))
 
 		// then
 		require.NoError(t, err)
@@ -160,10 +163,10 @@ func TestGenericClient_ApplyConfigMaps(t *testing.T) {
 		cmClient := k8sClientSet.CoreV1().ConfigMaps(namespace)
 		cm, err := cmClient.Get(context.Background(), "test1", v12.GetOptions{})
 		require.NoError(t, err)
-		assert.Equal(t, cmsToApply[0].Data, cm.Data)
-		cm2, err := cmClient.Get(context.Background(), "test2", v12.GetOptions{})
+		assert.Equal(t, configMap1.Data, cm.Data)
+		cm, err = cmClient.Get(context.Background(), "test2", v12.GetOptions{})
 		require.NoError(t, err)
-		assert.Equal(t, cmsToApply[1].Data, cm2.Data)
+		assert.Equal(t, configMap2.Data, cm.Data)
 	})
 }
 
@@ -178,15 +181,17 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 			},
 		}
 
-		secretsToApply := []*v1.Secret{
-			{
-				ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
-				Data:       map[string][]byte{"key1": []byte("value1"), "key2": []byte("value2")},
-			},
-			{
-				ObjectMeta: v12.ObjectMeta{Name: "test2", Namespace: namespace},
-				Data:       map[string][]byte{"key1": []byte("value1")},
-			},
+		secret1 := v1.Secret{
+			ObjectMeta: v12.ObjectMeta{Name: "test2", Namespace: namespace},
+			Data:       map[string][]byte{"key1": []byte("value1")},
+		}
+		secret2 := v1.Secret{
+			ObjectMeta: v12.ObjectMeta{Name: "test1", Namespace: namespace},
+			Data:       map[string][]byte{"key1": []byte("value1"), "key2": []byte("value2")},
+		}
+		secretsToApply := []v12.Object{
+			&secret2,
+			&secret1,
 		}
 
 		k8sClientSet := fake.NewSimpleClientset(existingSecrets...)
@@ -194,7 +199,7 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 		client := NewGenericClient(nil, nil, k8sClientSet)
 
 		// when
-		err := client.ApplySecrets(secretsToApply, namespace)
+		err := client.Apply(convertToUnstructured(t, secretsToApply))
 
 		// then
 		require.NoError(t, err)
@@ -202,11 +207,23 @@ func TestGenericClient_ApplySecrets(t *testing.T) {
 		secretClient := k8sClientSet.CoreV1().Secrets(namespace)
 		secret, err := secretClient.Get(context.Background(), "test1", v12.GetOptions{})
 		require.NoError(t, err)
-		assert.Equal(t, secretsToApply[0].Data, secret.Data)
-		secret2, err := secretClient.Get(context.Background(), "test2", v12.GetOptions{})
+		assert.Equal(t, secret1.Data, secret.Data)
+		secret, err = secretClient.Get(context.Background(), "test2", v12.GetOptions{})
 		require.NoError(t, err)
-		assert.Equal(t, secretsToApply[1].Data, secret2.Data)
+		assert.Equal(t, secret2.Data, secret.Data)
 	})
+}
+
+func convertToUnstructured(t require.TestingT, apply []v12.Object) []*unstructured.Unstructured {
+	var toApply = make([]*unstructured.Unstructured, 0)
+
+	for _, object := range apply {
+		toUnstructured, err := ToUnstructured(object)
+		require.NoError(t, err)
+		toApply = append(toApply, toUnstructured)
+	}
+
+	return toApply
 }
 
 func TestGenericClient_CreateResources(t *testing.T) {

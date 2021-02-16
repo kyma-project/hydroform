@@ -68,78 +68,19 @@ func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desire
 	})
 }
 
-func (c GenericClient) ApplyConfigMaps(configMaps []*corev1.ConfigMap, namespace string) error {
-	client := c.coreClient.ConfigMaps(namespace)
+func (c GenericClient) Apply(objects []*unstructured.Unstructured) error {
 
-	for _, cm := range configMaps {
-		_, err := client.Create(context.Background(), cm, v1.CreateOptions{})
+	for _, item := range objects {
+
+		groupVersionKind := item.GetObjectKind().GroupVersionKind()
+		gvk := &schema.GroupVersionKind{Group: "core", Version: groupVersionKind.Version, Kind: groupVersionKind.Kind}
+
+		clientInterface, err := c.clientForResource(item, gvk)
 		if err != nil {
-			if k8serrors.IsAlreadyExists(err) {
-				err = c.updateConfigMap(client, cm)
-				if err != nil {
-					return fmt.Errorf("config map %s already exists, failed to updated config map: %s", cm.Name, err.Error())
-				}
-				continue
-			}
-			return fmt.Errorf("failed to apply %s config map: %s", cm.Name, err.Error())
+			return err
 		}
+		c.applyObject(clientInterface, item)
 	}
-	return nil
-}
-
-func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) error {
-	oldCM, err := client.Get(context.Background(), cm.Name, v1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	mergedData := MergeStringMaps(oldCM.Data, cm.Data)
-
-	cm.Data = mergedData
-
-	_, err = client.Update(context.Background(), cm, v1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) error {
-	client := c.coreClient.Secrets(namespace)
-
-	for _, sec := range secrets {
-		_, err := client.Create(context.Background(), sec, v1.CreateOptions{})
-		if err != nil {
-			if k8serrors.IsAlreadyExists(err) {
-				err = c.updateSecret(client, sec)
-				if err != nil {
-					return fmt.Errorf("secret %s already exists, failed to updated secret: %s", sec.Name, err.Error())
-				}
-				continue
-			}
-			return fmt.Errorf("failed to apply %s secret: %s", sec.Name, err.Error())
-		}
-	}
-
-	return nil
-}
-
-func (c GenericClient) updateSecret(client corev1Client.SecretInterface, secret *corev1.Secret) error {
-	oldSecret, err := client.Get(context.Background(), secret.Name, v1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	mergedData := MergeByteMaps(oldSecret.Data, secret.Data)
-
-	secret.Data = mergedData
-
-	_, err = client.Update(context.Background(), secret, v1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
