@@ -39,6 +39,8 @@ type Config struct {
 	CrdPath string
 	//Kyma version
 	Version string
+	//Atomic deployment
+	Atomic bool
 }
 
 // validate verifies that mandatory options are provided
