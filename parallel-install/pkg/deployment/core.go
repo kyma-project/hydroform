@@ -157,5 +157,7 @@ func removeFromComponentList(cl *components.ComponentList, componentNames []stri
 
 func registerOverridesInterceptors(o *Overrides) {
 	//hide certificate data
-	o.AddInterceptor([]string{"global.tlsKey", "global.tlsCrt"}, &MaskOverrideInterceptor{})
+	o.AddInterceptor([]string{"global.isLocalEnv", "global.environment.gardener"}, NewFallbackOverrideInterceptor(false))
+	o.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, &DomainNameOverrideInterceptor{})
+	o.AddInterceptor([]string{"global.tlsKey", "global.tlsCrt"}, &CertificateOverrideInterceptor{})
 }

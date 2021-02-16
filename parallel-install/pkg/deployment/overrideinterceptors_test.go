@@ -13,11 +13,11 @@ import (
 type replaceOverrideInterceptor struct {
 }
 
-func (roi *replaceOverrideInterceptor) String(o *Overrides, value interface{}) string {
+func (roi *replaceOverrideInterceptor) String(value interface{}, key string) string {
 	return fmt.Sprintf("%v", value)
 }
 
-func (roi *replaceOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
+func (roi *replaceOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
 	return "intercepted", nil
 }
 
@@ -25,15 +25,31 @@ func (roi *replaceOverrideInterceptor) Undefined(overrides map[string]interface{
 	return nil
 }
 
+//stringerOverrideInterceptor hides the value of an override when the value is converted to a string
+type stringerOverrideInterceptor struct {
+}
+
+func (i *stringerOverrideInterceptor) String(value interface{}, key string) string {
+	return fmt.Sprintf("string-%v", value)
+}
+
+func (i *stringerOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
+	return value, nil
+}
+
+func (i *stringerOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
+	return nil
+}
+
 // interceptor which is failing
 type failingOverrideInterceptor struct {
 }
 
-func (roi *failingOverrideInterceptor) String(o *Overrides, value interface{}) string {
+func (roi *failingOverrideInterceptor) String(value interface{}, key string) string {
 	return fmt.Sprintf("%v", value)
 }
 
-func (roi *failingOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
+func (roi *failingOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
 	return nil, fmt.Errorf("Interceptor failed")
 }
 
@@ -45,11 +61,11 @@ func (roi *failingOverrideInterceptor) Undefined(overrides map[string]interface{
 type undefinedOverrideInterceptor struct {
 }
 
-func (roi *undefinedOverrideInterceptor) String(o *Overrides, value interface{}) string {
+func (roi *undefinedOverrideInterceptor) String(value interface{}, key string) string {
 	return fmt.Sprintf("%v", value)
 }
 
-func (roi *undefinedOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
+func (roi *undefinedOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
 	return value, nil
 }
 
@@ -89,9 +105,9 @@ func Test_InterceptValue(t *testing.T) {
 func Test_InterceptStringer(t *testing.T) {
 	overrides := Overrides{}
 	overrides.AddFile("../test/data/deployment-overrides-intercepted.yaml")
-	overrides.AddInterceptor([]string{"chart.key1", "chart.key3"}, &MaskOverrideInterceptor{})
+	overrides.AddInterceptor([]string{"chart.key1", "chart.key3"}, &stringerOverrideInterceptor{})
 	require.Equal(t,
-		"map[chart:map[key1:<masked> key2:map[key2.1:value2.1yaml key2.2:value2.2yaml] key3:<masked> key4:value4yaml]]",
+		"map[chart:map[key1:string- key2:map[key2.1:value2.1yaml key2.2:value2.2yaml] key3:<masked> key4:value4yaml]]",
 		fmt.Sprint(overrides))
 }
 
@@ -121,7 +137,6 @@ func Test_FallbackInterceptor(t *testing.T) {
 		overrides.AddInterceptor([]string{"chart.key3.xyz"}, NewFallbackOverrideInterceptor("Use me as fallback"))
 		result, err := overrides.Merge()
 		require.Empty(t, result)
-		fmt.Println(err)
 		require.Error(t, err)
 	})
 }

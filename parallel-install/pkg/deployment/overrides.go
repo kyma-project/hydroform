@@ -136,9 +136,9 @@ func (o *Overrides) interceptValue(path string, value interface{}, ops intercept
 	}
 	//apply interceptor
 	if ops == interceptorOpsString {
-		return interceptor.String(o, value), nil
+		return interceptor.String(value, path), nil
 	}
-	return interceptor.Intercept(o, value)
+	return interceptor.Intercept(value, path)
 }
 
 func (o *Overrides) interceptUndefined(data map[string]interface{}) error {
