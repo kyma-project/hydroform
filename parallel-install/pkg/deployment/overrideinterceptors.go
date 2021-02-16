@@ -4,7 +4,7 @@ import "fmt"
 
 // OverrideInterceptor is controlling access to override values
 type OverrideInterceptor interface {
-	//String show the value of the override
+	//String shows the value of the override
 	String(o *Overrides, value interface{}) string
 	//Intercept is executed when the override is retrieved
 	Intercept(o *Overrides, value interface{}) (interface{}, error)
