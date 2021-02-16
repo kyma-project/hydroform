@@ -1,6 +1,7 @@
 package components
 
 import (
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"path"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -15,7 +16,7 @@ type PrerequisitesProvider struct {
 	resourcesPath     string ////A root directory where subdirectories of components' charts are located.
 	components        []ComponentDefinition
 	helmConfig        helm.Config
-	log               func(format string, v ...interface{})
+	log               logger.Interface
 	profile           string
 }
 

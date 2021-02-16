@@ -47,7 +47,7 @@ func newCore(cfg config.Config, overrides Overrides, kubeClient kubernetes.Inter
 	}
 
 	if isK3dCluster(kubeClient) {
-		cfg.Log("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
+		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
 		removeFromComponentList(clList, incompatibleLocalComponents)
 	}
 
@@ -69,9 +69,9 @@ func (i *core) ReadKymaMetadata() (*metadata.KymaMetadata, error) {
 }
 
 func (i *core) logStatuses(statusMap map[string]string) {
-	i.cfg.Log("Components processed so far:")
+	i.cfg.Log.Infof("Components processed so far:")
 	for k, v := range statusMap {
-		i.cfg.Log("Component: %s, Status: %s", k, v)
+		i.cfg.Log.Infof("Component: %s, Status: %s", k, v)
 	}
 }
 
@@ -91,7 +91,7 @@ func (i *core) getConfig() (overrides.OverridesProvider, components.Provider, *e
 
 	engineCfg := engine.Config{
 		WorkersCount: i.cfg.WorkersCount,
-		Verbose:      false,
+		Log:          i.cfg.Log,
 	}
 	eng := engine.NewEngine(overridesProvider, componentsProvider, engineCfg)
 
