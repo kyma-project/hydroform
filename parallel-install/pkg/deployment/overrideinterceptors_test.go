@@ -21,7 +21,7 @@ func (roi *replaceOverrideInterceptor) Intercept(o *Overrides, value interface{}
 	return "intercepted", nil
 }
 
-func (roi *replaceOverrideInterceptor) Undefined(o *Overrides, key string) error {
+func (roi *replaceOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
 	return nil
 }
 
@@ -37,23 +37,7 @@ func (roi *failingOverrideInterceptor) Intercept(o *Overrides, value interface{}
 	return nil, fmt.Errorf("Interceptor failed")
 }
 
-func (roi *failingOverrideInterceptor) Undefined(o *Overrides, key string) error {
-	return nil
-}
-
-// interceptor which is returning a manipulated string
-type stringerOverrideInterceptor struct {
-}
-
-func (roi *stringerOverrideInterceptor) String(o *Overrides, value interface{}) string {
-	return fmt.Sprintf("string-%v", value)
-}
-
-func (roi *stringerOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
-	return nil, fmt.Errorf("Interceptor failed")
-}
-
-func (roi *stringerOverrideInterceptor) Undefined(o *Overrides, key string) error {
+func (roi *failingOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
 	return nil
 }
 
@@ -69,7 +53,7 @@ func (roi *undefinedOverrideInterceptor) Intercept(o *Overrides, value interface
 	return value, nil
 }
 
-func (roi *undefinedOverrideInterceptor) Undefined(o *Overrides, key string) error {
+func (roi *undefinedOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
 	return fmt.Errorf("This value was missing")
 }
 
@@ -102,22 +86,42 @@ func Test_InterceptValue(t *testing.T) {
 	})
 }
 
-func Test_InterceptString(t *testing.T) {
+func Test_InterceptStringer(t *testing.T) {
 	overrides := Overrides{}
 	overrides.AddFile("../test/data/deployment-overrides-intercepted.yaml")
-	overrides.AddInterceptor([]string{"chart.key1", "chart.key3"}, &stringerOverrideInterceptor{})
+	overrides.AddInterceptor([]string{"chart.key1", "chart.key3"}, &MaskOverrideInterceptor{})
 	require.Equal(t,
-		"map[chart:map[key1:string-value1yaml key2:map[key2.1:value2.1yaml key2.2:value2.2yaml] key3:string-value3yaml key4:value4yaml]]",
+		"map[chart:map[key1:<masked> key2:map[key2.1:value2.1yaml key2.2:value2.2yaml] key3:<masked> key4:value4yaml]]",
 		fmt.Sprint(overrides))
 }
 
 func Test_InterceptUndefined(t *testing.T) {
 	overrides := Overrides{}
 	overrides.AddFile("../test/data/deployment-overrides-intercepted.yaml")
-	overrides.AddInterceptor([]string{"chart.key1"}, &replaceOverrideInterceptor{})
 	overrides.AddInterceptor([]string{"I.dont.exist"}, &undefinedOverrideInterceptor{})
 	result, err := overrides.Merge()
 	require.Empty(t, result)
 	require.Error(t, err)
 	require.Equal(t, "This value was missing", err.Error())
+}
+
+func Test_FallbackInterceptor(t *testing.T) {
+	overrides := Overrides{}
+	overrides.AddFile("../test/data/deployment-overrides-intercepted.yaml")
+
+	t.Run("Test FallbackInterceptor happy path", func(t *testing.T) {
+		overrides.AddInterceptor([]string{"I.dont.exist"}, NewFallbackOverrideInterceptor("I am the fallback"))
+		result, err := overrides.Merge()
+		require.NotEmpty(t, result)
+		require.NoError(t, err)
+		require.Equal(t, "I am the fallback", result["I"].(map[string]interface{})["dont"].(map[string]interface{})["exist"])
+	})
+
+	t.Run("Test FallbackInterceptor with sub-key which is not a map", func(t *testing.T) {
+		overrides.AddInterceptor([]string{"chart.key3.xyz"}, NewFallbackOverrideInterceptor("Use me as fallback"))
+		result, err := overrides.Merge()
+		require.Empty(t, result)
+		fmt.Println(err)
+		require.Error(t, err)
+	})
 }
