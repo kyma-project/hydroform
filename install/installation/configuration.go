@@ -13,8 +13,8 @@ type Configuration struct {
 	Configuration ConfigEntries
 	// ComponentConfiguration specifies configuration for individual components
 	ComponentConfiguration []ComponentConfiguration
-	// OnConflict specifies system behaviour when global config is already defined
-	OnConflict string
+	// ConflictStrategy specifies system behaviour when global config is already defined
+	ConflictStrategy string
 }
 
 type ComponentConfiguration struct {
@@ -22,8 +22,8 @@ type ComponentConfiguration struct {
 	Component string
 	// Configuration specifies configuration for the component
 	Configuration ConfigEntries
-	// OnConflict specifies system behaviour when config is already defined
-	OnConflict string
+	// ConflictStrategy specifies system behaviour when config is already defined
+	ConflictStrategy string
 }
 
 type ConfigEntry struct {
@@ -63,8 +63,8 @@ func configurationToK8sResources(configuration Configuration) ([]*corev1.ConfigM
 
 	configMap, secret := k8sResourcesFromConfiguration("global", "", configuration.Configuration)
 
-	configMap.ObjectMeta.Labels[k8s.OnConflictLabel] = configuration.OnConflict
-	secret.ObjectMeta.Labels[k8s.OnConflictLabel] = configuration.OnConflict
+	configMap.ObjectMeta.Labels[k8s.OnConflictLabel] = configuration.ConflictStrategy
+	secret.ObjectMeta.Labels[k8s.OnConflictLabel] = configuration.ConflictStrategy
 
 	configMaps = append(configMaps, configMap)
 	secrets = append(secrets, secret)
@@ -72,8 +72,8 @@ func configurationToK8sResources(configuration Configuration) ([]*corev1.ConfigM
 	for _, configs := range configuration.ComponentConfiguration {
 		configMap, secret := k8sResourcesFromConfiguration(configs.Component, configs.Component, configs.Configuration)
 
-		configMap.ObjectMeta.Labels[k8s.OnConflictLabel] = configs.OnConflict
-		secret.ObjectMeta.Labels[k8s.OnConflictLabel] = configs.OnConflict
+		configMap.ObjectMeta.Labels[k8s.OnConflictLabel] = configs.ConflictStrategy
+		secret.ObjectMeta.Labels[k8s.OnConflictLabel] = configs.ConflictStrategy
 
 		configMaps = append(configMaps, configMap)
 		secrets = append(secrets, secret)

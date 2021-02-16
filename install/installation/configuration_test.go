@@ -86,12 +86,12 @@ func TestConfiguration_configurationToK8sResources(t *testing.T) {
 			Configuration: entries,
 			ComponentConfiguration: []ComponentConfiguration{
 				{
-					Component:     "testComponent",
-					Configuration: entries,
-					OnConflict:    k8s.ReplaceOnConflict,
+					Component:        "testComponent",
+					Configuration:    entries,
+					ConflictStrategy: k8s.ReplaceOnConflict,
 				},
 			},
-			OnConflict: k8s.ReplaceOnConflict,
+			ConflictStrategy: k8s.ReplaceOnConflict,
 		})
 
 		keys := make([]string, 0)
