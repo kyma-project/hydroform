@@ -51,6 +51,8 @@ func newCore(cfg config.Config, overrides Overrides, kubeClient kubernetes.Inter
 		removeFromComponentList(clList, incompatibleLocalComponents)
 	}
 
+	registerOverridesInterceptors(&overrides)
+
 	metadataProvider := metadata.New(kubeClient)
 
 	return &core{
@@ -151,4 +153,9 @@ func removeFromComponentList(cl *components.ComponentList, componentNames []stri
 	for _, compName := range componentNames {
 		cl.Remove(compName)
 	}
+}
+
+func registerOverridesInterceptors(o *Overrides) {
+	//hide certificate data
+	o.AddInterceptor([]string{"global.tlsKey", "global.tlsCrt"}, &MaskOverrideInterceptor{})
 }

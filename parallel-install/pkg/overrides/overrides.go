@@ -7,6 +7,7 @@ package overrides
 import (
 	"context"
 	"fmt"
+
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"helm.sh/helm/v3/pkg/strvals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,10 +66,10 @@ func (p *Provider) OverridesGetterFunctionFor(name string) func() map[string]int
 	return func() map[string]interface{} {
 		if val, ok := p.componentOverrides[name]; ok {
 			val = MergeMaps(val, p.overrides)
-			p.log.Infof("%s Overrides for %s: %v", logPrefix, name, val)
+			//p.log("%s Overrides for %s: %v", logPrefix, name, val)
 			return val
 		}
-		p.log.Infof("%s Overrides for %s: %v", logPrefix, name, p.overrides)
+		//p.log("%s Overrides for %s: %v", logPrefix, name, p.overrides)
 		return p.overrides
 	}
 }
