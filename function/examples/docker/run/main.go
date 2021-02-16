@@ -8,6 +8,7 @@ import (
 	"github.com/kyma-incubator/hydroform/function/pkg/docker/runtimes"
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"os"
 )
 
 func main() {
@@ -23,7 +24,12 @@ func main() {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		fmt.Println(err)
+		os.Exit(1)
 	}
 	ctx := context.Background()
-	docker.RunContainer(ctx, cli, runOpts)
+	_, err = docker.RunContainer(ctx, cli, runOpts)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
