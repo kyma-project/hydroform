@@ -10,8 +10,9 @@ import (
 
 func TestContainerEnvs(t *testing.T) {
 	type args struct {
-		runtime types.Runtime
-		debug   bool
+		runtime   types.Runtime
+		debug     bool
+		hotDeploy bool
 	}
 	tests := []struct {
 		name string
@@ -21,8 +22,9 @@ func TestContainerEnvs(t *testing.T) {
 		{
 			name: "should return envs for empty runtime",
 			args: args{
-				runtime: "",
-				debug:   false,
+				runtime:   "",
+				debug:     false,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -36,8 +38,9 @@ func TestContainerEnvs(t *testing.T) {
 		{
 			name: "should return envs for empty runtime with debug",
 			args: args{
-				runtime: "",
-				debug:   true,
+				runtime:   "",
+				debug:     true,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -50,10 +53,27 @@ func TestContainerEnvs(t *testing.T) {
 			},
 		},
 		{
+			name: "should return envs for empty runtime with hotDeploy",
+			args: args{
+				runtime:   "",
+				debug:     false,
+				hotDeploy: true,
+			},
+			want: []string{
+				"FUNC_RUNTIME=",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
+				Nodejs12Path,
+			},
+		},
+		{
 			name: "should return envs for nodejs12",
 			args: args{
-				runtime: types.Nodejs12,
-				debug:   false,
+				runtime:   types.Nodejs12,
+				debug:     false,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -67,8 +87,9 @@ func TestContainerEnvs(t *testing.T) {
 		{
 			name: "should return envs for nodejs12 with debug",
 			args: args{
-				runtime: types.Nodejs12,
-				debug:   true,
+				runtime:   types.Nodejs12,
+				debug:     true,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -83,8 +104,9 @@ func TestContainerEnvs(t *testing.T) {
 		{
 			name: "should return envs for nodejs10",
 			args: args{
-				runtime: types.Nodejs10,
-				debug:   false,
+				runtime:   types.Nodejs10,
+				debug:     false,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -98,8 +120,9 @@ func TestContainerEnvs(t *testing.T) {
 		{
 			name: "should return envs for nodejs10 with debug",
 			args: args{
-				runtime: types.Nodejs10,
-				debug:   true,
+				runtime:   types.Nodejs10,
+				debug:     true,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -112,10 +135,27 @@ func TestContainerEnvs(t *testing.T) {
 			},
 		},
 		{
+			name: "should return envs for nodejs10 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs10,
+				debug:     false,
+				hotDeploy: true,
+			},
+			want: []string{
+				"FUNC_RUNTIME=nodejs10",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
+				Nodejs10Path,
+			},
+		},
+		{
 			name: "should return envs for python38",
 			args: args{
-				runtime: types.Python38,
-				debug:   false,
+				runtime:   types.Python38,
+				debug:     false,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -129,8 +169,9 @@ func TestContainerEnvs(t *testing.T) {
 		{
 			name: "should return envs for python38 with debug",
 			args: args{
-				runtime: types.Python38,
-				debug:   false,
+				runtime:   types.Python38,
+				debug:     false,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -142,10 +183,27 @@ func TestContainerEnvs(t *testing.T) {
 				// TODO
 			},
 		},
+		{
+			name: "should return envs for python38 with hotDeploy",
+			args: args{
+				runtime:   types.Python38,
+				debug:     false,
+				hotDeploy: true,
+			},
+			want: []string{
+				"FUNC_RUNTIME=python38",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
+				Python38Path,
+				"CHERRYPY_RELOADED=true",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainerEnvs(tt.args.runtime, tt.args.debug); !reflect.DeepEqual(got, tt.want) {
+			if got := ContainerEnvs(tt.args.runtime, tt.args.debug, tt.args.hotDeploy); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ContainerEnvs() = %v, want %v", got, tt.want)
 			}
 		})
@@ -190,7 +248,8 @@ func TestRuntimeDebugPort(t *testing.T) {
 
 func TestContainerCommands(t *testing.T) {
 	type args struct {
-		runtime types.Runtime
+		runtime   types.Runtime
+		hotDeploy bool
 	}
 	tests := []struct {
 		name string
@@ -205,11 +264,31 @@ func TestContainerCommands(t *testing.T) {
 			want: "/kubeless-npm-install.sh ; node kubeless.js",
 		},
 		{
+			name: "should return commands for empty runtime with hotDeploy",
+			args: args{
+				runtime:   "",
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+			},
+		},
+		{
 			name: "should return commands for Nodejs12",
 			args: args{
 				runtime: types.Nodejs12,
 			},
 			want: "/kubeless-npm-install.sh ; node kubeless.js",
+		},
+		{
+			name: "should return commands for Nodejs12 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs12,
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+			},
 		},
 		{
 			name: "should return commands for Nodejs10",
@@ -219,16 +298,36 @@ func TestContainerCommands(t *testing.T) {
 			want: "/kubeless-npm-install.sh ; node kubeless.js",
 		},
 		{
+			name: "should return commands for Nodejs10 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs10,
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+			},
+		},
+		{
 			name: "should return commands for Python38",
 			args: args{
 				runtime: types.Python38,
 			},
 			want: "pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt ; python kubeless.py",
 		},
+		{
+			name: "should return commands for Python38 with hotDeploy",
+			args: args{
+				runtime:   types.Python38,
+				hotDeploy: true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainerCommands(tt.args.runtime); !reflect.DeepEqual(got, tt.want) {
+			if got := ContainerCommands(tt.args.runtime, tt.args.hotDeploy); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ContainerCommands() = %v, want %v", got, tt.want)
 			}
 		})
