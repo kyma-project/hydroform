@@ -107,7 +107,7 @@ func Test_InterceptStringer(t *testing.T) {
 	overrides.AddFile("../test/data/deployment-overrides-intercepted.yaml")
 	overrides.AddInterceptor([]string{"chart.key1", "chart.key3"}, &stringerOverrideInterceptor{})
 	require.Equal(t,
-		"map[chart:map[key1:string- key2:map[key2.1:value2.1yaml key2.2:value2.2yaml] key3:<masked> key4:value4yaml]]",
+		"map[chart:map[key1:string-value1yaml key2:map[key2.1:value2.1yaml key2.2:value2.2yaml] key3:string-value3yaml key4:value4yaml]]",
 		fmt.Sprint(overrides))
 }
 
