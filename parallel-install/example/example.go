@@ -7,13 +7,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -65,7 +65,7 @@ func main() {
 		Profile:                       *profile,
 		ComponentsListFile:            "./components.yaml",
 		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
-		CrdPath:                       fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources/cluster-essentials/files", goPath),
+		InstallationResourcePath:      fmt.Sprintf("%s/src/github.com/kyma-project/kyma/installation/resources", goPath),
 		Version:                       *version,
 	}
 
@@ -85,6 +85,16 @@ func main() {
 		log.Error("Failed to create kube client. Exiting...")
 		os.Exit(1)
 	}
+
+	//Install CRDs
+	preinstaller := preinstaller.NewPreInstaller(installationCfg, kubeClient, progressCh)
+	err = preinstaller.InstallCRDs()
+	if err != nil {
+		log.Errorf("Failed to install CRDs: %s", err)
+	}
+
+	// TODO: remove
+	return
 
 	//Deploy Kyma
 	deployer, err := deployment.NewDeployment(installationCfg, builder, kubeClient, progressCh)
