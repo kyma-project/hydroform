@@ -140,3 +140,23 @@ func Test_FallbackInterceptor(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func Test_GlobalOverridesInterception(t *testing.T) {
+	o := Overrides{}
+	o.AddInterceptor([]string{"global.isLocalEnv", "global.environment.gardener"}, NewFallbackOverrideInterceptor(false))
+	o.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, &DomainNameOverrideInterceptor{})
+	o.AddInterceptor([]string{"global.tlsKey", "global.tlsCrt"}, &CertificateOverrideInterceptor{})
+
+	// read expected result
+	data, err := ioutil.ReadFile("../test/data/deployment-global-overrides.yaml")
+	require.NoError(t, err)
+	var expected map[string]interface{}
+	err = yaml.Unmarshal(data, &expected)
+	require.NoError(t, err)
+
+	// verify global overrides
+	result, err := o.Merge()
+	require.NotEmpty(t, result)
+	require.NoError(t, err)
+	require.Equal(t, expected, result)
+}
