@@ -276,6 +276,16 @@ func TestContainerCommands(t *testing.T) {
 			},
 		},
 		{
+			name: "should return commands for empty runtime with hotDeploy",
+			args: args{
+				runtime:   "",
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+			},
+		},
+		{
 			name: "should return commands for Nodejs12",
 			args: args{
 				runtime: types.Nodejs12,
@@ -292,6 +302,16 @@ func TestContainerCommands(t *testing.T) {
 			},
 			want: []string{
 				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+			},
+		},
+		{
+			name: "should return commands for Nodejs12 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs12,
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -314,9 +334,29 @@ func TestContainerCommands(t *testing.T) {
 			},
 		},
 		{
+			name: "should return commands for Nodejs10 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs10,
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+			},
+		},
+		{
 			name: "should return commands for Python38",
 			args: args{
 				runtime: types.Python38,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python38 with hotDeploy",
+			args: args{
+				runtime:   types.Python38,
+				hotDeploy: true,
 			},
 			want: []string{
 				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
