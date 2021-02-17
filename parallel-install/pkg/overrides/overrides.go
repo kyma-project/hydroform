@@ -66,10 +66,10 @@ func (p *Provider) OverridesGetterFunctionFor(name string) func() map[string]int
 	return func() map[string]interface{} {
 		if val, ok := p.componentOverrides[name]; ok {
 			val = MergeMaps(val, p.overrides)
-			//p.log("%s Overrides for %s: %v", logPrefix, name, val)
+			//p.log.Info("%s Overrides for %s: %v", logPrefix, name, val)
 			return val
 		}
-		//p.log("%s Overrides for %s: %v", logPrefix, name, p.overrides)
+		//p.log.Info("%s Overrides for %s: %v", logPrefix, name, p.overrides)
 		return p.overrides
 	}
 }
