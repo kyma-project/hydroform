@@ -1,9 +1,13 @@
 package deployment
 
 import (
+	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -55,6 +59,10 @@ func (i *DomainNameOverrideInterceptor) Undefined(overrides map[string]interface
 
 //CertificateOverrideInterceptor handles certificates
 type CertificateOverrideInterceptor struct {
+	tlsCrtOverrideKey string
+	tlsKeyOverrideKey string
+	tlsCrtEnc         string
+	tlsKeyEnc         string
 }
 
 func (i *CertificateOverrideInterceptor) String(value interface{}, key string) string {
@@ -62,16 +70,62 @@ func (i *CertificateOverrideInterceptor) String(value interface{}, key string) s
 }
 
 func (i *CertificateOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
+	switch key {
+	case i.tlsCrtOverrideKey:
+		i.tlsCrtEnc = value.(string)
+	case i.tlsKeyOverrideKey:
+		i.tlsKeyEnc = value.(string)
+	}
+	if err := i.validate(); err != nil {
+		return nil, err
+	}
 	return value, nil
 }
 
 func (i *CertificateOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	if key == "global.tlsCrt" {
-		return NewFallbackOverrideInterceptor(defaultTLSCrtEnc).Undefined(overrides, key)
-	} else if key == "global.tlsKey" {
-		return NewFallbackOverrideInterceptor(defaultTLSKeyEnc).Undefined(overrides, key)
+	var fbInterc *FallbackOverrideInterceptor
+	switch key {
+	case i.tlsCrtOverrideKey:
+		fbInterc = NewFallbackOverrideInterceptor(defaultTLSCrtEnc)
+		i.tlsCrtEnc = defaultTLSCrtEnc
+	case i.tlsKeyOverrideKey:
+		fbInterc = NewFallbackOverrideInterceptor(defaultTLSKeyEnc)
+		i.tlsKeyEnc = defaultTLSKeyEnc
+	default:
+		return fmt.Errorf("Certificate interceptor can not handle overrides-key '%s'", key)
 	}
-	return fmt.Errorf("Certificate interceptor can not handle overrides-key '%s'", key)
+	if err := fbInterc.Undefined(overrides, key); err != nil {
+		return err
+	}
+	return i.validate()
+}
+
+func (i *CertificateOverrideInterceptor) validate() error {
+	if i.tlsCrtEnc != "" && i.tlsKeyEnc != "" {
+		//decode tls crt and key
+		crt, err := base64.StdEncoding.DecodeString(i.tlsCrtEnc)
+		if err != nil {
+			return err
+		}
+		key, err := base64.StdEncoding.DecodeString(i.tlsKeyEnc)
+		if err != nil {
+			return err
+		}
+		//ensure that crt and key are fitting together
+		_, err = tls.X509KeyPair(crt, key)
+		if err != nil {
+			return errors.Wrap(err,
+				fmt.Sprintf("Provided TLS certificate (passed in keys '%s' and '%s') is invalid", i.tlsCrtOverrideKey, i.tlsKeyOverrideKey))
+		}
+	}
+	return nil
+}
+
+func NewCertificateOverrideInterceptor(tlsCrtOverrideKey, tlsKeyOverrideKey string) *CertificateOverrideInterceptor {
+	return &CertificateOverrideInterceptor{
+		tlsCrtOverrideKey: tlsCrtOverrideKey,
+		tlsKeyOverrideKey: tlsKeyOverrideKey,
+	}
 }
 
 //FallbackOverrideInterceptor sets a default value for an undefined overwrite
@@ -110,6 +164,10 @@ func (i *FallbackOverrideInterceptor) Undefined(overrides map[string]interface{}
 	}
 
 	return nil
+}
+
+func (i *FallbackOverrideInterceptor) Fallback() interface{} {
+	return i.fallback
 }
 
 func NewFallbackOverrideInterceptor(fallback interface{}) *FallbackOverrideInterceptor {
