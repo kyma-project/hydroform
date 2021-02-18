@@ -77,7 +77,7 @@ func (i *Deployment) startKymaDeployment(prerequisitesProvider components.Provid
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	i.cfg.Log.Errorf("Kyma prerequisites deployment")
+	i.cfg.Log.Info("Kyma prerequisites deployment")
 
 	prerequisites, err := prerequisitesProvider.GetComponents()
 	if err != nil {

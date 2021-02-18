@@ -13,15 +13,31 @@ import (
 type replaceOverrideInterceptor struct {
 }
 
-func (roi *replaceOverrideInterceptor) String(o *Overrides, value interface{}) string {
+func (roi *replaceOverrideInterceptor) String(value interface{}, key string) string {
 	return fmt.Sprintf("%v", value)
 }
 
-func (roi *replaceOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
+func (roi *replaceOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
 	return "intercepted", nil
 }
 
-func (roi *replaceOverrideInterceptor) Undefined(o *Overrides, key string) error {
+func (roi *replaceOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
+	return nil
+}
+
+//stringerOverrideInterceptor hides the value of an override when the value is converted to a string
+type stringerOverrideInterceptor struct {
+}
+
+func (i *stringerOverrideInterceptor) String(value interface{}, key string) string {
+	return fmt.Sprintf("string-%v", value)
+}
+
+func (i *stringerOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
+	return value, nil
+}
+
+func (i *stringerOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
 	return nil
 }
 
@@ -29,31 +45,15 @@ func (roi *replaceOverrideInterceptor) Undefined(o *Overrides, key string) error
 type failingOverrideInterceptor struct {
 }
 
-func (roi *failingOverrideInterceptor) String(o *Overrides, value interface{}) string {
+func (roi *failingOverrideInterceptor) String(value interface{}, key string) string {
 	return fmt.Sprintf("%v", value)
 }
 
-func (roi *failingOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
+func (roi *failingOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
 	return nil, fmt.Errorf("Interceptor failed")
 }
 
-func (roi *failingOverrideInterceptor) Undefined(o *Overrides, key string) error {
-	return nil
-}
-
-// interceptor which is returning a manipulated string
-type stringerOverrideInterceptor struct {
-}
-
-func (roi *stringerOverrideInterceptor) String(o *Overrides, value interface{}) string {
-	return fmt.Sprintf("string-%v", value)
-}
-
-func (roi *stringerOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
-	return nil, fmt.Errorf("Interceptor failed")
-}
-
-func (roi *stringerOverrideInterceptor) Undefined(o *Overrides, key string) error {
+func (roi *failingOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
 	return nil
 }
 
@@ -61,15 +61,15 @@ func (roi *stringerOverrideInterceptor) Undefined(o *Overrides, key string) erro
 type undefinedOverrideInterceptor struct {
 }
 
-func (roi *undefinedOverrideInterceptor) String(o *Overrides, value interface{}) string {
+func (roi *undefinedOverrideInterceptor) String(value interface{}, key string) string {
 	return fmt.Sprintf("%v", value)
 }
 
-func (roi *undefinedOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
+func (roi *undefinedOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
 	return value, nil
 }
 
-func (roi *undefinedOverrideInterceptor) Undefined(o *Overrides, key string) error {
+func (roi *undefinedOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
 	return fmt.Errorf("This value was missing")
 }
 
@@ -102,7 +102,7 @@ func Test_InterceptValue(t *testing.T) {
 	})
 }
 
-func Test_InterceptString(t *testing.T) {
+func Test_InterceptStringer(t *testing.T) {
 	overrides := Overrides{}
 	overrides.AddFile("../test/data/deployment-overrides-intercepted.yaml")
 	overrides.AddInterceptor([]string{"chart.key1", "chart.key3"}, &stringerOverrideInterceptor{})
@@ -114,10 +114,91 @@ func Test_InterceptString(t *testing.T) {
 func Test_InterceptUndefined(t *testing.T) {
 	overrides := Overrides{}
 	overrides.AddFile("../test/data/deployment-overrides-intercepted.yaml")
-	overrides.AddInterceptor([]string{"chart.key1"}, &replaceOverrideInterceptor{})
 	overrides.AddInterceptor([]string{"I.dont.exist"}, &undefinedOverrideInterceptor{})
 	result, err := overrides.Merge()
 	require.Empty(t, result)
 	require.Error(t, err)
 	require.Equal(t, "This value was missing", err.Error())
+}
+
+func Test_FallbackInterceptor(t *testing.T) {
+	overrides := Overrides{}
+	overrides.AddFile("../test/data/deployment-overrides-intercepted.yaml")
+
+	t.Run("Test FallbackInterceptor happy path", func(t *testing.T) {
+		overrides.AddInterceptor([]string{"I.dont.exist"}, NewFallbackOverrideInterceptor("I am the fallback"))
+		result, err := overrides.Merge()
+		require.NotEmpty(t, result)
+		require.NoError(t, err)
+		require.Equal(t, "I am the fallback", result["I"].(map[string]interface{})["dont"].(map[string]interface{})["exist"])
+	})
+
+	t.Run("Test FallbackInterceptor with sub-key which is not a map", func(t *testing.T) {
+		overrides.AddInterceptor([]string{"chart.key3.xyz"}, NewFallbackOverrideInterceptor("Use me as fallback"))
+		result, err := overrides.Merge()
+		require.Empty(t, result)
+		require.Error(t, err)
+	})
+}
+
+func Test_GlobalOverridesInterception(t *testing.T) {
+	o := Overrides{}
+	o.AddInterceptor([]string{"global.isLocalEnv", "global.environment.gardener"}, NewFallbackOverrideInterceptor(false))
+	o.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, &DomainNameOverrideInterceptor{})
+	o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+
+	// read expected result
+	data, err := ioutil.ReadFile("../test/data/deployment-global-overrides.yaml")
+	require.NoError(t, err)
+	var expected map[string]interface{}
+	err = yaml.Unmarshal(data, &expected)
+	require.NoError(t, err)
+
+	// verify global overrides
+	result, err := o.Merge()
+	require.NotEmpty(t, result)
+	require.NoError(t, err)
+	require.Equal(t, expected, result)
+}
+
+func Test_CertificateOverridesInterception(t *testing.T) {
+
+	t.Run("CertificateInterceptor using fallbacks", func(t *testing.T) {
+		o := Overrides{}
+		o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+		// verify cert overrides
+		result, err := o.Merge()
+		require.NotEmpty(t, result)
+		require.NoError(t, err)
+	})
+
+	t.Run("CertificateInterceptor using existing certs", func(t *testing.T) {
+		o := Overrides{}
+
+		tlsOverrides := make(map[string]interface{})
+		tlsOverrides["tlsCrt"] = defaultTLSCrtEnc
+		tlsOverrides["tlsKey"] = defaultTLSKeyEnc
+		o.AddOverrides("global", tlsOverrides)
+
+		o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+		// verify cert overrides
+		result, err := o.Merge()
+		require.NotEmpty(t, result)
+		require.NoError(t, err)
+	})
+
+	t.Run("CertificateInterceptor using invalid certs", func(t *testing.T) {
+		o := Overrides{}
+
+		tlsOverrides := make(map[string]interface{})
+		tlsOverrides["tlsCrt"] = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZSRENDQXl3Q0NRQ2pOdWF5a2xVZGRqQU5CZ2txaGtpRzl3MEJBUXNGQURCa01Rc3dDUVlEVlFRR0V3SkUKUlRFUU1BNEdBMVVFQ0F3SFFtRjJZWEpwWVRFUE1BMEdBMVVFQnd3R1RYVnVhV05vTVE4d0RRWURWUVFLREFaVApRVkFnVTBVeERUQUxCZ05WQkFzTUJFdDViV0V4RWpBUUJnTlZCQU1NQ1hSbGMzUXVZMkZ6WlRBZUZ3MHlNVEF5Ck1UZ3hNVEl3TkRaYUZ3MHlNakF5TVRneE1USXdORFphTUdReEN6QUpCZ05WQkFZVEFrUkZNUkF3RGdZRFZRUUkKREFkQ1lYWmhjbWxoTVE4d0RRWURWUVFIREFaTmRXNXBZMmd4RHpBTkJnTlZCQW9NQmxOQlVDQlRSVEVOTUFzRwpBMVVFQ3d3RVMzbHRZVEVTTUJBR0ExVUVBd3dKZEdWemRDNWpZWE5sTUlJQ0lqQU5CZ2txaGtpRzl3MEJBUUVGCkFBT0NBZzhBTUlJQ0NnS0NBZ0VBMFFBM1BPOFlWY2NFbVVvYkppQzZQZjN0eHBNWFJlRmNObUZiVDgvY1ArcDcKT2hIVVZzMUE4YWxRS2VXVy8yMTU2bm83clpsMUtVUXlBYVVNL054cTdhNWJaRUF1WmdtcjhWSVJNUDlnME14aQoxb3NGcXJiaE05cVMrL29adjFURlg1M2pZVHFvZkxselVnbWZPeHFyby9Wb1RWZS9mMTR2TG5EQkF5UG0vRXdOCkZxOWtqblhnaERxNnJpSTJ4T1c2YVpaR3lGVHN3ZHpzbm5CK3B4L3dqc21nTGlTSVRXbDA3ekRTa0RaRjlIY3kKbFhGWGIxeGJNZUpySWtYTCtqRVE2T3hTbWw0QjZMeGszc3o3L0JFb0JVaG1zMDR2T2paNjgzQi9zd1FZeEdzRgpGcU4vcnRXTHBGQmUxckdDM2NKYXFuVUIwTVRBK0dGL2dTcGdPV0g5Q3JScnc0RXhQMFNTWkwvUWZRaGc2Nmw1CmZxNUdGNzVEYWx2ckNlOVpWYzN5TDFJWUJHY2cxMUlPQk9ZaGFYUElEWEx1K3pFbERCaTlLZzdnYTkxYmJoQ3cKUXpXZE5wZzVJby9wRnEvT2pPMitxU1pDdVdITFZrNCtVeTVySS9IVWtmWmFWSXplVDkwTzRMT2VkZEFaamd0WQoveFppMWxXQVcrZjZhQWZLRUdpWXg3MlE5NkJ1cUtGc0Y0MlpoWmp5czY3OWRrbE5pMy9Ta2dlR1Qzb2lHZUNPCjFHZmx3R2tBWUxkZ3hxZTBMOURXRUxWcy8vTjFkMUF3VFZ0RUtncHd0cDJzSkg5b1laZEZ3eVJiemczRW44NmwKc05DNlNLTENHcDdYc0ZMZ3VHcDdRNFhmVWZsT0ZwSVVycFZhQ00xUThEbTBlTnZyaTAzWVlCUzJuSkVNY0JNQwpBd0VBQVRBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQWdFQWZzN0dQRFVqN1BXTE4rTkVYY0NvbExwbFoxTjE0emZJCnJhWTJ0c1VQcTNGeGxjMUpsa0R3QUlLcGxoTVVIY0Iya2Q1YTVHOUlNSFpyZ29nVWVWTjlLUklIL1pTMDAydloKRktPeDd5M1owYWZ0Q2Z1aEZKTk1pV09DV2UxVFBuUUJod082eElOWjZWZktoa3dZRGNtRXIxQnJTdi85c2RJUwovT0czbU91Mi9VcnNLdkZmN1d0NFVQUjhONnphUjFDUFIxUytOWFhKeXNjZ2RoNC80UVRwZm1hRUFKWnRxQ1NNCmpUUk5DVlVTZnZGK21Kem4yVnJ3YjFKSUkwWVhQVi9VSng1WTdLeFFFV2JGdkp2b1ZYaG15RVZ5dllxNWVPTWQKbDc1VHZhbTJ0ek0vQnIvMUpkNkdxNFhhU1pZL08wbmg2MlVVZlVJMXdPNG5OVlBwTEs4d1Z4SElnWng2ZUIyYwpncW83NDJZQ3JyVXZ5Y080VTlJaWNQTEcyVmduNzlnTVRJZDdRL0o5WjFFakFvbmIwL0tuTFFaZVlReks2T09MCndyQlVBaEtrbnI4MXU0R3BabGU2eVVPd0Q0ZDRhTGJQM08zTG5LUVF3Y1M0andCVDFGRlpyeEFoUEVBRGZveXEKemNKeS9SU2t3WU9NaWpoZ3RXR3cxdU5FSnFXekw5MExKOXVLRWJrODN6c2h3MFFHQ0ROb3hmNStMVmtPWVBURwppaTdxdE8xYUczSFJnQWdRKytzOXdreGdaRjNYeGxISUlaRmEvRHZuaUJxaGxEOXJLQzl0eFVUN01SU3dvcWN6CldJZEdqeW9RZ2hKbTJSS3F5REQxQjE4SEJ2MXdCbStMdzRSbHJDOVREeWM5OTFqMEgxZEViWDRpMCtRZUZnYXQKWThxd2hqeStjME09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
+		tlsOverrides["tlsKey"] = defaultTLSKeyEnc
+		o.AddOverrides("global", tlsOverrides)
+
+		o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+		// verify cert overrides
+		result, err := o.Merge()
+		require.Empty(t, result)
+		require.Error(t, err)
+	})
 }

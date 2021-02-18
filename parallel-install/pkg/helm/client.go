@@ -7,10 +7,10 @@ package helm
 import (
 	"context"
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"log"
 	"strings"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -285,7 +285,11 @@ func (c *Client) newActionConfig(namespace string) (*action.Configuration, error
 	clientGetter.Namespace = &namespace
 
 	cfg := new(action.Configuration)
-	if err := cfg.Init(clientGetter, namespace, "secrets", log.Printf); err != nil {
+
+	debugLogFunc := func(format string, args ...interface{}) { //leverage debugLog function to use logger instance
+		c.cfg.Log.Info(fmt.Sprintf(format, args...))
+	}
+	if err := cfg.Init(clientGetter, namespace, "secrets", debugLogFunc); err != nil {
 		return nil, err
 	}
 

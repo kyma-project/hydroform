@@ -102,7 +102,7 @@ func (o *Overrides) intercept(data map[string]interface{}, ops interceptorOps) (
 		result[key] = intercptVal
 	}
 
-	if err := o.interceptUndefined(); err != nil {
+	if err := o.interceptUndefined(result); err != nil {
 		return nil, err
 	}
 
@@ -136,12 +136,12 @@ func (o *Overrides) interceptValue(path string, value interface{}, ops intercept
 	}
 	//apply interceptor
 	if ops == interceptorOpsString {
-		return interceptor.String(o, value), nil
+		return interceptor.String(value, path), nil
 	}
-	return interceptor.Intercept(o, value)
+	return interceptor.Intercept(value, path)
 }
 
-func (o *Overrides) interceptUndefined() error {
+func (o *Overrides) interceptUndefined(data map[string]interface{}) error {
 	// get list of intercepted override keys
 	itercptOverrideKeys := make([]string, len(o.interceptors))
 	i := 0
@@ -152,7 +152,7 @@ func (o *Overrides) interceptUndefined() error {
 	//retreive override keys which were not processed but have an interceptor registered
 	undefinedOverrideKeys := diffSlices(itercptOverrideKeys, o.processedOverrides)
 	for _, undefinedOverrideKey := range undefinedOverrideKeys {
-		if err := o.interceptors[undefinedOverrideKey].Undefined(o, undefinedOverrideKey); err != nil {
+		if err := o.interceptors[undefinedOverrideKey].Undefined(data, undefinedOverrideKey); err != nil {
 			return err
 		}
 	}

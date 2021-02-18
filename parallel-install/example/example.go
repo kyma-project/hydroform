@@ -4,9 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"os"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -92,7 +93,7 @@ func main() {
 	if err != nil {
 		log.Errorf("Failed to deploy Kyma: %v", err)
 	} else {
-		log.Error("Kyma deployed!")
+		log.Info("Kyma deployed!")
 	}
 
 	kymaMeta, err := deployer.ReadKymaMetadata()
