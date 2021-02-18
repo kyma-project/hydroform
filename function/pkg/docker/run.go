@@ -38,7 +38,7 @@ type RunOpts struct {
 }
 
 func RunContainer(ctx context.Context, c DockerClient, opts RunOpts) (string, error) {
-	body, err := c.ContainerCreate(ctx, &container.Config{
+	body, err := pullAndRun(ctx, c, &container.Config{
 		Env:          opts.Envs,
 		ExposedPorts: portSet(opts.Ports),
 		Image:        opts.Image,
@@ -54,12 +54,12 @@ func RunContainer(ctx context.Context, c DockerClient, opts RunOpts) (string, er
 				Target: "/kubeless",
 			},
 		},
-	}, nil, nil, opts.ContainerName)
+	}, opts.ContainerName)
 	if err != nil {
 		return "", err
 	}
 
-	err = pullAndStart(ctx, c, body.ID, opts.Image)
+	err = c.ContainerStart(ctx, body.ID, types.ContainerStartOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -67,16 +67,16 @@ func RunContainer(ctx context.Context, c DockerClient, opts RunOpts) (string, er
 	return body.ID, nil
 }
 
-func pullAndStart(ctx context.Context, c DockerClient, id, image string) error {
-	err := c.ContainerStart(ctx, id, types.ContainerStartOptions{})
+func pullAndRun(ctx context.Context, c DockerClient, config *container.Config, hostConfig *container.HostConfig, containerName string) (container.ContainerCreateCreatedBody, error) {
+	body, err := c.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
 	if apiclient.IsErrNotFound(err) {
-		_, err = c.ImagePull(ctx, image, types.ImagePullOptions{})
+		_, err = c.ImagePull(ctx, config.Image, types.ImagePullOptions{})
 		if err != nil {
-			return err
+			return body, err
 		}
-		err = c.ContainerStart(ctx, id, types.ContainerStartOptions{})
+		body, err = c.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
 	}
-	return err
+	return body, err
 }
 
 func FollowRun(ctx context.Context, c DockerClient, ID string, log func(...interface{})) error {
