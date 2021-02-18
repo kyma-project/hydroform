@@ -2,6 +2,7 @@ package installation
 
 import (
 	"fmt"
+	"github.com/kyma-incubator/hydroform/install/k8s"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,6 +13,8 @@ type Configuration struct {
 	Configuration ConfigEntries
 	// ComponentConfiguration specifies configuration for individual components
 	ComponentConfiguration []ComponentConfiguration
+	// ConflictStrategy specifies system behaviour when global config is already defined
+	ConflictStrategy string
 }
 
 type ComponentConfiguration struct {
@@ -19,6 +22,8 @@ type ComponentConfiguration struct {
 	Component string
 	// Configuration specifies configuration for the component
 	Configuration ConfigEntries
+	// ConflictStrategy specifies system behaviour when config is already defined
+	ConflictStrategy string
 }
 
 type ConfigEntry struct {
@@ -57,11 +62,19 @@ func configurationToK8sResources(configuration Configuration) ([]*corev1.ConfigM
 	secrets := make([]*corev1.Secret, 0, len(configuration.ComponentConfiguration)+1)
 
 	configMap, secret := k8sResourcesFromConfiguration("global", "", configuration.Configuration)
+
+	configMap.ObjectMeta.Labels[k8s.OnConflictLabel] = configuration.ConflictStrategy
+	secret.ObjectMeta.Labels[k8s.OnConflictLabel] = configuration.ConflictStrategy
+
 	configMaps = append(configMaps, configMap)
 	secrets = append(secrets, secret)
 
 	for _, configs := range configuration.ComponentConfiguration {
 		configMap, secret := k8sResourcesFromConfiguration(configs.Component, configs.Component, configs.Configuration)
+
+		configMap.ObjectMeta.Labels[k8s.OnConflictLabel] = configs.ConflictStrategy
+		secret.ObjectMeta.Labels[k8s.OnConflictLabel] = configs.ConflictStrategy
+
 		configMaps = append(configMaps, configMap)
 		secrets = append(secrets, secret)
 	}
