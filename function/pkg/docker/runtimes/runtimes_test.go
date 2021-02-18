@@ -254,14 +254,16 @@ func TestContainerCommands(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want string
+		want []string
 	}{
 		{
 			name: "should return commands for empty runtime",
 			args: args{
 				runtime: "",
 			},
-			want: "/kubeless-npm-install.sh ; node kubeless.js",
+			want: []string{
+				"/kubeless-npm-install.sh", "node kubeless.js",
+			},
 		},
 		{
 			name: "should return commands for empty runtime with hotDeploy",
@@ -278,7 +280,9 @@ func TestContainerCommands(t *testing.T) {
 			args: args{
 				runtime: types.Nodejs12,
 			},
-			want: "/kubeless-npm-install.sh ; node kubeless.js",
+			want: []string{
+				"/kubeless-npm-install.sh", "node kubeless.js",
+			},
 		},
 		{
 			name: "should return commands for Nodejs12 with hotDeploy",
@@ -295,7 +299,9 @@ func TestContainerCommands(t *testing.T) {
 			args: args{
 				runtime: types.Nodejs10,
 			},
-			want: "/kubeless-npm-install.sh ; node kubeless.js",
+			want: []string{
+				"/kubeless-npm-install.sh", "node kubeless.js",
+			},
 		},
 		{
 			name: "should return commands for Nodejs10 with hotDeploy",
@@ -312,7 +318,9 @@ func TestContainerCommands(t *testing.T) {
 			args: args{
 				runtime: types.Python38,
 			},
-			want: "pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt ; python kubeless.py",
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
 		},
 		{
 			name: "should return commands for Python38 with hotDeploy",
