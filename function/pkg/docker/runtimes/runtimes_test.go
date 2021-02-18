@@ -2,9 +2,10 @@ package runtimes
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"reflect"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 )
 
 func TestContainerEnvs(t *testing.T) {
@@ -194,43 +195,35 @@ func TestContainerCommands(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want []string
+		want string
 	}{
 		{
 			name: "should return commands for empty runtime",
 			args: args{
 				runtime: "",
 			},
-			want: []string{
-				"/kubeless-npm-install.sh", "node kubeless.js",
-			},
+			want: "/kubeless-npm-install.sh ; node kubeless.js",
 		},
 		{
 			name: "should return commands for Nodejs12",
 			args: args{
 				runtime: types.Nodejs12,
 			},
-			want: []string{
-				"/kubeless-npm-install.sh", "node kubeless.js",
-			},
+			want: "/kubeless-npm-install.sh ; node kubeless.js",
 		},
 		{
 			name: "should return commands for Nodejs10",
 			args: args{
 				runtime: types.Nodejs10,
 			},
-			want: []string{
-				"/kubeless-npm-install.sh", "node kubeless.js",
-			},
+			want: "/kubeless-npm-install.sh ; node kubeless.js",
 		},
 		{
 			name: "should return commands for Python38",
 			args: args{
 				runtime: types.Python38,
 			},
-			want: []string{
-				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
-			},
+			want: "pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt ; python kubeless.py",
 		},
 	}
 	for _, tt := range tests {

@@ -256,11 +256,10 @@ func TestRunContainer(t *testing.T) {
 							},
 						},
 						gomock.Nil(), gomock.Nil(), "test-cname").
-						Return(container.ContainerCreateCreatedBody{}, &fakeNotFoundError{}).Times(1)
-
-					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
-						gomock.Nil(), gomock.Nil(), gomock.Any()).
 						Return(container.ContainerCreateCreatedBody{ID: id}, nil).Times(1)
+
+					mock.EXPECT().ContainerStart(ctx, id, types.ContainerStartOptions{}).
+						Return(&fakeNotFoundError{}).Times(1)
 
 					mock.EXPECT().ImagePull(ctx, "test-iname", gomock.Any()).
 						Return(nil, nil).Times(1)
@@ -293,7 +292,10 @@ func TestRunContainer(t *testing.T) {
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
-						Return(container.ContainerCreateCreatedBody{ID: id}, &fakeNotFoundError{}).Times(1)
+						Return(container.ContainerCreateCreatedBody{ID: id}, nil).Times(1)
+
+					mock.EXPECT().ContainerStart(ctx, id, types.ContainerStartOptions{}).
+						Return(&fakeNotFoundError{}).Times(1)
 
 					mock.EXPECT().ImagePull(ctx, gomock.Any(), gomock.Any()).
 						Return(nil, errors.New("error: pull")).Times(1)
