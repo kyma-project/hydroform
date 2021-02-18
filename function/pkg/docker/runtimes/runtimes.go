@@ -81,7 +81,7 @@ func ContainerCommands(runtime types.Runtime, hotDeploy bool) []string {
 	switch runtime {
 	case types.Nodejs12, types.Nodejs10:
 		if hotDeploy {
-			return []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"}
+			return []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js "}
 		} else {
 			return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
 		}
