@@ -60,11 +60,11 @@ func TestContainerEnvs(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				"FUNC_RUNTIME=",
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Nodejs12Path,
 			},
 		},
@@ -142,11 +142,11 @@ func TestContainerEnvs(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				"FUNC_RUNTIME=nodejs10",
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Nodejs10Path,
 			},
 		},
@@ -191,11 +191,11 @@ func TestContainerEnvs(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				"FUNC_RUNTIME=python38",
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
 				Python38Path,
 				"CHERRYPY_RELOADED=true",
 			},
@@ -282,7 +282,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -311,7 +311,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -340,7 +340,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
