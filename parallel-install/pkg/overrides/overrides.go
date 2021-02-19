@@ -85,7 +85,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 
 	var globalValues []string
 	for _, cm := range globalOverrideCMs.Items {
-		p.log.Infof("%s %s data %v", logPrefix, cm.Name, cm.Data)
+		//p.log.Infof("%s %s data %v", logPrefix, cm.Name, cm.Data)
 		for k, v := range cm.Data {
 			globalValues = append(globalValues, k+"="+v)
 		}
@@ -115,7 +115,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 	componentOverrideCMs, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), componentListOpts)
 
 	for _, cm := range componentOverrideCMs.Items {
-		p.log.Infof("%s %s data %v", logPrefix, cm.Name, cm.Data)
+		//p.log.Infof("%s %s data %v", logPrefix, cm.Name, cm.Data)
 		var componentValues []string
 		name := cm.Labels["component"]
 
