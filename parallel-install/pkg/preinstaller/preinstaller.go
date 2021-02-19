@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"io/ioutil"
 	"k8s.io/client-go/kubernetes"
 )
@@ -44,9 +43,9 @@ func (i *PreInstaller) CreateNamespaces() error {
 	return nil
 }
 
-func (i *PreInstaller) apply(dataType preInstallerResource) error {
+func (i *PreInstaller) apply(resourceType resourceType) error {
 	installationResourcePath := i.cfg.InstallationResourcePath
-	path := fmt.Sprintf("%s/%s", installationResourcePath, dataType.name)
+	path := fmt.Sprintf("%s/%s", installationResourcePath, resourceType.name)
 
 	components, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -81,9 +80,14 @@ func (i *PreInstaller) apply(dataType preInstallerResource) error {
 				return err
 			}
 
-			err = applyResource(resourceName, i.kubeClient, string(resourceData), dataType.validator, i.cfg.Log)
-			if err != nil {
-				return err
+			if !resourceType.validator(resourceData, resourceType.decoder) {
+				i.cfg.Log.Warnf("Validation failed for resourceType: %s", resourceName)
+				// TODO: fail-fast or continue?
+			} else {
+				err = resourceType.applier(resourceData, i.kubeClient)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -91,9 +95,3 @@ func (i *PreInstaller) apply(dataType preInstallerResource) error {
 	return nil
 }
 
-func applyResource(name string, kubeClient kubernetes.Interface, data string, validator func(string) bool, logger logger.Interface) error {
-	if !validator(data) {
-		logger.Warnf("Validation failed for resource: %s", name)
-	}
-	return nil
-}

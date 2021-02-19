@@ -93,6 +93,11 @@ func main() {
 		log.Errorf("Failed to install CRDs: %s", err)
 	}
 
+	err = preinstaller.CreateNamespaces()
+	if err != nil {
+		log.Errorf("Failed to create namespaces: %s", err)
+	}
+
 	// TODO: remove
 	return
 
