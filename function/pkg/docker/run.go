@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -71,8 +72,8 @@ func RunContainer(ctx context.Context, c DockerClient, opts RunOpts) (string, er
 	return body.ID, nil
 }
 
-func pullAndRun(ctx context.Context, c DockerClient, config *container.Config, hostConfig *container.HostConfig,
-	containerName string) (container.ContainerCreateCreatedBody, error) {
+func pullAndRun(ctx context.Context, c DockerClient, config *container.Config,
+	hostConfig *container.HostConfig, containerName string) (container.ContainerCreateCreatedBody, error) {
 	body, err := c.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
 	if apiclient.IsErrNotFound(err) {
 		var r io.ReadCloser
