@@ -2,16 +2,17 @@ package docker
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"io"
+	"io/ioutil"
 	"strings"
 	"testing"
 
-	"github.com/docker/docker/api/types/mount"
-
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/go-connections/nat"
 	"github.com/golang/mock/gomock"
 	mock_docker "github.com/kyma-incubator/hydroform/function/pkg/docker/automock"
@@ -263,7 +264,7 @@ func TestRunContainer(t *testing.T) {
 						Return(container.ContainerCreateCreatedBody{ID: id}, nil).Times(1)
 
 					mock.EXPECT().ImagePull(ctx, "test-iname", gomock.Any()).
-						Return(nil, nil).Times(1)
+						Return(ioutil.NopCloser(bytes.NewReader(nil)), nil).Times(1)
 
 					mock.EXPECT().ContainerStart(ctx, id, types.ContainerStartOptions{}).
 						Return(nil).Times(1)
@@ -297,6 +298,26 @@ func TestRunContainer(t *testing.T) {
 
 					mock.EXPECT().ImagePull(ctx, gomock.Any(), gomock.Any()).
 						Return(nil, errors.New("error: pull")).Times(1)
+
+					return mock
+				}(),
+				ctx: ctx,
+			},
+			wantErr: true,
+		},
+		{
+			name: "should return error during the image pull",
+			args: args{
+				c: func() DockerClient {
+					mock := mock_docker.NewMockDockerClient(ctrl)
+
+					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
+						gomock.Nil(), gomock.Nil(), gomock.Any()).
+						Return(container.ContainerCreateCreatedBody{ID: id}, &fakeNotFoundError{}).Times(1)
+
+					readCloser := ioutil.NopCloser(strings.NewReader("test undefind request"))
+					mock.EXPECT().ImagePull(ctx, gomock.Any(), gomock.Any()).
+						Return(readCloser, nil).Times(1)
 
 					return mock
 				}(),

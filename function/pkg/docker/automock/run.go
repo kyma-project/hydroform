@@ -111,3 +111,69 @@ func (mr *MockDockerClientMockRecorder) ImagePull(ctx, refStr, options interface
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagePull", reflect.TypeOf((*MockDockerClient)(nil).ImagePull), ctx, refStr, options)
 }
+
+// Mockstream is a mock of stream interface
+type Mockstream struct {
+	ctrl     *gomock.Controller
+	recorder *MockstreamMockRecorder
+}
+
+// MockstreamMockRecorder is the mock recorder for Mockstream
+type MockstreamMockRecorder struct {
+	mock *Mockstream
+}
+
+// NewMockstream creates a new mock instance
+func NewMockstream(ctrl *gomock.Controller) *Mockstream {
+	mock := &Mockstream{ctrl: ctrl}
+	mock.recorder = &MockstreamMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *Mockstream) EXPECT() *MockstreamMockRecorder {
+	return m.recorder
+}
+
+// Write mocks base method
+func (m *Mockstream) Write(p []byte) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Write", p)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Write indicates an expected call of Write
+func (mr *MockstreamMockRecorder) Write(p interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*Mockstream)(nil).Write), p)
+}
+
+// FD mocks base method
+func (m *Mockstream) FD() uintptr {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FD")
+	ret0, _ := ret[0].(uintptr)
+	return ret0
+}
+
+// FD indicates an expected call of FD
+func (mr *MockstreamMockRecorder) FD() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FD", reflect.TypeOf((*Mockstream)(nil).FD))
+}
+
+// IsTerminal mocks base method
+func (m *Mockstream) IsTerminal() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsTerminal")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsTerminal indicates an expected call of IsTerminal
+func (mr *MockstreamMockRecorder) IsTerminal() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTerminal", reflect.TypeOf((*Mockstream)(nil).IsTerminal))
+}

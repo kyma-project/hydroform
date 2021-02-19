@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	ServerPort = "8080"
+	ServerPort   = "8080"
+	KubelessPath = "/kubeless"
 
 	Nodejs10Path          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
 	Nodejs10DebugOption   = "--inspect=0.0.0.0"
@@ -23,11 +24,11 @@ const (
 
 func ContainerEnvs(runtime types.Runtime, debug bool) []string {
 	return append([]string{
+		fmt.Sprintf("KUBELESS_INSTALL_VOLUME=%s", KubelessPath),
 		fmt.Sprintf("FUNC_RUNTIME=%s", runtime),
 		"FUNC_HANDLER=main",
 		"MOD_NAME=handler",
 		"FUNC_PORT=8080",
-		"KUBELESS_INSTALL_VOLUME=/kubeless",
 	}, runtimeEnvs(runtime, debug)...)
 }
 
