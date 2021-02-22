@@ -64,7 +64,7 @@ func RuntimeDebugPort(runtime types.Runtime) string {
 	}
 }
 
-func ContainerCommands(runtime types.Runtime, hotDeploy bool) []string {
+func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 	switch runtime {
 	case types.Nodejs12, types.Nodejs10:
 		if hotDeploy {
@@ -73,7 +73,11 @@ func ContainerCommands(runtime types.Runtime, hotDeploy bool) []string {
 			return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
 		}
 	case types.Python38:
-		return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py"}
+		if debug {
+			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py"}
+		} else {
+			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py"}
+		}
 	default:
 		if hotDeploy {
 			return []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"}
