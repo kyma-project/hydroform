@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
@@ -16,17 +15,17 @@ type resourceType struct {
 	applier resourceApplier
 }
 
-func newCrdPreInstallerResource(log logger.Interface, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, retryOptions []retry.Option) *resourceType {
+func newCrdPreInstallerResource(log logger.Interface, dynamicClient dynamic.Interface, retryOptions []retry.Option) *resourceType {
 	return &resourceType{
 		name: "crds",
-		applier: newGenericResourceApplier(log, kubeClient, dynamicClient, initializeDecoder(), retryOptions),
+		applier: newGenericResourceApplier(log, dynamicClient, initializeDecoder(), retryOptions),
 	}
 }
 
-func newNamespacePreInstallerResource(log logger.Interface, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, retryOptions []retry.Option) *resourceType {
+func newNamespacePreInstallerResource(log logger.Interface, dynamicClient dynamic.Interface, retryOptions []retry.Option) *resourceType {
 	return &resourceType{
 		name: "namespaces",
-		applier: newGenericResourceApplier(log, kubeClient, dynamicClient, initializeDecoder(), retryOptions),
+		applier: newGenericResourceApplier(log, dynamicClient, initializeDecoder(), retryOptions),
 	}
 }
 

@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	"strings"
 )
 
@@ -22,16 +21,14 @@ type resourceApplier interface {
 
 type genericResourceApplier struct {
 	log logger.Interface
-	kubeClient     kubernetes.Interface
 	dynamicClient dynamic.Interface
 	decoder runtime.Decoder
 	retryOptions []retry.Option
 }
 
-func newGenericResourceApplier(log logger.Interface, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, decoder runtime.Decoder, retryOptions []retry.Option) *genericResourceApplier {
+func newGenericResourceApplier(log logger.Interface, dynamicClient dynamic.Interface, decoder runtime.Decoder, retryOptions []retry.Option) *genericResourceApplier {
 	return &genericResourceApplier{
 		log: log,
-		kubeClient: kubeClient,
 		dynamicClient: dynamicClient,
 		decoder: decoder,
 		retryOptions: retryOptions,

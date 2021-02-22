@@ -30,7 +30,7 @@ func NewPreInstaller(cfg config.Config, kubeClient kubernetes.Interface, dynamic
 }
 
 func (i *PreInstaller) InstallCRDs() error {
-	resource := newCrdPreInstallerResource(i.cfg.Log, i.kubeClient, i.dynamicClient, i.retryOptions)
+	resource := newCrdPreInstallerResource(i.cfg.Log, i.dynamicClient, i.retryOptions)
 	err := i.apply(*resource)
 	if err != nil {
 		return err
@@ -40,7 +40,7 @@ func (i *PreInstaller) InstallCRDs() error {
 }
 
 func (i *PreInstaller) CreateNamespaces() error {
-	resource := newNamespacePreInstallerResource(i.cfg.Log, i.kubeClient, i.dynamicClient, i.retryOptions)
+	resource := newNamespacePreInstallerResource(i.cfg.Log, i.dynamicClient, i.retryOptions)
 	err := i.apply(*resource)
 	if err != nil {
 		return err
