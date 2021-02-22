@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	ServerPort   = "8080"
 	KubelessPath = "/kubeless"
 
 	NodejsPath          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
