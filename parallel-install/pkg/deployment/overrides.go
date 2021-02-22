@@ -23,28 +23,12 @@ const (
 	interceptorOpsIntercept = "Intercept"
 )
 
-// OverrideInterceptor is controlling access to override values
-type OverrideInterceptor interface {
-	String(o *Overrides, value interface{}) string
-	Intercept(o *Overrides, value interface{}) (interface{}, error)
-}
-
-type defaultOverrideInterceptor struct {
-}
-
-func (doi *defaultOverrideInterceptor) String(o *Overrides, value interface{}) string {
-	return fmt.Sprintf("%v", value)
-}
-
-func (doi *defaultOverrideInterceptor) Intercept(o *Overrides, value interface{}) (interface{}, error) {
-	return value, nil
-}
-
 // Overrides manages override merges
 type Overrides struct {
-	files        []string
-	overrides    []map[string]interface{}
-	interceptors map[string]OverrideInterceptor
+	files              []string
+	overrides          []map[string]interface{}
+	interceptors       map[string]OverrideInterceptor
+	processedOverrides []string // cache for processed override-keys
 }
 
 // Merge all provided overrides
@@ -106,6 +90,9 @@ func (o *Overrides) merge() (map[string]interface{}, error) {
 }
 
 func (o *Overrides) intercept(data map[string]interface{}, ops interceptorOps) (map[string]interface{}, error) {
+	//reset processed overrides key-cache
+	o.processedOverrides = make([]string, len(o.processedOverrides))
+
 	result := make(map[string]interface{}, len(data))
 	for key, value := range data {
 		intercptVal, err := o.interceptValue(key, value, ops)
@@ -114,10 +101,16 @@ func (o *Overrides) intercept(data map[string]interface{}, ops interceptorOps) (
 		}
 		result[key] = intercptVal
 	}
+
+	if err := o.interceptUndefined(result); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }
 
 func (o *Overrides) interceptValue(path string, value interface{}, ops interceptorOps) (interface{}, error) {
+	o.processedOverrides = append(o.processedOverrides, path)
 	if reflect.ValueOf(value).Kind() == reflect.Map {
 		mapValue := value.(map[string]interface{})
 		result := make(map[string]interface{}, len(mapValue))
@@ -143,9 +136,43 @@ func (o *Overrides) interceptValue(path string, value interface{}, ops intercept
 	}
 	//apply interceptor
 	if ops == interceptorOpsString {
-		return interceptor.String(o, value), nil
+		return interceptor.String(value, path), nil
 	}
-	return interceptor.Intercept(o, value)
+	return interceptor.Intercept(value, path)
+}
+
+func (o *Overrides) interceptUndefined(data map[string]interface{}) error {
+	// get list of intercepted override keys
+	itercptOverrideKeys := make([]string, len(o.interceptors))
+	i := 0
+	for itercptOverrideKey := range o.interceptors {
+		itercptOverrideKeys[i] = itercptOverrideKey
+		i++
+	}
+	//retreive override keys which were not processed but have an interceptor registered
+	undefinedOverrideKeys := diffSlices(itercptOverrideKeys, o.processedOverrides)
+	for _, undefinedOverrideKey := range undefinedOverrideKeys {
+		if err := o.interceptors[undefinedOverrideKey].Undefined(data, undefinedOverrideKey); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// diffSlices returns the elements in `a` that aren't in `b`.
+func diffSlices(a, b []string) []string {
+	cache := make(map[string]bool, len(b))
+	for _, x := range b {
+		cache[x] = true
+	}
+	var diff []string
+	for _, x := range a {
+		if _, found := cache[x]; !found {
+			diff = append(diff, x)
+		}
+	}
+	return diff
 }
 
 // AddFile adds overrides defined in a file

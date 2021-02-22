@@ -3,7 +3,7 @@ package helm
 import (
 	"context"
 	"errors"
-	"fmt"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"testing"
 	"time"
 
@@ -26,9 +26,7 @@ func TestNoBackoff(t *testing.T) {
 
 func newClient() *Client {
 	config := Config{
-		Log: func(msg string, params ...interface{}) {
-			fmt.Println(msg, params)
-		},
+		Log: logger.NewLogger(true),
 	}
 	return NewClient(config)
 }

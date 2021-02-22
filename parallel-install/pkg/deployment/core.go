@@ -23,8 +23,8 @@ var incompatibleLocalComponents = []string{"apiserver-proxy", "iam-kubeconfig-se
 type core struct {
 	// Contains list of components to install (inclusive pre-requisites)
 	componentList *components.ComponentList
-	cfg           config.Config
-	overrides     Overrides
+	cfg           *config.Config
+	overrides     *Overrides
 	// Used to send progress events of a running install/uninstall process
 	processUpdates   chan<- ProcessUpdate
 	kubeClient       kubernetes.Interface
@@ -40,16 +40,18 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func newCore(cfg config.Config, overrides Overrides, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*core, error) {
+func newCore(cfg *config.Config, overrides *Overrides, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*core, error) {
 	clList, err := components.NewComponentList(cfg.ComponentsListFile)
 	if err != nil {
 		return nil, err
 	}
 
 	if isK3dCluster(kubeClient) {
-		cfg.Log("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
+		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
 		removeFromComponentList(clList, incompatibleLocalComponents)
 	}
+
+	registerOverridesInterceptors(overrides)
 
 	metadataProvider := metadata.New(kubeClient)
 
@@ -69,9 +71,9 @@ func (i *core) ReadKymaMetadata() (*metadata.KymaMetadata, error) {
 }
 
 func (i *core) logStatuses(statusMap map[string]string) {
-	i.cfg.Log("Components processed so far:")
+	i.cfg.Log.Infof("Components processed so far:")
 	for k, v := range statusMap {
-		i.cfg.Log("Component: %s, Status: %s", k, v)
+		i.cfg.Log.Infof("Component: %s, Status: %s", k, v)
 	}
 }
 
@@ -91,7 +93,7 @@ func (i *core) getConfig() (overrides.OverridesProvider, components.Provider, *e
 
 	engineCfg := engine.Config{
 		WorkersCount: i.cfg.WorkersCount,
-		Verbose:      false,
+		Log:          i.cfg.Log,
 	}
 	eng := engine.NewEngine(overridesProvider, componentsProvider, engineCfg)
 
@@ -151,4 +153,11 @@ func removeFromComponentList(cl *components.ComponentList, componentNames []stri
 	for _, compName := range componentNames {
 		cl.Remove(compName)
 	}
+}
+
+func registerOverridesInterceptors(o *Overrides) {
+	//hide certificate data
+	o.AddInterceptor([]string{"global.isLocalEnv", "global.environment.gardener"}, NewFallbackOverrideInterceptor(false))
+	o.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, &DomainNameOverrideInterceptor{})
+	o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
 }
