@@ -67,6 +67,6 @@ See how the examples use specific libraries to:
 
 ## Docker
 
-Docker allow you to perform operation on the given resources: `run`.
+Docker allows you to perform the `run` operation on the given resources.
 
 See how the examples use specific libraries to [run resources](./cmd/docker/run/main.go).
