@@ -30,16 +30,10 @@ func ContainerEnvs(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 
 func runtimeEnvs(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 	switch runtime {
-	case types.Nodejs12:
-		envs := []string{Nodejs12Path}
+	case types.Nodejs12, types.Nodejs10:
+		envs := []string{NodejsPath}
 		if debug {
-			envs = append(envs, fmt.Sprintf("NODE_OPTIONS=%s", Nodejs12DebugOption))
-		}
-		return envs
-	case types.Nodejs10:
-		envs := []string{Nodejs10Path}
-		if debug {
-			envs = append(envs, fmt.Sprintf("NODE_OPTIONS=%s", Nodejs10DebugOption))
+			envs = append(envs, fmt.Sprintf("NODE_OPTIONS=%s", NodejsDebugOption))
 		}
 		return envs
 	case types.Python38:
@@ -51,9 +45,9 @@ func runtimeEnvs(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 		//if debug { }
 		return envs
 	default:
-		envs := []string{Nodejs12Path}
+		envs := []string{NodejsPath}
 		if debug {
-			envs = append(envs, fmt.Sprintf("NODE_OPTIONS=%s", Nodejs12DebugOption))
+			envs = append(envs, fmt.Sprintf("NODE_OPTIONS=%s", NodejsDebugOption))
 		}
 		return envs
 	}
@@ -61,14 +55,12 @@ func runtimeEnvs(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 
 func RuntimeDebugPort(runtime types.Runtime) string {
 	switch runtime {
-	case types.Nodejs12:
-		return Nodejs12DebugEndpoint
-	case types.Nodejs10:
-		return Nodejs10DebugEndpoint
+	case types.Nodejs12, types.Nodejs10:
+		return NodejsDebugEndpoint
 	case types.Python38:
 		return Python38DebugEndpoint
 	default:
-		return Nodejs12DebugEndpoint
+		return NodejsDebugEndpoint
 	}
 }
 
