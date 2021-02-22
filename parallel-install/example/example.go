@@ -47,10 +47,10 @@ func main() {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
 	}
 
-	overrides := deployment.Overrides{}
+	overrides := &deployment.Overrides{}
 	overrides.AddFile("./overrides.yaml")
 
-	installationCfg := config.Config{
+	installationCfg := &config.Config{
 		WorkersCount:                  4,
 		CancelTimeout:                 20 * time.Minute,
 		QuitTimeout:                   25 * time.Minute,

@@ -1,8 +1,9 @@
 package components
 
 import (
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"path"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
@@ -25,7 +26,7 @@ type PrerequisitesProvider struct {
 //resourcesPath is a directory where subdirectories of components' charts are located.
 //
 //componentList is a slice of pairs: [component-name, namespace]
-func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, components []ComponentDefinition, cfg config.Config) *PrerequisitesProvider {
+func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, components []ComponentDefinition, cfg *config.Config) *PrerequisitesProvider {
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
 		BackoffInitialIntervalSeconds: cfg.BackoffInitialIntervalSeconds,

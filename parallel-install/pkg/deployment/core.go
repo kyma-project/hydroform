@@ -23,8 +23,8 @@ var incompatibleLocalComponents = []string{"apiserver-proxy", "iam-kubeconfig-se
 type core struct {
 	// Contains list of components to install (inclusive pre-requisites)
 	componentList *components.ComponentList
-	cfg           config.Config
-	overrides     Overrides
+	cfg           *config.Config
+	overrides     *Overrides
 	// Used to send progress events of a running install/uninstall process
 	processUpdates   chan<- ProcessUpdate
 	kubeClient       kubernetes.Interface
@@ -40,7 +40,7 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func newCore(cfg config.Config, overrides Overrides, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*core, error) {
+func newCore(cfg *config.Config, overrides *Overrides, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*core, error) {
 	clList, err := components.NewComponentList(cfg.ComponentsListFile)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func newCore(cfg config.Config, overrides Overrides, kubeClient kubernetes.Inter
 		removeFromComponentList(clList, incompatibleLocalComponents)
 	}
 
-	registerOverridesInterceptors(&overrides)
+	registerOverridesInterceptors(overrides)
 
 	metadataProvider := metadata.New(kubeClient)
 
