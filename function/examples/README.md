@@ -64,3 +64,9 @@ See how the examples use specific libraries to:
 * [Initialize the workspace locally (`init`)](./cmd/workspace/init/main.go).
 * [Apply your workspace on a cluster (`apply`)](./cmd/workspace/apply/main.go).
 * [Fetch cluster resources to synchronize your local workspace (`sync`)](./cmd/workspace/sync/main.go).
+
+## Docker
+
+Docker allows you to perform the `run` operation on the given resources.
+
+See how the examples use specific libraries to [run resources](./cmd/docker/run/main.go).
