@@ -1,7 +1,6 @@
 package runtimes
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -23,7 +22,6 @@ func TestContainerEnvs(t *testing.T) {
 			name: "should return envs for empty runtime",
 			args: args{
 				runtime:   "",
-				debug:     false,
 				hotDeploy: false,
 			},
 			want: []string{
@@ -33,30 +31,12 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				NodejsPath,
-			},
-		},
-		{
-			name: "should return envs for empty runtime with debug",
-			args: args{
-				runtime:   "",
-				debug:     true,
-				hotDeploy: false,
-			},
-			want: []string{
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				NodejsPath,
-				fmt.Sprintf("NODE_OPTIONS=%s", NodejsDebugOption),
 			},
 		},
 		{
 			name: "should return envs for empty runtime with hotDeploy",
 			args: args{
 				runtime:   "",
-				debug:     false,
 				hotDeploy: true,
 			},
 			want: []string{
@@ -72,7 +52,6 @@ func TestContainerEnvs(t *testing.T) {
 			name: "should return envs for nodejs12",
 			args: args{
 				runtime:   types.Nodejs12,
-				debug:     false,
 				hotDeploy: false,
 			},
 			want: []string{
@@ -82,30 +61,12 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				NodejsPath,
-			},
-		},
-		{
-			name: "should return envs for nodejs12 with debug",
-			args: args{
-				runtime:   types.Nodejs12,
-				debug:     true,
-				hotDeploy: false,
-			},
-			want: []string{
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=nodejs12",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				NodejsPath,
-				fmt.Sprintf("NODE_OPTIONS=%s", NodejsDebugOption),
 			},
 		},
 		{
 			name: "should return envs for nodejs10",
 			args: args{
 				runtime:   types.Nodejs10,
-				debug:     false,
 				hotDeploy: false,
 			},
 			want: []string{
@@ -115,30 +76,12 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				NodejsPath,
-			},
-		},
-		{
-			name: "should return envs for nodejs10 with debug",
-			args: args{
-				runtime:   types.Nodejs10,
-				debug:     true,
-				hotDeploy: false,
-			},
-			want: []string{
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=nodejs10",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				NodejsPath,
-				fmt.Sprintf("NODE_OPTIONS=%s", NodejsDebugOption),
 			},
 		},
 		{
 			name: "should return envs for nodejs10 with hotDeploy",
 			args: args{
 				runtime:   types.Nodejs10,
-				debug:     false,
 				hotDeploy: true,
 			},
 			want: []string{
@@ -154,7 +97,6 @@ func TestContainerEnvs(t *testing.T) {
 			name: "should return envs for python38",
 			args: args{
 				runtime:   types.Python38,
-				debug:     false,
 				hotDeploy: false,
 			},
 			want: []string{
@@ -170,7 +112,6 @@ func TestContainerEnvs(t *testing.T) {
 			name: "should return envs for python38 with debug",
 			args: args{
 				runtime:   types.Python38,
-				debug:     false,
 				hotDeploy: false,
 			},
 			want: []string{
@@ -180,14 +121,12 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				Python38Path,
-				// TODO
 			},
 		},
 		{
 			name: "should return envs for python38 with hotDeploy",
 			args: args{
 				runtime:   types.Python38,
-				debug:     false,
 				hotDeploy: true,
 			},
 			want: []string{
@@ -203,7 +142,7 @@ func TestContainerEnvs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainerEnvs(tt.args.runtime, tt.args.debug, tt.args.hotDeploy); !reflect.DeepEqual(got, tt.want) {
+			if got := ContainerEnvs(tt.args.runtime, tt.args.hotDeploy); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ContainerEnvs() = %v, want %v", got, tt.want)
 			}
 		})
@@ -302,7 +241,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -312,7 +251,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -331,7 +270,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -341,7 +280,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
