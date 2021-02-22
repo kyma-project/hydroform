@@ -2,8 +2,9 @@ package deployment
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"sync"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
@@ -233,13 +234,13 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 
 // Pass optionally an receiver-channel to get progress updates
 func newDeployment(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) *Deployment {
-	config := config.Config{
+	config := &config.Config{
 		CancelTimeout:      cancelTimeout,
 		QuitTimeout:        quitTimeout,
 		Log:                logger.NewLogger(true),
 		ComponentsListFile: "../test/data/componentlist.yaml",
 	}
-	core, err := newCore(config, Overrides{}, kubeClient, procUpdates)
+	core, err := newCore(config, &Overrides{}, kubeClient, procUpdates)
 	if err != nil {
 		assert.NoError(t, err)
 	}

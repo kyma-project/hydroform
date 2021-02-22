@@ -2,6 +2,7 @@ package components
 
 import (
 	"context"
+
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 )

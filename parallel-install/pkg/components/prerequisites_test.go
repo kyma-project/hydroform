@@ -1,8 +1,9 @@
 package components
 
 import (
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 
@@ -38,7 +39,7 @@ func Test_PrerequisiteGetComponents(t *testing.T) {
 	}
 	componentList := []ComponentDefinition{compDef}
 
-	installationCfg := config.Config{}
+	installationCfg := &config.Config{}
 
 	provider := NewPrerequisitesProvider(overridesProvider, "", componentList, installationCfg)
 

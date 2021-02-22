@@ -1,8 +1,9 @@
 package components
 
 import (
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 
@@ -32,14 +33,14 @@ func Test_GetComponents(t *testing.T) {
 	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), logger.NewLogger(true))
 	require.NoError(t, err)
 
-	installationCfg := config.Config{}
+	installationCfg := &config.Config{}
 
 	components := []ComponentDefinition{
-		ComponentDefinition{
+		{
 			Name:      "comp1",
 			Namespace: "ns1",
 		},
-		ComponentDefinition{
+		{
 			Name:      "comp2",
 			Namespace: "ns2",
 		},

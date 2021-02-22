@@ -2,8 +2,9 @@ package components
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"path"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
@@ -30,7 +31,7 @@ type ComponentsProvider struct {
 //resourcesPath is a directory where subdirectories of components' charts are located.
 //
 //componentListYaml is a string containing YAML with an Installation CR.
-func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, components []ComponentDefinition, cfg config.Config) *ComponentsProvider {
+func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, components []ComponentDefinition, cfg *config.Config) *ComponentsProvider {
 
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
