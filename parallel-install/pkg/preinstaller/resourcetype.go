@@ -11,20 +11,20 @@ import (
 )
 
 type resourceType struct {
-	name      string
+	name    string
 	applier resourceApplier
 }
 
 func newCrdPreInstallerResource(log logger.Interface, dynamicClient dynamic.Interface, retryOptions []retry.Option) *resourceType {
 	return &resourceType{
-		name: "crds",
+		name:    "crds",
 		applier: newGenericResourceApplier(log, dynamicClient, initializeDecoder(), retryOptions),
 	}
 }
 
 func newNamespacePreInstallerResource(log logger.Interface, dynamicClient dynamic.Interface, retryOptions []retry.Option) *resourceType {
 	return &resourceType{
-		name: "namespaces",
+		name:    "namespaces",
 		applier: newGenericResourceApplier(log, dynamicClient, initializeDecoder(), retryOptions),
 	}
 }

@@ -18,15 +18,15 @@ type resourceApplier interface {
 }
 
 type genericResourceApplier struct {
-	log logger.Interface
-	decoder runtime.Decoder
+	log             logger.Interface
+	decoder         runtime.Decoder
 	resourceManager resourceManager
 }
 
 func newGenericResourceApplier(log logger.Interface, dynamicClient dynamic.Interface, decoder runtime.Decoder, retryOptions []retry.Option) *genericResourceApplier {
 	return &genericResourceApplier{
-		log: log,
-		decoder: decoder,
+		log:             log,
+		decoder:         decoder,
 		resourceManager: *newResourceManager(dynamicClient, retryOptions),
 	}
 }
@@ -48,8 +48,8 @@ func (c *genericResourceApplier) Apply(manifest string) error {
 	}
 
 	resourceSchema := schema.GroupVersionResource{
-		Group: grpVerKind.Group,
-		Version: grpVerKind.Version,
+		Group:    grpVerKind.Group,
+		Version:  grpVerKind.Version,
 		Resource: pluralForm(grpVerKind.Kind),
 	}
 
@@ -69,7 +69,7 @@ func (c *genericResourceApplier) Apply(manifest string) error {
 	return c.resourceManager.createResource(resource, resourceSchema)
 }
 
-func convertYamlToJson(input string) (string, error){
+func convertYamlToJson(input string) (string, error) {
 	convertedInput, err := yaml.YAMLToJSON([]byte(input))
 	if err != nil {
 		return "", err

@@ -14,8 +14,8 @@ import (
 type PreInstaller struct {
 	cfg            config.Config
 	kubeClient     kubernetes.Interface
-	dynamicClient dynamic.Interface
-	retryOptions []retry.Option
+	dynamicClient  dynamic.Interface
+	retryOptions   []retry.Option
 	processUpdates chan<- deployment.ProcessUpdate
 }
 
@@ -23,8 +23,8 @@ func NewPreInstaller(cfg config.Config, kubeClient kubernetes.Interface, dynamic
 	return &PreInstaller{
 		cfg:            cfg,
 		kubeClient:     kubeClient,
-		dynamicClient: dynamicClient,
-		retryOptions: retryOptions,
+		dynamicClient:  dynamicClient,
+		retryOptions:   retryOptions,
 		processUpdates: processUpdates,
 	}
 }

@@ -11,13 +11,13 @@ import (
 
 type resourceManager struct {
 	dynamicClient dynamic.Interface
-	retryOptions []retry.Option
+	retryOptions  []retry.Option
 }
 
 func newResourceManager(dynamicClient dynamic.Interface, retryOptions []retry.Option) *resourceManager {
 	return &resourceManager{
 		dynamicClient: dynamicClient,
-		retryOptions: retryOptions,
+		retryOptions:  retryOptions,
 	}
 }
 
