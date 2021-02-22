@@ -80,19 +80,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	installer, err := deployment.NewDeployment(installationCfg, overrides, kubeClient, progressCh)
+	//Deploy Kyma
+	deployer, err := deployment.NewDeployment(installationCfg, overrides, kubeClient, progressCh)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
 
-	err = installer.StartKymaDeployment()
+	err = deployer.StartKymaDeployment()
 	if err != nil {
 		log.Printf("Failed to deploy Kyma: %v", err)
 	} else {
 		log.Println("Kyma deployed!")
 	}
 
-	kymaMeta, err := installer.ReadKymaMetadata()
+	kymaMeta, err := deployer.ReadKymaMetadata()
 	if err != nil {
 		log.Printf("Failed to read Kyma metadata: %v", err)
 	}
@@ -100,7 +101,12 @@ func main() {
 	log.Printf("Kyma version: %s", kymaMeta.Version)
 	log.Printf("Kyma status: %s", kymaMeta.Status)
 
-	err = installer.StartKymaUninstallation()
+	//Delete Kyma
+	deleter, err := deployment.NewDeletion(installationCfg, overrides, kubeClient, progressCh)
+	if err != nil {
+		log.Fatalf("Failed to create deleter: %v", err)
+	}
+	err = deleter.StartKymaUninstallation()
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}
