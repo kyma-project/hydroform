@@ -1,13 +1,11 @@
 package preinstaller
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/avast/retry-go"
 	"github.com/ghodss/yaml"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -21,17 +19,15 @@ type resourceApplier interface {
 
 type genericResourceApplier struct {
 	log logger.Interface
-	dynamicClient dynamic.Interface
 	decoder runtime.Decoder
-	retryOptions []retry.Option
+	resourceManager resourceManager
 }
 
 func newGenericResourceApplier(log logger.Interface, dynamicClient dynamic.Interface, decoder runtime.Decoder, retryOptions []retry.Option) *genericResourceApplier {
 	return &genericResourceApplier{
 		log: log,
-		dynamicClient: dynamicClient,
 		decoder: decoder,
-		retryOptions: retryOptions,
+		resourceManager: *newResourceManager(dynamicClient, retryOptions),
 	}
 }
 
@@ -58,7 +54,7 @@ func (c *genericResourceApplier) Apply(manifest string) error {
 	}
 
 	resourceName := resource.GetName()
-	obj, err := c.getResource(resourceName, resourceSchema)
+	obj, err := c.resourceManager.getResource(resourceName, resourceSchema)
 	if err != nil {
 		return err
 	}
@@ -70,47 +66,7 @@ func (c *genericResourceApplier) Apply(manifest string) error {
 
 	c.log.Infof("Creating resource: %s .", resourceName)
 
-	return c.createResource(resource, resourceSchema)
-}
-
-func (c *genericResourceApplier) createResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
-	var err error
-	err = retry.Do(func() error {
-		fmt.Println("Creating resource")
-
-		if _, err = c.dynamicClient.Resource(resourceSchema).Create(context.TODO(), resource, metav1.CreateOptions{}); err != nil {
-			return err
-		}
-
-		fmt.Println("Created resource")
-
-		return nil
-	}, c.retryOptions...)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *genericResourceApplier) getResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
-	var obj *unstructured.Unstructured
-	err := retry.Do(func() error {
-		var err error
-
-		if obj, err = c.dynamicClient.Resource(resourceSchema).Get(context.TODO(), resourceName, metav1.GetOptions{}); err != nil {
-			return err
-		}
-
-		return nil
-	}, c.retryOptions...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return obj, err
+	return c.resourceManager.createResource(resource, resourceSchema)
 }
 
 func convertYamlToJson(input string) (string, error){
