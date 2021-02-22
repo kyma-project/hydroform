@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/avast/retry-go"
+	"k8s.io/client-go/dynamic"
 	"os"
 	"time"
 
@@ -86,14 +88,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	//Install CRDs
-	preinstaller := preinstaller.NewPreInstaller(installationCfg, kubeClient, progressCh)
-	err = preinstaller.InstallCRDs()
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		log.Error("Failed to create kube dynamic client. Exiting...")
+		os.Exit(1)
+	}
+
+	commonRetryOpts := []retry.Option{
+		retry.Delay(time.Duration(installationCfg.BackoffInitialIntervalSeconds) * time.Second),
+		retry.Attempts(uint(installationCfg.BackoffMaxElapsedTimeSeconds / installationCfg.BackoffInitialIntervalSeconds)),
+		retry.DelayType(retry.FixedDelay),
+	}
+
+	//Prepare cluster before Kyma installation
+	preInstaller := preinstaller.NewPreInstaller(installationCfg, kubeClient, dynamicClient, commonRetryOpts, progressCh)
+
+	err = preInstaller.InstallCRDs()
 	if err != nil {
 		log.Errorf("Failed to install CRDs: %s", err)
 	}
 
-	err = preinstaller.CreateNamespaces()
+	err = preInstaller.CreateNamespaces()
 	if err != nil {
 		log.Errorf("Failed to create namespaces: %s", err)
 	}

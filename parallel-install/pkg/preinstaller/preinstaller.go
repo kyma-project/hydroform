@@ -2,9 +2,11 @@ package preinstaller
 
 import (
 	"fmt"
+	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
 	"io/ioutil"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -12,19 +14,23 @@ import (
 type PreInstaller struct {
 	cfg            config.Config
 	kubeClient     kubernetes.Interface
+	dynamicClient dynamic.Interface
+	retryOptions []retry.Option
 	processUpdates chan<- deployment.ProcessUpdate
 }
 
-func NewPreInstaller(cfg config.Config, kubeClient kubernetes.Interface, processUpdates chan<- deployment.ProcessUpdate) *PreInstaller {
+func NewPreInstaller(cfg config.Config, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, retryOptions []retry.Option, processUpdates chan<- deployment.ProcessUpdate) *PreInstaller {
 	return &PreInstaller{
 		cfg:            cfg,
 		kubeClient:     kubeClient,
+		dynamicClient: dynamicClient,
+		retryOptions: retryOptions,
 		processUpdates: processUpdates,
 	}
 }
 
 func (i *PreInstaller) InstallCRDs() error {
-	resource := newCrdPreInstallerResource()
+	resource := newCrdPreInstallerResource(i.cfg.Log, i.kubeClient, i.dynamicClient, i.retryOptions)
 	err := i.apply(*resource)
 	if err != nil {
 		return err
@@ -34,7 +40,7 @@ func (i *PreInstaller) InstallCRDs() error {
 }
 
 func (i *PreInstaller) CreateNamespaces() error {
-	resource := newNamespacePreInstallerResource()
+	resource := newNamespacePreInstallerResource(i.cfg.Log, i.kubeClient, i.dynamicClient, i.retryOptions)
 	err := i.apply(*resource)
 	if err != nil {
 		return err
@@ -80,18 +86,12 @@ func (i *PreInstaller) apply(resourceType resourceType) error {
 				return err
 			}
 
-			if !resourceType.validator(resourceData, resourceType.decoder) {
-				i.cfg.Log.Warnf("Validation failed for resourceType: %s", resourceName)
-				// TODO: fail-fast or continue?
-			} else {
-				err = resourceType.applier(resourceData, i.kubeClient)
-				if err != nil {
-					return err
-				}
+			err = resourceType.applier.Apply(string(resourceData))
+			if err != nil {
+				return err
 			}
 		}
 	}
 
 	return nil
 }
-

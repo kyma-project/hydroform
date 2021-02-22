@@ -1,57 +1,32 @@
 package preinstaller
 
 import (
+	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 type resourceType struct {
 	name      string
-	decoder runtime.Decoder
-	validator func(data []byte, decoder runtime.Decoder) bool
-	applier func(data []byte, kubeClient kubernetes.Interface) error
+	applier resourceApplier
 }
 
-func newCrdPreInstallerResource() *resourceType {
+func newCrdPreInstallerResource(log logger.Interface, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, retryOptions []retry.Option) *resourceType {
 	return &resourceType{
 		name: "crds",
-		decoder: initializeDecoder(),
-		validator: func(data []byte, decoder runtime.Decoder) bool {
-			_, _, err := decoder.Decode(data, nil, nil)
-			if err != nil {
-				return false
-			}
-
-			return true
-		},
-		applier: func(data []byte, kubeClient kubernetes.Interface) error {
-			// TODO
-
-			return nil
-		},
+		applier: newGenericResourceApplier(log, kubeClient, dynamicClient, initializeDecoder(), retryOptions),
 	}
 }
 
-func newNamespacePreInstallerResource() *resourceType {
+func newNamespacePreInstallerResource(log logger.Interface, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, retryOptions []retry.Option) *resourceType {
 	return &resourceType{
 		name: "namespaces",
-		decoder: initializeDecoder(),
-		validator: func(data []byte, decoder runtime.Decoder) bool {
-			_, _, err := decoder.Decode(data, nil, nil)
-			if err != nil {
-				return false
-			}
-
-			return true
-		},
-		applier: func(data []byte, kubeClient kubernetes.Interface) error {
-			// TODO
-
-			return nil
-		},
+		applier: newGenericResourceApplier(log, kubeClient, dynamicClient, initializeDecoder(), retryOptions),
 	}
 }
 
