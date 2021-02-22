@@ -7,9 +7,16 @@ import (
 )
 
 const (
-	NodejsPath          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
-	NodejsDebugOption   = "--inspect=0.0.0.0"
-	NodejsDebugEndpoint = `9229`
+	ServerPort   = "8080"
+	KubelessPath = "/kubeless"
+
+	Nodejs10Path          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
+	Nodejs10DebugOption   = "--inspect=0.0.0.0"
+	Nodejs10DebugEndpoint = `9229`
+
+	Nodejs12Path          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
+	Nodejs12DebugOption   = "--inspect=0.0.0.0"
+	Nodejs12DebugEndpoint = `9229`
 
 	Python38Path          = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.8/site-packages:$(KUBELESS_INSTALL_VOLUME)"
 	Python38HotDeploy     = "CHERRYPY_RELOADED=true"
@@ -18,11 +25,11 @@ const (
 
 func ContainerEnvs(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 	return append([]string{
+		fmt.Sprintf("KUBELESS_INSTALL_VOLUME=%s", KubelessPath),
 		fmt.Sprintf("FUNC_RUNTIME=%s", runtime),
 		"FUNC_HANDLER=main",
 		"MOD_NAME=handler",
 		"FUNC_PORT=8080",
-		"KUBELESS_INSTALL_VOLUME=/kubeless",
 	}, runtimeEnvs(runtime, debug, hotDeploy)...)
 }
 
@@ -45,6 +52,8 @@ func runtimeEnvs(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 		if hotDeploy {
 			envs = append(envs, Python38HotDeploy)
 		}
+		// TODO
+		//if debug { }
 		return envs
 	default:
 		envs := []string{Nodejs12Path}
@@ -68,20 +77,16 @@ func RuntimeDebugPort(runtime types.Runtime) string {
 	}
 }
 
-func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []string {
+func ContainerCommands(runtime types.Runtime, hotDeploy bool) []string {
 	switch runtime {
 	case types.Nodejs12, types.Nodejs10:
 		if hotDeploy {
-			return []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js"}
+			return []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"}
 		} else {
 			return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
 		}
 	case types.Python38:
-		if debug {
-			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py"}
-		} else {
-			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py"}
-		}
+		return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py"}
 	default:
 		if hotDeploy {
 			return []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"}

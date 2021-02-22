@@ -4,10 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/kyma-incubator/hydroform/function/pkg/docker/runtimes"
+	"github.com/moby/moby/pkg/jsonmessage"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -52,7 +56,7 @@ func RunContainer(ctx context.Context, c DockerClient, opts RunOpts) (string, er
 			{
 				Type:   mount.TypeBind,
 				Source: opts.WorkDir,
-				Target: "/kubeless",
+				Target: runtimes.KubelessPath,
 			},
 		},
 	}, opts.ContainerName)
@@ -68,13 +72,22 @@ func RunContainer(ctx context.Context, c DockerClient, opts RunOpts) (string, er
 	return body.ID, nil
 }
 
-func pullAndRun(ctx context.Context, c DockerClient, config *container.Config, hostConfig *container.HostConfig, containerName string) (container.ContainerCreateCreatedBody, error) {
+func pullAndRun(ctx context.Context, c DockerClient, config *container.Config,
+	hostConfig *container.HostConfig, containerName string) (container.ContainerCreateCreatedBody, error) {
 	body, err := c.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
 	if apiclient.IsErrNotFound(err) {
-		_, err = c.ImagePull(ctx, config.Image, types.ImagePullOptions{})
+		var r io.ReadCloser
+		r, err = c.ImagePull(ctx, config.Image, types.ImagePullOptions{})
 		if err != nil {
 			return body, err
 		}
+		defer r.Close()
+
+		streamer := streams.NewOut(os.Stdout)
+		if err = jsonmessage.DisplayJSONMessagesToStream(r, streamer, nil); err != nil {
+			return body, err
+		}
+
 		body, err = c.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
 	}
 	return body, err
@@ -116,7 +129,7 @@ func Stop(ctx context.Context, c DockerClient, ID string, log func(...interface{
 
 func portSet(ports map[string]string) nat.PortSet {
 	portSet := nat.PortSet{}
-	for from, _ := range ports {
+	for from := range ports {
 		portSet[nat.Port(from)] = struct{}{}
 	}
 	return portSet
