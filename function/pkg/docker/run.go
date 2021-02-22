@@ -121,8 +121,11 @@ func FollowRun(ctx context.Context, c DockerClient, ID string, log func(...inter
 
 func Stop(ctx context.Context, c DockerClient, ID string, log func(...interface{})) func() {
 	return func() {
-		log("\r- Ctrl+C pressed in Terminal\n", fmt.Sprintf("Removing container %s...\n", ID))
-		c.ContainerStop(ctx, ID, nil)
+		log(fmt.Sprintf("\r- Removing container %s...\n", ID))
+		err := c.ContainerStop(ctx, ID, nil)
+		if err != nil {
+			log(err)
+		}
 	}
 }
 
