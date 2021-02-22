@@ -1,8 +1,9 @@
 package components
 
 import (
-	"log"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 
@@ -29,7 +30,7 @@ func Test_PrerequisiteGetComponents(t *testing.T) {
 		},
 	)
 
-	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), log.Printf)
+	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), logger.NewLogger(true))
 	require.NoError(t, err)
 
 	compDef := ComponentDefinition{
@@ -38,7 +39,7 @@ func Test_PrerequisiteGetComponents(t *testing.T) {
 	}
 	componentList := []ComponentDefinition{compDef}
 
-	installationCfg := config.Config{}
+	installationCfg := &config.Config{}
 
 	provider := NewPrerequisitesProvider(overridesProvider, "", componentList, installationCfg)
 

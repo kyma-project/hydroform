@@ -2,7 +2,7 @@ package deployment
 
 import (
 	"context"
-	"log"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -40,21 +40,21 @@ func (p *mockProvider) GetComponents() ([]components.KymaComponent, error) {
 			Namespace:       "test1",
 			OverridesGetter: func() map[string]interface{} { return nil },
 			HelmClient:      p.hc,
-			Log:             log.Printf,
+			Log:             logger.NewLogger(true),
 		},
 		{
 			Name:            "test2",
 			Namespace:       "test2",
 			OverridesGetter: func() map[string]interface{} { return nil },
 			HelmClient:      p.hc,
-			Log:             log.Printf,
+			Log:             logger.NewLogger(true),
 		},
 		{
 			Name:            "test3",
 			Namespace:       "test3",
 			OverridesGetter: func() map[string]interface{} { return nil },
 			HelmClient:      p.hc,
-			Log:             log.Printf,
+			Log:             logger.NewLogger(true),
 		},
 	}, nil
 }

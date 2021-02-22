@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
-	//"k8s.io/client-go/kubernetes/fake"
-	"log"
 	"testing"
 	"time"
 )
@@ -59,7 +59,7 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 	overridesProvider := &mockOverridesProvider{}
 	eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 		WorkersCount: 2,
-		Verbose:      true,
+		Log:          logger.NewLogger(true),
 	})
 	err := inst.startKymaDeployment(provider, overridesProvider, eng)
 	assert.NoError(t, err)
@@ -92,7 +92,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 		overridesProvider := &mockOverridesProvider{}
 		eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 			WorkersCount: 2,
-			Verbose:      true,
+			Log:          logger.NewLogger(true),
 		})
 
 		err := i.startKymaDeployment(provider, overridesProvider, eng)
@@ -111,7 +111,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Verbose:      true,
+				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
@@ -142,7 +142,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Verbose:      true,
+				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
@@ -174,7 +174,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Verbose:      true,
+				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
@@ -211,7 +211,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			overridesProvider := &mockOverridesProvider{}
 			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
-				Verbose:      true,
+				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
@@ -234,13 +234,13 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 
 // Pass optionally an receiver-channel to get progress updates
 func newDeployment(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) *Deployment {
-	config := config.Config{
+	config := &config.Config{
 		CancelTimeout:      cancelTimeout,
 		QuitTimeout:        quitTimeout,
-		Log:                log.Printf,
+		Log:                logger.NewLogger(true),
 		ComponentsListFile: "../test/data/componentlist.yaml",
 	}
-	core, err := newCore(config, Overrides{}, kubeClient, procUpdates)
+	core, err := newCore(config, &Overrides{}, kubeClient, procUpdates)
 	if err != nil {
 		assert.NoError(t, err)
 	}

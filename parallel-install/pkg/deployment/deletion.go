@@ -28,7 +28,7 @@ type Deletion struct {
 }
 
 //NewDeletion creates a new Deployment instance for deleting Kyma on a cluster.
-func NewDeletion(cfg config.Config, overrides Overrides, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deletion, error) {
+func NewDeletion(cfg *config.Config, overrides *Overrides, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deletion, error) {
 	if err := cfg.ValidateDeletion(); err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (i *Deletion) StartKymaUninstallation() error {
 }
 
 func (i *Deletion) startKymaUninstallation(prerequisitesProvider components.Provider, eng *engine.Engine) error {
-	i.cfg.Log("Kyma uninstallation started")
+	i.cfg.Log.Info("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -95,7 +95,7 @@ func (i *Deletion) startKymaUninstallation(prerequisitesProvider components.Prov
 	}
 	endTime := time.Now()
 
-	i.cfg.Log("Kyma prerequisites uninstallation")
+	i.cfg.Log.Info("Kyma prerequisites uninstallation")
 
 	cancelTimeout = calculateDuration(startTime, endTime, i.cfg.CancelTimeout)
 	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
@@ -136,7 +136,7 @@ Prerequisites:
 			if ok {
 				if prerequisiteErr != nil {
 					i.processUpdate(UninstallPreRequisites, ProcessExecutionFailure)
-					i.cfg.Log("Failed to uninstall a prerequisite: %s", prerequisiteErr)
+					i.cfg.Log.Errorf("Failed to uninstall a prerequisite: %s", prerequisiteErr)
 				}
 			} else {
 				if timeoutOccurred {
@@ -147,11 +147,11 @@ Prerequisites:
 			}
 		case <-cancelTimeoutChan:
 			timeoutOccurred = true
-			i.cfg.Log("Timeout reached. Cancelling uninstallation")
+			i.cfg.Log.Error("Timeout reached. Cancelling uninstallation")
 			cancelFunc()
 		case <-quitTimeoutChan:
 			i.processUpdate(UninstallPreRequisites, ProcessForceQuitFailure)
-			i.cfg.Log("Uninstallation doesn't stop after it's canceled. Enforcing quit")
+			i.cfg.Log.Error("Uninstallation doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Force quit: Kyma prerequisites uninstallation failed due to the timeout")
 		}
 	}
@@ -198,11 +198,11 @@ UninstallLoop:
 			}
 		case <-cancelTimeoutChan:
 			timeoutOccured = true
-			i.cfg.Log("Timeout occurred after %v minutes. Cancelling uninstallation", cancelTimeout.Minutes())
+			i.cfg.Log.Errorf("Timeout occurred after %v minutes. Cancelling uninstallation", cancelTimeout.Minutes())
 			cancelFunc()
 		case <-quitTimeoutChan:
 			i.processUpdate(UninstallComponents, ProcessForceQuitFailure)
-			i.cfg.Log("Uninstallation doesn't stop after it's canceled. Enforcing quit")
+			i.cfg.Log.Error("Uninstallation doesn't stop after it's canceled. Enforcing quit")
 			return fmt.Errorf("Force quit: Kyma uninstallation failed due to the timeout")
 		}
 	}

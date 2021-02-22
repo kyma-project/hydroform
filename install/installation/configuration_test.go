@@ -1,6 +1,7 @@
 package installation
 
 import (
+	"github.com/kyma-incubator/hydroform/install/k8s"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -71,5 +72,39 @@ func TestConfigEntries_Set(t *testing.T) {
 			assert.Equal(t, testCase.expectedEntries, testCase.configEntries)
 		})
 	}
+}
 
+func TestConfiguration_configurationToK8sResources(t *testing.T) {
+	t.Run("should append OnConflict labels to components maps and secrets", func(t *testing.T) {
+
+		entries := ConfigEntries{
+			{Key: "map", Value: "mapValue", Secret: false},
+			{Key: "secret", Value: "secretValue", Secret: true},
+		}
+
+		maps, secrets := configurationToK8sResources(Configuration{
+			Configuration: entries,
+			ComponentConfiguration: []ComponentConfiguration{
+				{
+					Component:        "testComponent",
+					Configuration:    entries,
+					ConflictStrategy: k8s.ReplaceOnConflict,
+				},
+			},
+			ConflictStrategy: k8s.ReplaceOnConflict,
+		})
+
+		keys := make([]string, 0)
+		for _, entry := range maps {
+			assert.Equal(t, k8s.ReplaceOnConflict, entry.ObjectMeta.Labels[k8s.OnConflictLabel])
+			keys = append(keys, entry.Name)
+		}
+
+		for _, entry := range secrets {
+			assert.Equal(t, k8s.ReplaceOnConflict, entry.ObjectMeta.Labels[k8s.OnConflictLabel])
+			keys = append(keys, entry.Name)
+		}
+
+		assert.Equal(t, len(keys), 4)
+	})
 }

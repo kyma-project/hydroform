@@ -1,4 +1,4 @@
-package k8s
+package util
 
 //MergeMaps copies the keys that don't exist in the new map from the original map
 func MergeMaps(new, original map[string]interface{}) map[string]interface{} {
