@@ -32,7 +32,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				Nodejs12Path,
+				NodejsPath,
 			},
 		},
 		{
@@ -48,8 +48,8 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				Nodejs12Path,
-				fmt.Sprintf("NODE_OPTIONS=%s", Nodejs12DebugOption),
+				NodejsPath,
+				fmt.Sprintf("NODE_OPTIONS=%s", NodejsDebugOption),
 			},
 		},
 		{
@@ -65,7 +65,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				Nodejs12Path,
+				NodejsPath,
 			},
 		},
 		{
@@ -81,7 +81,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				Nodejs12Path,
+				NodejsPath,
 			},
 		},
 		{
@@ -97,8 +97,8 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				Nodejs12Path,
-				fmt.Sprintf("NODE_OPTIONS=%s", Nodejs12DebugOption),
+				NodejsPath,
+				fmt.Sprintf("NODE_OPTIONS=%s", NodejsDebugOption),
 			},
 		},
 		{
@@ -114,7 +114,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				Nodejs10Path,
+				NodejsPath,
 			},
 		},
 		{
@@ -130,8 +130,8 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				Nodejs10Path,
-				fmt.Sprintf("NODE_OPTIONS=%s", Nodejs10DebugOption),
+				NodejsPath,
+				fmt.Sprintf("NODE_OPTIONS=%s", NodejsDebugOption),
 			},
 		},
 		{
@@ -147,7 +147,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				Nodejs10Path,
+				NodejsPath,
 			},
 		},
 		{
@@ -224,12 +224,12 @@ func TestRuntimeDebugPort(t *testing.T) {
 		{
 			name:    "should return nodejs12 debug port",
 			runtime: types.Nodejs12,
-			want:    Nodejs12DebugEndpoint,
+			want:    NodejsDebugEndpoint,
 		},
 		{
 			name:    "should return nodejs10 debug port",
 			runtime: types.Nodejs10,
-			want:    Nodejs10DebugEndpoint,
+			want:    NodejsDebugEndpoint,
 		},
 		{
 			name:    "should return python38 debug port",
@@ -249,6 +249,7 @@ func TestRuntimeDebugPort(t *testing.T) {
 func TestContainerCommands(t *testing.T) {
 	type args struct {
 		runtime   types.Runtime
+		debug     bool
 		hotDeploy bool
 	}
 	tests := []struct {
@@ -291,7 +292,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -310,7 +311,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -332,10 +333,31 @@ func TestContainerCommands(t *testing.T) {
 				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
 			},
 		},
+		{
+			name: "should return commands for Python38 with debug",
+			args: args{
+				runtime: types.Python38,
+				debug:   true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python38 with hotDeploy and debug",
+			args: args{
+				runtime:   types.Python38,
+				hotDeploy: true,
+				debug:     true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainerCommands(tt.args.runtime, tt.args.hotDeploy); !reflect.DeepEqual(got, tt.want) {
+			if got := ContainerCommands(tt.args.runtime, tt.args.debug, tt.args.hotDeploy); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ContainerCommands() = %v, want %v", got, tt.want)
 			}
 		})
