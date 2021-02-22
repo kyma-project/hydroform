@@ -69,4 +69,4 @@ See how the examples use specific libraries to:
 
 Docker allow you to perform operation on the given resources: `run`.
 
-See how the examples use specific libraries to:
+See how the examples use specific libraries to [run resources](./cmd/docker/run/main.go).
