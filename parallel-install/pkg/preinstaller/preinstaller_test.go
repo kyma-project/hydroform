@@ -15,58 +15,58 @@ import (
 	"time"
 )
 
-func TestPreInstaller_InstallCRDs(t *testing.T) {
-	scheme := runtime.NewScheme()
-	dynamicClient := fake.NewSimpleDynamicClient(scheme)
-	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions(cfg)
+//func TestPreInstaller_InstallCRDs(t *testing.T) {
+//	scheme := runtime.NewScheme()
+//	dynamicClient := fake.NewSimpleDynamicClient(scheme)
+//	cfg := getTestingConfig()
+//	retryOptions := getTestingRetryOptions(cfg)
+//	resourceManager := NewResourceManager(dynamicClient, retryOptions)
+//	resourceApplier := NewGenericResourceApplier(cfg.Log, *resourceManager)
+//
+//	t.Run("should install CRDs", func(t *testing.T) {
+//		// TODO
+//	})
+//}
 
-	t.Run("should report error about not existing installation resources path", func(t *testing.T) {
-		// given
-		configWithNotExistingPath := config.Config{
-			InstallationResourcePath: "notExistingPath",
-			Log:                           logger.NewLogger(true),
-		}
-		i := NewPreInstaller(configWithNotExistingPath, dynamicClient, retryOptions)
-
-		// when
-		output, err := i.InstallCRDs()
-
-		// then
-		expectedError := "no such file or directory"
-		receivedError := err.Error()
-		matched, err := regexp.MatchString(expectedError, receivedError)
-		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
-		assert.True(t, len(output.installed) == 0)
-	})
-
-}
+//func TestPreInstaller_CreateNamespaces(t *testing.T) {
+//	scheme := runtime.NewScheme()
+//	dynamicClient := fake.NewSimpleDynamicClient(scheme)
+//	cfg := getTestingConfig()
+//	retryOptions := getTestingRetryOptions(cfg)
+//	resourceManager := NewResourceManager(dynamicClient, retryOptions)
+//	resourceApplier := NewGenericResourceApplier(cfg.Log, *resourceManager)
+//
+//	t.Run("should create namespaces", func(t *testing.T) {
+//		// TODO
+//	})
+//}
 
 func TestPreInstaller_apply(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
 	retryOptions := getTestingRetryOptions(cfg)
+	resourceManager := NewResourceManager(dynamicClient, retryOptions)
+	resourceApplier := NewGenericResourceApplier(cfg.Log, *resourceManager)
 
-	t.Run("should report error about not existing installation resources path", func(t *testing.T) {
-		// given
-		configWithNotExistingPath := config.Config{
-			InstallationResourcePath: "notExistingPath",
-			Log:                           logger.NewLogger(true),
-		}
-		i := NewPreInstaller(configWithNotExistingPath, dynamicClient, retryOptions)
+	t.Run("should fail to create a resource", func(t *testing.T) {
+		t.Run("due to error about not existing installation resources path", func(t *testing.T) {
+			// given
+			cfg.InstallationResourcePath = "notExistingPath"
+			i := NewPreInstaller(resourceApplier, cfg, dynamicClient, retryOptions)
+			resources := resourceType{name: "crds"}
 
-		// when
-		output, err := i.InstallCRDs()
+			// when
+			output, err := i.apply(resources)
 
-		// then
-		expectedError := "no such file or directory"
-		receivedError := err.Error()
-		matched, err := regexp.MatchString(expectedError, receivedError)
-		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
-		assert.True(t, len(output.installed) == 0)
+			// then
+			expectedError := "no such file or directory"
+			receivedError := err.Error()
+			matched, err := regexp.MatchString(expectedError, receivedError)
+			assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
+			assert.True(t, len(output.installed) == 0)
+		})
 	})
-
 }
 
 func getTestingConfig() config.Config {

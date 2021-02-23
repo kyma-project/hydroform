@@ -10,24 +10,24 @@ import (
 
 // PreInstaller performs CRDs installation.
 type PreInstaller struct {
-	applier ResourceApplier
-	cfg            config.Config
-	dynamicClient  dynamic.Interface
-	retryOptions   []retry.Option
+	applier       ResourceApplier
+	cfg           config.Config
+	dynamicClient dynamic.Interface
+	retryOptions  []retry.Option
 }
 
 func NewPreInstaller(applier ResourceApplier, cfg config.Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
 	return &PreInstaller{
-		applier: applier,
-		cfg:            cfg,
-		dynamicClient:  dynamicClient,
-		retryOptions:   retryOptions,
+		applier:       applier,
+		cfg:           cfg,
+		dynamicClient: dynamicClient,
+		retryOptions:  retryOptions,
 	}
 }
 
 func (i *PreInstaller) InstallCRDs() (Output, error) {
 	resource := resourceType{
-		name:    "crds",
+		name: "crds",
 	}
 
 	output, err := i.apply(resource)
@@ -40,7 +40,7 @@ func (i *PreInstaller) InstallCRDs() (Output, error) {
 
 func (i *PreInstaller) CreateNamespaces() (Output, error) {
 	resource := resourceType{
-		name:    "namespaces",
+		name: "namespaces",
 	}
 
 	output, err := i.apply(resource)
@@ -85,7 +85,7 @@ func (i *PreInstaller) apply(resourceType resourceType) (o Output, err error) {
 			pathToResource := fmt.Sprintf("%s/%s", pathToComponent, resourceName)
 			file := File{
 				component: componentName,
-				path: pathToResource,
+				path:      pathToResource,
 			}
 
 			resourceData, err := ioutil.ReadFile(pathToResource)

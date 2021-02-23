@@ -19,7 +19,7 @@ type ResourceApplier interface {
 }
 
 type resourceType struct {
-	name    string
+	name string
 }
 
 type GenericResourceApplier struct {
@@ -31,7 +31,7 @@ type GenericResourceApplier struct {
 func NewGenericResourceApplier(log logger.Interface, resourceManager ResourceManager) *GenericResourceApplier {
 	return &GenericResourceApplier{
 		log:             log,
-		decoder:        initializeDecoder(),
+		decoder:         initializeDecoder(),
 		resourceManager: resourceManager,
 	}
 }
