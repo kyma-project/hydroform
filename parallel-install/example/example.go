@@ -101,7 +101,7 @@ func main() {
 	}
 
 	//Prepare cluster before Kyma installation
-	preInstaller := preinstaller.NewPreInstaller(installationCfg, kubeClient, dynamicClient, commonRetryOpts, progressCh)
+	preInstaller := preinstaller.NewPreInstaller(installationCfg, dynamicClient, commonRetryOpts)
 
 	err = preInstaller.InstallCRDs()
 	if err != nil {

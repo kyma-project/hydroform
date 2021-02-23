@@ -34,7 +34,8 @@ func newGenericResourceApplier(log logger.Interface, dynamicClient dynamic.Inter
 func (c *genericResourceApplier) Apply(manifest string) error {
 	var _, grpVerKind, err = c.decoder.Decode([]byte(manifest), nil, nil)
 	if err != nil {
-		return err
+		c.log.Warn("Could not parse the resource file. Skipping.")
+		return nil
 	}
 
 	converted, err := convertYamlToJson(manifest)
@@ -53,11 +54,15 @@ func (c *genericResourceApplier) Apply(manifest string) error {
 		Resource: pluralForm(grpVerKind.Kind),
 	}
 
+	c.log.Info("Getting resource")
+
 	resourceName := resource.GetName()
 	obj, err := c.resourceManager.getResource(resourceName, resourceSchema)
 	if err != nil {
 		return err
 	}
+
+	c.log.Info("Got resource")
 
 	if obj != nil {
 		c.log.Infof("Resource: %s already exists. Skipping.", resourceName)

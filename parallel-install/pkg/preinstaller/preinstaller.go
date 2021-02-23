@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
 	"io/ioutil"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -16,16 +15,13 @@ type PreInstaller struct {
 	kubeClient     kubernetes.Interface
 	dynamicClient  dynamic.Interface
 	retryOptions   []retry.Option
-	processUpdates chan<- deployment.ProcessUpdate
 }
 
-func NewPreInstaller(cfg config.Config, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, retryOptions []retry.Option, processUpdates chan<- deployment.ProcessUpdate) *PreInstaller {
+func NewPreInstaller(cfg config.Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
 	return &PreInstaller{
 		cfg:            cfg,
-		kubeClient:     kubeClient,
 		dynamicClient:  dynamicClient,
 		retryOptions:   retryOptions,
-		processUpdates: processUpdates,
 	}
 }
 
