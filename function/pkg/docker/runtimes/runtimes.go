@@ -59,7 +59,7 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 	case types.Nodejs12, types.Nodejs10:
 		runCommand := ""
 		if hotDeploy && debug {
-			runCommand = "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 /kubeless_rt/kubeless.js"
+			runCommand = "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 --exitcrash kubeless.js "
 		} else if hotDeploy {
 			runCommand = "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"
 		} else if debug {
@@ -90,7 +90,7 @@ func ContainerImage(runtime types.Runtime) string {
 	case types.Nodejs10:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs10:cc7dd53f"
 	case types.Python38:
-		return "eu.gcr.io/kyma-project/function-runtime-python38:cc7dd53f"
+		return "eu.gcr.io/kyma-project/function-runtime-python38@sha256:c8e471dd5350495cc83e36d39998a6be327b23428bf3765cc1dd74f87786b737"
 	default:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f"
 	}
