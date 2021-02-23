@@ -33,6 +33,7 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, res
 		BackoffMaxElapsedTimeSeconds:  cfg.BackoffMaxElapsedTimeSeconds,
 		Log:                           cfg.Log,
 		MaxHistory:                    cfg.HelmMaxRevisionHistory,
+		Atomic:                        cfg.Atomic,
 	}
 
 	return &PrerequisitesProvider{
