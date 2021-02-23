@@ -40,7 +40,7 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func newCore(cfg *config.Config, overrides *Overrides, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*core, error) {
+func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*core, error) {
 	clList, err := components.NewComponentList(cfg.ComponentsListFile)
 	if err != nil {
 		return nil, err
@@ -51,14 +51,19 @@ func newCore(cfg *config.Config, overrides *Overrides, kubeClient kubernetes.Int
 		removeFromComponentList(clList, incompatibleLocalComponents)
 	}
 
-	registerOverridesInterceptors(overrides)
+	registerOverridesInterceptors(ob)
+
+	overrides, err := ob.Build()
+	if err != nil {
+		return nil, err
+	}
 
 	metadataProvider := metadata.New(kubeClient)
 
 	return &core{
 		componentList:    clList,
 		cfg:              cfg,
-		overrides:        overrides,
+		overrides:        &overrides,
 		processUpdates:   processUpdates,
 		kubeClient:       kubeClient,
 		metadataProvider: metadataProvider,
@@ -78,11 +83,7 @@ func (i *core) logStatuses(statusMap map[string]string) {
 }
 
 func (i *core) getConfig() (overrides.OverridesProvider, components.Provider, *engine.Engine, error) {
-	overridesMerged, err := i.overrides.Merge()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	overridesProvider, err := overrides.New(i.kubeClient, overridesMerged, i.cfg.Log)
+	overridesProvider, err := overrides.New(i.kubeClient, i.overrides.Map(), i.cfg.Log)
 
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider. Exiting...")
@@ -155,7 +156,7 @@ func removeFromComponentList(cl *components.ComponentList, componentNames []stri
 	}
 }
 
-func registerOverridesInterceptors(o *Overrides) {
+func registerOverridesInterceptors(o *OverridesBuilder) {
 	//hide certificate data
 	o.AddInterceptor([]string{"global.isLocalEnv", "global.environment.gardener"}, NewFallbackOverrideInterceptor(false))
 	o.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, &DomainNameOverrideInterceptor{})

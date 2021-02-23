@@ -25,12 +25,12 @@ type Deployment struct {
 }
 
 //NewDeployment creates a new Deployment instance for deploying Kyma on a cluster.
-func NewDeployment(cfg *config.Config, overrides *Overrides, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
+func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
 	if err := cfg.ValidateDeployment(); err != nil {
 		return nil, err
 	}
 
-	core, err := newCore(cfg, overrides, kubeClient, processUpdates)
+	core, err := newCore(cfg, ob, kubeClient, processUpdates)
 	if err != nil {
 		return nil, err
 	}
