@@ -3,35 +3,40 @@ package preinstaller
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/avast/retry-go"
 	"github.com/ghodss/yaml"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"strings"
 )
 
-type resourceApplier interface {
+type ResourceApplier interface {
 	Apply(manifest string) error
 }
 
-type genericResourceApplier struct {
-	log             logger.Interface
-	decoder         runtime.Decoder
-	resourceManager resourceManager
+type resourceType struct {
+	name    string
 }
 
-func newGenericResourceApplier(log logger.Interface, dynamicClient dynamic.Interface, decoder runtime.Decoder, retryOptions []retry.Option) *genericResourceApplier {
-	return &genericResourceApplier{
+type GenericResourceApplier struct {
+	log             logger.Interface
+	decoder         runtime.Decoder
+	resourceManager ResourceManager
+}
+
+func NewGenericResourceApplier(log logger.Interface, resourceManager ResourceManager) *GenericResourceApplier {
+	return &GenericResourceApplier{
 		log:             log,
-		decoder:         decoder,
-		resourceManager: *newResourceManager(dynamicClient, retryOptions),
+		decoder:        initializeDecoder(),
+		resourceManager: resourceManager,
 	}
 }
 
-func (c *genericResourceApplier) Apply(manifest string) error {
+func (c *GenericResourceApplier) Apply(manifest string) error {
 	var _, grpVerKind, err = c.decoder.Decode([]byte(manifest), nil, nil)
 	if err != nil {
 		c.log.Warn("Could not parse the resource file. Skipping.")
@@ -54,15 +59,11 @@ func (c *genericResourceApplier) Apply(manifest string) error {
 		Resource: pluralForm(grpVerKind.Kind),
 	}
 
-	c.log.Info("Getting resource")
-
 	resourceName := resource.GetName()
 	obj, err := c.resourceManager.getResource(resourceName, resourceSchema)
 	if err != nil {
 		return err
 	}
-
-	c.log.Info("Got resource")
 
 	if obj != nil {
 		c.log.Infof("Resource: %s already exists. Skipping.", resourceName)
@@ -101,4 +102,12 @@ func parseManifest(input []byte) (*unstructured.Unstructured, error) {
 
 func pluralForm(name string) string {
 	return fmt.Sprintf("%ss", strings.ToLower(name))
+}
+
+func initializeDecoder() runtime.Decoder {
+	sch := runtime.NewScheme()
+	_ = clientgoscheme.AddToScheme(sch)
+	_ = apiextv1.AddToScheme(sch)
+
+	return serializer.NewCodecFactory(sch).UniversalDeserializer()
 }

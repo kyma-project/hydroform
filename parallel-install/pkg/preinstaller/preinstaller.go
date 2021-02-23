@@ -6,57 +6,63 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"io/ioutil"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 )
 
 // PreInstaller performs CRDs installation.
 type PreInstaller struct {
+	applier ResourceApplier
 	cfg            config.Config
-	kubeClient     kubernetes.Interface
 	dynamicClient  dynamic.Interface
 	retryOptions   []retry.Option
 }
 
-func NewPreInstaller(cfg config.Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
+func NewPreInstaller(applier ResourceApplier, cfg config.Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
 	return &PreInstaller{
+		applier: applier,
 		cfg:            cfg,
 		dynamicClient:  dynamicClient,
 		retryOptions:   retryOptions,
 	}
 }
 
-func (i *PreInstaller) InstallCRDs() error {
-	resource := newCrdPreInstallerResource(i.cfg.Log, i.dynamicClient, i.retryOptions)
-	err := i.apply(*resource)
-	if err != nil {
-		return err
+func (i *PreInstaller) InstallCRDs() (Output, error) {
+	resource := resourceType{
+		name:    "crds",
 	}
 
-	return nil
-}
-
-func (i *PreInstaller) CreateNamespaces() error {
-	resource := newNamespacePreInstallerResource(i.cfg.Log, i.dynamicClient, i.retryOptions)
-	err := i.apply(*resource)
+	output, err := i.apply(resource)
 	if err != nil {
-		return err
+		return Output{}, err
 	}
 
-	return nil
+	return output, nil
 }
 
-func (i *PreInstaller) apply(resourceType resourceType) error {
+func (i *PreInstaller) CreateNamespaces() (Output, error) {
+	resource := resourceType{
+		name:    "namespaces",
+	}
+
+	output, err := i.apply(resource)
+	if err != nil {
+		return Output{}, err
+	}
+
+	return output, nil
+}
+
+func (i *PreInstaller) apply(resourceType resourceType) (o Output, err error) {
 	installationResourcePath := i.cfg.InstallationResourcePath
 	path := fmt.Sprintf("%s/%s", installationResourcePath, resourceType.name)
 
 	components, err := ioutil.ReadDir(path)
 	if err != nil {
-		return err
+		return o, err
 	}
 
 	if len(components) == 0 {
 		i.cfg.Log.Warn("There were no components detected for installation. Skipping.")
-		return nil
+		return o, nil
 	}
 
 	for _, component := range components {
@@ -65,29 +71,38 @@ func (i *PreInstaller) apply(resourceType resourceType) error {
 		pathToComponent := fmt.Sprintf("%s/%s", path, componentName)
 		resources, err := ioutil.ReadDir(pathToComponent)
 		if err != nil {
-			return err
+			return o, err // TODO: fail-fast or continue?
 		}
 
 		if len(resources) == 0 {
 			i.cfg.Log.Warnf("There were no resources detected for component: ", componentName)
-			return nil
+			break
 		}
 
 		for _, resource := range resources {
 			resourceName := resource.Name()
 			i.cfg.Log.Infof("Processing file: %s", resourceName)
 			pathToResource := fmt.Sprintf("%s/%s", pathToComponent, resourceName)
-			resourceData, err := ioutil.ReadFile(pathToResource)
-			if err != nil {
-				return err
+			file := File{
+				component: componentName,
+				path: pathToResource,
 			}
 
-			err = resourceType.applier.Apply(string(resourceData))
+			resourceData, err := ioutil.ReadFile(pathToResource)
 			if err != nil {
-				return err
+				o.notInstalled = append(o.notInstalled, file)
+				return o, err // TODO: fail-fast or continue?
 			}
+
+			err = i.applier.Apply(string(resourceData))
+			if err != nil {
+				o.notInstalled = append(o.notInstalled, file)
+				return o, err // TODO: fail-fast or continue?
+			}
+
+			o.installed = append(o.installed, file)
 		}
 	}
 
-	return nil
+	return o, nil
 }

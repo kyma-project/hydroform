@@ -101,14 +101,16 @@ func main() {
 	}
 
 	//Prepare cluster before Kyma installation
-	preInstaller := preinstaller.NewPreInstaller(installationCfg, dynamicClient, commonRetryOpts)
+	resourceManager := preinstaller.NewResourceManager(dynamicClient, commonRetryOpts)
+	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, *resourceManager)
+	preInstaller := preinstaller.NewPreInstaller(resourceApplier, installationCfg, dynamicClient, commonRetryOpts)
 
-	err = preInstaller.InstallCRDs()
+	_, err = preInstaller.InstallCRDs()
 	if err != nil {
 		log.Errorf("Failed to install CRDs: %s", err)
 	}
 
-	err = preInstaller.CreateNamespaces()
+	_, err = preInstaller.CreateNamespaces()
 	if err != nil {
 		log.Errorf("Failed to create namespaces: %s", err)
 	}

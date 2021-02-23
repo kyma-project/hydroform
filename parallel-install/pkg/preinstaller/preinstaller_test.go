@@ -30,13 +30,41 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 		i := NewPreInstaller(configWithNotExistingPath, dynamicClient, retryOptions)
 
 		// when
-		err := i.InstallCRDs()
+		output, err := i.InstallCRDs()
 
 		// then
 		expectedError := "no such file or directory"
 		receivedError := err.Error()
 		matched, err := regexp.MatchString(expectedError, receivedError)
 		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
+		assert.True(t, len(output.installed) == 0)
+	})
+
+}
+
+func TestPreInstaller_apply(t *testing.T) {
+	scheme := runtime.NewScheme()
+	dynamicClient := fake.NewSimpleDynamicClient(scheme)
+	cfg := getTestingConfig()
+	retryOptions := getTestingRetryOptions(cfg)
+
+	t.Run("should report error about not existing installation resources path", func(t *testing.T) {
+		// given
+		configWithNotExistingPath := config.Config{
+			InstallationResourcePath: "notExistingPath",
+			Log:                           logger.NewLogger(true),
+		}
+		i := NewPreInstaller(configWithNotExistingPath, dynamicClient, retryOptions)
+
+		// when
+		output, err := i.InstallCRDs()
+
+		// then
+		expectedError := "no such file or directory"
+		receivedError := err.Error()
+		matched, err := regexp.MatchString(expectedError, receivedError)
+		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
+		assert.True(t, len(output.installed) == 0)
 	})
 
 }

@@ -9,19 +9,19 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-type resourceManager struct {
+type ResourceManager struct {
 	dynamicClient dynamic.Interface
 	retryOptions  []retry.Option
 }
 
-func newResourceManager(dynamicClient dynamic.Interface, retryOptions []retry.Option) *resourceManager {
-	return &resourceManager{
+func NewResourceManager(dynamicClient dynamic.Interface, retryOptions []retry.Option) *ResourceManager {
+	return &ResourceManager{
 		dynamicClient: dynamicClient,
 		retryOptions:  retryOptions,
 	}
 }
 
-func (c *resourceManager) createResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
+func (c *ResourceManager) createResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
 	var err error
 	err = retry.Do(func() error {
 		if _, err = c.dynamicClient.Resource(resourceSchema).Create(context.TODO(), resource, metav1.CreateOptions{}); err != nil {
@@ -34,7 +34,7 @@ func (c *resourceManager) createResource(resource *unstructured.Unstructured, re
 	return err
 }
 
-func (c *resourceManager) getResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
+func (c *ResourceManager) getResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
 	var obj *unstructured.Unstructured
 	err := retry.Do(func() error {
 		var err error
