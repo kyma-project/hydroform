@@ -28,12 +28,12 @@ type Deletion struct {
 }
 
 //NewDeletion creates a new Deployment instance for deleting Kyma on a cluster.
-func NewDeletion(cfg *config.Config, overrides *Overrides, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deletion, error) {
+func NewDeletion(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deletion, error) {
 	if err := cfg.ValidateDeletion(); err != nil {
 		return nil, err
 	}
 
-	core, err := newCore(cfg, overrides, kubeClient, processUpdates)
+	core, err := newCore(cfg, ob, kubeClient, processUpdates)
 	if err != nil {
 		return nil, err
 	}

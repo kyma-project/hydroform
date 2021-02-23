@@ -240,7 +240,7 @@ func newDeployment(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient ku
 		Log:                logger.NewLogger(true),
 		ComponentsListFile: "../test/data/componentlist.yaml",
 	}
-	core, err := newCore(config, &Overrides{}, kubeClient, procUpdates)
+	core, err := newCore(config, &OverridesBuilder{}, kubeClient, procUpdates)
 	if err != nil {
 		assert.NoError(t, err)
 	}

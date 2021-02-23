@@ -2,8 +2,9 @@ package deployment
 
 import (
 	"context"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 )
