@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"os"
 	"time"
 )
@@ -26,7 +27,7 @@ type Config struct {
 	//Maximum time used for exponent backoff retry policy
 	BackoffMaxElapsedTimeSeconds int
 	//Logger to use
-	Log func(format string, v ...interface{})
+	Log logger.Interface
 	//Maximum number of Helm revision saved per release
 	HelmMaxRevisionHistory int
 	//Installation / Upgrade profile: evaluation|production
@@ -39,14 +40,32 @@ type Config struct {
 	CrdPath string
 	//Kyma version
 	Version string
+	//Atomic deployment
+	Atomic bool
 }
 
-// Validate the given configuration options
-func (c *Config) Validate() error {
+// validate verifies that mandatory options are provided
+func (c *Config) validate() error {
 	if c.WorkersCount <= 0 {
 		return fmt.Errorf("Workers count cannot be <= 0")
 	}
 	if err := c.pathExists(c.ComponentsListFile, "Components list"); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ValidateDeletion verifies that deletion specific options are provided
+func (c *Config) ValidateDeletion() error {
+	if err := c.validate(); err != nil { //deployment requires all core options
+		return err
+	}
+	return nil
+}
+
+// ValidateDeployment verifies that deployment specific options are provided
+func (c *Config) ValidateDeployment() error {
+	if err := c.validate(); err != nil { //deployment requires all core options
 		return err
 	}
 	if err := c.pathExists(c.ResourcePath, "Resource path"); err != nil {

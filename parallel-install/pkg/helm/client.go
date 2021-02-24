@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"helm.sh/helm/v3/pkg/chartutil"
 
@@ -27,11 +29,11 @@ const logPrefix = "[helm/client.go]"
 
 //Config provides configuration for the Client.
 type Config struct {
-	HelmTimeoutSeconds            int                                   //Underlying native Helm client processing timeout
-	BackoffInitialIntervalSeconds int                                   //Initial interval for the exponential backoff retry algorithm
-	BackoffMaxElapsedTimeSeconds  int                                   //Maximum time for the exponential backoff retry algorithm
-	MaxHistory                    int                                   //Maximum number of revisions saved per release
-	Log                           func(format string, v ...interface{}) //Used for logging
+	HelmTimeoutSeconds            int              //Underlying native Helm client processing timeout
+	BackoffInitialIntervalSeconds int              //Initial interval for the exponential backoff retry algorithm
+	BackoffMaxElapsedTimeSeconds  int              //Maximum time for the exponential backoff retry algorithm
+	MaxHistory                    int              //Maximum number of revisions saved per release
+	Log                           logger.Interface //Used for logging
 }
 
 //Client implements the ClientInterface.
@@ -83,26 +85,26 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 	uninstall.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
 	operation := func() error {
-		c.cfg.Log("%s Starting uninstall for release %s in namespace %s", logPrefix, name, namespace)
+		c.cfg.Log.Infof("%s Starting uninstall for release %s in namespace %s", logPrefix, name, namespace)
 		rel, err := uninstall.Run(name)
 		if err != nil {
 			//TODO: Find a better way. Maybe explicit check before uninstalling?
 			if strings.HasSuffix(err.Error(), "release: not found") {
 				return nil
 			}
-			c.cfg.Log("%s Error: %v", logPrefix, err)
+			c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 			return err
 		}
 
 		if rel == nil || rel.Release == nil || rel.Release.Info == nil {
 			err = fmt.Errorf("Failed to uninstall %s. Status: %v", name, "Unknown")
-			c.cfg.Log("%s Error: %v", logPrefix, err)
+			c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 			return err
 		}
 
 		if rel.Release.Info.Status != release.StatusUninstalled {
 			err = fmt.Errorf("Failed to uninstall %s. Status: %v", name, rel.Release.Info.Status)
-			c.cfg.Log("%s Error: %v", logPrefix, err)
+			c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 			return err
 		}
 
@@ -129,22 +131,22 @@ func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name s
 	upgrade.MaxHistory = c.cfg.MaxHistory
 	upgrade.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
-	c.cfg.Log("%s Starting upgrade for release %s in namespace %s", logPrefix, name, namespace)
+	c.cfg.Log.Infof("%s Starting upgrade for release %s in namespace %s", logPrefix, name, namespace)
 	rel, err := upgrade.Run(name, chart, overrides)
 	if err != nil {
-		c.cfg.Log("%s Error: %v", logPrefix, err)
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 		return err
 	}
 
 	if rel == nil || rel.Info == nil {
 		err = fmt.Errorf("Failed to upgrade %s. Status: %v", name, "Unknown")
-		c.cfg.Log("%s Error: %v", logPrefix, err)
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 		return err
 	}
 
 	if rel.Info.Status != release.StatusDeployed {
 		err = fmt.Errorf("Failed to upgrade %s. Status: %v", name, rel.Info.Status)
-		c.cfg.Log("%s Error: %v", logPrefix, err)
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 		return err
 	}
 
@@ -160,22 +162,22 @@ func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name s
 	install.CreateNamespace = true
 	install.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
 
-	c.cfg.Log("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
+	c.cfg.Log.Infof("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
 	rel, err := install.Run(chart, overrides)
 	if err != nil {
-		c.cfg.Log("%s Error: %v", logPrefix, err)
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 		return err
 	}
 
 	if rel == nil || rel.Info == nil {
 		err = fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
-		c.cfg.Log("%s Error: %v", logPrefix, err)
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 		return err
 	}
 
 	if rel.Info.Status != release.StatusDeployed {
 		err = fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
-		c.cfg.Log("%s Error: %v", logPrefix, err)
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 		return err
 	}
 
@@ -283,7 +285,11 @@ func (c *Client) newActionConfig(namespace string) (*action.Configuration, error
 	clientGetter.Namespace = &namespace
 
 	cfg := new(action.Configuration)
-	if err := cfg.Init(clientGetter, namespace, "secrets", c.cfg.Log); err != nil {
+
+	debugLogFunc := func(format string, args ...interface{}) { //leverage debugLog function to use logger instance
+		c.cfg.Log.Info(fmt.Sprintf(format, args...))
+	}
+	if err := cfg.Init(clientGetter, namespace, "secrets", debugLogFunc); err != nil {
 		return nil, err
 	}
 

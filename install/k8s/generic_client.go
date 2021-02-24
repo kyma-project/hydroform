@@ -3,7 +3,6 @@ package k8s
 import (
 	"context"
 	"fmt"
-
 	"github.com/kyma-incubator/hydroform/install/util"
 
 	"time"
@@ -20,6 +19,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	corev1Client "k8s.io/client-go/kubernetes/typed/core/v1"
+)
+
+const (
+	OnConflictLabel   string = "conflict-strategy"
+	ReplaceOnConflict string = "Replace"
+	MergeOnConflict   string = "Merge"
 )
 
 //go:generate mockery -name=RESTMapper
@@ -93,9 +98,9 @@ func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, c
 		return err
 	}
 
-	mergedData := MergeStringMaps(oldCM.Data, cm.Data)
-
-	cm.Data = mergedData
+	if isMerge(cm.Labels) {
+		cm.Data = util.MergeStringMaps(oldCM.Data, cm.Data)
+	}
 
 	_, err = client.Update(context.Background(), cm, v1.UpdateOptions{})
 	if err != nil {
@@ -125,22 +130,31 @@ func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) 
 	return nil
 }
 
-func (c GenericClient) updateSecret(client corev1Client.SecretInterface, secret *corev1.Secret) error {
-	oldSecret, err := client.Get(context.Background(), secret.Name, v1.GetOptions{})
+func (c GenericClient) updateSecret(client corev1Client.SecretInterface, cm *corev1.Secret) error {
+	oldCM, err := client.Get(context.Background(), cm.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
-	mergedData := MergeByteMaps(oldSecret.Data, secret.Data)
+	if isMerge(cm.Labels) {
+		cm.Data = util.MergeByteMaps(oldCM.Data, cm.Data)
+	}
 
-	secret.Data = mergedData
-
-	_, err = client.Update(context.Background(), secret, v1.UpdateOptions{})
+	_, err = client.Update(context.Background(), cm, v1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func isMerge(labels map[string]string) bool {
+	if labels == nil {
+		return true
+	}
+
+	val, ok := labels[OnConflictLabel]
+	return !ok || val != ReplaceOnConflict
 }
 
 func (c GenericClient) CreateResources(resources []K8sObject) ([]*unstructured.Unstructured, error) {
@@ -208,7 +222,7 @@ func (c GenericClient) updateObject(client dynamic.ResourceInterface, unstructur
 		return nil, err
 	}
 
-	merged := MergeMaps(unstructuredObject.Object, get.Object)
+	merged := util.MergeMaps(unstructuredObject.Object, get.Object)
 
 	newObject := &unstructured.Unstructured{Object: merged}
 
