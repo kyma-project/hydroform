@@ -18,7 +18,7 @@ func main() {
 		ContainerName: "test123",
 		Image:         runtimes.ContainerImage(types.Nodejs12),
 		WorkDir:       "/tmp/tmpfunc/",
-		Commands:      runtimes.ContainerCommands(types.Nodejs12),
+		Commands:      runtimes.ContainerCommands(types.Nodejs12, false, false),
 		User:          runtimes.ContainerUser(types.Nodejs12),
 	}
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
