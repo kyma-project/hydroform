@@ -115,9 +115,6 @@ func main() {
 		log.Errorf("Failed to create namespaces: %s", err)
 	}
 
-	// TODO: remove
-	return
-
 	//Deploy Kyma
 	deployer, err := deployment.NewDeployment(installationCfg, builder, kubeClient, progressCh)
 	if err != nil {

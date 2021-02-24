@@ -6,6 +6,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"io/ioutil"
 	"k8s.io/client-go/dynamic"
+	"os"
 )
 
 // PreInstaller performs CRDs installation.
@@ -55,12 +56,13 @@ func (i *PreInstaller) apply(resourceType resourceType) (o Output, err error) {
 	installationResourcePath := i.cfg.InstallationResourcePath
 	path := fmt.Sprintf("%s/%s", installationResourcePath, resourceType.name)
 
-	components, err := ioutil.ReadDir(path)
+	rawComponentsDir, err := ioutil.ReadDir(path)
 	if err != nil {
 		return o, err
 	}
 
-	if len(components) == 0 {
+	components := findOnlyDirectoriesAmong(rawComponentsDir)
+	if components == nil || len(components) == 0 {
 		i.cfg.Log.Warn("There were no components detected for installation. Skipping.")
 		return o, nil
 	}
@@ -97,12 +99,22 @@ func (i *PreInstaller) apply(resourceType resourceType) (o Output, err error) {
 			err = i.applier.Apply(string(resourceData))
 			if err != nil {
 				o.notInstalled = append(o.notInstalled, file)
-				return o, err // TODO: fail-fast or continue?
+				i.cfg.Log.Warnf("Error occured when processing file %s : %s", resourceName, err)
+			} else {
+				o.installed = append(o.installed, file)
 			}
-
-			o.installed = append(o.installed, file)
 		}
 	}
 
 	return o, nil
+}
+
+func findOnlyDirectoriesAmong(input []os.FileInfo) (o []os.FileInfo) {
+	for _, item := range input {
+		if item.IsDir() {
+			o = append(o, item)
+		}
+	}
+
+	return o
 }
