@@ -17,7 +17,7 @@ import (
 // ResourceApplier creates a new resource from manifest on k8s cluster.
 type ResourceApplier interface {
 	// Apply parses passed manifest and applies it on a k8s cluster.
-	Apply(manifest string) error
+	Apply(manifest string) (bool, error)
 }
 
 type resourceType struct {
@@ -40,21 +40,23 @@ func NewGenericResourceApplier(log logger.Interface, resourceManager ResourceMan
 	}
 }
 
-func (c *GenericResourceApplier) Apply(manifest string) error {
+func (c *GenericResourceApplier) Apply(manifest string) (bool, error) {
 	var _, grpVerKind, err = c.decoder.Decode([]byte(manifest), nil, nil)
 	if err != nil {
-		c.log.Warn("Could not parse the resource file. Skipping.")
-		return nil
+		c.log.Warn(fmt.Sprintf("%s%s", "Could not decode the resource file due to the following error: %s. Skipping.", err.Error()))
+		return false, nil
 	}
 
 	converted, err := convertYamlToJson(manifest)
 	if err != nil {
-		return err
+		c.log.Warn(fmt.Sprintf("%s%s", "Could not convert the resource file to JSON due to the following error: %s. Skipping.", err.Error()))
+		return false, nil
 	}
 
 	resource, err := parseManifest([]byte(converted))
 	if err != nil {
-		return err
+		c.log.Warn(fmt.Sprintf("%s%s", "Could not parse the resource file due to the following error: %s. Skipping.", err.Error()))
+		return false, nil
 	}
 
 	resourceSchema := schema.GroupVersionResource{
@@ -66,17 +68,22 @@ func (c *GenericResourceApplier) Apply(manifest string) error {
 	resourceName := resource.GetName()
 	obj, err := c.resourceManager.GetResource(resourceName, resourceSchema)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if obj != nil {
 		c.log.Infof("Resource: %s already exists. Skipping.", resourceName)
-		return nil
+		return false, nil
 	}
 
 	c.log.Infof("Creating resource: %s .", resourceName)
 
-	return c.resourceManager.CreateResource(resource, resourceSchema)
+	err = c.resourceManager.CreateResource(resource, resourceSchema)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func convertYamlToJson(input string) (string, error) {
