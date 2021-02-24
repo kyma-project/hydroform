@@ -103,7 +103,7 @@ func main() {
 	//Prepare cluster before Kyma installation
 	resourceManager := preinstaller.NewDefaultResourceManager(dynamicClient, commonRetryOpts)
 	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, resourceManager)
-	preInstaller := preinstaller.NewPreInstaller(resourceApplier, installationCfg, dynamicClient, commonRetryOpts)
+	preInstaller := preinstaller.NewPreInstaller(resourceApplier, *installationCfg, dynamicClient, commonRetryOpts)
 
 	_, err = preInstaller.InstallCRDs()
 	if err != nil {
