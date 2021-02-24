@@ -101,8 +101,8 @@ func main() {
 	}
 
 	//Prepare cluster before Kyma installation
-	resourceManager := preinstaller.NewResourceManager(dynamicClient, commonRetryOpts)
-	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, *resourceManager)
+	resourceManager := preinstaller.NewDefaultResourceManager(dynamicClient, commonRetryOpts)
+	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, resourceManager)
 	preInstaller := preinstaller.NewPreInstaller(resourceApplier, installationCfg, dynamicClient, commonRetryOpts)
 
 	_, err = preInstaller.InstallCRDs()
@@ -114,7 +114,7 @@ func main() {
 	if err != nil {
 		log.Errorf("Failed to create namespaces: %s", err)
 	}
-
+	
 	//Deploy Kyma
 	deployer, err := deployment.NewDeployment(installationCfg, builder, kubeClient, progressCh)
 	if err != nil {

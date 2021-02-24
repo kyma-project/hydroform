@@ -64,7 +64,7 @@ func (c *GenericResourceApplier) Apply(manifest string) error {
 	}
 
 	resourceName := resource.GetName()
-	obj, err := c.resourceManager.getResource(resourceName, resourceSchema)
+	obj, err := c.resourceManager.GetResource(resourceName, resourceSchema)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func (c *GenericResourceApplier) Apply(manifest string) error {
 
 	c.log.Infof("Creating resource: %s .", resourceName)
 
-	return c.resourceManager.createResource(resource, resourceSchema)
+	return c.resourceManager.CreateResource(resource, resourceSchema)
 }
 
 func convertYamlToJson(input string) (string, error) {
