@@ -81,8 +81,8 @@ func TestPreInstaller_apply(t *testing.T) {
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
 	retryOptions := getTestingRetryOptions(cfg)
-	resourceManager := NewResourceManager(dynamicClient, retryOptions)
-	resourceApplier := NewGenericResourceApplier(cfg.Log, *resourceManager)
+	resourceManager := NewDefaultResourceManager(dynamicClient, retryOptions)
+	resourceApplier := NewGenericResourceApplier(cfg.Log, resourceManager)
 
 	t.Run("should apply resources", func(t *testing.T) {
 		// given
@@ -137,7 +137,7 @@ func TestPreInstaller_apply(t *testing.T) {
 			assert.True(t, len(output.installed) == 0)
 			assert.True(t, len(output.notInstalled) == 0)
 		})
-		t.Run("due to no invalid resources in component from installation resources path", func(t *testing.T) {
+		t.Run("due to invalid resources in component from installation resources path", func(t *testing.T) {
 			// given
 			cfg.InstallationResourcePath = fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
 			resourceApplierMock := mocks.DenyResourceApplierMock{}
