@@ -14,7 +14,9 @@ import (
 	"strings"
 )
 
+// ResourceApplier creates a new resource from manifest on k8s cluster.
 type ResourceApplier interface {
+	// Apply parses passed manifest and applies it on a k8s cluster.
 	Apply(manifest string) error
 }
 
@@ -22,12 +24,14 @@ type resourceType struct {
 	name string
 }
 
+// GenericResourceApplier is a default implementation of ResourceApplier.
 type GenericResourceApplier struct {
 	log             logger.Interface
 	decoder         runtime.Decoder
 	resourceManager ResourceManager
 }
 
+// NewGenericResourceApplier returns a new instance of GenericResourceApplier.
 func NewGenericResourceApplier(log logger.Interface, resourceManager ResourceManager) *GenericResourceApplier {
 	return &GenericResourceApplier{
 		log:             log,

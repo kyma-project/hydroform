@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-// PreInstaller performs CRDs installation.
+// PreInstaller prepares k8s cluster for Kyma installation.
 type PreInstaller struct {
 	applier       ResourceApplier
 	cfg           config.Config
@@ -17,6 +17,7 @@ type PreInstaller struct {
 	retryOptions  []retry.Option
 }
 
+// NewPreInstaller creates a new instance of PreInstaller.
 func NewPreInstaller(applier ResourceApplier, cfg config.Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
 	return &PreInstaller{
 		applier:       applier,
@@ -26,6 +27,8 @@ func NewPreInstaller(applier ResourceApplier, cfg config.Config, dynamicClient d
 	}
 }
 
+// InstallCRDs on a k8s cluster.
+// Returns Output containing results of installation.
 func (i *PreInstaller) InstallCRDs() (Output, error) {
 	resource := resourceType{
 		name: "crds",
@@ -39,6 +42,8 @@ func (i *PreInstaller) InstallCRDs() (Output, error) {
 	return output, nil
 }
 
+// CreateNamespaces in a k8s cluster.
+// Returns Output containing results of installation.
 func (i *PreInstaller) CreateNamespaces() (Output, error) {
 	resource := resourceType{
 		name: "namespaces",
