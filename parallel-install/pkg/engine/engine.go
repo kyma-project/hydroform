@@ -77,7 +77,7 @@ type Installation interface {
 func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, <-chan error, error) {
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
-	errorChan := make(chan error, 5)
+	errorChan := make(chan error)
 
 	//TODO: Can we avoid this go-routine? Maybe refactor run() so it's non-blocking ?
 	go func() {
@@ -99,7 +99,7 @@ func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, <
 func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent, <-chan error, error) {
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
-	errorChan := make(chan error, 5)
+	errorChan := make(chan error)
 
 	go func() {
 		defer close(statusChan)
