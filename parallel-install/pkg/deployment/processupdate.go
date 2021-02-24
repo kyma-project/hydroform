@@ -40,6 +40,7 @@ const (
 type ProcessUpdate struct {
 	Event ProcessEvent
 	Phase InstallationPhase
+	Error error
 	//Component is only set during the component install/uninstall phase
 	Component components.KymaComponent
 }

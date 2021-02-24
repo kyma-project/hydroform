@@ -9,14 +9,21 @@ package engine
 
 import (
 	"context"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"sync"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 )
 
-const logPrefix = "[engine/engine.go]"
+const (
+	logPrefix                  = "[engine/engine.go]"
+	deploy    installationType = "deploy"
+	uninstall installationType = "uninstall"
+)
+
+type installationType string
 
 //Config defines configuration values for the Engine.
 type Config struct {
@@ -52,7 +59,7 @@ type Installation interface {
 	//It is not guaranteed that the cancellation is handled immediately because the underlying Helm operations are blocking and do not support the Context-based cancellation.
 	//However, once the underlying parallel operations end, the cancel condition is detected and the return channel is closed.
 	//All remaining components are not processed then.
-	Deploy(ctx context.Context) (<-chan components.KymaComponent, error)
+	Deploy(ctx context.Context) (<-chan components.KymaComponent, <-chan error, error)
 	//Uninstall performs parallel components uninstallation.
 	//Errors are not stopping the processing because it's assumed components are independent of one another.
 	//An error condition in one component should not influence others.
@@ -64,58 +71,56 @@ type Installation interface {
 	//However, once the underlying parallel operations end, the cancel condition is detected and the return channel is closed.
 	//All remaining components are not processed then.
 	//
-	Uninstall(ctx context.Context) (<-chan components.KymaComponent, error)
+	Uninstall(ctx context.Context) (<-chan components.KymaComponent, <-chan error, error)
 }
 
-func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, error) {
-
-	cmps, err := e.componentsProvider.GetComponents()
-	if err != nil {
-		return nil, err
-	}
-
+func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, <-chan error, error) {
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
+	errorChan := make(chan error, 5)
 
-	//TODO: Can we avoid this goroutine? Maybe refactor run() so it's non-blocking ?
+	//TODO: Can we avoid this go-routine? Maybe refactor run() so it's non-blocking ?
 	go func() {
 		defer close(statusChan)
+		defer close(errorChan)
 
-		err = e.overridesProvider.ReadOverridesFromCluster()
+		err := e.overridesProvider.ReadOverridesFromCluster()
 		if err != nil {
 			e.cfg.Log.Errorf("%s error while reading overrides: %v", logPrefix, err)
 			return
 		}
 
-		e.run(ctx, statusChan, cmps, "deploy", e.cfg.WorkersCount)
-
+		e.run(ctx, statusChan, errorChan, deploy)
 	}()
 
-	return statusChan, nil
+	return statusChan, errorChan, nil
 }
 
-func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent, error) {
-	cmps, err := e.componentsProvider.GetComponents()
-	if err != nil {
-		return nil, err
-	}
-
+func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent, <-chan error, error) {
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
+	errorChan := make(chan error, 5)
 
 	go func() {
 		defer close(statusChan)
+		defer close(errorChan)
 
-		e.run(ctx, statusChan, cmps, "uninstall", e.cfg.WorkersCount)
+		e.run(ctx, statusChan, errorChan, uninstall)
 	}()
 
-	return statusChan, nil
+	return statusChan, errorChan, nil
 }
 
 //Blocking function used to spawn a configured number of workers and then await their completion.
-func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaComponent, cmps []components.KymaComponent, installationType string, workersCount int) {
+func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaComponent, errorChan chan<- error, installType installationType) {
 	//TODO: Size dependent on number of components?
 	jobChan := make(chan components.KymaComponent, 30)
+
+	cmps, err := e.componentsProvider.GetComponents()
+	if err != nil {
+		errorChan <- err
+		return
+	}
 
 	//Fill the queue with jobs
 	for _, comp := range cmps {
@@ -128,9 +133,9 @@ func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaCompo
 	var wg sync.WaitGroup
 
 	//TODO: Configurable number of workers
-	for i := 0; i < workersCount; i++ {
+	for i := 0; i < e.cfg.WorkersCount; i++ {
 		wg.Add(1)
-		go e.worker(ctx, &wg, jobChan, statusChan, installationType)
+		go e.worker(ctx, &wg, jobChan, statusChan, installType)
 	}
 
 	// to stop the workers, first close the job channel
@@ -145,7 +150,7 @@ func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaCompo
 //Detects Context cancellation.
 //Context cancellation is not detected immediately. It's detected between component processing operations because such operations are blocking.
 //If the Context is cancelled, the worker quits immediately, skipping the remaining components.
-func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.KymaComponent, statusChan chan<- components.KymaComponent, installationType string) {
+func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.KymaComponent, statusChan chan<- components.KymaComponent, installType installationType) {
 	defer wg.Done()
 
 	for {
@@ -162,16 +167,18 @@ func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan 
 				return
 			}
 			if ok {
-				if installationType == "deploy" {
+				if installType == deploy {
 					if err := component.Deploy(ctx); err != nil {
 						component.Status = components.StatusError
+						component.Error = err
 					} else {
 						component.Status = components.StatusInstalled
 					}
 					statusChan <- component
-				} else if installationType == "uninstall" {
+				} else if installType == uninstall {
 					if err := component.Uninstall(ctx); err != nil {
 						component.Status = components.StatusError
+						component.Error = err
 					} else {
 						component.Status = components.StatusUninstalled
 					}

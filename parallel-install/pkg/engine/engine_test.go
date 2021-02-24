@@ -3,9 +3,10 @@ package engine
 import (
 	"context"
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"testing"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -18,7 +19,7 @@ var testComponentsNames = []string{"test0", "test1", "test2", "test3", "test4", 
 
 const (
 	componentProcessingTimeInMilliseconds = 50
-	defualtWorkersCount                   = 4
+	defaultWorkersCount                   = 4
 )
 
 func TestOneWorkerIsSpawned(t *testing.T) {
@@ -43,7 +44,7 @@ func TestOneWorkerIsSpawned(t *testing.T) {
 	}
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 
-	_, err := e.Deploy(context.TODO())
+	_, _, err := e.Deploy(context.TODO())
 
 	// This variable holds results of semaphore.TryAcquire from mockHelmClientWithSemaphore.InstallRelease
 	// If token during installation of the nth component was acquired it holds true on the nth position
@@ -90,7 +91,7 @@ func TestFourWorkersAreSpawned(t *testing.T) {
 	}
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
 
-	_, err := e.Deploy(context.TODO())
+	_, _, err := e.Deploy(context.TODO())
 
 	// This variable holds results of semaphore.TryAcquire from mockHelmClientWithSemaphore.InstallRelease
 	// If token during installation of the nth component was acquired it holds true on the nth position
@@ -139,14 +140,14 @@ func TestSuccessScenario(t *testing.T) {
 	require.NoError(t, err)
 
 	engineCfg := Config{
-		WorkersCount: defualtWorkersCount,
+		WorkersCount: defaultWorkersCount,
 		Log:          logger.NewLogger(true),
 	}
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
-	statusChan, err := e.Deploy(context.TODO())
+	statusChan, _, err := e.Deploy(context.TODO())
 	require.NoError(t, err)
 
-	maxIterationsForWorker := ((len(componentsToBeProcessed) / defualtWorkersCount) + 1) //at least one worker runs that many iterations.
+	maxIterationsForWorker := ((len(componentsToBeProcessed) / defaultWorkersCount) + 1) //at least one worker runs that many iterations.
 	processingTimeDoubled := time.Duration(maxIterationsForWorker*componentProcessingTimeInMilliseconds) * 2 * time.Millisecond
 
 	// wait until channel is filled with all components' statuses
@@ -156,8 +157,10 @@ func TestSuccessScenario(t *testing.T) {
 
 	// check if each component has status "Installed"
 	for componentsCount := 0; componentsCount < len(componentsToBeProcessed); componentsCount++ {
-		componentStatus := <-statusChan
-		require.Equal(t, components.StatusInstalled, componentStatus.Status)
+		select {
+		case componentStatus := <-statusChan:
+			require.Equal(t, components.StatusInstalled, componentStatus.Status)
+		}
 	}
 
 	// make sure that the status channel does not contain any unexpected additional statuses
@@ -179,14 +182,14 @@ func TestErrorScenario(t *testing.T) {
 	require.NoError(t, err)
 
 	engineCfg := Config{
-		WorkersCount: defualtWorkersCount,
+		WorkersCount: defaultWorkersCount,
 		Log:          logger.NewLogger(true),
 	}
 	e := NewEngine(overridesProvider, componentsProvider, engineCfg)
-	statusChan, err := e.Deploy(context.TODO())
+	statusChan, _, err := e.Deploy(context.TODO())
 	require.NoError(t, err)
 
-	maxIterationsForWorker := ((len(componentsToBeProcessed) / defualtWorkersCount) + 1) //at least one worker runs that many iterations.
+	maxIterationsForWorker := ((len(componentsToBeProcessed) / defaultWorkersCount) + 1) //at least one worker runs that many iterations.
 	processingTimeDoubled := time.Duration(maxIterationsForWorker*componentProcessingTimeInMilliseconds) * 2 * time.Millisecond
 
 	// wait until channel is filled with all components' statuses
@@ -196,12 +199,15 @@ func TestErrorScenario(t *testing.T) {
 
 	// check if components that should fail have status "Error", and the rest have status "Installed"
 	for componentsCount := 0; componentsCount < len(componentsToBeProcessed); componentsCount++ {
-		componentStatus := <-statusChan
-		if componentStatus.Name == expectedFailedComponents[0] || componentStatus.Name == expectedFailedComponents[1] {
-			require.Equal(t, components.StatusError, componentStatus.Status)
-		} else {
-			require.Equal(t, components.StatusInstalled, componentStatus.Status)
+		select {
+		case componentStatus := <-statusChan:
+			if componentStatus.Name == expectedFailedComponents[0] || componentStatus.Name == expectedFailedComponents[1] {
+				require.Equal(t, components.StatusError, componentStatus.Status)
+			} else {
+				require.Equal(t, components.StatusInstalled, componentStatus.Status)
+			}
 		}
+
 	}
 
 	// make sure that the status channel does not contain any unexpected additional statuses
@@ -229,7 +235,7 @@ func TestContextCancelScenario(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
-	statusChan, err := e.Deploy(ctx)
+	statusChan, errorChan, err := e.Deploy(ctx)
 
 	require.NoError(t, err)
 
@@ -249,6 +255,10 @@ Loop:
 				}
 			} else {
 				break Loop
+			}
+		case err, ok := <-errorChan:
+			if ok {
+				require.Fail(t, "Unexpected error received: %s", err)
 			}
 		}
 	}

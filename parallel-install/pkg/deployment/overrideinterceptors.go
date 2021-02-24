@@ -26,21 +26,6 @@ type OverrideInterceptor interface {
 	Undefined(overrides map[string]interface{}, key string) error
 }
 
-type defaultOverrideInterceptor struct {
-}
-
-func (i *defaultOverrideInterceptor) String(value interface{}, key string) string {
-	return fmt.Sprintf("%v", value)
-}
-
-func (i *defaultOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	return value, nil
-}
-
-func (i *defaultOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	return nil
-}
-
 //DomainNameOverrideInterceptor resolves the domain name for the cluster
 type DomainNameOverrideInterceptor struct {
 }
