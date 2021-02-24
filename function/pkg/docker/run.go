@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/docker/cli/cli/streams"
@@ -37,7 +38,7 @@ type RunOpts struct {
 	ContainerName string
 	Image         string
 	WorkDir       string
-	Commands      string
+	Commands      []string
 	User          string
 }
 
@@ -46,7 +47,7 @@ func RunContainer(ctx context.Context, c DockerClient, opts RunOpts) (string, er
 		Env:          opts.Envs,
 		ExposedPorts: portSet(opts.Ports),
 		Image:        opts.Image,
-		Cmd:          []string{"/bin/sh", "-c", opts.Commands},
+		Cmd:          []string{"/bin/sh", "-c", strings.Join(opts.Commands[:], ";")},
 		User:         opts.User,
 	}, &container.HostConfig{
 		PortBindings: portMap(opts.Ports),

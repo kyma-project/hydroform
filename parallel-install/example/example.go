@@ -47,8 +47,11 @@ func main() {
 		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
 	}
 
-	overrides := &deployment.Overrides{}
-	overrides.AddFile("./overrides.yaml")
+	builder := &deployment.OverridesBuilder{}
+	if err := builder.AddFile("./overrides.yaml"); err != nil {
+		log.Error("Failed to Add overrides file. Exiting...")
+		os.Exit(1)
+	}
 
 	installationCfg := &config.Config{
 		WorkersCount:                  4,
@@ -84,7 +87,7 @@ func main() {
 	}
 
 	//Deploy Kyma
-	deployer, err := deployment.NewDeployment(installationCfg, overrides, kubeClient, progressCh)
+	deployer, err := deployment.NewDeployment(installationCfg, builder, kubeClient, progressCh)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
@@ -105,7 +108,7 @@ func main() {
 	log.Infof("Kyma status: %s", kymaMeta.Status)
 
 	//Delete Kyma
-	deleter, err := deployment.NewDeletion(installationCfg, overrides, kubeClient, progressCh)
+	deleter, err := deployment.NewDeletion(installationCfg, builder, kubeClient, progressCh)
 	if err != nil {
 		log.Fatalf("Failed to create deleter: %v", err)
 	}

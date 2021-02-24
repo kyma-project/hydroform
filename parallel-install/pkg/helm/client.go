@@ -34,6 +34,7 @@ type Config struct {
 	BackoffMaxElapsedTimeSeconds  int              //Maximum time for the exponential backoff retry algorithm
 	MaxHistory                    int              //Maximum number of revisions saved per release
 	Log                           logger.Interface //Used for logging
+	Atomic                        bool
 }
 
 //Client implements the ClientInterface.
@@ -123,7 +124,7 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 
 func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
 	upgrade := action.NewUpgrade(cfg)
-	upgrade.Atomic = true
+	upgrade.Atomic = c.cfg.Atomic
 	upgrade.CleanupOnFail = true
 	upgrade.Wait = true
 	upgrade.ReuseValues = false
@@ -157,7 +158,7 @@ func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name s
 	install := action.NewInstall(cfg)
 	install.ReleaseName = name
 	install.Namespace = namespace
-	install.Atomic = true
+	install.Atomic = c.cfg.Atomic
 	install.Wait = true
 	install.CreateNamespace = true
 	install.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second

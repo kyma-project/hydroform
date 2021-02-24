@@ -1,7 +1,6 @@
 package runtimes
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -10,8 +9,9 @@ import (
 
 func TestContainerEnvs(t *testing.T) {
 	type args struct {
-		runtime types.Runtime
-		debug   bool
+		runtime   types.Runtime
+		debug     bool
+		hotDeploy bool
 	}
 	tests := []struct {
 		name string
@@ -21,8 +21,8 @@ func TestContainerEnvs(t *testing.T) {
 		{
 			name: "should return envs for empty runtime",
 			args: args{
-				runtime: "",
-				debug:   false,
+				runtime:   "",
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -30,14 +30,14 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
-				Nodejs12Path,
+				NodejsPath,
 			},
 		},
 		{
-			name: "should return envs for empty runtime with debug",
+			name: "should return envs for empty runtime with hotDeploy",
 			args: args{
-				runtime: "",
-				debug:   true,
+				runtime:   "",
+				hotDeploy: true,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -45,15 +45,14 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
-				Nodejs12Path,
-				fmt.Sprintf("NODE_OPTIONS=%s", Nodejs12DebugOption),
+				NodejsPath,
 			},
 		},
 		{
 			name: "should return envs for nodejs12",
 			args: args{
-				runtime: types.Nodejs12,
-				debug:   false,
+				runtime:   types.Nodejs12,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -61,30 +60,14 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
-				Nodejs12Path,
-			},
-		},
-		{
-			name: "should return envs for nodejs12 with debug",
-			args: args{
-				runtime: types.Nodejs12,
-				debug:   true,
-			},
-			want: []string{
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=nodejs12",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				Nodejs12Path,
-				fmt.Sprintf("NODE_OPTIONS=%s", Nodejs12DebugOption),
+				NodejsPath,
 			},
 		},
 		{
 			name: "should return envs for nodejs10",
 			args: args{
-				runtime: types.Nodejs10,
-				debug:   false,
+				runtime:   types.Nodejs10,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -92,14 +75,14 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
-				Nodejs10Path,
+				NodejsPath,
 			},
 		},
 		{
-			name: "should return envs for nodejs10 with debug",
+			name: "should return envs for nodejs10 with hotDeploy",
 			args: args{
-				runtime: types.Nodejs10,
-				debug:   true,
+				runtime:   types.Nodejs10,
+				hotDeploy: true,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -107,15 +90,14 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
-				Nodejs10Path,
-				fmt.Sprintf("NODE_OPTIONS=%s", Nodejs10DebugOption),
+				NodejsPath,
 			},
 		},
 		{
 			name: "should return envs for python38",
 			args: args{
-				runtime: types.Python38,
-				debug:   false,
+				runtime:   types.Python38,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -129,8 +111,8 @@ func TestContainerEnvs(t *testing.T) {
 		{
 			name: "should return envs for python38 with debug",
 			args: args{
-				runtime: types.Python38,
-				debug:   false,
+				runtime:   types.Python38,
+				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
@@ -139,13 +121,28 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				Python38Path,
-				// TODO
+			},
+		},
+		{
+			name: "should return envs for python38 with hotDeploy",
+			args: args{
+				runtime:   types.Python38,
+				hotDeploy: true,
+			},
+			want: []string{
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
+				"FUNC_RUNTIME=python38",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				Python38Path,
+				"CHERRYPY_RELOADED=true",
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainerEnvs(tt.args.runtime, tt.args.debug); !reflect.DeepEqual(got, tt.want) {
+			if got := ContainerEnvs(tt.args.runtime, tt.args.hotDeploy); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ContainerEnvs() = %v, want %v", got, tt.want)
 			}
 		})
@@ -166,12 +163,12 @@ func TestRuntimeDebugPort(t *testing.T) {
 		{
 			name:    "should return nodejs12 debug port",
 			runtime: types.Nodejs12,
-			want:    Nodejs12DebugEndpoint,
+			want:    NodejsDebugEndpoint,
 		},
 		{
 			name:    "should return nodejs10 debug port",
 			runtime: types.Nodejs10,
-			want:    Nodejs10DebugEndpoint,
+			want:    NodejsDebugEndpoint,
 		},
 		{
 			name:    "should return python38 debug port",
@@ -190,45 +187,156 @@ func TestRuntimeDebugPort(t *testing.T) {
 
 func TestContainerCommands(t *testing.T) {
 	type args struct {
-		runtime types.Runtime
+		runtime   types.Runtime
+		debug     bool
+		hotDeploy bool
 	}
 	tests := []struct {
 		name string
 		args args
-		want string
+		want []string
 	}{
 		{
 			name: "should return commands for empty runtime",
 			args: args{
 				runtime: "",
 			},
-			want: "/kubeless-npm-install.sh ; node kubeless.js",
+			want: []string{
+				"/kubeless-npm-install.sh", "node kubeless.js",
+			},
+		},
+		{
+			name: "should return commands for empty runtime with hotDeploy",
+			args: args{
+				runtime:   "",
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+			},
+		},
+		{
+			name: "should return commands for empty runtime with hotDeploy",
+			args: args{
+				runtime:   "",
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+			},
 		},
 		{
 			name: "should return commands for Nodejs12",
 			args: args{
 				runtime: types.Nodejs12,
 			},
-			want: "/kubeless-npm-install.sh ; node kubeless.js",
+			want: []string{
+				"/kubeless-npm-install.sh", "node kubeless.js",
+			},
+		},
+		{
+			name: "should return commands for Nodejs12 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs12,
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+			},
+		},
+		{
+			name: "should return commands for Nodejs12 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs12,
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+			},
 		},
 		{
 			name: "should return commands for Nodejs10",
 			args: args{
 				runtime: types.Nodejs10,
 			},
-			want: "/kubeless-npm-install.sh ; node kubeless.js",
+			want: []string{
+				"/kubeless-npm-install.sh", "node kubeless.js",
+			},
+		},
+		{
+			name: "should return commands for Nodejs10 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs10,
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+			},
+		},
+		{
+			name: "should return commands for Nodejs10 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs10,
+				hotDeploy: true,
+			},
+			want: []string{
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+			},
 		},
 		{
 			name: "should return commands for Python38",
 			args: args{
 				runtime: types.Python38,
 			},
-			want: "pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt ; python kubeless.py",
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python38 with hotDeploy",
+			args: args{
+				runtime:   types.Python38,
+				hotDeploy: true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python38 with hotDeploy",
+			args: args{
+				runtime:   types.Python38,
+				hotDeploy: true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python38 with debug",
+			args: args{
+				runtime: types.Python38,
+				debug:   true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python38 with hotDeploy and debug",
+			args: args{
+				runtime:   types.Python38,
+				hotDeploy: true,
+				debug:     true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainerCommands(tt.args.runtime); !reflect.DeepEqual(got, tt.want) {
+			if got := ContainerCommands(tt.args.runtime, tt.args.debug, tt.args.hotDeploy); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ContainerCommands() = %v, want %v", got, tt.want)
 			}
 		})
@@ -249,28 +357,28 @@ func TestContainerImage(t *testing.T) {
 			args: args{
 				runtime: "",
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:e7698eb5",
 		},
 		{
 			name: "should return image for Nodejs12",
 			args: args{
 				runtime: types.Nodejs12,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:cc7dd53f",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:e7698eb5",
 		},
 		{
 			name: "should return image for Nodejs10",
 			args: args{
 				runtime: types.Nodejs10,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs10:cc7dd53f",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs10:e7698eb5",
 		},
 		{
 			name: "should return image for Python38",
 			args: args{
 				runtime: types.Python38,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-python38:cc7dd53f",
+			want: "eu.gcr.io/kyma-project/function-runtime-python38:e7698eb5",
 		},
 	}
 	for _, tt := range tests {
