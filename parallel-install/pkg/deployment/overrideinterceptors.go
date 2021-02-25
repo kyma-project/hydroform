@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -135,10 +134,12 @@ func (i *FallbackOverrideInterceptor) Undefined(overrides map[string]interface{}
 		if _, ok := lastProcessedEntry[subKey]; !ok {
 			//sub-element does not exist - add map
 			lastProcessedEntry[subKey] = make(map[string]interface{})
-		} else if reflect.ValueOf(lastProcessedEntry[subKey]).Kind() != reflect.Map {
+		}
+		if _, ok := lastProcessedEntry[subKey].(map[string]interface{}); !ok {
 			//ensure existing sub-element is map otherwise fail
 			return fmt.Errorf("Override '%s' cannot be set with default value as sub-key '%s' is not a map", key, strings.Join(subKeys[:depth+1], "."))
 		}
+
 		if depth == (maxDepth - 1) {
 			//we are in the last loop, set default value
 			lastProcessedEntry[subKey] = i.fallback
