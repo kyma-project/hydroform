@@ -202,8 +202,10 @@ InstallLoop:
 				}
 				break InstallLoop
 			}
-		case err := <-errorChan:
-			i.processUpdate(InstallComponents, ProcessExecutionFailure, err)
+		case err, ok := <-errorChan:
+			if ok {
+				i.processUpdate(InstallComponents, ProcessExecutionFailure, err)
+			}
 		case <-cancelTimeoutChan:
 			timeoutOccurred = true
 			i.cfg.Log.Errorf("Timeout occurred after %v minutes. Cancelling deployment", cancelTimeout.Minutes())

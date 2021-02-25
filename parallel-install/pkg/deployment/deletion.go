@@ -201,8 +201,10 @@ UninstallLoop:
 				}
 				break UninstallLoop
 			}
-		case err := <-errorChan:
-			i.processUpdate(InstallComponents, ProcessExecutionFailure, err)
+		case err, ok := <-errorChan:
+			if ok {
+				i.processUpdate(InstallComponents, ProcessExecutionFailure, err)
+			}
 		case <-cancelTimeoutChan:
 			timeoutOccured = true
 			i.cfg.Log.Errorf("Timeout occurred after %v minutes. Cancelling uninstallation", cancelTimeout.Minutes())
