@@ -134,11 +134,11 @@ var (
 )
 
 // GenerateName generates a random name from the list of adjectives and names of some kyma creators
-// formatted as "adjective-name". For example 'quizzical_rafal'. If retry is non-zero, a random
-// integer between 0 and 10 will be added to the end of the name, e.g `focused_turing3`
-func GenerateName(retry int) string {
+// formatted as "adjective-name". For example 'quizzical_rafal'. If retry is true, a random
+// integer between 0 and 10 will be added to the end of the name, e.g `focused_filip3`
+func GenerateName(isSuffix bool) string {
 	name := fmt.Sprintf("%s-%s", left[rand.Intn(len(left))], right[rand.Intn(len(right))])
-	if retry > 0 {
+	if isSuffix {
 		name = fmt.Sprintf("%s%d", name, rand.Intn(10))
 	}
 	return name
