@@ -19,55 +19,55 @@ func TestResourceApplier_Apply(t *testing.T) {
 			manifest, err := getResourceTestingFileContentFrom(pathToFile)
 			assert.NoError(t, err)
 
-			manager := mocks.RetrievalErrorResourceManager{}
+			manager := mocks.GetErrorResourceManager{}
 			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
 
 			// when
-			applied, err := applier.Apply(manifest)
+			err = applier.Apply(manifest)
 
 			// then
 			expectedError := "Get resource error"
 			receivedError := err.Error()
 			matched, err := regexp.MatchString(expectedError, receivedError)
 			assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
-			assert.False(t, applied)
 		})
 
-		t.Run("due to get resource existing on a cluster", func(t *testing.T) {
+		t.Run("due to update resource error when resource existed on a cluster", func(t *testing.T) {
 			// given
 			pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/crd.yaml")
 			manifest, err := getResourceTestingFileContentFrom(pathToFile)
 			assert.NoError(t, err)
 
-			manager := mocks.ResourceExistedResourceManagerMock{}
+			manager := mocks.UpdateErrorResourceManager{}
 			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
 
 			// when
-			applied, err := applier.Apply(manifest)
+			err = applier.Apply(manifest)
 
 			// then
-			assert.NoError(t, err)
-			assert.False(t, applied)
+			expectedError := "Update resource error"
+			receivedError := err.Error()
+			matched, err := regexp.MatchString(expectedError, receivedError)
+			assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
 		})
 
-		t.Run("due to creation error", func(t *testing.T) {
+		t.Run("due to creation error when resource did not exist on a cluster", func(t *testing.T) {
 			// given
 			pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/crd.yaml")
 			manifest, err := getResourceTestingFileContentFrom(pathToFile)
 			assert.NoError(t, err)
 
-			manager := mocks.CreationErrorResourceManager{}
+			manager := mocks.CreateErrorResourceManager{}
 			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
 
 			// when
-			applied, err := applier.Apply(manifest)
+			err = applier.Apply(manifest)
 
 			// then
 			expectedError := "Create resource error"
 			receivedError := err.Error()
 			matched, err := regexp.MatchString(expectedError, receivedError)
 			assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
-			assert.False(t, applied)
 		})
 	})
 
@@ -81,11 +81,10 @@ func TestResourceApplier_Apply(t *testing.T) {
 		applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
 
 		// when
-		applied, err := applier.Apply(manifest)
+		err = applier.Apply(manifest)
 
 		// then
 		assert.NoError(t, err)
-		assert.True(t, applied)
 	})
 
 	t.Run("should not apply CRD", func(t *testing.T) {
@@ -98,11 +97,13 @@ func TestResourceApplier_Apply(t *testing.T) {
 		applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
 
 		// when
-		applied, err := applier.Apply(manifest)
+		err = applier.Apply(manifest)
 
 		// then
-		assert.NoError(t, err)
-		assert.False(t, applied)
+		expectedError := "Could not decode the resource file"
+		receivedError := err.Error()
+		matched, err := regexp.MatchString(expectedError, receivedError)
+		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
 	})
 
 	t.Run("should create namespace", func(t *testing.T) {
@@ -115,11 +116,10 @@ func TestResourceApplier_Apply(t *testing.T) {
 		applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
 
 		// when
-		applied, err := applier.Apply(manifest)
+		err = applier.Apply(manifest)
 
 		// then
 		assert.NoError(t, err)
-		assert.True(t, applied)
 	})
 
 	t.Run("should not create namespace", func(t *testing.T) {
@@ -132,11 +132,13 @@ func TestResourceApplier_Apply(t *testing.T) {
 		applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
 
 		// when
-		applied, err := applier.Apply(manifest)
+		err = applier.Apply(manifest)
 
 		// then
-		assert.NoError(t, err)
-		assert.False(t, applied)
+		expectedError := "Could not decode the resource file"
+		receivedError := err.Error()
+		matched, err := regexp.MatchString(expectedError, receivedError)
+		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
 	})
 }
 

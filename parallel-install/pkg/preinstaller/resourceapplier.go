@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ghodss/yaml"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"github.com/pkg/errors"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,7 +18,7 @@ import (
 // ResourceApplier creates a new resource from manifest on k8s cluster.
 type ResourceApplier interface {
 	// Apply parses passed manifest and applies it on a k8s cluster.
-	Apply(manifest string) (bool, error)
+	Apply(manifest string) error
 }
 
 type resourceType struct {
@@ -40,35 +41,23 @@ func NewGenericResourceApplier(log logger.Interface, resourceManager ResourceMan
 	}
 }
 
-func (c *GenericResourceApplier) Apply(manifest string) (bool, error) {
-	var _, grpVerKind, err = c.decoder.Decode([]byte(manifest), nil, nil)
+func (c *GenericResourceApplier) Apply(manifest string) error {
+	resource, err := c.parseResourceFrom(manifest)
 	if err != nil {
-		c.log.Warn(fmt.Sprintf("%s%s", "Could not decode the resource file due to the following error: %s. Skipping.", err.Error()))
-		return false, nil
+		return err
 	}
 
-	converted, err := convertYamlToJson(manifest)
-	if err != nil {
-		c.log.Warn(fmt.Sprintf("%s%s", "Could not convert the resource file to JSON due to the following error: %s. Skipping.", err.Error()))
-		return false, nil
-	}
-
-	resource, err := parseManifest([]byte(converted))
-	if err != nil {
-		c.log.Warn(fmt.Sprintf("%s%s", "Could not parse the resource file due to the following error: %s. Skipping.", err.Error()))
-		return false, nil
-	}
-
+	gvk := resource.GroupVersionKind()
 	resourceSchema := schema.GroupVersionResource{
-		Group:    grpVerKind.Group,
-		Version:  grpVerKind.Version,
-		Resource: pluralForm(grpVerKind.Kind),
+		Group:    gvk.Group,
+		Version:  gvk.Version,
+		Resource: pluralForm(gvk.Kind),
 	}
 
 	resourceName := resource.GetName()
 	obj, err := c.resourceManager.GetResource(resourceName, resourceSchema)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if obj != nil {
@@ -76,18 +65,37 @@ func (c *GenericResourceApplier) Apply(manifest string) (bool, error) {
 
 		err = c.resourceManager.UpdateRefreshableResource(obj, resourceSchema)
 		if err != nil {
-			return false, err
+			return err
 		}
 	} else {
-		c.log.Infof("Creating resource: %s .", resourceName)
+		c.log.Infof("Creating resource: %s.", resourceName)
 
 		err = c.resourceManager.CreateResource(resource, resourceSchema)
 		if err != nil {
-			return false, err
+			return err
 		}
 	}
 
-	return true, nil
+	return nil
+}
+
+func (c *GenericResourceApplier) parseResourceFrom(manifest string) (*unstructured.Unstructured, error) {
+	var _, _, err = c.decoder.Decode([]byte(manifest), nil, nil)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("Could not decode the resource file due to the following error: %s.", err.Error()))
+	}
+
+	converted, err := convertYamlToJson(manifest)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf( "Could not convert the resource file to JSON due to the following error: %s.", err.Error()))
+	}
+
+	resource, err := parseManifest([]byte(converted))
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf( "Could not parse the resource file due to the following error: %s.", err.Error()))
+	}
+
+	return resource, nil
 }
 
 func convertYamlToJson(input string) (string, error) {

@@ -6,43 +6,58 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// RetrievalErrorResourceManager is a mock type for the ResourceManager type.
-type RetrievalErrorResourceManager struct{}
+// GetErrorResourceManager is a mock type for the ResourceManager type.
+type GetErrorResourceManager struct{}
 
 // GetResource provides a mock function wih given fields: resourceName, resourceSchema.
-func (c *RetrievalErrorResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
+func (c *GetErrorResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
 	return nil, errors.New("Get resource error")
 }
 
 // CreateResource provides a mock function wih given fields: resource, resourceSchema.
-func (c *RetrievalErrorResourceManager) CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
+func (c *GetErrorResourceManager) CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
 	return errors.New("Create resource error")
 }
 
-// ResourceExistedResourceManagerMock is a mock type for the ResourceManager type.
-type ResourceExistedResourceManagerMock struct{}
+// UpdateRefreshableResource provides a mock function wih given fields: resource, resourceSchema.
+func (c *GetErrorResourceManager) UpdateRefreshableResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
+	return errors.New("Update resource error")
+}
+
+// UpdateErrorResourceManager is a mock type for the ResourceManager type.
+type UpdateErrorResourceManager struct{}
 
 // GetResource provides a mock function wih given fields: resourceName, resourceSchema.
-func (c *ResourceExistedResourceManagerMock) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
+func (c *UpdateErrorResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
 	return &unstructured.Unstructured{}, nil
 }
 
 // CreateResource provides a mock function wih given fields: resource, resourceSchema.
-func (c *ResourceExistedResourceManagerMock) CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
+func (c *UpdateErrorResourceManager) CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
 	return nil
 }
 
-// CreationErrorResourceManager is a mock type for the ResourceManager type.
-type CreationErrorResourceManager struct{}
+// UpdateRefreshableResource provides a mock function wih given fields: resource, resourceSchema.
+func (c *UpdateErrorResourceManager) UpdateRefreshableResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
+	return errors.New("Update resource error")
+}
+
+// CreateErrorResourceManager is a mock type for the ResourceManager type.
+type CreateErrorResourceManager struct{}
 
 // GetResource provides a mock function wih given fields: resourceName, resourceSchema.
-func (c *CreationErrorResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
+func (c *CreateErrorResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
 	return nil, nil
 }
 
 // CreateResource provides a mock function wih given fields: resource, resourceSchema.
-func (c *CreationErrorResourceManager) CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
+func (c *CreateErrorResourceManager) CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
 	return errors.New("Create resource error")
+}
+
+// UpdateRefreshableResource provides a mock function wih given fields: resource, resourceSchema.
+func (c *CreateErrorResourceManager) UpdateRefreshableResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
+	return nil
 }
 
 // ValidResourceManager is a mock type for the ResourceManager type.
@@ -55,5 +70,10 @@ func (c *ValidResourceManager) GetResource(resourceName string, resourceSchema s
 
 // CreateResource provides a mock function wih given fields: resource, resourceSchema.
 func (c *ValidResourceManager) CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
+	return nil
+}
+
+// UpdateRefreshableResource provides a mock function wih given fields: resource, resourceSchema.
+func (c *ValidResourceManager) UpdateRefreshableResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
 	return nil
 }

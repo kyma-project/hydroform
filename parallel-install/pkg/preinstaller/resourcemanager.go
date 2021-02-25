@@ -19,10 +19,6 @@ type ResourceManager interface {
 	// Performs retries on unsuccessful resource retrieval action.
 	GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error)
 
-	// UpdateResourceNoRetries of a given name from a k8s cluster, that matches the schema.
-	// Performs only one update attempt.
-	UpdateResourceNoRetries(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error
-
 	// UpdateRefreshableResource of a given name from a k8s cluster, that matches the schema.
 	// Performs retries on unsuccessful resource update action. Before each update the latest resource version is
 	// retrieved from the k8s cluster.
@@ -58,21 +54,18 @@ func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructu
 
 func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
 	var obj *unstructured.Unstructured
-	err := retry.Do(func() error {
-		var err error
-
-		if obj, err = c.dynamicClient.Resource(resourceSchema).Get(context.TODO(), resourceName, metav1.GetOptions{}); err != nil {
+	var err error
+	err = retry.Do(func() error {
+		obj, err = c.getResource(resourceName, resourceSchema)
+		if err != nil {
 			return err
 		}
 
-		return nil
+		return err
+
 	}, c.retryOptions...)
 
 	return obj, err
-}
-
-func (c *DefaultResourceManager) UpdateResourceNoRetries(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
-	return c.updateResource(resource, resourceSchema)
 }
 
 func (c *DefaultResourceManager) UpdateRefreshableResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
@@ -83,7 +76,7 @@ func (c *DefaultResourceManager) UpdateRefreshableResource(resource *unstructure
 			return nil
 		}
 
-		err = c.updateResource(refreshResource, resourceSchema)
+		_, err = c.updateResource(refreshResource, resourceSchema)
 		if err != nil {
 			return err
 		}
@@ -94,12 +87,15 @@ func (c *DefaultResourceManager) UpdateRefreshableResource(resource *unstructure
 	return err
 }
 
-func (c *DefaultResourceManager) updateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
-	var err error
-	if _, err = c.dynamicClient.Resource(resourceSchema).Update(context.TODO(), resource, metav1.UpdateOptions{}); err != nil {
-		return err
-	}
+func (c *DefaultResourceManager) getResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
+	return c.dynamicClient.Resource(resourceSchema).Get(context.TODO(), resourceName, metav1.GetOptions{})
+}
 
-	return nil
+func (c *DefaultResourceManager) createResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
+	return c.dynamicClient.Resource(resourceSchema).Update(context.TODO(), resource, metav1.UpdateOptions{})
+}
+
+func (c *DefaultResourceManager) updateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
+	return c.dynamicClient.Resource(resourceSchema).Update(context.TODO(), resource, metav1.UpdateOptions{})
 }
 

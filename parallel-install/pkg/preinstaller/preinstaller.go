@@ -101,14 +101,12 @@ func (i *PreInstaller) apply(resourceType resourceType) (o Output, err error) {
 				return o, err // TODO: fail-fast or continue?
 			}
 
-			applied, err := i.applier.Apply(string(resourceData))
+			err = i.applier.Apply(string(resourceData))
 			if err != nil {
-				o.notInstalled = append(o.notInstalled, file)
 				i.cfg.Log.Warnf("Error occurred when processing file %s : %s", resourceName, err.Error())
+				o.notInstalled = append(o.notInstalled, file)
 			} else {
-				if applied {
-					o.installed = append(o.installed, file)
-				}
+				o.installed = append(o.installed, file)
 			}
 		}
 	}
