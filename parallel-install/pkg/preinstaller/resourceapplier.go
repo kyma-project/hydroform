@@ -21,10 +21,6 @@ type ResourceApplier interface {
 	Apply(manifest string) error
 }
 
-type resourceType struct {
-	name string
-}
-
 // GenericResourceApplier is a default implementation of ResourceApplier.
 type GenericResourceApplier struct {
 	log             logger.Interface

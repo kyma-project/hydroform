@@ -24,24 +24,29 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 
 	t.Run("should install CRDs", func(t *testing.T) {
 		// given
-		cfg.InstallationResourcePath = fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		resourceApplierMock := mocks.AllowResourceApplierMock{}
 		i := NewPreInstaller(&resourceApplierMock, cfg, dynamicClient, retryOptions)
-		resources := resourceType{name: "crds"}
+		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
+		input := resourceInfoInput{
+			resourceType:             "CRD",
+			dirSuffix:                "crds",
+			installationResourcePath: resourcePath,
+		}
 
 		// when
-		output, _ := i.apply(resources)
+		output, err := i.install(input)
 
 		// then
+		assert.NoError(t, err)
 		assert.True(t, len(output.installed) == 2)
 		assert.True(t, len(output.notInstalled) == 0)
 
 		expectedFirstComponent := "comp1"
-		expectedFirstPath := fmt.Sprintf("%s%s", cfg.InstallationResourcePath, "/crds/comp1/crd.yaml")
+		expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
 		assert.True(t, containsFileWithDetails(output.installed, expectedFirstComponent, expectedFirstPath))
 
 		expectedSecondComponent := "comp2"
-		expectedSecondPath := fmt.Sprintf("%s%s", cfg.InstallationResourcePath, "/crds/comp2/crd.yaml")
+		expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
 		assert.True(t, containsFileWithDetails(output.installed, expectedSecondComponent, expectedSecondPath))
 	})
 }
@@ -54,29 +59,34 @@ func TestPreInstaller_CreateNamespaces(t *testing.T) {
 
 	t.Run("should create namespaces", func(t *testing.T) {
 		// given
-		cfg.InstallationResourcePath = fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		resourceApplierMock := mocks.AllowResourceApplierMock{}
 		i := NewPreInstaller(&resourceApplierMock, cfg, dynamicClient, retryOptions)
-		resources := resourceType{name: "namespaces"}
+		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
+		input := resourceInfoInput{
+			resourceType:             "Namespace",
+			dirSuffix:                "namespaces",
+			installationResourcePath: resourcePath,
+		}
 
 		// when
-		output, _ := i.apply(resources)
+		output, err := i.install(input)
 
 		// then
+		assert.NoError(t, err)
 		assert.True(t, len(output.installed) == 2)
 		assert.True(t, len(output.notInstalled) == 0)
 
 		expectedFirstComponent := "comp1"
-		expectedFirstPath := fmt.Sprintf("%s%s", cfg.InstallationResourcePath, "/namespaces/comp1/ns.yaml")
+		expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
 		assert.True(t, containsFileWithDetails(output.installed, expectedFirstComponent, expectedFirstPath))
 
 		expectedSecondComponent := "comp2"
-		expectedSecondPath := fmt.Sprintf("%s%s", cfg.InstallationResourcePath, "/namespaces/comp2/ns.yaml")
+		expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
 		assert.True(t, containsFileWithDetails(output.installed, expectedSecondComponent, expectedSecondPath))
 	})
 }
 
-func TestPreInstaller_apply(t *testing.T) {
+func TestPreInstaller_install(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
@@ -84,38 +94,46 @@ func TestPreInstaller_apply(t *testing.T) {
 	resourceManager := NewDefaultResourceManager(dynamicClient, retryOptions)
 	resourceApplier := NewGenericResourceApplier(cfg.Log, resourceManager)
 
-	t.Run("should apply resources", func(t *testing.T) {
+	t.Run("should install resources", func(t *testing.T) {
 		// given
-		cfg.InstallationResourcePath = fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		resourceApplierMock := mocks.AllowResourceApplierMock{}
 		i := NewPreInstaller(&resourceApplierMock, cfg, dynamicClient, retryOptions)
-		resources := resourceType{name: "crds"}
+		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
+		input := resourceInfoInput{
+			resourceType:             "CRD",
+			dirSuffix:                "crds",
+			installationResourcePath: resourcePath,
+		}
 
 		// when
-		output, _ := i.apply(resources)
+		output, err := i.install(input)
 
 		// then
+		assert.NoError(t, err)
 		assert.True(t, len(output.installed) == 2)
 		assert.True(t, len(output.notInstalled) == 0)
 
 		expectedFirstComponent := "comp1"
-		expectedFirstPath := fmt.Sprintf("%s%s", cfg.InstallationResourcePath, "/crds/comp1/crd.yaml")
+		expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
 		assert.True(t, containsFileWithDetails(output.installed, expectedFirstComponent, expectedFirstPath))
 
 		expectedSecondComponent := "comp2"
-		expectedSecondPath := fmt.Sprintf("%s%s", cfg.InstallationResourcePath, "/crds/comp2/crd.yaml")
+		expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
 		assert.True(t, containsFileWithDetails(output.installed, expectedSecondComponent, expectedSecondPath))
 	})
 
-	t.Run("should fail to apply resources", func(t *testing.T) {
+	t.Run("should fail to install resources", func(t *testing.T) {
 		t.Run("due to error about not existing installation resources path", func(t *testing.T) {
 			// given
-			cfg.InstallationResourcePath = "notExistingPath"
 			i := NewPreInstaller(resourceApplier, cfg, dynamicClient, retryOptions)
-			resources := resourceType{name: "crds"}
+			input := resourceInfoInput{
+				resourceType:             "CRD",
+				dirSuffix:                "crds",
+				installationResourcePath: "notExistingPath",
+			}
 
 			// when
-			output, err := i.apply(resources)
+			output, err := i.install(input)
 
 			// then
 			expectedError := "no such file or directory"
@@ -124,40 +142,53 @@ func TestPreInstaller_apply(t *testing.T) {
 			assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
 			assert.True(t, len(output.installed) == 0)
 		})
+
 		t.Run("due to no components detected in installation resources path", func(t *testing.T) {
 			// given
-			cfg.InstallationResourcePath = fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/notexisting")
 			i := NewPreInstaller(resourceApplier, cfg, dynamicClient, retryOptions)
-			resources := resourceType{name: "crds"}
+			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/nocomponents")
+			input := resourceInfoInput{
+				resourceType:             "CRD",
+				dirSuffix:                "crds",
+				installationResourcePath: resourcePath,
+			}
 
 			// when
-			output, _ := i.apply(resources)
+			output, err := i.install(input)
 
 			// then
+			assert.NoError(t, err)
 			assert.True(t, len(output.installed) == 0)
 			assert.True(t, len(output.notInstalled) == 0)
 		})
-		t.Run("due to invalid resources in component from installation resources path", func(t *testing.T) {
+
+		t.Run("due to applier error", func(t *testing.T) {
 			// given
-			cfg.InstallationResourcePath = fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
 			resourceApplierMock := mocks.DenyResourceApplierMock{}
 			i := NewPreInstaller(&resourceApplierMock, cfg, dynamicClient, retryOptions)
-			resources := resourceType{name: "crds"}
+			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
+			input := resourceInfoInput{
+				resourceType:             "CRD",
+				dirSuffix:                "crds",
+				installationResourcePath: resourcePath,
+			}
 
 			// when
-			output, _ := i.apply(resources)
+			output, err := i.install(input)
 
 			// then
+			assert.NoError(t, err)
 			assert.True(t, len(output.installed) == 0)
 			assert.True(t, len(output.notInstalled) == 2)
 
 			expectedFirstComponent := "comp1"
-			expectedFirstPath := fmt.Sprintf("%s%s", cfg.InstallationResourcePath, "/crds/comp1/crd.yaml")
+			expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
 			assert.True(t, containsFileWithDetails(output.notInstalled, expectedFirstComponent, expectedFirstPath))
 
 			expectedSecondComponent := "comp2"
-			expectedSecondPath := fmt.Sprintf("%s%s", cfg.InstallationResourcePath, "/crds/comp2/crd.yaml")
+			expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
 			assert.True(t, containsFileWithDetails(output.notInstalled, expectedSecondComponent, expectedSecondPath))
+
 		})
 	})
 }

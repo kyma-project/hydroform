@@ -17,6 +17,19 @@ type PreInstaller struct {
 	retryOptions  []retry.Option
 }
 
+type resourceInfoInput struct {
+	dirSuffix                string
+	resourceType             string
+	installationResourcePath string
+}
+
+type resourceInfoResult struct {
+	component    string
+	name         string
+	path         string
+	resourceType string
+}
+
 // NewPreInstaller creates a new instance of PreInstaller.
 func NewPreInstaller(applier ResourceApplier, cfg config.Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
 	return &PreInstaller{
@@ -30,11 +43,13 @@ func NewPreInstaller(applier ResourceApplier, cfg config.Config, dynamicClient d
 // InstallCRDs on a k8s cluster.
 // Returns Output containing results of installation.
 func (i *PreInstaller) InstallCRDs() (Output, error) {
-	resource := resourceType{
-		name: "crds",
+	input := resourceInfoInput{
+		resourceType:             "CRD",
+		dirSuffix:                "crds",
+		installationResourcePath: i.cfg.InstallationResourcePath,
 	}
 
-	output, err := i.apply(resource)
+	output, err := i.install(input)
 	if err != nil {
 		return Output{}, err
 	}
@@ -45,11 +60,13 @@ func (i *PreInstaller) InstallCRDs() (Output, error) {
 // CreateNamespaces in a k8s cluster.
 // Returns Output containing results of installation.
 func (i *PreInstaller) CreateNamespaces() (Output, error) {
-	resource := resourceType{
-		name: "namespaces",
+	input := resourceInfoInput{
+		resourceType:             "Namespace",
+		dirSuffix:                "namespaces",
+		installationResourcePath: i.cfg.InstallationResourcePath,
 	}
 
-	output, err := i.apply(resource)
+	output, err := i.install(input)
 	if err != nil {
 		return Output{}, err
 	}
@@ -57,28 +74,36 @@ func (i *PreInstaller) CreateNamespaces() (Output, error) {
 	return output, nil
 }
 
-func (i *PreInstaller) apply(resourceType resourceType) (o Output, err error) {
-	installationResourcePath := i.cfg.InstallationResourcePath
-	path := fmt.Sprintf("%s/%s", installationResourcePath, resourceType.name)
+func (i *PreInstaller) install(input resourceInfoInput) (o Output, err error) {
+	resources, err := i.findResourcesIn(input)
+	if err != nil {
+		return Output{}, err
+	}
 
+	return i.apply(resources)
+}
+
+func (i *PreInstaller) findResourcesIn(input resourceInfoInput) (results []resourceInfoResult, err error) {
+	installationResourcePath := input.installationResourcePath
+	path := fmt.Sprintf("%s/%s", installationResourcePath, input.dirSuffix)
 	rawComponentsDir, err := ioutil.ReadDir(path)
 	if err != nil {
-		return o, err
+		return results, err
 	}
 
 	components := findOnlyDirectoriesAmong(rawComponentsDir)
+
 	if components == nil || len(components) == 0 {
 		i.cfg.Log.Warn("There were no components detected for installation. Skipping.")
-		return o, nil
+		return results, nil
 	}
 
 	for _, component := range components {
 		componentName := component.Name()
-		i.cfg.Log.Infof("Processing component: %s", componentName)
 		pathToComponent := fmt.Sprintf("%s/%s", path, componentName)
 		resources, err := ioutil.ReadDir(pathToComponent)
 		if err != nil {
-			return o, err // TODO: fail-fast or continue?
+			return results, err
 		}
 
 		if len(resources) == 0 {
@@ -88,26 +113,42 @@ func (i *PreInstaller) apply(resourceType resourceType) (o Output, err error) {
 
 		for _, resource := range resources {
 			resourceName := resource.Name()
-			i.cfg.Log.Infof("Processing file: %s", resourceName)
 			pathToResource := fmt.Sprintf("%s/%s", pathToComponent, resourceName)
-			file := File{
-				component: componentName,
-				path:      pathToResource,
+			resourceInfoResult := resourceInfoResult{
+				component:    componentName,
+				name:         resourceName,
+				path:         pathToResource,
+				resourceType: input.resourceType,
 			}
 
-			resourceData, err := ioutil.ReadFile(pathToResource)
-			if err != nil {
-				o.notInstalled = append(o.notInstalled, file)
-				return o, err // TODO: fail-fast or continue?
-			}
+			results = append(results, resourceInfoResult)
+		}
+	}
 
-			err = i.applier.Apply(string(resourceData))
-			if err != nil {
-				i.cfg.Log.Warnf("Error occurred when processing file %s : %s", resourceName, err.Error())
-				o.notInstalled = append(o.notInstalled, file)
-			} else {
-				o.installed = append(o.installed, file)
-			}
+	return results, nil
+}
+
+func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err error) {
+	for _, resource := range resources {
+		file := File{
+			component: resource.component,
+			path:      resource.path,
+		}
+
+		// TODO: move the logic to the applier.Apply
+		resourceData, err := ioutil.ReadFile(resource.path)
+		if err != nil {
+			o.notInstalled = append(o.notInstalled, file)
+		}
+
+		i.cfg.Log.Info(fmt.Sprintf("Processing %s file: %s of component: %s", resource.resourceType, resource.name, resource.component))
+
+		err = i.applier.Apply(string(resourceData))
+		if err != nil {
+			i.cfg.Log.Warn(fmt.Sprintf("Error occurred when processing file %s of component %s : %s", resource.name, resource.component, err.Error()))
+			o.notInstalled = append(o.notInstalled, file)
+		} else {
+			o.installed = append(o.installed, file)
 		}
 	}
 
