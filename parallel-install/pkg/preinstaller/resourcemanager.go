@@ -98,4 +98,3 @@ func (c *DefaultResourceManager) createResource(resource *unstructured.Unstructu
 func (c *DefaultResourceManager) updateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
 	return c.dynamicClient.Resource(resourceSchema).Update(context.TODO(), resource, metav1.UpdateOptions{})
 }
-

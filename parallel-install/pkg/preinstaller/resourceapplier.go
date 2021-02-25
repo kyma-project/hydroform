@@ -87,12 +87,12 @@ func (c *GenericResourceApplier) parseResourceFrom(manifest string) (*unstructur
 
 	converted, err := convertYamlToJson(manifest)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf( "Could not convert the resource file to JSON due to the following error: %s.", err.Error()))
+		return nil, errors.New(fmt.Sprintf("Could not convert the resource file to JSON due to the following error: %s.", err.Error()))
 	}
 
 	resource, err := parseManifest([]byte(converted))
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf( "Could not parse the resource file due to the following error: %s.", err.Error()))
+		return nil, errors.New(fmt.Sprintf("Could not parse the resource file due to the following error: %s.", err.Error()))
 	}
 
 	return resource, nil
