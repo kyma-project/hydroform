@@ -195,8 +195,8 @@ func TestPreInstaller_install(t *testing.T) {
 
 func getTestingConfig() config.Config {
 	return config.Config{
-		BackoffInitialIntervalSeconds: 3,
-		BackoffMaxElapsedTimeSeconds:  60 * 5,
+		BackoffInitialIntervalSeconds: 0,
+		BackoffMaxElapsedTimeSeconds:  0,
 		Log:                           logger.NewLogger(true),
 		InstallationResourcePath:      "123",
 	}
@@ -205,7 +205,7 @@ func getTestingConfig() config.Config {
 func getTestingRetryOptions(cfg config.Config) []retry.Option {
 	return []retry.Option{
 		retry.Delay(time.Duration(cfg.BackoffInitialIntervalSeconds) * time.Second),
-		retry.Attempts(uint(cfg.BackoffMaxElapsedTimeSeconds / cfg.BackoffInitialIntervalSeconds)),
+		retry.Attempts(1),
 		retry.DelayType(retry.FixedDelay),
 	}
 }
