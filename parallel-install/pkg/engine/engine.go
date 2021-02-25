@@ -79,7 +79,7 @@ func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, <
 	statusChan := make(chan components.KymaComponent, 30)
 	errorChan := make(chan error)
 
-	//TODO: Can we avoid this go-routine? Maybe refactor run() so it's non-blocking ?
+	//TODO: Can we avoid this goroutine? Maybe refactor run() so it's non-blocking ?
 	go func() {
 		defer close(statusChan)
 		defer close(errorChan)
