@@ -72,15 +72,19 @@ func (c *GenericResourceApplier) Apply(manifest string) (bool, error) {
 	}
 
 	if obj != nil {
-		c.log.Infof("Resource: %s already exists. Skipping.", resourceName)
-		return false, nil
-	}
+		c.log.Infof("Resource: %s already exists. Performing update.", resourceName)
 
-	c.log.Infof("Creating resource: %s .", resourceName)
+		err = c.resourceManager.UpdateRefreshableResource(obj, resourceSchema)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		c.log.Infof("Creating resource: %s .", resourceName)
 
-	err = c.resourceManager.CreateResource(resource, resourceSchema)
-	if err != nil {
-		return false, err
+		err = c.resourceManager.CreateResource(resource, resourceSchema)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	return true, nil
