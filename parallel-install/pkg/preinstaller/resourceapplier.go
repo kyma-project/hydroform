@@ -6,6 +6,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/pkg/errors"
+	"io/ioutil"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,8 +38,13 @@ func NewGenericResourceApplier(log logger.Interface, resourceManager ResourceMan
 	}
 }
 
-func (c *GenericResourceApplier) Apply(manifest string) error {
-	resource, err := c.parseResourceFrom(manifest)
+func (c *GenericResourceApplier) Apply(path string) error {
+	manifest, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	resource, err := c.parseResourceFrom(string(manifest))
 	if err != nil {
 		return err
 	}

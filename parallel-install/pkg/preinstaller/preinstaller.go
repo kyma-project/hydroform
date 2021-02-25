@@ -148,15 +148,8 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 			path:      resource.path,
 		}
 
-		// TODO: move the logic to the applier.Apply
-		resourceData, err := ioutil.ReadFile(resource.path)
-		if err != nil {
-			o.notInstalled = append(o.notInstalled, file)
-		}
-
 		i.cfg.Log.Info(fmt.Sprintf("Processing %s file: %s of component: %s", resource.resourceType, resource.name, resource.component))
-
-		err = i.applier.Apply(string(resourceData))
+		err = i.applier.Apply(file.path)
 		if err != nil {
 			i.cfg.Log.Warn(fmt.Sprintf("Error occurred when processing file %s of component %s : %s", resource.name, resource.component, err.Error()))
 			o.notInstalled = append(o.notInstalled, file)
