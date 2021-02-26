@@ -65,7 +65,7 @@ func (c *GenericResourceApplier) Apply(path string) error {
 	if obj != nil {
 		c.log.Infof("Resource: %s already exists. Performing update.", resourceName)
 
-		err = c.resourceManager.UpdateRefreshableResource(obj, resourceSchema)
+		_, err = c.resourceManager.UpdateResource(resource, resourceSchema)
 		if err != nil {
 			return err
 		}

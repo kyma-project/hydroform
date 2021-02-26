@@ -19,10 +19,9 @@ type ResourceManager interface {
 	// Performs retries on unsuccessful resource retrieval action.
 	GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error)
 
-	// UpdateRefreshableResource of a given fileName from a k8s cluster, that matches the schema.
-	// Performs retries on unsuccessful resource update action. Before each update the latest resource version is
-	// retrieved from the k8s cluster.
-	UpdateRefreshableResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error
+	// UpdateResource of a given fileName from a k8s cluster, that matches the schema.
+	// Performs retries on unsuccessful resource update action.
+	UpdateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error)
 }
 
 // DefaultResourceManager provides a default implementation of ResourceManager.
@@ -52,9 +51,7 @@ func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructu
 	return err
 }
 
-func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
-	var obj *unstructured.Unstructured
-	var err error
+func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (obj *unstructured.Unstructured, err error) {
 	err = retry.Do(func() error {
 		obj, err = c.getResource(resourceName, resourceSchema)
 		if err != nil {
@@ -68,15 +65,9 @@ func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema
 	return obj, err
 }
 
-func (c *DefaultResourceManager) UpdateRefreshableResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
-	var err error
+func (c *DefaultResourceManager) UpdateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) (obj *unstructured.Unstructured, err error) {
 	err = retry.Do(func() error {
-		refreshResource, err := c.GetResource(resource.GetName(), resourceSchema)
-		if err != nil {
-			return nil
-		}
-
-		_, err = c.updateResource(refreshResource, resourceSchema)
+		obj, err = c.updateResource(resource, resourceSchema)
 		if err != nil {
 			return err
 		}
@@ -84,7 +75,7 @@ func (c *DefaultResourceManager) UpdateRefreshableResource(resource *unstructure
 		return nil
 	}, c.retryOptions...)
 
-	return err
+	return obj, err
 }
 
 func (c *DefaultResourceManager) getResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
