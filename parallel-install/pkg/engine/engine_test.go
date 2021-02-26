@@ -6,11 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/semaphore"
 )
