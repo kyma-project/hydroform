@@ -55,6 +55,28 @@ func TestResourceManager_GetResource(t *testing.T) {
 		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
 		assert.Nil(t, obj)
 	})
+
+	t.Run("should get created resource", func(t *testing.T) {
+		// given
+		manager := NewDefaultResourceManager(dynamicClient, retryOptions)
+		resourceName := "resourceName"
+		testObj := unstructured.Unstructured{Object: map[string]interface{}{
+			"name":      "resourceName",
+		}}
+		resourceSchema := schema.GroupVersionResource{}
+		err := manager.CreateResource(&testObj, resourceSchema)
+		assert.NoError(t, err)
+
+		// when
+		obj, err := manager.GetResource(resourceName, resourceSchema)
+
+		// then
+		expectedError := "not found"
+		receivedError := err.Error()
+		matched, err := regexp.MatchString(expectedError, receivedError)
+		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
+		assert.Nil(t, obj)
+	})
 }
 
 func TestResourceManager_UpdateRefreshableResource(t *testing.T) {
