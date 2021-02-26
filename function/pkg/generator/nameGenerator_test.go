@@ -6,7 +6,7 @@ import (
 )
 
 func TestNameFormat(t *testing.T) {
-	name := GenerateName(0)
+	name := GenerateName(false)
 	if !strings.Contains(name, "-") {
 		t.Fatalf("Generated name does not contain an underscore")
 	}
@@ -16,7 +16,7 @@ func TestNameFormat(t *testing.T) {
 }
 
 func TestNameRetries(t *testing.T) {
-	name := GenerateName(1)
+	name := GenerateName(true)
 	if !strings.Contains(name, "-") {
 		t.Fatalf("Generated name does not contain an underscore")
 	}

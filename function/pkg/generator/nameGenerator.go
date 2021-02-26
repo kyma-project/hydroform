@@ -130,6 +130,7 @@ var (
 		"filip",
 		"artur",
 		"karol",
+		"maciej",
 	}
 )
 
