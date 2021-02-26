@@ -168,7 +168,7 @@ func (i *Deletion) uninstallComponents(ctx context.Context, cancelFunc context.C
 	var errCount int = 0
 	var timeoutOccured bool = false
 
-	statusChan, errorChan, err := eng.Uninstall(ctx)
+	statusChan, err := eng.Uninstall(ctx)
 	if err != nil {
 		return err
 	}
@@ -200,10 +200,6 @@ UninstallLoop:
 					return err
 				}
 				break UninstallLoop
-			}
-		case err, ok := <-errorChan:
-			if ok {
-				i.processUpdate(InstallComponents, ProcessExecutionFailure, err)
 			}
 		case <-cancelTimeoutChan:
 			timeoutOccured = true

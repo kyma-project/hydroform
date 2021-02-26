@@ -167,7 +167,7 @@ func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.Ca
 	statusMap := map[string]string{}
 	errCount := 0
 
-	statusChan, errorChan, err := eng.Deploy(ctx)
+	statusChan, err := eng.Deploy(ctx)
 	if err != nil {
 		return fmt.Errorf("Kyma deployment failed. Error: %v", err)
 	}
@@ -201,10 +201,6 @@ InstallLoop:
 					return err
 				}
 				break InstallLoop
-			}
-		case err, ok := <-errorChan:
-			if ok {
-				i.processUpdate(InstallComponents, ProcessExecutionFailure, err)
 			}
 		case <-cancelTimeoutChan:
 			timeoutOccurred = true
