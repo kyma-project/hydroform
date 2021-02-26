@@ -127,7 +127,7 @@ func (i *Deletion) uninstallPrerequisites(ctx context.Context, cancelFunc contex
 	}
 	prereqStatusChan := prereq.UninstallPrerequisites()
 
-	i.processUpdate(UninstallPreRequisites, ProcessStart)
+	i.processUpdate(UninstallPreRequisites, ProcessStart, nil)
 
 Prerequisites:
 	for {
@@ -135,13 +135,14 @@ Prerequisites:
 		case prerequisiteErr, ok := <-prereqStatusChan:
 			if ok {
 				if prerequisiteErr != nil {
-					i.processUpdate(UninstallPreRequisites, ProcessExecutionFailure)
+					i.processUpdate(UninstallPreRequisites, ProcessExecutionFailure, prerequisiteErr)
 					i.cfg.Log.Errorf("Failed to uninstall a prerequisite: %s", prerequisiteErr)
 				}
 			} else {
 				if timeoutOccurred {
-					i.processUpdate(UninstallPreRequisites, ProcessTimeoutFailure)
-					return fmt.Errorf("Kyma prerequisites uninstallation failed due to the timeout")
+					err := fmt.Errorf("Kyma prerequisites uninstallation failed due to the timeout")
+					i.processUpdate(UninstallPreRequisites, ProcessTimeoutFailure, err)
+					return err
 				}
 				break Prerequisites
 			}
@@ -150,12 +151,13 @@ Prerequisites:
 			i.cfg.Log.Error("Timeout reached. Cancelling uninstallation")
 			cancelFunc()
 		case <-quitTimeoutChan:
-			i.processUpdate(UninstallPreRequisites, ProcessForceQuitFailure)
+			err := fmt.Errorf("Force quit: Kyma prerequisites uninstallation failed due to the timeout")
+			i.processUpdate(UninstallPreRequisites, ProcessForceQuitFailure, err)
 			i.cfg.Log.Error("Uninstallation doesn't stop after it's canceled. Enforcing quit")
-			return fmt.Errorf("Force quit: Kyma prerequisites uninstallation failed due to the timeout")
+			return err
 		}
 	}
-	i.processUpdate(UninstallPreRequisites, ProcessFinished)
+	i.processUpdate(UninstallPreRequisites, ProcessFinished, nil)
 	return nil
 }
 
@@ -171,7 +173,7 @@ func (i *Deletion) uninstallComponents(ctx context.Context, cancelFunc context.C
 		return err
 	}
 
-	i.processUpdate(UninstallComponents, ProcessStart)
+	i.processUpdate(UninstallComponents, ProcessStart, nil)
 
 	//Await completion
 UninstallLoop:
@@ -186,13 +188,16 @@ UninstallLoop:
 				statusMap[cmp.Name] = cmp.Status
 			} else {
 				if errCount > 0 {
+					err := fmt.Errorf("Kyma uninstallation failed due to errors in %d component(s)", errCount)
+					i.processUpdate(UninstallComponents, ProcessExecutionFailure, err)
 					i.logStatuses(statusMap)
-					return fmt.Errorf("Kyma uninstallation failed due to errors in %d component(s)", errCount)
+					return err
 				}
 				if timeoutOccured {
-					i.processUpdate(UninstallComponents, ProcessTimeoutFailure)
+					err := fmt.Errorf("Kyma uninstallation failed due to the timeout")
+					i.processUpdate(UninstallComponents, ProcessTimeoutFailure, err)
 					i.logStatuses(statusMap)
-					return fmt.Errorf("Kyma uninstallation failed due to the timeout")
+					return err
 				}
 				break UninstallLoop
 			}
@@ -201,12 +206,13 @@ UninstallLoop:
 			i.cfg.Log.Errorf("Timeout occurred after %v minutes. Cancelling uninstallation", cancelTimeout.Minutes())
 			cancelFunc()
 		case <-quitTimeoutChan:
-			i.processUpdate(UninstallComponents, ProcessForceQuitFailure)
+			err := fmt.Errorf("Force quit: Kyma uninstallation failed due to the timeout")
+			i.processUpdate(UninstallComponents, ProcessForceQuitFailure, err)
 			i.cfg.Log.Error("Uninstallation doesn't stop after it's canceled. Enforcing quit")
-			return fmt.Errorf("Force quit: Kyma uninstallation failed due to the timeout")
+			return err
 		}
 	}
-	i.processUpdate(UninstallComponents, ProcessFinished)
+	i.processUpdate(UninstallComponents, ProcessFinished, nil)
 	return nil
 }
 

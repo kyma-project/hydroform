@@ -86,7 +86,7 @@ func (i *core) getConfig() (overrides.OverridesProvider, components.Provider, *e
 	overridesProvider, err := overrides.New(i.kubeClient, i.overrides.Map(), i.cfg.Log)
 
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider. Exiting...")
+		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider: exiting")
 	}
 
 	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.Prerequisites, i.cfg)
@@ -107,7 +107,7 @@ func calculateDuration(start time.Time, end time.Time, duration time.Duration) t
 }
 
 // Send process update event
-func (i *core) processUpdate(phase InstallationPhase, event ProcessEvent) {
+func (i *core) processUpdate(phase InstallationPhase, event ProcessEvent, err error) {
 	if i.processUpdates == nil {
 		return
 	}
@@ -116,6 +116,7 @@ func (i *core) processUpdate(phase InstallationPhase, event ProcessEvent) {
 		Event:     event,
 		Phase:     phase,
 		Component: components.KymaComponent{},
+		Error:     err,
 	}
 }
 

@@ -82,7 +82,7 @@ func NewComponentList(componentsListPath string) (*ComponentList, error) {
 	return compListData.process(), nil
 }
 
-//Remove drops any component defintion with this particular name (independent whether it is listed as prequisite or component)
+//Remove drops any component definition with this particular name (independent whether it is listed as prequisite or component)
 func (cl *ComponentList) Remove(compName string) {
 	for idx, comp := range cl.Prerequisites {
 		if comp.Name == compName {
