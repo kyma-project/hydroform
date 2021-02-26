@@ -59,7 +59,7 @@ type Installation interface {
 	//It is not guaranteed that the cancellation is handled immediately because the underlying Helm operations are blocking and do not support the Context-based cancellation.
 	//However, once the underlying parallel operations end, the cancel condition is detected and the return channel is closed.
 	//All remaining components are not processed then.
-	Deploy(ctx context.Context) (<-chan components.KymaComponent, <-chan error, error)
+	Deploy(ctx context.Context) (<-chan components.KymaComponent, error)
 	//Uninstall performs parallel components uninstallation.
 	//Errors are not stopping the processing because it's assumed components are independent of one another.
 	//An error condition in one component should not influence others.
@@ -71,57 +71,56 @@ type Installation interface {
 	//However, once the underlying parallel operations end, the cancel condition is detected and the return channel is closed.
 	//All remaining components are not processed then.
 	//
-	Uninstall(ctx context.Context) (<-chan components.KymaComponent, <-chan error, error)
+	Uninstall(ctx context.Context) (<-chan components.KymaComponent, error)
 }
 
-func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, <-chan error, error) {
+func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, error) {
+	cmps, err := e.componentsProvider.GetComponents()
+	if err != nil {
+		return nil, err
+	}
+
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
-	errorChan := make(chan error)
 
 	//TODO: Can we avoid this goroutine? Maybe refactor run() so it's non-blocking ?
 	go func() {
 		defer close(statusChan)
-		defer close(errorChan)
 
 		err := e.overridesProvider.ReadOverridesFromCluster()
 		if err != nil {
-			errorChan <- err
 			e.cfg.Log.Errorf("%s error while reading overrides: %v", logPrefix, err)
 			return
 		}
 
-		e.run(ctx, statusChan, errorChan, deploy)
+		e.run(ctx, statusChan, cmps, deploy)
 	}()
 
-	return statusChan, errorChan, nil
+	return statusChan, nil
 }
 
-func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent, <-chan error, error) {
+func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent, error) {
+	cmps, err := e.componentsProvider.GetComponents()
+	if err != nil {
+		return nil, err
+	}
+
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
-	errorChan := make(chan error)
 
 	go func() {
 		defer close(statusChan)
-		defer close(errorChan)
 
-		e.run(ctx, statusChan, errorChan, uninstall)
+		e.run(ctx, statusChan, cmps, uninstall)
 	}()
 
-	return statusChan, errorChan, nil
+	return statusChan, nil
 }
 
 //Blocking function used to spawn a configured number of workers and then await their completion.
-func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaComponent, errorChan chan<- error, installType installationType) {
+func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaComponent, cmps []components.KymaComponent, installType installationType) {
 	//TODO: Size dependent on number of components?
 	jobChan := make(chan components.KymaComponent, 30)
-
-	cmps, err := e.componentsProvider.GetComponents()
-	if err != nil {
-		errorChan <- err
-		return
-	}
 
 	//Fill the queue with jobs
 	for _, comp := range cmps {
