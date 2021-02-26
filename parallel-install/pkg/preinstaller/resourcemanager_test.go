@@ -61,7 +61,7 @@ func TestResourceManager_GetResource(t *testing.T) {
 		manager := NewDefaultResourceManager(dynamicClient, retryOptions)
 		resourceName := "resourceName"
 		testObj := unstructured.Unstructured{Object: map[string]interface{}{
-			"name":      "resourceName",
+			"fileName": "resourceName",
 		}}
 		resourceSchema := schema.GroupVersionResource{}
 		err := manager.CreateResource(&testObj, resourceSchema)

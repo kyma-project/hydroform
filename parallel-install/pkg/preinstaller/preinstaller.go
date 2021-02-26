@@ -1,24 +1,52 @@
+// Package preinstaller implements the logic related to preparing a k8s cluster for Kyma installation.
+// It installs provided resources (or upgrades if necessary).
+//
+// The code in the package uses the user-provided function for logging and installation resources path.
+// Resources should be organized in the following way:
+// <provided-path>
+//	crds
+//		component-fileName-1
+//			file-1
+//			file-2
+//			...
+//			file-n
+//		component-fileName-2
+//			...
+//		...
+//		component-fileName-n
+// namespaces
+// ...
+// Installing CRDs resources requires a folder named `crds`.
+// Installing Namespace resources requires a folder named `namespaces`.
+// For now only these two resources types are supported.
+
 package preinstaller
 
 import (
 	"fmt"
 	"github.com/avast/retry-go"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"io/ioutil"
 	"k8s.io/client-go/dynamic"
 	"os"
 )
 
+// Config defines configuration values for the PreInstaller.
+type Config struct {
+	InstallationResourcePath string           //Path to the installation resources.
+	Log                      logger.Interface //Logger to be used
+}
+
 // PreInstaller prepares k8s cluster for Kyma installation.
 type PreInstaller struct {
 	applier       ResourceApplier
-	cfg           config.Config
+	cfg           Config
 	dynamicClient dynamic.Interface
 	retryOptions  []retry.Option
 }
 
 // File consists of a path to the file that was a part of PreInstaller installation
-// and a component name that it belongs to.
+// and a component fileName that it belongs to.
 type File struct {
 	component string
 	path      string
@@ -38,13 +66,13 @@ type resourceInfoInput struct {
 
 type resourceInfoResult struct {
 	component    string
-	name         string
+	fileName     string
 	path         string
 	resourceType string
 }
 
 // NewPreInstaller creates a new instance of PreInstaller.
-func NewPreInstaller(applier ResourceApplier, cfg config.Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
+func NewPreInstaller(applier ResourceApplier, cfg Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
 	return &PreInstaller{
 		applier:       applier,
 		cfg:           cfg,
@@ -129,7 +157,7 @@ func (i *PreInstaller) findResourcesIn(input resourceInfoInput) (results []resou
 			pathToResource := fmt.Sprintf("%s/%s", pathToComponent, resourceName)
 			resourceInfoResult := resourceInfoResult{
 				component:    componentName,
-				name:         resourceName,
+				fileName:     resourceName,
 				path:         pathToResource,
 				resourceType: input.resourceType,
 			}
@@ -148,10 +176,10 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 			path:      resource.path,
 		}
 
-		i.cfg.Log.Info(fmt.Sprintf("Processing %s file: %s of component: %s", resource.resourceType, resource.name, resource.component))
+		i.cfg.Log.Info(fmt.Sprintf("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component))
 		err = i.applier.Apply(file.path)
 		if err != nil {
-			i.cfg.Log.Warn(fmt.Sprintf("Error occurred when processing file %s of component %s : %s", resource.name, resource.component, err.Error()))
+			i.cfg.Log.Warn(fmt.Sprintf("Error occurred when processing file %s of component %s : %s", resource.fileName, resource.component, err.Error()))
 			o.notInstalled = append(o.notInstalled, file)
 		} else {
 			o.installed = append(o.installed, file)

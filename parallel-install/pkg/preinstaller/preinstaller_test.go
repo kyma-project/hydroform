@@ -3,7 +3,6 @@ package preinstaller
 import (
 	"fmt"
 	"github.com/avast/retry-go"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +12,6 @@ import (
 	"path"
 	"regexp"
 	"testing"
-	"time"
 )
 
 func TestPreInstaller_InstallCRDs(t *testing.T) {
@@ -122,6 +120,38 @@ func TestPreInstaller_install(t *testing.T) {
 		assert.True(t, containsFileWithDetails(output.installed, expectedSecondComponent, expectedSecondPath))
 	})
 
+	t.Run("should partially install resources", func(t *testing.T) {
+		// given
+		resourceApplierMock := mocks.MixedResourceApplierMock{}
+		i := NewPreInstaller(&resourceApplierMock, cfg, dynamicClient, retryOptions)
+		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/partiallycorrect")
+		input := resourceInfoInput{
+			resourceType:             "CRD",
+			dirSuffix:                "crds",
+			installationResourcePath: resourcePath,
+		}
+
+		// when
+		output, err := i.install(input)
+
+		// then
+		assert.NoError(t, err)
+		assert.True(t, len(output.installed) == 2)
+		assert.True(t, len(output.notInstalled) == 1)
+
+		expectedFirstComponent := "comp1"
+		expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd-correct.yaml")
+		assert.True(t, containsFileWithDetails(output.installed, expectedFirstComponent, expectedFirstPath))
+
+		expectedSecondComponent := "comp2"
+		expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd-correct.yaml")
+		assert.True(t, containsFileWithDetails(output.installed, expectedSecondComponent, expectedSecondPath))
+
+		expectedThirdComponent := "comp3"
+		expectedThirdPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp3/crd-incorrect.yaml")
+		assert.True(t, containsFileWithDetails(output.notInstalled, expectedThirdComponent, expectedThirdPath))
+	})
+
 	t.Run("should fail to install resources", func(t *testing.T) {
 		t.Run("due to error about not existing installation resources path", func(t *testing.T) {
 			// given
@@ -193,18 +223,16 @@ func TestPreInstaller_install(t *testing.T) {
 	})
 }
 
-func getTestingConfig() config.Config {
-	return config.Config{
-		BackoffInitialIntervalSeconds: 0,
-		BackoffMaxElapsedTimeSeconds:  0,
-		Log:                           logger.NewLogger(true),
-		InstallationResourcePath:      "123",
+func getTestingConfig() Config {
+	return Config{
+		Log:                      logger.NewLogger(true),
+		InstallationResourcePath: "installationResourcePath",
 	}
 }
 
-func getTestingRetryOptions(cfg config.Config) []retry.Option {
+func getTestingRetryOptions(cfg Config) []retry.Option {
 	return []retry.Option{
-		retry.Delay(time.Duration(cfg.BackoffInitialIntervalSeconds) * time.Second),
+		retry.Delay(0),
 		retry.Attempts(1),
 		retry.DelayType(retry.FixedDelay),
 	}

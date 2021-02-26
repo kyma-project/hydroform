@@ -15,11 +15,11 @@ type ResourceManager interface {
 	// Performs retries on unsuccessful resource creation action.
 	CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error
 
-	// GetResource of a given name from a k8s cluster, that matches the schema.
+	// GetResource of a given fileName from a k8s cluster, that matches the schema.
 	// Performs retries on unsuccessful resource retrieval action.
 	GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error)
 
-	// UpdateRefreshableResource of a given name from a k8s cluster, that matches the schema.
+	// UpdateRefreshableResource of a given fileName from a k8s cluster, that matches the schema.
 	// Performs retries on unsuccessful resource update action. Before each update the latest resource version is
 	// retrieved from the k8s cluster.
 	UpdateRefreshableResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error
