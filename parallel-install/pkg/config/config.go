@@ -36,8 +36,8 @@ type Config struct {
 	ComponentsListFile string
 	// Path to Kyma resources
 	ResourcePath string
-	// Path to Kyma CRDs
-	CrdPath string
+	// Path to Kyma installation resources
+	InstallationResourcePath string
 	//Kyma version
 	Version string
 	//Atomic deployment
@@ -71,7 +71,7 @@ func (c *Config) ValidateDeployment() error {
 	if err := c.pathExists(c.ResourcePath, "Resource path"); err != nil {
 		return err
 	}
-	if err := c.pathExists(c.CrdPath, "CRD path"); err != nil {
+	if err := c.pathExists(c.InstallationResourcePath, "Installation resource path"); err != nil {
 		return err
 	}
 	if c.Version == "" {
