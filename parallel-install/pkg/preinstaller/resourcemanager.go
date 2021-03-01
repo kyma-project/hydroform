@@ -62,7 +62,7 @@ func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema
 		notFoundError := "not found"
 		matched, _ := regexp.MatchString(notFoundError, err.Error())
 		if matched {
-			c.log.Infof("Resource %s was not found. Skipping additional retries of getting resource.", resourceName)
+			c.log.Infof("Resource %s was not found.", resourceName)
 			return nil, nil
 		}
 	} else {
