@@ -112,12 +112,12 @@ func main() {
 
 	result, err := preInstaller.InstallCRDs()
 	if err != nil || len(result.NotInstalled) > 0 {
-		log.Errorf("Failed to install CRDs: %s", err)
+		log.Fatalf("Failed to install CRDs: %s", err)
 	}
 
 	result, err = preInstaller.CreateNamespaces()
 	if err != nil || len(result.NotInstalled) > 0 {
-		log.Errorf("Failed to create namespaces: %s", err)
+		log.Fatalf("Failed to create namespaces: %s", err)
 	}
 
 	//Deploy Kyma

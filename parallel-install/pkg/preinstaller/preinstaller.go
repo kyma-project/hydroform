@@ -92,6 +92,7 @@ func (i *PreInstaller) InstallCRDs() (Output, error) {
 		installationResourcePath: i.cfg.InstallationResourcePath,
 	}
 
+	i.cfg.Log.Info("Kyma CRDs installation")
 	output, err := i.install(input)
 	if err != nil {
 		return Output{}, err
@@ -109,6 +110,7 @@ func (i *PreInstaller) CreateNamespaces() (Output, error) {
 		installationResourcePath: i.cfg.InstallationResourcePath,
 	}
 
+	i.cfg.Log.Info("Kyma Namespaces creation")
 	output, err := i.install(input)
 	if err != nil {
 		return Output{}, err
