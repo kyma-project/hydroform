@@ -106,17 +106,17 @@ func main() {
 		Log:                      installationCfg.Log,
 	}
 
-	resourceManager := preinstaller.NewDefaultResourceManager(dynamicClient, commonRetryOpts)
+	resourceManager := preinstaller.NewDefaultResourceManager(dynamicClient, preInstallerCfg.Log, commonRetryOpts)
 	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, resourceManager)
 	preInstaller := preinstaller.NewPreInstaller(resourceApplier, preInstallerCfg, dynamicClient, commonRetryOpts)
 
-	_, err = preInstaller.InstallCRDs()
-	if err != nil {
+	result, err := preInstaller.InstallCRDs()
+	if err != nil || len(result.NotInstalled) > 0 {
 		log.Errorf("Failed to install CRDs: %s", err)
 	}
 
-	_, err = preInstaller.CreateNamespaces()
-	if err != nil {
+	result, err = preInstaller.CreateNamespaces()
+	if err != nil || len(result.NotInstalled) > 0 {
 		log.Errorf("Failed to create namespaces: %s", err)
 	}
 

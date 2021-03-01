@@ -3,10 +3,12 @@ package preinstaller
 import (
 	"context"
 	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"regexp"
 )
 
 // ResourceManager manages resources on a k8s cluster.
@@ -27,13 +29,15 @@ type ResourceManager interface {
 // DefaultResourceManager provides a default implementation of ResourceManager.
 type DefaultResourceManager struct {
 	dynamicClient dynamic.Interface
+	log           logger.Interface
 	retryOptions  []retry.Option
 }
 
 // NewResourceManager creates a new instance of ResourceManager.
-func NewDefaultResourceManager(dynamicClient dynamic.Interface, retryOptions []retry.Option) *DefaultResourceManager {
+func NewDefaultResourceManager(dynamicClient dynamic.Interface, log logger.Interface, retryOptions []retry.Option) *DefaultResourceManager {
 	return &DefaultResourceManager{
 		dynamicClient: dynamicClient,
+		log:           log,
 		retryOptions:  retryOptions,
 	}
 }
@@ -42,19 +46,33 @@ func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructu
 	var err error
 	err = retry.Do(func() error {
 		if _, err = c.dynamicClient.Resource(resourceSchema).Create(context.TODO(), resource, metav1.CreateOptions{}); err != nil {
+			c.log.Errorf("Error occurred during resource create: %s", err.Error())
 			return err
 		}
 
 		return nil
 	}, c.retryOptions...)
 
-	return err
+	return nil
 }
 
 func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (obj *unstructured.Unstructured, err error) {
+	obj, err = c.getResource(resourceName, resourceSchema)
+	if err != nil {
+		notFoundError := "not found"
+		matched, _ := regexp.MatchString(notFoundError, err.Error())
+		if matched {
+			c.log.Infof("Resource %s was not found. Skipping additional retries of getting resource.", resourceName)
+			return nil, nil
+		}
+	} else {
+		return obj, err
+	}
+
 	err = retry.Do(func() error {
 		obj, err = c.getResource(resourceName, resourceSchema)
 		if err != nil {
+			c.log.Errorf("Error occurred during resource get: %s", err.Error())
 			return err
 		}
 
@@ -62,20 +80,27 @@ func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema
 
 	}, c.retryOptions...)
 
-	return obj, err
+	return obj, nil
 }
 
 func (c *DefaultResourceManager) UpdateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) (obj *unstructured.Unstructured, err error) {
 	err = retry.Do(func() error {
+		latestResource, err := c.getResource(resource.GetName(), resourceSchema)
+		if err != nil {
+			return err
+		}
+
+		resource.SetResourceVersion(latestResource.GetResourceVersion())
 		obj, err = c.updateResource(resource, resourceSchema)
 		if err != nil {
+			c.log.Errorf("Error occurred during resource update: %s", err.Error())
 			return err
 		}
 
 		return nil
 	}, c.retryOptions...)
 
-	return obj, err
+	return obj, nil
 }
 
 func (c *DefaultResourceManager) getResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {

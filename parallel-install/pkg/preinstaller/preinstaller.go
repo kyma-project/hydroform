@@ -52,10 +52,12 @@ type File struct {
 	path      string
 }
 
-// Output contains lists of installed and not installed files during PreInstaller installation.
+// Output contains lists of Installed and not Installed files during PreInstaller installation.
 type Output struct {
-	installed    []File
-	notInstalled []File
+	// Installed files during PreInstaller installation.
+	Installed []File
+	// NotInstalled files during PreInstaller installation.
+	NotInstalled []File
 }
 
 type resourceInfoInput struct {
@@ -180,9 +182,9 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 		err = i.applier.Apply(file.path)
 		if err != nil {
 			i.cfg.Log.Warn(fmt.Sprintf("Error occurred when processing file %s of component %s : %s", resource.fileName, resource.component, err.Error()))
-			o.notInstalled = append(o.notInstalled, file)
+			o.NotInstalled = append(o.NotInstalled, file)
 		} else {
-			o.installed = append(o.installed, file)
+			o.Installed = append(o.Installed, file)
 		}
 	}
 

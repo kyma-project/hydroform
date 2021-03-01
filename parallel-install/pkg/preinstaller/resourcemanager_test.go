@@ -2,6 +2,7 @@ package preinstaller
 
 import (
 	"fmt"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,12 +17,12 @@ func TestResourceManager_CreateResource(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
-	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions(cfg)
+	retryOptions := getTestingRetryOptions()
+	log := logger.NewLogger(true)
 
 	t.Run("should create resource", func(t *testing.T) {
 		// given
-		manager := NewDefaultResourceManager(dynamicClient, retryOptions)
+		manager := NewDefaultResourceManager(dynamicClient, log, retryOptions)
 		resourceName := "namespace"
 		resource := fixNamespaceResourceWith(resourceName)
 		resourceSchema := prepareSchemaFor(resource)
@@ -38,12 +39,12 @@ func TestResourceManager_GetResource(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
-	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions(cfg)
+	retryOptions := getTestingRetryOptions()
+	log := logger.NewLogger(true)
 
-	t.Run("should not get not found resource", func(t *testing.T) {
+	t.Run("should proceed without error when resource is not found", func(t *testing.T) {
 		// given
-		manager := NewDefaultResourceManager(dynamicClient, retryOptions)
+		manager := NewDefaultResourceManager(dynamicClient, log, retryOptions)
 		resourceName := "resourceName"
 		resourceSchema := schema.GroupVersionResource{}
 
@@ -51,10 +52,7 @@ func TestResourceManager_GetResource(t *testing.T) {
 		obj, err := manager.GetResource(resourceName, resourceSchema)
 
 		// then
-		expectedError := "not found"
-		receivedError := err.Error()
-		matched, err := regexp.MatchString(expectedError, receivedError)
-		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
+		assert.NoError(t, err)
 		assert.Nil(t, obj)
 	})
 
@@ -63,7 +61,7 @@ func TestResourceManager_GetResource(t *testing.T) {
 		resourceName := "namespace"
 		resource := fixNamespaceResourceWith(resourceName)
 		customDynamicClient := fake.NewSimpleDynamicClient(scheme, resource)
-		manager := NewDefaultResourceManager(customDynamicClient, retryOptions)
+		manager := NewDefaultResourceManager(customDynamicClient, log, retryOptions)
 		resourceSchema := prepareSchemaFor(resource)
 
 		// when
@@ -81,15 +79,15 @@ func TestResourceManager_GetResource(t *testing.T) {
 func TestResourceManager_UpdateRefreshableResource(t *testing.T) {
 
 	scheme := runtime.NewScheme()
-	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions(cfg)
+	retryOptions := getTestingRetryOptions()
+	log := logger.NewLogger(true)
 
 	t.Run("should update resource", func(t *testing.T) {
 		// given
 		resourceName := "namespace"
 		resource := fixNamespaceResourceWith(resourceName)
 		customDynamicClient := fake.NewSimpleDynamicClient(scheme, resource)
-		manager := NewDefaultResourceManager(customDynamicClient, retryOptions)
+		manager := NewDefaultResourceManager(customDynamicClient, log, retryOptions)
 		resourceSchema := prepareSchemaFor(resource)
 		labels := map[string]string{
 			"key": "value",

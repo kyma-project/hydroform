@@ -18,7 +18,7 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions(cfg)
+	retryOptions := getTestingRetryOptions()
 
 	t.Run("should install CRDs", func(t *testing.T) {
 		// given
@@ -36,16 +36,16 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 
 		// then
 		assert.NoError(t, err)
-		assert.True(t, len(output.installed) == 2)
-		assert.True(t, len(output.notInstalled) == 0)
+		assert.True(t, len(output.Installed) == 2)
+		assert.True(t, len(output.NotInstalled) == 0)
 
 		expectedFirstComponent := "comp1"
 		expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-		assert.True(t, containsFileWithDetails(output.installed, expectedFirstComponent, expectedFirstPath))
+		assert.True(t, containsFileWithDetails(output.Installed, expectedFirstComponent, expectedFirstPath))
 
 		expectedSecondComponent := "comp2"
 		expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-		assert.True(t, containsFileWithDetails(output.installed, expectedSecondComponent, expectedSecondPath))
+		assert.True(t, containsFileWithDetails(output.Installed, expectedSecondComponent, expectedSecondPath))
 	})
 }
 
@@ -53,7 +53,7 @@ func TestPreInstaller_CreateNamespaces(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions(cfg)
+	retryOptions := getTestingRetryOptions()
 
 	t.Run("should create namespaces", func(t *testing.T) {
 		// given
@@ -71,16 +71,16 @@ func TestPreInstaller_CreateNamespaces(t *testing.T) {
 
 		// then
 		assert.NoError(t, err)
-		assert.True(t, len(output.installed) == 2)
-		assert.True(t, len(output.notInstalled) == 0)
+		assert.True(t, len(output.Installed) == 2)
+		assert.True(t, len(output.NotInstalled) == 0)
 
 		expectedFirstComponent := "comp1"
 		expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
-		assert.True(t, containsFileWithDetails(output.installed, expectedFirstComponent, expectedFirstPath))
+		assert.True(t, containsFileWithDetails(output.Installed, expectedFirstComponent, expectedFirstPath))
 
 		expectedSecondComponent := "comp2"
 		expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
-		assert.True(t, containsFileWithDetails(output.installed, expectedSecondComponent, expectedSecondPath))
+		assert.True(t, containsFileWithDetails(output.Installed, expectedSecondComponent, expectedSecondPath))
 	})
 }
 
@@ -88,8 +88,8 @@ func TestPreInstaller_install(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions(cfg)
-	resourceManager := NewDefaultResourceManager(dynamicClient, retryOptions)
+	retryOptions := getTestingRetryOptions()
+	resourceManager := NewDefaultResourceManager(dynamicClient, cfg.Log, retryOptions)
 	resourceApplier := NewGenericResourceApplier(cfg.Log, resourceManager)
 
 	t.Run("should install resources", func(t *testing.T) {
@@ -108,16 +108,16 @@ func TestPreInstaller_install(t *testing.T) {
 
 		// then
 		assert.NoError(t, err)
-		assert.True(t, len(output.installed) == 2)
-		assert.True(t, len(output.notInstalled) == 0)
+		assert.True(t, len(output.Installed) == 2)
+		assert.True(t, len(output.NotInstalled) == 0)
 
 		expectedFirstComponent := "comp1"
 		expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-		assert.True(t, containsFileWithDetails(output.installed, expectedFirstComponent, expectedFirstPath))
+		assert.True(t, containsFileWithDetails(output.Installed, expectedFirstComponent, expectedFirstPath))
 
 		expectedSecondComponent := "comp2"
 		expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-		assert.True(t, containsFileWithDetails(output.installed, expectedSecondComponent, expectedSecondPath))
+		assert.True(t, containsFileWithDetails(output.Installed, expectedSecondComponent, expectedSecondPath))
 	})
 
 	t.Run("should partially install resources", func(t *testing.T) {
@@ -136,20 +136,20 @@ func TestPreInstaller_install(t *testing.T) {
 
 		// then
 		assert.NoError(t, err)
-		assert.True(t, len(output.installed) == 2)
-		assert.True(t, len(output.notInstalled) == 1)
+		assert.True(t, len(output.Installed) == 2)
+		assert.True(t, len(output.NotInstalled) == 1)
 
 		expectedFirstComponent := "comp1"
 		expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd-correct.yaml")
-		assert.True(t, containsFileWithDetails(output.installed, expectedFirstComponent, expectedFirstPath))
+		assert.True(t, containsFileWithDetails(output.Installed, expectedFirstComponent, expectedFirstPath))
 
 		expectedSecondComponent := "comp2"
 		expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd-correct.yaml")
-		assert.True(t, containsFileWithDetails(output.installed, expectedSecondComponent, expectedSecondPath))
+		assert.True(t, containsFileWithDetails(output.Installed, expectedSecondComponent, expectedSecondPath))
 
 		expectedThirdComponent := "comp3"
 		expectedThirdPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp3/crd-incorrect.yaml")
-		assert.True(t, containsFileWithDetails(output.notInstalled, expectedThirdComponent, expectedThirdPath))
+		assert.True(t, containsFileWithDetails(output.NotInstalled, expectedThirdComponent, expectedThirdPath))
 	})
 
 	t.Run("should fail to install resources", func(t *testing.T) {
@@ -170,7 +170,7 @@ func TestPreInstaller_install(t *testing.T) {
 			receivedError := err.Error()
 			matched, err := regexp.MatchString(expectedError, receivedError)
 			assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
-			assert.True(t, len(output.installed) == 0)
+			assert.True(t, len(output.Installed) == 0)
 		})
 
 		t.Run("due to no components detected in installation resources path", func(t *testing.T) {
@@ -188,8 +188,8 @@ func TestPreInstaller_install(t *testing.T) {
 
 			// then
 			assert.NoError(t, err)
-			assert.True(t, len(output.installed) == 0)
-			assert.True(t, len(output.notInstalled) == 0)
+			assert.True(t, len(output.Installed) == 0)
+			assert.True(t, len(output.NotInstalled) == 0)
 		})
 
 		t.Run("due to applier error", func(t *testing.T) {
@@ -208,16 +208,16 @@ func TestPreInstaller_install(t *testing.T) {
 
 			// then
 			assert.NoError(t, err)
-			assert.True(t, len(output.installed) == 0)
-			assert.True(t, len(output.notInstalled) == 2)
+			assert.True(t, len(output.Installed) == 0)
+			assert.True(t, len(output.NotInstalled) == 2)
 
 			expectedFirstComponent := "comp1"
 			expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-			assert.True(t, containsFileWithDetails(output.notInstalled, expectedFirstComponent, expectedFirstPath))
+			assert.True(t, containsFileWithDetails(output.NotInstalled, expectedFirstComponent, expectedFirstPath))
 
 			expectedSecondComponent := "comp2"
 			expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-			assert.True(t, containsFileWithDetails(output.notInstalled, expectedSecondComponent, expectedSecondPath))
+			assert.True(t, containsFileWithDetails(output.NotInstalled, expectedSecondComponent, expectedSecondPath))
 
 		})
 	})
@@ -230,7 +230,7 @@ func getTestingConfig() Config {
 	}
 }
 
-func getTestingRetryOptions(cfg Config) []retry.Option {
+func getTestingRetryOptions() []retry.Option {
 	return []retry.Option{
 		retry.Delay(0),
 		retry.Attempts(1),
