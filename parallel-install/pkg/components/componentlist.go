@@ -65,7 +65,9 @@ func NewComponentList(componentsListPath string) (*ComponentList, error) {
 		return nil, err
 	}
 
-	var compListData *ComponentListData
+	var compListData *ComponentListData = &ComponentListData{
+		DefaultNamespace: "kyma-system",
+	}
 	fileExt := filepath.Ext(componentsListPath)
 	if fileExt == ".json" {
 		if err := json.Unmarshal(data, &compListData); err != nil {
