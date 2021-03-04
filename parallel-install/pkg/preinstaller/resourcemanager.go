@@ -57,23 +57,18 @@ func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructu
 }
 
 func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (obj *unstructured.Unstructured, err error) {
-	obj, err = c.getResource(resourceName, resourceSchema)
-	if err != nil {
-		notFoundError := "not found"
-		matched, _ := regexp.MatchString(notFoundError, err.Error())
-		if matched {
-			c.log.Infof("Resource %s was not found.", resourceName)
-			return nil, nil
-		}
-	} else {
-		return obj, err
-	}
-
 	err = retry.Do(func() error {
 		obj, err = c.getResource(resourceName, resourceSchema)
 		if err != nil {
-			c.log.Errorf("Error occurred during resource get: %s", err.Error())
-			return err
+			notFoundError := "not found"
+			matched, _ := regexp.MatchString(notFoundError, err.Error())
+			if matched {
+				c.log.Infof("Resource %s was not found.", resourceName)
+				return nil
+			} else {
+				c.log.Errorf("Error occurred during resource get: %s", err.Error())
+				return err
+			}
 		}
 
 		return err
