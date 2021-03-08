@@ -1,6 +1,8 @@
 package deployment
 
 import (
+	"fmt"
+
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 )
 
@@ -40,6 +42,16 @@ const (
 type ProcessUpdate struct {
 	Event ProcessEvent
 	Phase InstallationPhase
+	Error error
 	//Component is only set during the component install/uninstall phase
 	Component components.KymaComponent
+}
+
+func (pu *ProcessUpdate) IsComponentUpdate() bool {
+	return pu.Component.Name != ""
+}
+
+func (pu ProcessUpdate) String() string {
+	return fmt.Sprintf("[ProcessUpdateEvent: event=%s | InstallationPhase=%s | Error=%v | Component=%v]",
+		pu.Event, pu.Phase, pu.Error, pu.Component)
 }

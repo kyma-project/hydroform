@@ -22,8 +22,8 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 	// verify we received all expected events
 	receivedEvents := make(map[string]int)
 	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		for procUpd := range procUpdChan {
 			receivedEvents[processUpdateString(procUpd)]++
 		}

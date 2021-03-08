@@ -35,6 +35,7 @@ type KymaComponent struct {
 	//Profile defines the Kyma release namespace
 	Profile string
 	Status  string
+	Error   error
 	//ChartDir is a local filesystem directory with the component's chart.
 	ChartDir string
 	//OverridesGetter is a function that returns overrides for the release.

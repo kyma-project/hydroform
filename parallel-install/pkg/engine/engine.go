@@ -9,14 +9,21 @@ package engine
 
 import (
 	"context"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"sync"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 )
 
-const logPrefix = "[engine/engine.go]"
+const (
+	logPrefix                  = "[engine/engine.go]"
+	deploy    installationType = "deploy"
+	uninstall installationType = "uninstall"
+)
+
+type installationType string
 
 //Config defines configuration values for the Engine.
 type Config struct {
@@ -68,7 +75,6 @@ type Installation interface {
 }
 
 func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, error) {
-
 	cmps, err := e.componentsProvider.GetComponents()
 	if err != nil {
 		return nil, err
@@ -81,14 +87,13 @@ func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, e
 	go func() {
 		defer close(statusChan)
 
-		err = e.overridesProvider.ReadOverridesFromCluster()
+		err := e.overridesProvider.ReadOverridesFromCluster()
 		if err != nil {
 			e.cfg.Log.Errorf("%s error while reading overrides: %v", logPrefix, err)
 			return
 		}
 
-		e.run(ctx, statusChan, cmps, "deploy", e.cfg.WorkersCount)
-
+		e.run(ctx, statusChan, cmps, deploy)
 	}()
 
 	return statusChan, nil
@@ -106,14 +111,14 @@ func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent
 	go func() {
 		defer close(statusChan)
 
-		e.run(ctx, statusChan, cmps, "uninstall", e.cfg.WorkersCount)
+		e.run(ctx, statusChan, cmps, uninstall)
 	}()
 
 	return statusChan, nil
 }
 
 //Blocking function used to spawn a configured number of workers and then await their completion.
-func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaComponent, cmps []components.KymaComponent, installationType string, workersCount int) {
+func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaComponent, cmps []components.KymaComponent, installType installationType) {
 	//TODO: Size dependent on number of components?
 	jobChan := make(chan components.KymaComponent, 30)
 
@@ -128,9 +133,9 @@ func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaCompo
 	var wg sync.WaitGroup
 
 	//TODO: Configurable number of workers
-	for i := 0; i < workersCount; i++ {
+	for i := 0; i < e.cfg.WorkersCount; i++ {
 		wg.Add(1)
-		go e.worker(ctx, &wg, jobChan, statusChan, installationType)
+		go e.worker(ctx, &wg, jobChan, statusChan, installType)
 	}
 
 	// to stop the workers, first close the job channel
@@ -145,7 +150,7 @@ func (e *Engine) run(ctx context.Context, statusChan chan<- components.KymaCompo
 //Detects Context cancellation.
 //Context cancellation is not detected immediately. It's detected between component processing operations because such operations are blocking.
 //If the Context is cancelled, the worker quits immediately, skipping the remaining components.
-func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.KymaComponent, statusChan chan<- components.KymaComponent, installationType string) {
+func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan components.KymaComponent, statusChan chan<- components.KymaComponent, installType installationType) {
 	defer wg.Done()
 
 	for {
@@ -162,16 +167,18 @@ func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan 
 				return
 			}
 			if ok {
-				if installationType == "deploy" {
+				if installType == deploy {
 					if err := component.Deploy(ctx); err != nil {
 						component.Status = components.StatusError
+						component.Error = err
 					} else {
 						component.Status = components.StatusInstalled
 					}
 					statusChan <- component
-				} else if installationType == "uninstall" {
+				} else if installType == uninstall {
 					if err := component.Uninstall(ctx); err != nil {
 						component.Status = components.StatusError
+						component.Error = err
 					} else {
 						component.Status = components.StatusUninstalled
 					}

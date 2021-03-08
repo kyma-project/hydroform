@@ -53,10 +53,10 @@ func Test_ValidateDeployment(t *testing.T) {
 		_, fpath, _, ok := runtime.Caller(0)
 		assert.True(t, ok)
 		config = Config{
-			WorkersCount:       1,
-			ComponentsListFile: fpath,
-			ResourcePath:       filepath.Dir(fpath),
-			CrdPath:            "/a/dir/which/doesnot/exist",
+			WorkersCount:             1,
+			ComponentsListFile:       fpath,
+			ResourcePath:             filepath.Dir(fpath),
+			InstallationResourcePath: "/a/dir/which/doesnot/exist",
 		}
 		err = config.ValidateDeployment()
 		assert.Error(t, err)
@@ -67,10 +67,10 @@ func Test_ValidateDeployment(t *testing.T) {
 		_, fpath, _, ok := runtime.Caller(0)
 		assert.True(t, ok)
 		config = Config{
-			WorkersCount:       1,
-			ComponentsListFile: fpath,
-			ResourcePath:       filepath.Dir(fpath),
-			CrdPath:            filepath.Dir(fpath),
+			WorkersCount:             1,
+			ComponentsListFile:       fpath,
+			ResourcePath:             filepath.Dir(fpath),
+			InstallationResourcePath: filepath.Dir(fpath),
 		}
 		err = config.ValidateDeployment()
 		assert.Error(t, err)
@@ -81,11 +81,11 @@ func Test_ValidateDeployment(t *testing.T) {
 		_, fpath, _, ok := runtime.Caller(0)
 		assert.True(t, ok)
 		config = Config{
-			WorkersCount:       1,
-			ComponentsListFile: fpath,
-			ResourcePath:       filepath.Dir(fpath),
-			CrdPath:            filepath.Dir(fpath),
-			Version:            "abc",
+			WorkersCount:             1,
+			ComponentsListFile:       fpath,
+			ResourcePath:             filepath.Dir(fpath),
+			InstallationResourcePath: filepath.Dir(fpath),
+			Version:                  "abc",
 		}
 		err = config.ValidateDeployment()
 		assert.NoError(t, err)

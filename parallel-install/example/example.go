@@ -4,16 +4,18 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/avast/retry-go"
+	"k8s.io/client-go/dynamic"
 	"os"
 	"time"
-
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -65,7 +67,7 @@ func main() {
 		Profile:                       *profile,
 		ComponentsListFile:            "./components.yaml",
 		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
-		CrdPath:                       fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources/cluster-essentials/files", goPath),
+		InstallationResourcePath:      fmt.Sprintf("%s/src/github.com/kyma-project/kyma/installation/resources", goPath),
 		Version:                       *version,
 	}
 
@@ -84,6 +86,38 @@ func main() {
 	if err != nil {
 		log.Error("Failed to create kube client. Exiting...")
 		os.Exit(1)
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		log.Error("Failed to create kube dynamic client. Exiting...")
+		os.Exit(1)
+	}
+
+	commonRetryOpts := []retry.Option{
+		retry.Delay(time.Duration(installationCfg.BackoffInitialIntervalSeconds) * time.Second),
+		retry.Attempts(uint(installationCfg.BackoffMaxElapsedTimeSeconds / installationCfg.BackoffInitialIntervalSeconds)),
+		retry.DelayType(retry.FixedDelay),
+	}
+
+	//Prepare cluster before Kyma installation
+	preInstallerCfg := preinstaller.Config{
+		InstallationResourcePath: installationCfg.InstallationResourcePath,
+		Log:                      installationCfg.Log,
+	}
+
+	resourceManager := preinstaller.NewDefaultResourceManager(dynamicClient, preInstallerCfg.Log, commonRetryOpts)
+	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, resourceManager)
+	preInstaller := preinstaller.NewPreInstaller(resourceApplier, preInstallerCfg, dynamicClient, commonRetryOpts)
+
+	result, err := preInstaller.InstallCRDs()
+	if err != nil || len(result.NotInstalled) > 0 {
+		log.Fatalf("Failed to install CRDs: %s", err)
+	}
+
+	result, err = preInstaller.CreateNamespaces()
+	if err != nil || len(result.NotInstalled) > 0 {
+		log.Fatalf("Failed to create namespaces: %s", err)
 	}
 
 	//Deploy Kyma

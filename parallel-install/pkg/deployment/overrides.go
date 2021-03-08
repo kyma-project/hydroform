@@ -152,10 +152,9 @@ func deepFind(m map[string]interface{}, path []string) (interface{}, bool) {
 
 	if v, ok := m[path[0]].(map[string]interface{}); ok {
 		return deepFind(v, path[1:])
-	} else {
-		v, ok := m[path[0]]
-		return v, ok
 	}
+	v, ok := m[path[0]]
+	return v, ok
 }
 
 // setValue recursively traverses a map of maps and sets the given value in the given path separated by ".".
@@ -168,12 +167,11 @@ func setValue(m map[string]interface{}, path []string, value interface{}) error 
 
 	if v, ok := m[path[0]].(map[string]interface{}); ok {
 		return setValue(v, path[1:], value)
-	} else {
-		if len(path) > 1 {
-			return fmt.Errorf("Error setting value, path is incorrect. Map expected at subkey %s but have %T", path[0], m[path[0]])
-		}
-		m[path[0]] = value
 	}
+	if len(path) > 1 {
+		return fmt.Errorf("Error setting value, path is incorrect. Map expected at subkey %s but have %T", path[0], m[path[0]])
+	}
+	m[path[0]] = value
 	return nil
 }
 

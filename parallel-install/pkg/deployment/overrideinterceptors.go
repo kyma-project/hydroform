@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -24,21 +23,6 @@ type OverrideInterceptor interface {
 	Intercept(value interface{}, key string) (interface{}, error)
 	//Undefined is executed when the override is not defined
 	Undefined(overrides map[string]interface{}, key string) error
-}
-
-type defaultOverrideInterceptor struct {
-}
-
-func (i *defaultOverrideInterceptor) String(value interface{}, key string) string {
-	return fmt.Sprintf("%v", value)
-}
-
-func (i *defaultOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	return value, nil
-}
-
-func (i *defaultOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	return nil
 }
 
 //DomainNameOverrideInterceptor resolves the domain name for the cluster
@@ -150,10 +134,12 @@ func (i *FallbackOverrideInterceptor) Undefined(overrides map[string]interface{}
 		if _, ok := lastProcessedEntry[subKey]; !ok {
 			//sub-element does not exist - add map
 			lastProcessedEntry[subKey] = make(map[string]interface{})
-		} else if reflect.ValueOf(lastProcessedEntry[subKey]).Kind() != reflect.Map {
+		}
+		if _, ok := lastProcessedEntry[subKey].(map[string]interface{}); !ok {
 			//ensure existing sub-element is map otherwise fail
 			return fmt.Errorf("Override '%s' cannot be set with default value as sub-key '%s' is not a map", key, strings.Join(subKeys[:depth+1], "."))
 		}
+
 		if depth == (maxDepth - 1) {
 			//we are in the last loop, set default value
 			lastProcessedEntry[subKey] = i.fallback

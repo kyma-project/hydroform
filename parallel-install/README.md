@@ -33,7 +33,7 @@ See all available configuration options for the `config.Config` type:
 | Profile | `string` | `evaluation` | Deployment profile. The possible values are: "evaluation", "production", "".  |
 | ComponentsListFile | `string` | `/kyma/components.yaml` | List of prerequisites and components used by the installer library. |
 | ResourcePath | `string` | `$GOPATH/src/github.com/kyma-project/kyma/resources` | Path to Kyma resources. |
-| CrdPath | `string` | `$GOPATH/src/github.com/kyma-project/kyma/resources/cluster-essentials/files` | Path to Kyma CRD resources. |
+| InstallationResourcePath | `string` | `$GOPATH/src/github.com/kyma-project/kyma/installation/resources` | Path to Kyma installation resources. |
 | Version | `string` | `1.18.1` | The Kyma version. |
 
 >**NOTE:** This library also fetches overrides from ConfigMaps present in the cluster. However, overrides provided through `NewDeployment` have a higher priority.

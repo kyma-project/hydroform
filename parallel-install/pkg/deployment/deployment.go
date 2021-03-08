@@ -125,7 +125,7 @@ func (i *Deployment) deployPrerequisites(ctx context.Context, cancelFunc context
 	}
 	prereqStatusChan := prereq.InstallPrerequisites()
 
-	i.processUpdate(InstallPreRequisites, ProcessStart)
+	i.processUpdate(InstallPreRequisites, ProcessStart, nil)
 
 Prerequisites:
 	for {
@@ -133,13 +133,15 @@ Prerequisites:
 		case prerequisiteErr, ok := <-prereqStatusChan:
 			if ok {
 				if prerequisiteErr != nil {
-					i.processUpdate(InstallPreRequisites, ProcessExecutionFailure)
-					return fmt.Errorf("Kyma deployment failed due to an error: %s", prerequisiteErr)
+					err := fmt.Errorf("Kyma deployment failed due to an error: %s", prerequisiteErr)
+					i.processUpdate(InstallPreRequisites, ProcessExecutionFailure, err)
+					return err
 				}
 			} else {
 				if timeoutOccurred {
-					i.processUpdate(InstallPreRequisites, ProcessTimeoutFailure)
-					return fmt.Errorf("Kyma prerequisites deployment failed due to the timeout")
+					err := fmt.Errorf("Kyma prerequisites deployment failed due to the timeout")
+					i.processUpdate(InstallPreRequisites, ProcessTimeoutFailure, err)
+					return err
 				}
 				break Prerequisites
 			}
@@ -148,12 +150,13 @@ Prerequisites:
 			i.cfg.Log.Error("Timeout reached. Cancelling deployment")
 			cancelFunc()
 		case <-quitTimeoutChan:
-			i.processUpdate(InstallPreRequisites, ProcessForceQuitFailure)
+			err := fmt.Errorf("Force quit: Kyma prerequisites deployment failed due to the timeout")
+			i.processUpdate(InstallPreRequisites, ProcessForceQuitFailure, err)
 			i.cfg.Log.Error("Deployment doesn't stop after it's canceled. Enforcing quit")
-			return fmt.Errorf("Force quit: Kyma prerequisites deployment failed due to the timeout")
+			return err
 		}
 	}
-	i.processUpdate(InstallPreRequisites, ProcessFinished)
+	i.processUpdate(InstallPreRequisites, ProcessFinished, nil)
 	return nil
 }
 
@@ -169,7 +172,7 @@ func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.Ca
 		return fmt.Errorf("Kyma deployment failed. Error: %v", err)
 	}
 
-	i.processUpdate(InstallComponents, ProcessStart)
+	i.processUpdate(InstallComponents, ProcessStart, nil)
 
 	//Await completion
 InstallLoop:
@@ -186,13 +189,16 @@ InstallLoop:
 			} else {
 				//statusChan is closed
 				if errCount > 0 {
+					err := fmt.Errorf("Kyma deployment failed due to errors in %d component(s)", errCount)
+					i.processUpdate(InstallComponents, ProcessExecutionFailure, err)
 					i.logStatuses(statusMap)
-					return fmt.Errorf("Kyma deployment failed due to errors in %d component(s)", errCount)
+					return err
 				}
 				if timeoutOccurred {
-					i.processUpdate(InstallComponents, ProcessTimeoutFailure)
+					err := fmt.Errorf("Kyma deployment failed due to the timeout")
+					i.processUpdate(InstallComponents, ProcessTimeoutFailure, err)
 					i.logStatuses(statusMap)
-					return fmt.Errorf("Kyma deployment failed due to the timeout")
+					return err
 				}
 				break InstallLoop
 			}
@@ -201,12 +207,13 @@ InstallLoop:
 			i.cfg.Log.Errorf("Timeout occurred after %v minutes. Cancelling deployment", cancelTimeout.Minutes())
 			cancelFunc()
 		case <-quitTimeoutChan:
-			i.processUpdate(InstallComponents, ProcessForceQuitFailure)
+			err := fmt.Errorf("Force quit: Kyma deployment failed due to the timeout")
+			i.processUpdate(InstallComponents, ProcessForceQuitFailure, err)
 			i.cfg.Log.Errorf("Deployment doesn't stop after it's canceled. Enforcing quit")
-			return fmt.Errorf("Force quit: Kyma deployment failed due to the timeout")
+			return err
 		}
 	}
-	i.processUpdate(InstallComponents, ProcessFinished)
+	i.processUpdate(InstallComponents, ProcessFinished, nil)
 	return nil
 }
 
