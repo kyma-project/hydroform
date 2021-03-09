@@ -12,7 +12,7 @@ func TestResourceParser_ParseUnstructuredResourceFrom(t *testing.T) {
 
 	t.Run("should correctly parse CRD resource", func(t *testing.T) {
 		// given
-		parser := NewGenericResourceParser()
+		parser := &GenericResourceParser{}
 		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/crd.yaml")
 
 		// when
@@ -35,7 +35,7 @@ func TestResourceParser_ParseUnstructuredResourceFrom(t *testing.T) {
 
 	t.Run("should correctly parse Namespace resource", func(t *testing.T) {
 		// given
-		parser := NewGenericResourceParser()
+		parser := &GenericResourceParser{}
 		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/ns.yaml")
 
 		// when
@@ -58,7 +58,7 @@ func TestResourceParser_ParseUnstructuredResourceFrom(t *testing.T) {
 
 	t.Run("should not parse resource due to not registered kind", func(t *testing.T) {
 		// given
-		parser := NewGenericResourceParser()
+		parser := &GenericResourceParser{}
 		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/incorrect/notype.yaml")
 
 		// when
