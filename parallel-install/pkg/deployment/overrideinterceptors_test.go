@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"testing"
+	"time"
 
+	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 // interceptor which is replacing a value
@@ -150,8 +154,18 @@ func Test_FallbackInterceptor(t *testing.T) {
 
 func Test_GlobalOverridesInterception(t *testing.T) {
 	ob := OverridesBuilder{}
+	kubeClient := fake.NewSimpleClientset()
+
+	commonRetryOpts := []retry.Option{
+		retry.Delay(time.Duration(3) * time.Second),
+		retry.Attempts(uint(60 * 5 / 3)),
+		retry.DelayType(retry.FixedDelay),
+	}
+
+	log := logger.NewLogger(true)
+
 	ob.AddInterceptor([]string{"global.isLocalEnv", "global.environment.gardener"}, NewFallbackOverrideInterceptor(false))
-	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, &DomainNameOverrideInterceptor{})
+	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, commonRetryOpts, log))
 	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
 
 	// read expected result

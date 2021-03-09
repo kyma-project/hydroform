@@ -235,10 +235,12 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 // Pass optionally an receiver-channel to get progress updates
 func newDeployment(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) *Deployment {
 	config := &config.Config{
-		CancelTimeout:      cancelTimeout,
-		QuitTimeout:        quitTimeout,
-		Log:                logger.NewLogger(true),
-		ComponentsListFile: "../test/data/componentlist.yaml",
+		CancelTimeout:                 cancelTimeout,
+		QuitTimeout:                   quitTimeout,
+		BackoffInitialIntervalSeconds: 3,
+		BackoffMaxElapsedTimeSeconds:  60 * 5,
+		Log:                           logger.NewLogger(true),
+		ComponentsListFile:            "../test/data/componentlist.yaml",
 	}
 	core, err := newCore(config, &OverridesBuilder{}, kubeClient, procUpdates)
 	if err != nil {
