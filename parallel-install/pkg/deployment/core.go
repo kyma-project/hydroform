@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -51,7 +53,13 @@ func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Int
 		removeFromComponentList(clList, incompatibleLocalComponents)
 	}
 
-	registerOverridesInterceptors(ob)
+	commonRetryOpts := []retry.Option{
+		retry.Delay(time.Duration(cfg.BackoffInitialIntervalSeconds) * time.Second),
+		retry.Attempts(uint(cfg.BackoffMaxElapsedTimeSeconds / cfg.BackoffInitialIntervalSeconds)),
+		retry.DelayType(retry.FixedDelay),
+	}
+
+	registerOverridesInterceptors(kubeClient, ob, commonRetryOpts, cfg.Log)
 
 	overrides, err := ob.Build()
 	if err != nil {
@@ -157,8 +165,8 @@ func removeFromComponentList(cl *components.ComponentList, componentNames []stri
 	}
 }
 
-func registerOverridesInterceptors(o *OverridesBuilder) {
+func registerOverridesInterceptors(kubeClient kubernetes.Interface, o *OverridesBuilder, retryOptions []retry.Option, log logger.Interface) {
 	//hide certificate data
-	o.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, &DomainNameOverrideInterceptor{})
+	o.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, retryOptions, log))
 	o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
 }

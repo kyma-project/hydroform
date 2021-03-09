@@ -1,12 +1,18 @@
 package deployment
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"strings"
 
+	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apierr "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -25,8 +31,19 @@ type OverrideInterceptor interface {
 	Undefined(overrides map[string]interface{}, key string) error
 }
 
+func NewDomainNameOverrideInterceptor(kubeClient kubernetes.Interface, retryOptions []retry.Option, log logger.Interface) *DomainNameOverrideInterceptor {
+	return &DomainNameOverrideInterceptor{
+		kubeClient:   kubeClient,
+		retryOptions: retryOptions,
+		log:          log,
+	}
+}
+
 //DomainNameOverrideInterceptor resolves the domain name for the cluster
 type DomainNameOverrideInterceptor struct {
+	kubeClient   kubernetes.Interface
+	retryOptions []retry.Option
+	log          logger.Interface
 }
 
 func (i *DomainNameOverrideInterceptor) String(value interface{}, key string) string {
@@ -38,7 +55,51 @@ func (i *DomainNameOverrideInterceptor) Intercept(value interface{}, key string)
 }
 
 func (i *DomainNameOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	return NewFallbackOverrideInterceptor(localKymaDevDomain).Undefined(overrides, key)
+	i.log.Info("MST Firing domain interceptor")
+	domain, err := i.discoverDomain()
+	if err != nil {
+		return err
+	}
+
+	return NewFallbackOverrideInterceptor(domain).Undefined(overrides, key)
+}
+
+func (i *DomainNameOverrideInterceptor) discoverDomain() (string, error) {
+	domainName, err := i.getGardenerDomain()
+	if err != nil {
+		return "", err
+	}
+
+	if domainName != "" {
+		return domainName, nil
+	}
+	return localKymaDevDomain, nil
+}
+
+func (i *DomainNameOverrideInterceptor) getGardenerDomain() (string, error) {
+	domainName := ""
+	err := retry.Do(func() error {
+		configMap, err := i.kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), "shoot-info", metav1.GetOptions{})
+
+		if err != nil {
+			if apierr.IsNotFound(err) {
+				i.log.Info("MST Got NOT FOUND ERROR")
+				return nil
+			}
+			return err
+		}
+
+		domainName = configMap.Data["domain"]
+		i.log.Infof("MST Got gardener domain: %s", domainName)
+
+		return nil
+	}, i.retryOptions...)
+
+	if err != nil {
+		return "", err
+	}
+
+	return domainName, nil
 }
 
 //CertificateOverrideInterceptor handles certificates
