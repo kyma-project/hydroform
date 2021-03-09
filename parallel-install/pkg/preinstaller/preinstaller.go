@@ -40,7 +40,7 @@ type Config struct {
 // PreInstaller prepares k8s cluster for Kyma installation.
 type PreInstaller struct {
 	applier       ResourceApplier
-	parser ResourceParser
+	parser        ResourceParser
 	cfg           Config
 	dynamicClient dynamic.Interface
 	retryOptions  []retry.Option
@@ -78,7 +78,7 @@ type resourceInfoResult struct {
 func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
 	return &PreInstaller{
 		applier:       applier,
-		parser: parser,
+		parser:        parser,
 		cfg:           cfg,
 		dynamicClient: dynamicClient,
 		retryOptions:  retryOptions,

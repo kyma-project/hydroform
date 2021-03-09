@@ -19,7 +19,7 @@ type ResourceParser interface {
 }
 
 // GenericResourceParser is a default implementation of ResourceParser.
-type GenericResourceParser struct {}
+type GenericResourceParser struct{}
 
 // NewGenericResourceParser returns a new instance of GenericResourceParser.
 func NewGenericResourceParser() *GenericResourceParser {

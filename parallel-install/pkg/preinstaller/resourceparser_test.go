@@ -11,26 +11,26 @@ import (
 func TestResourceParser_ParseUnstructuredResourceFrom(t *testing.T) {
 
 	t.Run("should correctly parse CRD resource", func(t *testing.T) {
-			// given
-			parser := NewGenericResourceParser()
-			pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/crd.yaml")
+		// given
+		parser := NewGenericResourceParser()
+		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/crd.yaml")
 
-			// when
-			resource, err := parser.ParseUnstructuredResourceFrom(pathToFile)
+		// when
+		resource, err := parser.ParseUnstructuredResourceFrom(pathToFile)
 
-			// then
-			assert.NoError(t, err)
-			assert.NotNil(t, resource)
+		// then
+		assert.NoError(t, err)
+		assert.NotNil(t, resource)
 
-			expectedGvk := schema.GroupVersionKind{
-				Group: "apiextensions.k8s.io",
-				Version: "v1",
-				Kind: "CustomResourceDefinition",
-			}
-			assert.Equal(t, resource.GroupVersionKind(), expectedGvk)
+		expectedGvk := schema.GroupVersionKind{
+			Group:   "apiextensions.k8s.io",
+			Version: "v1",
+			Kind:    "CustomResourceDefinition",
+		}
+		assert.Equal(t, resource.GroupVersionKind(), expectedGvk)
 
-			expectedName := "crontabs.stable.example.com"
-			assert.Equal(t, resource.GetName(), expectedName)
+		expectedName := "crontabs.stable.example.com"
+		assert.Equal(t, resource.GetName(), expectedName)
 	})
 
 	t.Run("should correctly parse Namespace resource", func(t *testing.T) {
@@ -46,9 +46,9 @@ func TestResourceParser_ParseUnstructuredResourceFrom(t *testing.T) {
 		assert.NotNil(t, resource)
 
 		expectedGvk := schema.GroupVersionKind{
-			Group: "",
+			Group:   "",
 			Version: "v1",
-			Kind: "Namespace",
+			Kind:    "Namespace",
 		}
 		assert.Equal(t, resource.GroupVersionKind(), expectedGvk)
 
