@@ -4,19 +4,21 @@ import (
 	"fmt"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"regexp"
 	"testing"
 )
 
 func TestResourceApplier_Apply(t *testing.T) {
 
+	resourceName := "name"
+
 	t.Run("should not apply resource", func(t *testing.T) {
 		t.Run("due to not existing resource", func(t *testing.T) {
 			// given
-			manager := mocks.ValidResourceManager{}
-			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
+			manager := &mocks.ResourceManager{}
+			applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
 
 			// when
 			err := applier.Apply(nil)
@@ -31,9 +33,10 @@ func TestResourceApplier_Apply(t *testing.T) {
 
 		t.Run("due to get resource error", func(t *testing.T) {
 			// given
-			manager := mocks.GetErrorResourceManager{}
-			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-			resource := fixResourceWith("Resource")
+			resource := fixResourceWith(resourceName)
+			manager := &mocks.ResourceManager{}
+			manager.On("GetResource", resourceName, fixResourceGvkSchema()).Return(nil, errors.New("Get resource error"))
+			applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
 
 			// when
 			err := applier.Apply(resource)
@@ -48,9 +51,12 @@ func TestResourceApplier_Apply(t *testing.T) {
 
 		t.Run("due to update resource error when resource existed on a cluster", func(t *testing.T) {
 			// given
-			manager := mocks.UpdateErrorResourceManager{}
-			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-			resource := fixResourceWith("Resource")
+			resource := fixResourceWith(resourceName)
+			resourceSchema := fixResourceGvkSchema()
+			manager := &mocks.ResourceManager{}
+			manager.On("GetResource", resourceName, resourceSchema).Return(resource, nil)
+			manager.On("UpdateResource", resource, resourceSchema).Return(nil, errors.New("Update resource error"))
+			applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
 
 			// when
 			err := applier.Apply(resource)
@@ -65,9 +71,12 @@ func TestResourceApplier_Apply(t *testing.T) {
 
 		t.Run("due to creation error when resource did not exist on a cluster", func(t *testing.T) {
 			// given
-			manager := mocks.CreateErrorResourceManager{}
-			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-			resource := fixResourceWith("Resource")
+			resource := fixResourceWith(resourceName)
+			resourceSchema := fixResourceGvkSchema()
+			manager := &mocks.ResourceManager{}
+			manager.On("GetResource", resourceName, resourceSchema).Return(nil, nil)
+			manager.On("CreateResource", resource, resourceSchema).Return(errors.New("Create resource error"))
+			applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
 
 			// when
 			err := applier.Apply(resource)
@@ -81,11 +90,14 @@ func TestResourceApplier_Apply(t *testing.T) {
 		})
 	})
 
-	t.Run("should apply CRD", func(t *testing.T) {
+	t.Run("should correctly apply resource that did not exist on a cluster", func(t *testing.T) {
 		// given
-		manager := mocks.ValidResourceManager{}
-		applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-		resource := fixCrdResourceWith("Resource")
+		resource := fixResourceWith(resourceName)
+		resourceSchema := fixResourceGvkSchema()
+		manager := &mocks.ResourceManager{}
+		manager.On("GetResource", resourceName, resourceSchema).Return(nil, nil)
+		manager.On("CreateResource", resource, resourceSchema).Return(nil)
+		applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
 
 		// when
 		err := applier.Apply(resource)
@@ -94,11 +106,14 @@ func TestResourceApplier_Apply(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("should create namespace", func(t *testing.T) {
+	t.Run("should correctly apply resource that did existed on a cluster", func(t *testing.T) {
 		// given
-		manager := mocks.ValidResourceManager{}
-		applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-		resource := fixNamespaceResourceWith("Resource")
+		resource := fixResourceWith(resourceName)
+		resourceSchema := fixResourceGvkSchema()
+		manager := &mocks.ResourceManager{}
+		manager.On("GetResource", resourceName, resourceSchema).Return(resource, nil)
+		manager.On("UpdateResource", resource, resourceSchema).Return(resource, nil)
+		applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
 
 		// when
 		err := applier.Apply(resource)
@@ -106,31 +121,4 @@ func TestResourceApplier_Apply(t *testing.T) {
 		// then
 		assert.NoError(t, err)
 	})
-}
-
-func fixCrdResourceWith(name string) *unstructured.Unstructured {
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "apiextensions.k8s.io/v1",
-			"kind":       "CustomResourceDefinition",
-			"metadata": map[string]interface{}{
-				"name": name,
-			},
-			"spec": map[string]interface{}{
-				"group": "group",
-			},
-		},
-	}
-}
-
-func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Namespace",
-			"metadata": map[string]interface{}{
-				"name": name,
-			},
-		},
-	}
 }

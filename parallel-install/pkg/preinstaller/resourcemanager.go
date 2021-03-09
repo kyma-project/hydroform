@@ -4,12 +4,14 @@ import (
 	"context"
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"regexp"
 )
+
+//go:generate mockery --name ResourceManager
 
 // ResourceManager manages resources on a k8s cluster.
 type ResourceManager interface {
@@ -60,9 +62,7 @@ func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema
 	err = retry.Do(func() error {
 		obj, err = c.getResource(resourceName, resourceSchema)
 		if err != nil {
-			notFoundError := "not found"
-			matched, _ := regexp.MatchString(notFoundError, err.Error())
-			if matched {
+			if apierrors.IsNotFound(err) {
 				c.log.Infof("Resource %s was not found.", resourceName)
 				return nil
 			} else {
