@@ -21,11 +21,6 @@ type ResourceParser interface {
 // GenericResourceParser is a default implementation of ResourceParser.
 type GenericResourceParser struct{}
 
-// NewGenericResourceParser returns a new instance of GenericResourceParser.
-func NewGenericResourceParser() *GenericResourceParser {
-	return &GenericResourceParser{}
-}
-
 func (c *GenericResourceParser) ParseUnstructuredResourceFrom(path string) (obj *unstructured.Unstructured, err error) {
 	manifest, err := ioutil.ReadFile(path)
 	if err != nil {

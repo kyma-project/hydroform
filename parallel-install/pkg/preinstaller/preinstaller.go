@@ -184,21 +184,21 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 
 		parsedResource, err := i.parser.ParseUnstructuredResourceFrom(file.path)
 		if err != nil {
-			i.cfg.Log.Warn(fmt.Sprintf("Error occurred when processing resource %s of component %s : %s", resource.fileName, resource.component, err.Error()))
+			i.cfg.Log.Warnf("Error occurred when processing resource %s of component %s : %s", resource.fileName, resource.component, err.Error())
 			o.NotInstalled = append(o.NotInstalled, file)
 			continue
 		}
 
 		if parsedResource.GetKind() != resource.resourceType {
-			i.cfg.Log.Warn(fmt.Sprintf("Resource type does not match for resource %s of component %s : got %s but expected %s", resource.fileName, resource.component, parsedResource.GroupVersionKind().Kind, resource.resourceType))
+			i.cfg.Log.Warnf("Resource type does not match for resource %s of component %s : got %s but expected %s", resource.fileName, resource.component, parsedResource.GroupVersionKind().Kind, resource.resourceType)
 			o.NotInstalled = append(o.NotInstalled, file)
 			continue
 		}
 
-		i.cfg.Log.Info(fmt.Sprintf("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component))
+		i.cfg.Log.Infof("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component)
 		err = i.applier.Apply(parsedResource)
 		if err != nil {
-			i.cfg.Log.Warn(fmt.Sprintf("Error occurred when processing file %s of component %s : %s", resource.fileName, resource.component, err.Error()))
+			i.cfg.Log.Warnf("Error occurred when processing file %s of component %s : %s", resource.fileName, resource.component, err.Error())
 			o.NotInstalled = append(o.NotInstalled, file)
 			continue
 		}
