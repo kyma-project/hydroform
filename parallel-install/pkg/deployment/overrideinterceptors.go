@@ -55,7 +55,6 @@ func (i *DomainNameOverrideInterceptor) Intercept(value interface{}, key string)
 }
 
 func (i *DomainNameOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	i.log.Info("MST Firing domain interceptor")
 	domain, err := i.discoverDomain()
 	if err != nil {
 		return err
@@ -83,14 +82,12 @@ func (i *DomainNameOverrideInterceptor) getGardenerDomain() (string, error) {
 
 		if err != nil {
 			if apierr.IsNotFound(err) {
-				i.log.Info("MST Got NOT FOUND ERROR")
 				return nil
 			}
 			return err
 		}
 
 		domainName = configMap.Data["domain"]
-		i.log.Infof("MST Got gardener domain: %s", domainName)
 
 		return nil
 	}, i.retryOptions...)
