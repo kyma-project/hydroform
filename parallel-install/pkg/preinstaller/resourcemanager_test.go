@@ -24,7 +24,7 @@ func TestResourceManager_CreateResource(t *testing.T) {
 		// given
 		manager := NewDefaultResourceManager(dynamicClient, log, retryOptions)
 		resourceName := "namespace"
-		resource := fixNamespaceResourceWith(resourceName)
+		resource := fixResourceWith(resourceName)
 		resourceSchema := prepareSchemaFor(resource)
 
 		// when
@@ -59,7 +59,7 @@ func TestResourceManager_GetResource(t *testing.T) {
 	t.Run("should get pre-created resource", func(t *testing.T) {
 		// given
 		resourceName := "namespace"
-		resource := fixNamespaceResourceWith(resourceName)
+		resource := fixResourceWith(resourceName)
 		customDynamicClient := fake.NewSimpleDynamicClient(scheme, resource)
 		manager := NewDefaultResourceManager(customDynamicClient, log, retryOptions)
 		resourceSchema := prepareSchemaFor(resource)
@@ -85,7 +85,7 @@ func TestResourceManager_UpdateRefreshableResource(t *testing.T) {
 	t.Run("should update resource", func(t *testing.T) {
 		// given
 		resourceName := "namespace"
-		resource := fixNamespaceResourceWith(resourceName)
+		resource := fixResourceWith(resourceName)
 		customDynamicClient := fake.NewSimpleDynamicClient(scheme, resource)
 		manager := NewDefaultResourceManager(customDynamicClient, log, retryOptions)
 		resourceSchema := prepareSchemaFor(resource)
@@ -104,11 +104,11 @@ func TestResourceManager_UpdateRefreshableResource(t *testing.T) {
 	})
 }
 
-func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
+func fixResourceWith(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "v1",
-			"kind":       "Namespace",
+			"kind":       "Resource",
 			"metadata": map[string]interface{}{
 				"name": name,
 			},

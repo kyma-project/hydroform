@@ -5,6 +5,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"regexp"
 	"testing"
 )
@@ -12,16 +13,33 @@ import (
 func TestResourceApplier_Apply(t *testing.T) {
 
 	t.Run("should not apply resource", func(t *testing.T) {
+		t.Run("due to not existing resource", func(t *testing.T) {
+			// given
+			manager := mocks.ValidResourceManager{}
+			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
+
+			// when
+			err := applier.Apply(nil)
+
+			// then
+			assert.Error(t, err)
+			expectedError := "Could not apply not existing resource"
+			receivedError := err.Error()
+			matched, err := regexp.MatchString(expectedError, receivedError)
+			assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
+		})
+
 		t.Run("due to get resource error", func(t *testing.T) {
 			// given
 			manager := mocks.GetErrorResourceManager{}
 			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-			pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/crd.yaml")
+			resource := fixResourceWith("Resource")
 
 			// when
-			err := applier.Apply(pathToFile)
+			err := applier.Apply(resource)
 
 			// then
+			assert.Error(t, err)
 			expectedError := "Get resource error"
 			receivedError := err.Error()
 			matched, err := regexp.MatchString(expectedError, receivedError)
@@ -32,12 +50,13 @@ func TestResourceApplier_Apply(t *testing.T) {
 			// given
 			manager := mocks.UpdateErrorResourceManager{}
 			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-			pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/crd.yaml")
+			resource := fixResourceWith("Resource")
 
 			// when
-			err := applier.Apply(pathToFile)
+			err := applier.Apply(resource)
 
 			// then
+			assert.Error(t, err)
 			expectedError := "Update resource error"
 			receivedError := err.Error()
 			matched, err := regexp.MatchString(expectedError, receivedError)
@@ -48,12 +67,13 @@ func TestResourceApplier_Apply(t *testing.T) {
 			// given
 			manager := mocks.CreateErrorResourceManager{}
 			applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-			pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/crd.yaml")
+			resource := fixResourceWith("Resource")
 
 			// when
-			err := applier.Apply(pathToFile)
+			err := applier.Apply(resource)
 
 			// then
+			assert.Error(t, err)
 			expectedError := "Create resource error"
 			receivedError := err.Error()
 			matched, err := regexp.MatchString(expectedError, receivedError)
@@ -65,57 +85,52 @@ func TestResourceApplier_Apply(t *testing.T) {
 		// given
 		manager := mocks.ValidResourceManager{}
 		applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/crd.yaml")
+		resource := fixCrdResourceWith("Resource")
 
 		// when
-		err := applier.Apply(pathToFile)
+		err := applier.Apply(resource)
 
 		// then
 		assert.NoError(t, err)
-	})
-
-	t.Run("should not apply CRD", func(t *testing.T) {
-		// given
-		manager := mocks.ValidResourceManager{}
-		applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/incorrect/crd.yaml")
-
-		// when
-		err := applier.Apply(pathToFile)
-
-		// then
-		expectedError := "Could not decode the resource file"
-		receivedError := err.Error()
-		matched, err := regexp.MatchString(expectedError, receivedError)
-		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
 	})
 
 	t.Run("should create namespace", func(t *testing.T) {
 		// given
 		manager := mocks.ValidResourceManager{}
 		applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/ns.yaml")
+		resource := fixNamespaceResourceWith("Resource")
 
 		// when
-		err := applier.Apply(pathToFile)
+		err := applier.Apply(resource)
 
 		// then
 		assert.NoError(t, err)
 	})
+}
 
-	t.Run("should not create namespace", func(t *testing.T) {
-		// given
-		manager := mocks.ValidResourceManager{}
-		applier := NewGenericResourceApplier(logger.NewLogger(true), &manager)
-		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/incorrect/ns.yaml")
+func fixCrdResourceWith(name string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apiextensions.k8s.io/v1",
+			"kind":       "CustomResourceDefinition",
+			"metadata": map[string]interface{}{
+				"name": name,
+			},
+			"spec": map[string]interface{}{
+				"group": "group",
+			},
+		},
+	}
+}
 
-		// when
-		err := applier.Apply(pathToFile)
-
-		// then
-		expectedError := "Could not decode the resource file"
-		receivedError := err.Error()
-		matched, err := regexp.MatchString(expectedError, receivedError)
-		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
-	})
+func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Namespace",
+			"metadata": map[string]interface{}{
+				"name": name,
+			},
+		},
+	}
 }

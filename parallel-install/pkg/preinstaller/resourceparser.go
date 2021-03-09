@@ -2,7 +2,6 @@ package preinstaller
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"io/ioutil"
@@ -20,15 +19,11 @@ type ResourceParser interface {
 }
 
 // GenericResourceParser is a default implementation of ResourceParser.
-type GenericResourceParser struct {
-	decoder         runtime.Decoder
-}
+type GenericResourceParser struct {}
 
 // NewGenericResourceParser returns a new instance of GenericResourceParser.
 func NewGenericResourceParser() *GenericResourceParser {
-	return &GenericResourceParser{
-		decoder:         initializeDecoder(),
-	}
+	return &GenericResourceParser{}
 }
 
 func (c *GenericResourceParser) ParseUnstructuredResourceFrom(path string) (obj *unstructured.Unstructured, err error) {
@@ -40,20 +35,25 @@ func (c *GenericResourceParser) ParseUnstructuredResourceFrom(path string) (obj 
 	return c.parseResourceFrom(string(manifest))
 }
 
-func (c *GenericResourceParser) parseResourceFrom(manifest string) (*unstructured.Unstructured, error) {
-	var _, _, err = c.decoder.Decode([]byte(manifest), nil, nil)
+func (c *GenericResourceParser) parseResourceFrom(manifest string) (resource *unstructured.Unstructured, err error) {
+	decoder, err := initializeDefaultDecoder()
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not decode the resource file due to the following error: %s.", err.Error()))
+		return nil, errors.Wrap(err, "Could not initialize decoder.")
+	}
+
+	_, _, err = decoder.Decode([]byte(manifest), nil, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not decode the resource file.")
 	}
 
 	converted, err := convertYamlToJson(manifest)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not convert the resource file to JSON due to the following error: %s.", err.Error()))
+		return nil, errors.Wrap(err, "Could not convert the resource file to JSON")
 	}
 
-	resource, err := parseManifest([]byte(converted))
+	resource, err = parseManifest([]byte(converted))
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not parse the resource file due to the following error: %s.", err.Error()))
+		return nil, errors.Wrap(err, "Could not parse the resource file.")
 	}
 
 	return resource, nil
@@ -84,10 +84,16 @@ func parseManifest(input []byte) (*unstructured.Unstructured, error) {
 	return resource, nil
 }
 
-func initializeDecoder() runtime.Decoder {
+func initializeDefaultDecoder() (runtime.Decoder, error) {
 	sch := runtime.NewScheme()
-	_ = clientgoscheme.AddToScheme(sch)
-	_ = apiextv1.AddToScheme(sch)
+	err := clientgoscheme.AddToScheme(sch)
+	if err != nil {
+		return nil, err
+	}
+	err = apiextv1.AddToScheme(sch)
+	if err != nil {
+		return nil, err
+	}
 
-	return serializer.NewCodecFactory(sch).UniversalDeserializer()
+	return serializer.NewCodecFactory(sch).UniversalDeserializer(), nil
 }
