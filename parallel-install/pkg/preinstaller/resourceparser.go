@@ -12,6 +12,8 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
+//go:generate mockery --name ResourceParser
+
 // ResourceParser parses a resource from a given input.
 type ResourceParser interface {
 	// ParseUnstructuredResourceFrom given path and return it.

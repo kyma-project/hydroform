@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+//go:generate mockery --name ResourceApplier
+
 // ResourceApplier creates a new resource from an object on k8s cluster.
 type ResourceApplier interface {
 	// Apply applies passed resource object on a k8s cluster.
