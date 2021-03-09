@@ -10,6 +10,8 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -180,6 +182,85 @@ func Test_GlobalOverridesInterception(t *testing.T) {
 	require.NotEmpty(t, overrides)
 	require.NoError(t, err)
 	require.Equal(t, expected, overrides.Map())
+}
+
+func Test_DomainNameOverrideInterceptor(t *testing.T) {
+	ob := OverridesBuilder{}
+	commonRetryOpts := []retry.Option{
+		retry.Delay(time.Duration(1) * time.Second),
+		retry.Attempts(uint(1)),
+		retry.DelayType(retry.FixedDelay),
+	}
+	log := logger.NewLogger(true)
+
+	domainData := make(map[string]string)
+	domainData["domain"] = "gardener.domain"
+
+	gardenerCM := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "shoot-info",
+			Namespace: "kube-system",
+		},
+		Data: domainData,
+	}
+
+	t.Run("DomainNameOverrideInterceptor using fallbacks", func(t *testing.T) {
+		kubeClient := fake.NewSimpleClientset()
+		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, commonRetryOpts, log))
+
+		// verify global overrides
+		overrides, err := ob.Build()
+		require.NotEmpty(t, overrides)
+		require.NoError(t, err)
+		require.Contains(t, overrides.String(), localKymaDevDomain)
+	})
+
+	t.Run("DomainNameOverrideInterceptor using gardener domain", func(t *testing.T) {
+		kubeClient := fake.NewSimpleClientset(gardenerCM)
+		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, commonRetryOpts, log))
+
+		// verify global overrides
+		overrides, err := ob.Build()
+		require.NotEmpty(t, overrides)
+		require.NoError(t, err)
+		require.Contains(t, overrides.String(), "gardener.domain")
+	})
+
+	t.Run("DomainNameOverrideInterceptor overriding domain on gardener", func(t *testing.T) {
+		kubeClient := fake.NewSimpleClientset(gardenerCM)
+
+		// verify global overrides
+		ob := OverridesBuilder{}
+		domainNameOverrides := make(map[string]interface{})
+		domainNameOverrides["domainName"] = "user.domain"
+		err := ob.AddOverrides("global", domainNameOverrides)
+		require.NoError(t, err)
+
+		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, commonRetryOpts, log))
+
+		overrides, err := ob.Build()
+		require.NotEmpty(t, overrides)
+		require.NoError(t, err)
+		require.Contains(t, overrides.String(), "gardener.domain")
+	})
+
+	t.Run("DomainNameOverrideInterceptor not overriding domain", func(t *testing.T) {
+		kubeClient := fake.NewSimpleClientset()
+
+		// verify global overrides
+		ob := OverridesBuilder{}
+		domainNameOverrides := make(map[string]interface{})
+		domainNameOverrides["domainName"] = "user.domain"
+		err := ob.AddOverrides("global", domainNameOverrides)
+		require.NoError(t, err)
+
+		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, commonRetryOpts, log))
+
+		overrides, err := ob.Build()
+		require.NotEmpty(t, overrides)
+		require.NoError(t, err)
+		require.Contains(t, overrides.String(), "user.domain")
+	})
 }
 
 func Test_CertificateOverridesInterception(t *testing.T) {

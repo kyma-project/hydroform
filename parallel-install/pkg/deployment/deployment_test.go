@@ -237,8 +237,8 @@ func newDeployment(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient ku
 	config := &config.Config{
 		CancelTimeout:                 cancelTimeout,
 		QuitTimeout:                   quitTimeout,
-		BackoffInitialIntervalSeconds: 3,
-		BackoffMaxElapsedTimeSeconds:  60 * 5,
+		BackoffInitialIntervalSeconds: 1,
+		BackoffMaxElapsedTimeSeconds:  1,
 		Log:                           logger.NewLogger(true),
 		ComponentsListFile:            "../test/data/componentlist.yaml",
 	}
