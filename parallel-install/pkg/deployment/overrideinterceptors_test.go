@@ -198,7 +198,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 
 	gardenerCM := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "shoot-info",
+			Name:      "shoot-info",
 			Namespace: "kube-system",
 		},
 		Data: domainData,
