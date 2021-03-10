@@ -79,16 +79,6 @@ if [ $(echo ${#goFmtResult}) != 0 ]
 fi
 
 ##
-# GO VET
+# GO Linters
 ##
-packagesToVet=("./pkg/...")
-
-for vPackage in "${packagesToVet[@]}"; do
-	vetResult=$(go vet ${vPackage})
-	if [ $(echo ${#vetResult}) != 0 ]; then
-		echo -e "${RED}✗ go vet ${vPackage} ${NC}\n$vetResult${NC}"
-		exit 1
-	else echo -e "${GREEN}√ go vet ${vPackage} ${NC}"
-	fi
-
-done
+../hack/verify-lint.sh $(pwd)

@@ -1,3 +1,6 @@
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+mkfile_dir := $(dir $(mkfile_path))
+
 .PHONY: build
 build:
 	./provision/before-commit.sh ci
@@ -12,6 +15,22 @@ ci-master: build
 
 .PHONY: ci-release
 ci-release: build
+
+.PHONY: lint-function
+lint-function:
+	./hack/verify-lint.sh $(mkfile_dir)/function
+
+.PHONY: lint-provision
+lint-provision:
+	./hack/verify-lint.sh $(mkfile_dir)/provision
+
+.PHONY: lint-install
+lint-install:
+	./hack/verify-lint.sh $(mkfile_dir)/install
+
+.PHONY: lint-parallel-install
+lint-parallel-install:
+	./hack/verify-lint.sh $(mkfile_dir)/parallel-install
 
 .PHONY: test-provision
 test-provision:
