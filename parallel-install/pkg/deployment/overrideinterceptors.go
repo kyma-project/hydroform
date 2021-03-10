@@ -1,12 +1,19 @@
 package deployment
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/pkg/errors"
+	apierr "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -25,8 +32,25 @@ type OverrideInterceptor interface {
 	Undefined(overrides map[string]interface{}, key string) error
 }
 
+func NewDomainNameOverrideInterceptor(kubeClient kubernetes.Interface, log logger.Interface) *DomainNameOverrideInterceptor {
+	retryOptions := []retry.Option{
+		retry.Delay(2 * time.Second),
+		retry.Attempts(3),
+		retry.DelayType(retry.FixedDelay),
+	}
+
+	return &DomainNameOverrideInterceptor{
+		kubeClient:   kubeClient,
+		retryOptions: retryOptions,
+		log:          log,
+	}
+}
+
 //DomainNameOverrideInterceptor resolves the domain name for the cluster
 type DomainNameOverrideInterceptor struct {
+	kubeClient   kubernetes.Interface
+	retryOptions []retry.Option
+	log          logger.Interface
 }
 
 func (i *DomainNameOverrideInterceptor) String(value interface{}, key string) string {
@@ -34,11 +58,64 @@ func (i *DomainNameOverrideInterceptor) String(value interface{}, key string) st
 }
 
 func (i *DomainNameOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
+	//on gardener domain provided by user should be ignored
+	domainName, err := i.getGardenerDomain()
+	if err != nil {
+		return nil, err
+	}
+
+	if domainName != "" {
+		return domainName, nil
+	}
+
 	return value, nil
 }
 
 func (i *DomainNameOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	return NewFallbackOverrideInterceptor(localKymaDevDomain).Undefined(overrides, key)
+	domain, err := i.discoverDomain()
+	if err != nil {
+		return err
+	}
+
+	return NewFallbackOverrideInterceptor(domain).Undefined(overrides, key)
+}
+
+func (i *DomainNameOverrideInterceptor) discoverDomain() (string, error) {
+	domainName, err := i.getGardenerDomain()
+	if err != nil {
+		return "", err
+	}
+
+	if domainName != "" {
+		return domainName, nil
+	}
+	return localKymaDevDomain, nil
+}
+
+func (i *DomainNameOverrideInterceptor) getGardenerDomain() (domainName string, err error) {
+	err = retry.Do(func() error {
+		configMap, err := i.kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), "shoot-info", metav1.GetOptions{})
+
+		if err != nil {
+			if apierr.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+
+		domainName = configMap.Data["domain"]
+		if domainName == "" {
+			return fmt.Errorf("Domain is empty in %s configmap", "shoot-info")
+		}
+
+		return nil
+	}, i.retryOptions...)
+
+	if err != nil {
+		return "", err
+	}
+
+	return domainName, nil
 }
 
 //CertificateOverrideInterceptor handles certificates

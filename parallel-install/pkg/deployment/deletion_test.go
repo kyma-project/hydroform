@@ -171,10 +171,12 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 // Pass optionally an receiver-channel to get progress updates
 func newDeletion(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) *Deletion {
 	config := &config.Config{
-		CancelTimeout:      cancelTimeout,
-		QuitTimeout:        quitTimeout,
-		Log:                logger.NewLogger(true),
-		ComponentsListFile: "../test/data/componentlist.yaml",
+		CancelTimeout:                 cancelTimeout,
+		QuitTimeout:                   quitTimeout,
+		BackoffInitialIntervalSeconds: 1,
+		BackoffMaxElapsedTimeSeconds:  1,
+		Log:                           logger.NewLogger(true),
+		ComponentsListFile:            "../test/data/componentlist.yaml",
 	}
 	core, err := newCore(config, &OverridesBuilder{}, kubeClient, procUpdates)
 	if err != nil {
