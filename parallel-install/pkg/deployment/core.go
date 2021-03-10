@@ -82,23 +82,30 @@ func (i *core) logStatuses(statusMap map[string]string) {
 	}
 }
 
-func (i *core) getConfig() (overrides.OverridesProvider, components.Provider, *engine.Engine, error) {
+func (i *core) getConfig() (overrides.OverridesProvider, *engine.Engine, *engine.Engine, error) {
 	overridesProvider, err := overrides.New(i.kubeClient, i.overrides.Map(), i.cfg.Log)
 
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider: exiting")
 	}
 
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.Prerequisites, i.cfg)
+	prerequisitesProvider := components.NewComponentsProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.Prerequisites, i.cfg)
 	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.Components, i.cfg)
 
-	engineCfg := engine.Config{
+	prerequisitesEngineCfg := engine.Config{
+		// prerequisite components need to be installed sequentially, so only 1 worker should be used
+		WorkersCount: 1,
+		Log:          i.cfg.Log,
+	}
+	componentsEngineCfg := engine.Config{
 		WorkersCount: i.cfg.WorkersCount,
 		Log:          i.cfg.Log,
 	}
-	eng := engine.NewEngine(overridesProvider, componentsProvider, engineCfg)
 
-	return overridesProvider, prerequisitesProvider, eng, nil
+	prerequisitesEng := engine.NewEngine(overridesProvider, prerequisitesProvider, prerequisitesEngineCfg)
+	componentsEng := engine.NewEngine(overridesProvider, componentsProvider, componentsEngineCfg)
+
+	return overridesProvider, prerequisitesEng, componentsEng, nil
 }
 
 func calculateDuration(start time.Time, end time.Time, duration time.Duration) time.Duration {
