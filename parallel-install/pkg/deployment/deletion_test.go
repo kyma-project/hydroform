@@ -5,6 +5,8 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
@@ -14,7 +16,12 @@ import (
 
 func TestDeployment_StartKymaUninstallation(t *testing.T) {
 
-	kubeClient := fake.NewSimpleClientset()
+	kubeClient := fake.NewSimpleClientset(&v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "kyma-installer",
+			Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
+		},
+	})
 	i := newDeletion(t, nil, kubeClient)
 
 	t.Run("should uninstall Kyma", func(t *testing.T) {
