@@ -32,6 +32,9 @@ lint-install:
 lint-parallel-install:
 	./hack/verify-lint.sh $(mkfile_dir)/parallel-install
 
+.PHONY: lint
+lint: lint-function lint-provision lint-install lint-parallel-install
+
 .PHONY: test-provision
 test-provision:
 	@cd provision; \
