@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
@@ -31,7 +32,13 @@ type OverrideInterceptor interface {
 	Undefined(overrides map[string]interface{}, key string) error
 }
 
-func NewDomainNameOverrideInterceptor(kubeClient kubernetes.Interface, retryOptions []retry.Option, log logger.Interface) *DomainNameOverrideInterceptor {
+func NewDomainNameOverrideInterceptor(kubeClient kubernetes.Interface, log logger.Interface) *DomainNameOverrideInterceptor {
+	retryOptions := []retry.Option{
+		retry.Delay(2 * time.Second),
+		retry.Attempts(3),
+		retry.DelayType(retry.FixedDelay),
+	}
+
 	return &DomainNameOverrideInterceptor{
 		kubeClient:   kubeClient,
 		retryOptions: retryOptions,
@@ -85,9 +92,8 @@ func (i *DomainNameOverrideInterceptor) discoverDomain() (string, error) {
 	return localKymaDevDomain, nil
 }
 
-func (i *DomainNameOverrideInterceptor) getGardenerDomain() (string, error) {
-	domainName := ""
-	err := retry.Do(func() error {
+func (i *DomainNameOverrideInterceptor) getGardenerDomain() (domainName string, err error) {
+	err = retry.Do(func() error {
 		configMap, err := i.kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), "shoot-info", metav1.GetOptions{})
 
 		if err != nil {
@@ -98,6 +104,9 @@ func (i *DomainNameOverrideInterceptor) getGardenerDomain() (string, error) {
 		}
 
 		domainName = configMap.Data["domain"]
+		if domainName == "" {
+			return fmt.Errorf("Domain is empty in %s configmap", "shoot-info")
+		}
 
 		return nil
 	}, i.retryOptions...)

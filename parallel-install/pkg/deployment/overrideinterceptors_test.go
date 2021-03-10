@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"testing"
-	"time"
 
-	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -157,17 +155,10 @@ func Test_FallbackInterceptor(t *testing.T) {
 func Test_GlobalOverridesInterception(t *testing.T) {
 	ob := OverridesBuilder{}
 	kubeClient := fake.NewSimpleClientset()
-
-	commonRetryOpts := []retry.Option{
-		retry.Delay(time.Duration(3) * time.Second),
-		retry.Attempts(uint(60 * 5 / 3)),
-		retry.DelayType(retry.FixedDelay),
-	}
-
 	log := logger.NewLogger(true)
 
 	ob.AddInterceptor([]string{"global.isLocalEnv", "global.environment.gardener"}, NewFallbackOverrideInterceptor(false))
-	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, commonRetryOpts, log))
+	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
 	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
 
 	// read expected result
@@ -186,11 +177,6 @@ func Test_GlobalOverridesInterception(t *testing.T) {
 
 func Test_DomainNameOverrideInterceptor(t *testing.T) {
 	ob := OverridesBuilder{}
-	commonRetryOpts := []retry.Option{
-		retry.Delay(time.Duration(1) * time.Second),
-		retry.Attempts(uint(1)),
-		retry.DelayType(retry.FixedDelay),
-	}
 	log := logger.NewLogger(true)
 
 	domainData := make(map[string]string)
@@ -206,7 +192,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 
 	t.Run("DomainNameOverrideInterceptor using fallbacks", func(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset()
-		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, commonRetryOpts, log))
+		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
 
 		// verify global overrides
 		overrides, err := ob.Build()
@@ -217,7 +203,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 
 	t.Run("DomainNameOverrideInterceptor using gardener domain", func(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset(gardenerCM)
-		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, commonRetryOpts, log))
+		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
 
 		// verify global overrides
 		overrides, err := ob.Build()
@@ -236,7 +222,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		err := ob.AddOverrides("global", domainNameOverrides)
 		require.NoError(t, err)
 
-		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, commonRetryOpts, log))
+		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
 
 		overrides, err := ob.Build()
 		require.NotEmpty(t, overrides)
@@ -254,7 +240,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		err := ob.AddOverrides("global", domainNameOverrides)
 		require.NoError(t, err)
 
-		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, commonRetryOpts, log))
+		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
 
 		overrides, err := ob.Build()
 		require.NotEmpty(t, overrides)
