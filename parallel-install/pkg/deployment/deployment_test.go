@@ -29,6 +29,9 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 		}
 		expectedEvents := []string{
 			"InstallPreRequisites-ProcessStart",
+			"InstallPreRequisites-ProcessRunning-test1-Installed",
+			"InstallPreRequisites-ProcessRunning-test2-Installed",
+			"InstallPreRequisites-ProcessRunning-test3-Installed",
 			"InstallPreRequisites-ProcessFinished",
 			"InstallComponents-ProcessStart",
 			"InstallComponents-ProcessRunning-test1-Installed",
@@ -57,11 +60,15 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 		hc: hc,
 	}
 	overridesProvider := &mockOverridesProvider{}
-	eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+	prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+		WorkersCount: 1,
+		Log:          logger.NewLogger(true),
+	})
+	componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 		WorkersCount: 2,
 		Log:          logger.NewLogger(true),
 	})
-	err := inst.startKymaDeployment(provider, overridesProvider, eng)
+	err := inst.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
 	assert.NoError(t, err)
 
 	close(procUpdChan)
@@ -90,12 +97,16 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			hc: hc,
 		}
 		overridesProvider := &mockOverridesProvider{}
-		eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+		prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			WorkersCount: 1,
+			Log:          logger.NewLogger(true),
+		})
+		componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 			WorkersCount: 2,
 			Log:          logger.NewLogger(true),
 		})
 
-		err := i.startKymaDeployment(provider, overridesProvider, eng)
+		err := i.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
 
 		assert.NoError(t, err)
 	})
@@ -109,19 +120,23 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := i.startKymaDeployment(provider, overridesProvider, eng)
+			err := i.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
 
 			assert.Error(t, err)
-			assert.EqualError(t, err, "Kyma prerequisites deployment failed due to the timeout")
+			assert.EqualError(t, err, "Kyma deployment failed due to the timeout")
 
 			t.Logf("Elapsed time: %v", elapsed.Seconds())
 			// Cancel timeout occurs at 150 ms
@@ -140,19 +155,23 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := i.startKymaDeployment(provider, overridesProvider, eng)
+			err := i.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
 
 			assert.Error(t, err)
-			assert.EqualError(t, err, "Force quit: Kyma prerequisites deployment failed due to the timeout")
+			assert.EqualError(t, err, "Force quit: Kyma deployment failed due to the timeout")
 
 			t.Logf("Elapsed time: %v", elapsed.Seconds())
 			// One component deployment lasts 300 ms
@@ -172,13 +191,17 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := i.startKymaDeployment(provider, overridesProvider, eng)
+			err := i.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -209,13 +232,17 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := inst.startKymaDeployment(provider, overridesProvider, eng)
+			err := inst.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
