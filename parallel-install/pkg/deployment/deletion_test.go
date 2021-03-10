@@ -23,12 +23,16 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			hc: hc,
 		}
 		overridesProvider := &mockOverridesProvider{}
-		eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+		prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			WorkersCount: 1,
+			Log:          logger.NewLogger(true),
+		})
+		componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 			WorkersCount: 2,
 			Log:          logger.NewLogger(true),
 		})
 
-		err := i.startKymaUninstallation(provider, eng)
+		err := i.startKymaUninstallation(prerequisitesEng, componentsEng)
 
 		assert.NoError(t, err)
 	})
@@ -42,13 +46,17 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := i.startKymaUninstallation(provider, eng)
+			err := i.startKymaUninstallation(prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -73,13 +81,17 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := i.startKymaUninstallation(provider, eng)
+			err := i.startKymaUninstallation(prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -96,7 +108,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 		})
 	})
 
-	t.Run("should uninstall components and fail to deploy Kyma prerequisites", func(t *testing.T) {
+	t.Run("should uninstall components and fail to uninstall Kyma prerequisites", func(t *testing.T) {
 		t.Run("due to cancel timeout", func(t *testing.T) {
 			hc := &mockHelmClient{
 				componentProcessingTime: 40,
@@ -105,19 +117,23 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := i.startKymaUninstallation(provider, eng)
+			err := i.startKymaUninstallation(prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
 
 			assert.Error(t, err)
-			assert.EqualError(t, err, "Kyma prerequisites uninstallation failed due to the timeout")
+			assert.EqualError(t, err, "Kyma uninstallation failed due to the timeout")
 
 			t.Logf("Elapsed time: %v", elapsed.Seconds())
 			// Cancel timeout occurs at 150 ms
@@ -144,19 +160,23 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := inst.startKymaUninstallation(provider, eng)
+			err := inst.startKymaUninstallation(prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
 
 			assert.Error(t, err)
-			assert.EqualError(t, err, "Force quit: Kyma prerequisites uninstallation failed due to the timeout")
+			assert.EqualError(t, err, "Force quit: Kyma uninstallation failed due to the timeout")
 
 			t.Logf("Elapsed time: %v", elapsed.Seconds())
 			// Prerequisites and two components deployment lasts over 280 ms (multiple of 71[ms], 2 workers uninstalling components in parallel)
