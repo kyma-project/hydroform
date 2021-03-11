@@ -40,7 +40,7 @@ func TestNewSubscriptions(t *testing.T) {
 			want: []unstructured.Unstructured{
 				{
 					Object: map[string]interface{}{
-						"apiVersion": "eventing.knative.dev/v1alpha1",
+						"apiVersion": "eventing.kyma-project.io/v1alpha1",
 						"kind":       "Subscription",
 						"metadata": map[string]interface{}{
 							"labels": map[string]interface{}{

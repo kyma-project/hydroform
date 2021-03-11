@@ -44,12 +44,12 @@ type ProtocolSettings struct {
 }
 
 type WebhookAuth struct {
-	ClientID     string   `json:"clientId,omitempty"`
-	ClientSecret string   `json:"clientSecret,omitempty"`
-	GrantType    string   `json:"grantType,omitempty"`
+	ClientID     string   `json:"clientId"`
+	ClientSecret string   `json:"clientSecret"`
+	GrantType    string   `json:"grantType"`
 	Scope        []string `json:"scope,omitempty"`
-	TokenURL     string   `json:"tokenUrl,omitempty"`
-	Type         string   `json:"type,omitempty"`
+	TokenURL     string   `json:"tokenUrl"`
+	Type         string   `json:"type"`
 }
 
 func (s Subscription) IsReference(name, namespace string) bool {

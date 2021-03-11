@@ -25,7 +25,7 @@ var (
 		Resource: "gitrepositories",
 	}
 	GVKSubscription = schema.GroupVersionResource{
-		Group:    "eventing.knative.dev",
+		Group:    "eventing.kyma-project.io",
 		Version:  "v1alpha1",
 		Resource: "subscriptions",
 	}

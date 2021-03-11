@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	apiVersionSubscription = "eventing.knative.dev/v1alpha1"
+	apiVersionSubscription = "eventing.kyma-project.io/v1alpha1"
 )
 
 func joinNonEmpty(elems []string, sep string) string {
