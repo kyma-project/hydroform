@@ -24,6 +24,11 @@ var (
 		Version:  "v1alpha1",
 		Resource: "gitrepositories",
 	}
+	GVKSubscription = schema.GroupVersionResource{
+		Group:    "eventing.knative.dev",
+		Version:  "v1alpha1",
+		Resource: "subscriptions",
+	}
 )
 
 type genericOperator struct {
