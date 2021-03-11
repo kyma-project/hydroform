@@ -55,6 +55,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	newKymaOverrides := make(map[string]interface{})
+	newKymaOverrides["isBEBEnabled"] = true
+
+	builder.AddOverrides("global", newKymaOverrides)
+
 	installationCfg := &config.Config{
 		WorkersCount:                  4,
 		CancelTimeout:                 20 * time.Minute,
