@@ -71,7 +71,13 @@ func TestNewSubscriptions(t *testing.T) {
 							"protocolsettings": map[string]interface{}{
 								"exemptHandshake": true,
 								"qos":             "AT-LEAST-ONCE",
-								"webhookAuth":     map[string]interface{}{},
+								"webhookAuth": map[string]interface{}{
+									"clientId":     "",
+									"clientSecret": "",
+									"grantType":    "",
+									"tokenUrl":     "",
+									"type":         "",
+								},
 							},
 							"sink": "test-name.test-namespace.svc.cluster.local",
 						},
