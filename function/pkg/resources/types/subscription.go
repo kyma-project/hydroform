@@ -16,45 +16,43 @@ type SubscriptionSpec struct {
 	Filter           Filter           `json:"filter"`
 	ID               string           `json:"id,omitempty"`
 	Protocol         string           `json:"protocol"`
-	ProtocolSettings ProtocolSettings `json:"protocolsettings"`
+	ProtocolSettings ProtocolSettings `json:"protocolsettings,omitempty"`
 	Sink             string           `json:"sink"`
 }
 
 type Filter struct {
-	Dialect string      `json:"dialect,omitempty"`
-	Filters []BebFilter `json:"filters"`
+	Dialect string        `json:"dialect,omitempty"`
+	Filters []EventFilter `json:"filters"`
 }
 
-type BebFilter struct {
-	EventSource Event `json:"eventSource"`
-	EventType   Event `json:"eventType"`
+type EventFilter struct {
+	EventSource EventFilterProperty `json:"eventSource"`
+	EventType   EventFilterProperty `json:"eventType"`
 }
 
-type Event struct {
+type EventFilterProperty struct {
 	Property string `json:"property"`
 	Type     string `json:"type,omitempty"`
 	Value    string `json:"value"`
 }
 
 type ProtocolSettings struct {
-	ContentMode     string      `json:"contentMode"`
-	ExemptHandshake bool        `json:"exemptHandshake"`
-	Qos             string      `json:"qos"`
-	WebhookAuth     WebhookAuth `json:"webhookAuth"`
+	ContentMode     string      `json:"contentMode,omitempty"`
+	ExemptHandshake bool        `json:"exemptHandshake,omitempty"`
+	Qos             string      `json:"qos,omitempty"`
+	WebhookAuth     WebhookAuth `json:"webhookAuth,omitempty"`
 }
 
 type WebhookAuth struct {
-	ClientID     string   `json:"clientId"`
-	ClientSecret string   `json:"clientSecret"`
-	GrantType    string   `json:"grantType"`
-	Scope        []string `json:"scope"`
-	TokenURL     string   `json:"tokenUrl"`
-	Type         string   `json:"type"`
+	ClientID     string   `json:"clientId,omitempty"`
+	ClientSecret string   `json:"clientSecret,omitempty"`
+	GrantType    string   `json:"grantType,omitempty"`
+	Scope        []string `json:"scope,omitempty"`
+	TokenURL     string   `json:"tokenUrl,omitempty"`
+	Type         string   `json:"type,omitempty"`
 }
 
 func (s Subscription) IsReference(name, namespace string) bool {
 	expectedSinkName := fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace)
 	return expectedSinkName == s.Spec.Sink
 }
-
-

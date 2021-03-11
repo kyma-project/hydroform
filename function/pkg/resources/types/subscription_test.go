@@ -21,13 +21,13 @@ func Test_subscription(t *testing.T) {
 		Spec: SubscriptionSpec{
 			Filter: Filter{
 				Dialect: "silesian",
-				Filters: []BebFilter{
+				Filters: []EventFilter{
 					{
-						EventSource: Event{
+						EventSource: EventFilterProperty{
 							Property: "test",
 							Value:    "test2",
 						},
-						EventType: Event{
+						EventType: EventFilterProperty{
 							Property: "test3",
 							Value:    "test4",
 						},
