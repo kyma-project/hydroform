@@ -16,7 +16,7 @@ func TestResourceParser_ParseUnstructuredResourceFrom(t *testing.T) {
 		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/crd.yaml")
 
 		// when
-		resource, err := parser.ParseUnstructuredResourceFrom(pathToFile)
+		resource, err := parser.ParseFile(pathToFile)
 
 		// then
 		assert.NoError(t, err)
@@ -39,7 +39,7 @@ func TestResourceParser_ParseUnstructuredResourceFrom(t *testing.T) {
 		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/correct/ns.yaml")
 
 		// when
-		resource, err := parser.ParseUnstructuredResourceFrom(pathToFile)
+		resource, err := parser.ParseFile(pathToFile)
 
 		// then
 		assert.NoError(t, err)
@@ -62,7 +62,7 @@ func TestResourceParser_ParseUnstructuredResourceFrom(t *testing.T) {
 		pathToFile := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/generic/incorrect/notype.yaml")
 
 		// when
-		resource, err := parser.ParseUnstructuredResourceFrom(pathToFile)
+		resource, err := parser.ParseFile(pathToFile)
 
 		// then
 		assert.Error(t, err)

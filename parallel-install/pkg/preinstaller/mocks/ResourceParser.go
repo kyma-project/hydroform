@@ -14,7 +14,7 @@ type ResourceParser struct {
 }
 
 // ParseUnstructuredResourceFrom provides a mock function with given fields: path
-func (_m *ResourceParser) ParseUnstructuredResourceFrom(path string) (*unstructured.Unstructured, error) {
+func (_m *ResourceParser) ParseFile(path string) (*unstructured.Unstructured, error) {
 	ret := _m.Called(path)
 
 	var r0 *unstructured.Unstructured

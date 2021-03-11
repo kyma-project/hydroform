@@ -182,7 +182,7 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 			path:      resource.path,
 		}
 
-		parsedResource, err := i.parser.ParseUnstructuredResourceFrom(file.path)
+		parsedResource, err := i.parser.ParseFile(file.path)
 		if err != nil {
 			i.cfg.Log.Warnf("Error occurred when processing resource %s of component %s : %s", resource.fileName, resource.component, err.Error())
 			o.NotInstalled = append(o.NotInstalled, file)

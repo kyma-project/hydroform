@@ -34,9 +34,9 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 
 		cfg.InstallationResourcePath = resourcePath
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToFirstResource).Return(crdResource, nil)
+		resourceParser.On("ParseFile", pathToFirstResource).Return(crdResource, nil)
 		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToSecondResource).Return(crdResource, nil)
+		resourceParser.On("ParseFile", pathToSecondResource).Return(crdResource, nil)
 
 		resourceApplier.On("Apply", crdResource).Return(nil)
 
@@ -74,9 +74,9 @@ func TestPreInstaller_CreateNamespaces(t *testing.T) {
 		i := NewPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
 
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToFirstResource).Return(namespaceResource, nil)
+		resourceParser.On("ParseFile", pathToFirstResource).Return(namespaceResource, nil)
 		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToSecondResource).Return(namespaceResource, nil)
+		resourceParser.On("ParseFile", pathToSecondResource).Return(namespaceResource, nil)
 
 		resourceApplier.On("Apply", namespaceResource).Return(nil)
 
@@ -114,9 +114,9 @@ func TestPreInstaller_install(t *testing.T) {
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToFirstResource).Return(crdResource, nil)
+		resourceParser.On("ParseFile", pathToFirstResource).Return(crdResource, nil)
 		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToSecondResource).Return(crdResource, nil)
+		resourceParser.On("ParseFile", pathToSecondResource).Return(crdResource, nil)
 
 		resourceApplier.On("Apply", crdResource).Return(nil)
 
@@ -149,9 +149,9 @@ func TestPreInstaller_install(t *testing.T) {
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToFirstResource).Return(crdResource, nil)
+		resourceParser.On("ParseFile", pathToFirstResource).Return(crdResource, nil)
 		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToSecondResource).Return(crdResource, nil)
+		resourceParser.On("ParseFile", pathToSecondResource).Return(crdResource, nil)
 
 		resourceApplier.On("Apply", crdResource).Return(nil)
 
@@ -184,9 +184,9 @@ func TestPreInstaller_install(t *testing.T) {
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToFirstResource).Return(namespaceResource, nil)
+		resourceParser.On("ParseFile", pathToFirstResource).Return(namespaceResource, nil)
 		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToSecondResource).Return(namespaceResource, nil)
+		resourceParser.On("ParseFile", pathToSecondResource).Return(namespaceResource, nil)
 
 		resourceApplier.On("Apply", namespaceResource).Return(nil)
 
@@ -219,9 +219,9 @@ func TestPreInstaller_install(t *testing.T) {
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToFirstResource).Return(namespaceResource, nil)
+		resourceParser.On("ParseFile", pathToFirstResource).Return(namespaceResource, nil)
 		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToSecondResource).Return(namespaceResource, nil)
+		resourceParser.On("ParseFile", pathToSecondResource).Return(namespaceResource, nil)
 
 		resourceApplier.On("Apply", namespaceResource).Return(nil)
 
@@ -254,15 +254,15 @@ func TestPreInstaller_install(t *testing.T) {
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/partiallycorrect")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToFirstResource).Return(crdResource, nil)
+		resourceParser.On("ParseFile", pathToFirstResource).Return(crdResource, nil)
 		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToSecondResource).Return(crdResource, nil)
+		resourceParser.On("ParseFile", pathToSecondResource).Return(crdResource, nil)
 		pathToThirdResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp3/crd.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToThirdResource).Return(nil, errors.New("Parser error"))
+		resourceParser.On("ParseFile", pathToThirdResource).Return(nil, errors.New("Parser error"))
 		pathToFourthResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp4/ns.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToFourthResource).Return(namespaceResource, nil)
+		resourceParser.On("ParseFile", pathToFourthResource).Return(namespaceResource, nil)
 		pathToFifthResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp5/ns.yaml")
-		resourceParser.On("ParseUnstructuredResourceFrom", pathToFifthResource).Return(nil, errors.New("Parser error"))
+		resourceParser.On("ParseFile", pathToFifthResource).Return(nil, errors.New("Parser error"))
 
 		resourceApplier.On("Apply", crdResource).Return(nil)
 		resourceApplier.On("Apply", namespaceResource).Return(nil)
@@ -307,9 +307,9 @@ func TestPreInstaller_install(t *testing.T) {
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 			pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-			resourceParser.On("ParseUnstructuredResourceFrom", pathToFirstResource).Return(crdResource, nil)
+			resourceParser.On("ParseFile", pathToFirstResource).Return(crdResource, nil)
 			pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-			resourceParser.On("ParseUnstructuredResourceFrom", pathToSecondResource).Return(crdResource, nil)
+			resourceParser.On("ParseFile", pathToSecondResource).Return(crdResource, nil)
 
 			resourceApplier.On("Apply", crdResource).Return(nil)
 
@@ -361,9 +361,9 @@ func TestPreInstaller_install(t *testing.T) {
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
 			pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-			resourceParser.On("ParseUnstructuredResourceFrom", pathToFirstResource).Return(nil, errors.New("Parser error"))
+			resourceParser.On("ParseFile", pathToFirstResource).Return(nil, errors.New("Parser error"))
 			pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-			resourceParser.On("ParseUnstructuredResourceFrom", pathToSecondResource).Return(nil, errors.New("Parser error"))
+			resourceParser.On("ParseFile", pathToSecondResource).Return(nil, errors.New("Parser error"))
 
 			input := resourceInfoInput{
 				resourceType:             "CustomResourceDefinition",
@@ -394,9 +394,9 @@ func TestPreInstaller_install(t *testing.T) {
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
 			pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-			resourceParser.On("ParseUnstructuredResourceFrom", pathToFirstResource).Return(crdResource, nil)
+			resourceParser.On("ParseFile", pathToFirstResource).Return(crdResource, nil)
 			pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-			resourceParser.On("ParseUnstructuredResourceFrom", pathToSecondResource).Return(crdResource, nil)
+			resourceParser.On("ParseFile", pathToSecondResource).Return(crdResource, nil)
 
 			resourceApplier.On("Apply", crdResource).Return(errors.New("Applier error"))
 

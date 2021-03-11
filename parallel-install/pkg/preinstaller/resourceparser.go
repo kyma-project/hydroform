@@ -17,13 +17,13 @@ import (
 // ResourceParser parses a resource from a given input.
 type ResourceParser interface {
 	// ParseUnstructuredResourceFrom given path and return it.
-	ParseUnstructuredResourceFrom(path string) (*unstructured.Unstructured, error)
+	ParseFile(path string) (*unstructured.Unstructured, error)
 }
 
 // GenericResourceParser is a default implementation of ResourceParser.
 type GenericResourceParser struct{}
 
-func (c *GenericResourceParser) ParseUnstructuredResourceFrom(path string) (obj *unstructured.Unstructured, err error) {
+func (c *GenericResourceParser) ParseFile(path string) (obj *unstructured.Unstructured, err error) {
 	manifest, err := ioutil.ReadFile(path)
 	if err != nil {
 		return obj, err
