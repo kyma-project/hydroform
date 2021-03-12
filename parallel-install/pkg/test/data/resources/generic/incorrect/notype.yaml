@@ -1,4 +1,4 @@
 apiVersion: v1
-kind: Namespac
+kind: OtherType
 metadata:
   name: namespace

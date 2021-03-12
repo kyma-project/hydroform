@@ -1,4 +1,4 @@
-// Package preinstaller implements the logic related to preparing a k8s cluster for Kyma installation.
+// Package `preinstaller` implements the logic related to preparing a k8s cluster for Kyma installation.
 // It installs provided resources (or upgrades if necessary).
 //
 // The code in the package uses the user-provided function for logging and installation resources path.
@@ -40,6 +40,7 @@ type Config struct {
 // PreInstaller prepares k8s cluster for Kyma installation.
 type PreInstaller struct {
 	applier       ResourceApplier
+	parser        ResourceParser
 	cfg           Config
 	dynamicClient dynamic.Interface
 	retryOptions  []retry.Option
@@ -74,9 +75,10 @@ type resourceInfoResult struct {
 }
 
 // NewPreInstaller creates a new instance of PreInstaller.
-func NewPreInstaller(applier ResourceApplier, cfg Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
+func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
 	return &PreInstaller{
 		applier:       applier,
+		parser:        parser,
 		cfg:           cfg,
 		dynamicClient: dynamicClient,
 		retryOptions:  retryOptions,
@@ -87,7 +89,7 @@ func NewPreInstaller(applier ResourceApplier, cfg Config, dynamicClient dynamic.
 // Returns Output containing results of installation.
 func (i *PreInstaller) InstallCRDs() (Output, error) {
 	input := resourceInfoInput{
-		resourceType:             "CRD",
+		resourceType:             "CustomResourceDefinition",
 		dirSuffix:                "crds",
 		installationResourcePath: i.cfg.InstallationResourcePath,
 	}
@@ -180,14 +182,28 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 			path:      resource.path,
 		}
 
-		i.cfg.Log.Info(fmt.Sprintf("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component))
-		err = i.applier.Apply(file.path)
+		parsedResource, err := i.parser.ParseFile(file.path)
 		if err != nil {
-			i.cfg.Log.Warn(fmt.Sprintf("Error occurred when processing file %s of component %s : %s", resource.fileName, resource.component, err.Error()))
+			i.cfg.Log.Warnf("Error occurred when processing resource %s of component %s : %s", resource.fileName, resource.component, err.Error())
 			o.NotInstalled = append(o.NotInstalled, file)
-		} else {
-			o.Installed = append(o.Installed, file)
+			continue
 		}
+
+		if parsedResource.GetKind() != resource.resourceType {
+			i.cfg.Log.Warnf("Resource type does not match for resource %s of component %s : got %s but expected %s", resource.fileName, resource.component, parsedResource.GroupVersionKind().Kind, resource.resourceType)
+			o.NotInstalled = append(o.NotInstalled, file)
+			continue
+		}
+
+		i.cfg.Log.Infof("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component)
+		err = i.applier.Apply(parsedResource)
+		if err != nil {
+			i.cfg.Log.Warnf("Error occurred when processing file %s of component %s : %s", resource.fileName, resource.component, err.Error())
+			o.NotInstalled = append(o.NotInstalled, file)
+			continue
+		}
+
+		o.Installed = append(o.Installed, file)
 	}
 
 	return o, nil
