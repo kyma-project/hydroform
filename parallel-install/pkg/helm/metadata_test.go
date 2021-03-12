@@ -9,7 +9,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+	k8st "k8s.io/client-go/testing"
 )
+
+var expectedLabels = map[string]string{"kymaComponent": "test", "kymaProfile": "profile", "kymaVersion": "123"}
 
 func Test_MetadataGet(t *testing.T) {
 	t.Run("Happy path", func(t *testing.T) {
@@ -18,7 +21,7 @@ func Test_MetadataGet(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sh.helm.release.v1.test.v1",
 					Namespace: "default",
-					Labels:    map[string]string{"kymaComponent": "test", "kymaProfile": "profile", "kymaVersion": "123"},
+					Labels:    expectedLabels,
 				},
 			},
 		)
@@ -91,6 +94,7 @@ func Test_MetadataSet(t *testing.T) {
 			Profile:   "profile",
 		}))
 		require.NoError(t, err)
+		require.Equal(t, expectedLabels, k8sMock.Fake.Actions()[1].(k8st.UpdateAction).GetObject().(*v1.Secret).GetObjectMeta().GetLabels())
 	})
 
 	t.Run("Release not found", func(t *testing.T) {
