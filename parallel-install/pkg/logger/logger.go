@@ -76,33 +76,33 @@ func getDevelopmentConfig() zap.Config {
 }
 
 func (l *Logger) Info(args ...interface{}) {
-	l.internalLogger.Info(args)
+	l.internalLogger.Info(args...)
 }
 
 func (l *Logger) Infof(template string, args ...interface{}) {
-	l.internalLogger.Infof(template, args)
+	l.internalLogger.Infof(template, args...)
 }
 
 func (l *Logger) Warn(args ...interface{}) {
-	l.internalLogger.Warn(args)
+	l.internalLogger.Warn(args...)
 }
 
 func (l *Logger) Warnf(template string, args ...interface{}) {
-	l.internalLogger.Warnf(template, args)
+	l.internalLogger.Warnf(template, args...)
 }
 
 func (l *Logger) Error(args ...interface{}) {
-	l.internalLogger.Error(args)
+	l.internalLogger.Error(args...)
 }
 
 func (l *Logger) Errorf(template string, args ...interface{}) {
-	l.internalLogger.Errorf(template, args)
+	l.internalLogger.Errorf(template, args...)
 }
 
 func (l *Logger) Fatal(args ...interface{}) {
-	l.internalLogger.Fatal(args)
+	l.internalLogger.Fatal(args...)
 }
 
 func (l *Logger) Fatalf(template string, args ...interface{}) {
-	l.internalLogger.Fatalf(template, args)
+	l.internalLogger.Fatalf(template, args...)
 }
