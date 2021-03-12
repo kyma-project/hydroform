@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,32 +44,12 @@ func (i *Deployment) StartKymaDeployment() error {
 		return err
 	}
 
-	attr, err := metadata.NewAttributes(i.cfg.Version, i.cfg.Profile, i.cfg.ComponentsListFile)
-	if err != nil {
-		return err
-	}
-
-	err = i.metadataProvider.WriteKymaDeploymentInProgress(attr)
-	if err != nil {
-		return err
-	}
-
 	overridesProvider, prerequisitesProvider, engine, err := i.getConfig()
 	if err != nil {
 		return err
 	}
 
-	err = i.startKymaDeployment(prerequisitesProvider, overridesProvider, engine)
-	if err != nil {
-		metaDataErr := i.metadataProvider.WriteKymaDeploymentError(attr, err.Error())
-		if metaDataErr != nil {
-			return metaDataErr
-		}
-		return err
-	}
-
-	err = i.metadataProvider.WriteKymaDeployed(attr)
-	return err
+	return i.startKymaDeployment(prerequisitesProvider, overridesProvider, engine)
 }
 
 func (i *Deployment) startKymaDeployment(prerequisitesProvider components.Provider, overridesProvider overrides.OverridesProvider, eng *engine.Engine) error {
@@ -103,12 +82,7 @@ func (i *Deployment) startKymaDeployment(prerequisitesProvider components.Provid
 	cancelTimeout = calculateDuration(startTime, endTime, i.cfg.CancelTimeout)
 	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
 
-	err = i.deployComponents(cancelCtx, cancel, eng, cancelTimeout, quitTimeout)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return i.deployComponents(cancelCtx, cancel, eng, cancelTimeout, quitTimeout)
 }
 
 func (i *Deployment) deployPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, p []components.KymaComponent, cancelTimeout time.Duration, quitTimeout time.Duration) error {
@@ -247,11 +221,7 @@ func (i *Deployment) createKymaNamespace(namespace string) error {
 		},
 	}, metav1.CreateOptions{})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (i *Deployment) updateKymaNamespace(namespace string) error {
@@ -261,9 +231,5 @@ func (i *Deployment) updateKymaNamespace(namespace string) error {
 		},
 	}, metav1.UpdateOptions{})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

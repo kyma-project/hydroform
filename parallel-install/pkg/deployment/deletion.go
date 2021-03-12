@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,35 +47,13 @@ func (i *Deletion) StartKymaUninstallation() error {
 		return err
 	}
 
-	attr, err := metadata.NewAttributes(i.cfg.Version, i.cfg.Profile, i.cfg.ComponentsListFile)
-	if err != nil {
-		return err
-	}
-
-	err = i.metadataProvider.WriteKymaUninstallationInProgress(attr)
-	if err != nil {
-		return err
-	}
-
 	err = i.startKymaUninstallation(prerequisitesProvider, engine)
 	if err != nil {
-		metaDataErr := i.metadataProvider.WriteKymaUninstallationError(attr, err.Error())
-		if metaDataErr != nil {
-			return metaDataErr
-		}
+		return err
 	}
 
 	err = i.deleteKymaNamespaces(kymaNamespaces)
-	if err != nil {
-		return err
-	}
-
-	err = i.metadataProvider.DeleteKymaMetadata()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (i *Deletion) startKymaUninstallation(prerequisitesProvider components.Provider, eng *engine.Engine) error {

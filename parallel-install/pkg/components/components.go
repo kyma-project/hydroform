@@ -27,10 +27,6 @@ type ComponentsProvider struct {
 }
 
 //NewComponentsProvider returns a ComponentsProvider instance.
-//
-//resourcesPath is a directory where subdirectories of components' charts are located.
-//
-//componentListYaml is a string containing YAML with an Installation CR.
 func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, components []ComponentDefinition, cfg *config.Config) *ComponentsProvider {
 
 	helmCfg := helm.Config{
@@ -40,6 +36,11 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resour
 		Log:                           cfg.Log,
 		MaxHistory:                    cfg.HelmMaxRevisionHistory,
 		Atomic:                        cfg.Atomic,
+		KymaMetadata: (&helm.KymaMetadata{
+			Profile:   cfg.Profile,
+			Version:   cfg.Version,
+			Component: "true", //flag will always be set for any Kyma component
+		}),
 	}
 
 	return &ComponentsProvider{

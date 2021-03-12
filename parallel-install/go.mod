@@ -25,4 +25,5 @@ require (
 	k8s.io/cli-runtime v0.18.9
 	k8s.io/client-go v0.18.9
 	rsc.io/letsencrypt v0.0.3 // indirect
+	github.com/fatih/structs v1.1.0
 )

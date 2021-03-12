@@ -35,6 +35,7 @@ type Config struct {
 	MaxHistory                    int              //Maximum number of revisions saved per release
 	Log                           logger.Interface //Used for logging
 	Atomic                        bool
+	KymaMetadata                  *KymaMetadata
 }
 
 //Client implements the ClientInterface.
@@ -145,6 +146,10 @@ func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name s
 		return err
 	}
 
+	if err := c.updateKymaMetadata(cfg, rel); err != nil {
+		return err
+	}
+
 	if rel.Info.Status != release.StatusDeployed {
 		err = fmt.Errorf("Failed to upgrade %s. Status: %v", name, rel.Info.Status)
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
@@ -173,6 +178,10 @@ func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name s
 	if rel == nil || rel.Info == nil {
 		err = fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
+		return err
+	}
+
+	if err := c.updateKymaMetadata(cfg, rel); err != nil {
 		return err
 	}
 
@@ -212,16 +221,10 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 
 		if upgrade {
 			err = c.upgradeRelease(ctx, chartDir, namespace, name, comboValues, cfg, chart)
-			if err != nil {
-				return err
-			}
 		} else {
 			err = c.installRelease(ctx, chartDir, namespace, name, comboValues, cfg, chart)
-			if err != nil {
-				return err
-			}
 		}
-		return nil
+		return err
 	}
 
 	initialInterval := time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
@@ -295,4 +298,16 @@ func (c *Client) newActionConfig(namespace string) (*action.Configuration, error
 	}
 
 	return cfg, nil
+}
+
+func (c *Client) updateKymaMetadata(cfg *action.Configuration, rel *release.Release) error {
+	//add Kyma metadata to Helm release secret
+	kubeClient, err := cfg.KubernetesClientSet()
+	if err == nil {
+		err = (&KymaMetadataProvider{kubeClient: kubeClient}).Set(rel, c.cfg.KymaMetadata)
+	}
+	if err != nil {
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
+	}
+	return err
 }

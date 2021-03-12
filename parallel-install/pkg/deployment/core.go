@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -26,9 +25,8 @@ type core struct {
 	cfg           *config.Config
 	overrides     *Overrides
 	// Used to send progress events of a running install/uninstall process
-	processUpdates   chan<- ProcessUpdate
-	kubeClient       kubernetes.Interface
-	metadataProvider metadata.MetadataProvider
+	processUpdates chan<- ProcessUpdate
+	kubeClient     kubernetes.Interface
 }
 
 //new creates a new core instance
@@ -58,21 +56,13 @@ func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Int
 		return nil, err
 	}
 
-	metadataProvider := metadata.New(kubeClient)
-
 	return &core{
-		componentList:    clList,
-		cfg:              cfg,
-		overrides:        &overrides,
-		processUpdates:   processUpdates,
-		kubeClient:       kubeClient,
-		metadataProvider: metadataProvider,
+		componentList:  clList,
+		cfg:            cfg,
+		overrides:      &overrides,
+		processUpdates: processUpdates,
+		kubeClient:     kubeClient,
 	}, nil
-}
-
-//ReadKymaMetadata returns Kyma metadata
-func (i *core) ReadKymaMetadata() (*metadata.KymaMetadata, error) {
-	return i.metadataProvider.ReadKymaMetadata()
 }
 
 func (i *core) logStatuses(statusMap map[string]string) {
