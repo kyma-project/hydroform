@@ -55,7 +55,11 @@ func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructu
 		return nil
 	}, c.retryOptions...)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (obj *unstructured.Unstructured, err error) {
@@ -75,7 +79,11 @@ func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema
 
 	}, c.retryOptions...)
 
-	return obj, err
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, nil
 }
 
 func (c *DefaultResourceManager) UpdateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) (obj *unstructured.Unstructured, err error) {
@@ -95,7 +103,11 @@ func (c *DefaultResourceManager) UpdateResource(resource *unstructured.Unstructu
 		return nil
 	}, c.retryOptions...)
 
-	return obj, err
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, nil
 }
 
 func (c *DefaultResourceManager) getResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
