@@ -32,8 +32,10 @@ func NewTriggersOperator(c client.Client, fnName, fnNamespace string, u ...unstr
 	}
 }
 
+type predicate func(map[string]interface{}) (bool, error)
+
 // buildMatchRemovedTriggerPredicate - creates a predicate to match the triggers that should be deleted
-func buildMatchRemovedTriggerPredicate(fnRef functionReference, items []unstructured.Unstructured) func(map[string]interface{}) (bool, error) {
+func buildMatchRemovedTriggerPredicate(fnRef functionReference, items []unstructured.Unstructured) predicate {
 	return func(obj map[string]interface{}) (bool, error) {
 		var trigger types.Trigger
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &trigger); err != nil {
@@ -51,22 +53,20 @@ func buildMatchRemovedTriggerPredicate(fnRef functionReference, items []unstruct
 
 var errNotFound = errors.New("not found")
 
-func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
-	predicate := buildMatchRemovedTriggerPredicate(t.fnRef, t.items)
-
-	if err := wipeRemoved(ctx, t.Client, predicate, opts.Options); err != nil {
+func applyTrigger(ctx context.Context, c client.Client, p predicate, items []unstructured.Unstructured, opts ApplyOptions) error {
+	if err := wipeRemoved(ctx, c, p, opts.Options); err != nil {
 		return err
 	}
 	// apply all triggers
-	for _, u := range t.items {
+	for _, u := range items {
 		u.SetOwnerReferences(opts.OwnerReferences)
 		// fire pre callbacks
 		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
-		applied, statusEntry, err := applyObject(ctx, t.Client, u, opts.DryRun)
+		applied, statusEntry, err := applyObject(ctx, c, u, opts.DryRun)
 		if opts.WaitForApply && applied != nil {
-			err = waitForObject(ctx, t.Client, *applied)
+			err = waitForObject(ctx, c, *applied)
 		}
 		// fire post callbacks
 		if err := fireCallbacks(statusEntry, err, opts.Post...); err != nil {
@@ -77,19 +77,28 @@ func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	return nil
 }
 
-func (t triggersOperator) Delete(ctx context.Context, opts DeleteOptions) error {
-	for _, u := range t.items {
+func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
+	predicate := buildMatchRemovedTriggerPredicate(t.fnRef, t.items)
+	return applyTrigger(ctx, t.Client, predicate, t.items, opts)
+}
+
+func deleteTriggers(ctx context.Context, c client.Client, items []unstructured.Unstructured, opts DeleteOptions) error {
+	for _, u := range items {
 		// fire pre callbacks
 		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
 			return err
 		}
-		state, err := deleteObject(ctx, t.Client, u, opts)
+		state, err := deleteObject(ctx, c, u, opts)
 		// fire post callbacks
 		if err := fireCallbacks(state, err, opts.Post...); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (t triggersOperator) Delete(ctx context.Context, opts DeleteOptions) error {
+	return deleteTriggers(ctx, t.Client, t.items, opts)
 }
 
 func contains(s []unstructured.Unstructured, name string) bool {

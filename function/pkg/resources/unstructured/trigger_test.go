@@ -19,7 +19,7 @@ func TestNewTriggers(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "",
+			name: "Ok",
 			args: args{
 				cfg: workspace.Cfg{
 					Name:      "test-name",

@@ -34,7 +34,13 @@ func joinNonEmpty(elems []string, sep string) string {
 	return result
 }
 
+type toUnstructured func(obj interface{}) (map[string]interface{}, error)
+
 func NewSubscriptions(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
+	return newSubscriptions(cfg, runtime.DefaultUnstructuredConverter.ToUnstructured)
+}
+
+func newSubscriptions(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstructured, error) {
 	var list []unstructured.Unstructured
 	sink := fmt.Sprintf("%s.%s.svc.cluster.local", cfg.Name, cfg.Namespace)
 
@@ -87,7 +93,7 @@ func NewSubscriptions(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
 			},
 		}
 
-		unstructuredStubscription, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&subscription)
+		unstructuredStubscription, err := f(&subscription)
 		if err != nil {
 			return nil, err
 		}

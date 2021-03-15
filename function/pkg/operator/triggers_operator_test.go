@@ -3,9 +3,10 @@ package operator
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/watch"
 	"reflect"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/watch"
 
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"

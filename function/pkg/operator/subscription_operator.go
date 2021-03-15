@@ -28,44 +28,15 @@ func NewSubscriptionsOperator(c client.Client, fnName, fnNamespace string, u ...
 
 func (t subscriptionOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	predicate := buildMatchRemovedSubscriptionsPredicate(t.fnRef, t.items)
-
-	if err := wipeRemoved(ctx, t.Client, predicate, opts.Options); err != nil {
-		return err
-	}
-	// apply all subscriptions
-	for _, u := range t.items {
-		u.SetOwnerReferences(opts.OwnerReferences)
-		// fire pre callbacks
-		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
-			return err
-		}
-		new1, statusEntry, err := applyObject(ctx, t.Client, u, opts.DryRun)
-		// fire post callbacks
-		if err := fireCallbacks(statusEntry, err, opts.Post...); err != nil {
-			return err
-		}
-		u.SetUnstructuredContent(new1.Object)
-	}
-	return nil
+	return applyTrigger(ctx, t.Client, predicate, t.items, opts)
 }
 
 func (t subscriptionOperator) Delete(ctx context.Context, opts DeleteOptions) error {
-	for _, u := range t.items {
-		// fire pre callbacks
-		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
-			return err
-		}
-		state, err := deleteObject(ctx, t.Client, u, opts)
-		// fire post callbacks
-		if err := fireCallbacks(state, err, opts.Post...); err != nil {
-			return err
-		}
-	}
-	return nil
+	return deleteTriggers(ctx, t.Client, t.items, opts)
 }
 
 // buildMatchRemovedSubscriptionsPredicate - creates a predicate to match the subscriptions that should be deleted
-func buildMatchRemovedSubscriptionsPredicate(fnRef functionReference, items []unstructured.Unstructured) func(map[string]interface{}) (bool, error) {
+func buildMatchRemovedSubscriptionsPredicate(fnRef functionReference, items []unstructured.Unstructured) predicate {
 	return func(obj map[string]interface{}) (bool, error) {
 		var subscription types.Subscription
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &subscription); err != nil {

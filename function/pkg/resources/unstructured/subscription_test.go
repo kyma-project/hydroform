@@ -1,12 +1,122 @@
 package unstructured
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
+
+var errExpectedError = fmt.Errorf("expected error")
+
+func Test_newSubscriptions(t *testing.T) {
+	type args struct {
+		cfg workspace.Cfg
+		f   toUnstructured
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []unstructured.Unstructured
+		wantErr bool
+	}{
+		{
+			name: "Err",
+			args: args{
+				cfg: workspace.Cfg{
+					Name:      "should-fail",
+					Namespace: "failed-tests",
+					Runtime:   "nodejs12",
+					Triggers: []workspace.Trigger{
+						{
+							EventTypeVersion: "a",
+							Source:           "b",
+							Type:             "c",
+						},
+					},
+				},
+				f: func(obj interface{}) (map[string]interface{}, error) {
+					return nil, errExpectedError
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := newSubscriptions(tt.args.cfg, tt.args.f)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("newSubscriptions() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			g := gomega.NewWithT(t)
+			g.Expect(got).To(gomega.Equal(tt.want))
+		})
+	}
+}
+
+func Test_joinNonEmpty(t *testing.T) {
+	type args struct {
+		elems []string
+		sep   string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "empty slice",
+			args: args{
+				elems: []string{},
+				sep:   "!?",
+			},
+			want: "",
+		},
+		{
+			name: "nil slice",
+			args: args{
+				elems: nil,
+				sep:   "!?",
+			},
+			want: "",
+		},
+		{
+			name: "just one",
+			args: args{
+				elems: []string{"one"},
+				sep:   "!?",
+			},
+			want: "one",
+		},
+		{
+			name: "multiple",
+			args: args{
+				elems: []string{"hello", "there"},
+				sep:   "+",
+			},
+			want: "hello+there",
+		},
+		{
+			name: "multiple with empty element",
+			args: args{
+				elems: []string{"test", "", "me"},
+				sep:   "*",
+			},
+			want: "test*me",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := joinNonEmpty(tt.args.elems, tt.args.sep); got != tt.want {
+				t.Errorf("joinNonEmpty() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestNewSubscriptions(t *testing.T) {
 	type args struct {
@@ -93,8 +203,9 @@ func TestNewSubscriptions(t *testing.T) {
 				t.Errorf("NewSubscriptions() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			g := gomega.NewWithT(t)
-			g.Expect(got).To(gomega.Equal(tt.want))
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewSubscriptions() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
