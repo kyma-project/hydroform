@@ -42,7 +42,8 @@ func NewSubscriptions(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
 
 func newSubscriptions(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstructured, error) {
 	var list []unstructured.Unstructured
-	sink := fmt.Sprintf("%s.%s.svc.cluster.local", cfg.Name, cfg.Namespace)
+	//TODO remove http protocol once it will be fixed in eventng
+	sink := fmt.Sprintf("http://%s.%s.svc.cluster.local", cfg.Name, cfg.Namespace)
 
 	for _, subscriptionInfo := range cfg.Triggers {
 		subscriptionName := subscriptionInfo.Name
