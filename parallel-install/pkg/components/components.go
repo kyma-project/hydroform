@@ -3,11 +3,12 @@ package components
 import (
 	"fmt"
 	"path"
+	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-
+	"github.com/google/uuid"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 )
 
@@ -37,9 +38,11 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resour
 		MaxHistory:                    cfg.HelmMaxRevisionHistory,
 		Atomic:                        cfg.Atomic,
 		KymaMetadata: (&helm.KymaMetadata{
-			Profile:   cfg.Profile,
-			Version:   cfg.Version,
-			Component: "true", //flag will always be set for any Kyma component
+			Profile:      cfg.Profile,
+			Version:      cfg.Version,
+			Component:    "true", //flag will always be set for any Kyma component
+			OperationID:  uuid.New().String(),
+			CreationTime: time.Now().Unix(),
 		}),
 	}
 

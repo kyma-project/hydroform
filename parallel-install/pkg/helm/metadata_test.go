@@ -12,7 +12,20 @@ import (
 	k8st "k8s.io/client-go/testing"
 )
 
-var expectedLabels = map[string]string{"kymaComponent": "test", "kymaProfile": "profile", "kymaVersion": "123"}
+var expectedLabels = map[string]string{
+	"kymaComponent":    "test",
+	"kymaProfile":      "profile",
+	"kymaVersion":      "123",
+	"kymaOperationID":  "opsid",
+	"kymaCreationTime": "1615831194"}
+
+var expectedStruct = &KymaMetadata{
+	Component:    "test",
+	Version:      "123",
+	Profile:      "profile",
+	OperationID:  "opsid",
+	CreationTime: int64(1615831194),
+}
 
 func Test_MetadataGet(t *testing.T) {
 	t.Run("Happy path", func(t *testing.T) {
@@ -28,11 +41,7 @@ func Test_MetadataGet(t *testing.T) {
 		metaProv := NewKymaMetadataProvider(k8sMock)
 		metadata, err := metaProv.Get("test")
 		require.NoError(t, err)
-		require.Equal(t, metadata, (&KymaMetadata{
-			Component: "test",
-			Profile:   "profile",
-			Version:   "123",
-		}))
+		require.Equal(t, metadata, expectedStruct)
 	})
 
 	t.Run("No Helm release found", func(t *testing.T) {
@@ -88,11 +97,7 @@ func Test_MetadataSet(t *testing.T) {
 			},
 		)
 		metaProv := NewKymaMetadataProvider(k8sMock)
-		err := metaProv.Set((&release.Release{Name: "test", Namespace: "default", Version: 1}), (&KymaMetadata{
-			Component: "test",
-			Version:   "123",
-			Profile:   "profile",
-		}))
+		err := metaProv.Set((&release.Release{Name: "test", Namespace: "default", Version: 1}), expectedStruct)
 		require.NoError(t, err)
 		require.Equal(t, expectedLabels, k8sMock.Fake.Actions()[1].(k8st.UpdateAction).GetObject().(*v1.Secret).GetObjectMeta().GetLabels())
 	})
@@ -103,5 +108,15 @@ func Test_MetadataSet(t *testing.T) {
 		err := metaProv.Set((&release.Release{Name: "test", Namespace: "default", Version: 1}), (&KymaMetadata{}))
 		require.Error(t, err)
 		require.Equal(t, err.Error(), (&helmReleaseNotFoundError{name: "sh.helm.release.v1.test.v1"}).Error())
+	})
+}
+
+func Test_Version(t *testing.T) {
+	t.Run("No Kyma installed", func(t *testing.T) {
+		k8sMock := fake.NewSimpleClientset()
+		metaProv := NewKymaMetadataProvider(k8sMock)
+		versions, err := metaProv.Version()
+		require.NoError(t, err)
+		require.Empty(t, versions)
 	})
 }

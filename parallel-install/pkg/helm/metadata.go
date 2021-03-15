@@ -3,6 +3,7 @@ package helm
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -54,14 +55,16 @@ func (err *kymaMetadataFieldUnknownError) Error() string {
 }
 
 type KymaMetadata struct {
-	Profile   string
-	Version   string
-	Component string
+	Profile      string
+	Version      string
+	Component    string
+	OperationID  string
+	CreationTime int64
 }
 
 func (km *KymaMetadata) isValid() bool {
 	//check whether all mandatory fields are defined
-	return km.Version != "" && km.Component != ""
+	return km.Version != "" && km.Component != "" && km.OperationID != "" && km.CreationTime > 0
 }
 
 type KymaVersion struct {
@@ -224,16 +227,41 @@ func (mp *KymaMetadataProvider) marshalMetadata(secret *v1.Secret, metadata *Kym
 	if secret.Labels == nil {
 		secret.Labels = make(map[string]string)
 	}
+	var labelValue string
 	for _, field := range structs.New(metadata).Fields() {
-		secret.Labels[mp.labelName(field)] = field.Value().(string)
+		switch field.Kind() {
+		case reflect.String:
+			labelValue = field.Value().(string)
+		case reflect.Int64:
+			labelValue = fmt.Sprintf("%d", field.Value())
+		default:
+		}
+		secret.Labels[mp.labelName(field)] = labelValue
 	}
 }
 
 func (mp *KymaMetadataProvider) unmarshalMetadata(secret *v1.Secret) (*KymaMetadata, error) {
 	var metadata *KymaMetadata = &KymaMetadata{}
+	var typedValue interface{}
+	var err error
 	for _, field := range structs.New(metadata).Fields() {
 		if value, ok := secret.Labels[mp.labelName(field)]; ok {
-			if err := field.Set(value); err != nil {
+			//convert label-values to typed values
+			switch field.Kind() {
+			case reflect.String:
+				typedValue = value
+			case reflect.Int64:
+				typedValue, err = strconv.ParseInt(value, 10, 64)
+				if err != nil {
+					return nil, fmt.Errorf("Cannot unmarshal KymaMetadata field '%s' "+
+						"because value '%s' cannot be converted to int64", field.Name(), value)
+				}
+			default:
+				return nil, fmt.Errorf("Cannot unmarshal KymaMetadata field '%s' "+
+					"because kind '%s' is not supported yet", field.Name(), field.Kind().String())
+			}
+			//set the typed value to the field
+			if err := field.Set(typedValue); err != nil {
 				return nil, err
 			}
 		}

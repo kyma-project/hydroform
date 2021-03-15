@@ -5,7 +5,9 @@ go 1.14
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/cenkalti/backoff/v4 v4.1.0
+	github.com/fatih/structs v1.1.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/google/uuid v1.2.0
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/imdario/mergo v0.3.8
 	github.com/onsi/gomega v1.8.1 // indirect
@@ -25,5 +27,4 @@ require (
 	k8s.io/cli-runtime v0.18.9
 	k8s.io/client-go v0.18.9
 	rsc.io/letsencrypt v0.0.3 // indirect
-	github.com/fatih/structs v1.1.0
 )
