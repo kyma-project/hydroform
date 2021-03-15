@@ -28,7 +28,7 @@ func NewSubscriptionsOperator(c client.Client, fnName, fnNamespace string, u ...
 
 func (t subscriptionOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	predicate := buildMatchRemovedSubscriptionsPredicate(t.fnRef, t.items)
-	return applyTrigger(ctx, t.Client, predicate, t.items, opts)
+	return applyTriggers(ctx, t.Client, predicate, t.items, opts)
 }
 
 func (t subscriptionOperator) Delete(ctx context.Context, opts DeleteOptions) error {

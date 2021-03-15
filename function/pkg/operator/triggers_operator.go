@@ -21,6 +21,8 @@ type triggersOperator struct {
 	client.Client
 }
 
+type predicate func(map[string]interface{}) (bool, error)
+
 func NewTriggersOperator(c client.Client, fnName, fnNamespace string, u ...unstructured.Unstructured) Operator {
 	return &triggersOperator{
 		Client: c,
@@ -31,8 +33,6 @@ func NewTriggersOperator(c client.Client, fnName, fnNamespace string, u ...unstr
 		},
 	}
 }
-
-type predicate func(map[string]interface{}) (bool, error)
 
 // buildMatchRemovedTriggerPredicate - creates a predicate to match the triggers that should be deleted
 func buildMatchRemovedTriggerPredicate(fnRef functionReference, items []unstructured.Unstructured) predicate {
@@ -53,7 +53,7 @@ func buildMatchRemovedTriggerPredicate(fnRef functionReference, items []unstruct
 
 var errNotFound = errors.New("not found")
 
-func applyTrigger(ctx context.Context, c client.Client, p predicate, items []unstructured.Unstructured, opts ApplyOptions) error {
+func applyTriggers(ctx context.Context, c client.Client, p predicate, items []unstructured.Unstructured, opts ApplyOptions) error {
 	if err := wipeRemoved(ctx, c, p, opts.Options); err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func applyTrigger(ctx context.Context, c client.Client, p predicate, items []uns
 
 func (t triggersOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	predicate := buildMatchRemovedTriggerPredicate(t.fnRef, t.items)
-	return applyTrigger(ctx, t.Client, predicate, t.items, opts)
+	return applyTriggers(ctx, t.Client, predicate, t.items, opts)
 }
 
 func deleteTriggers(ctx context.Context, c client.Client, items []unstructured.Unstructured, opts DeleteOptions) error {

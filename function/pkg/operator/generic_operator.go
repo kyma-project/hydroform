@@ -24,7 +24,7 @@ var (
 		Version:  "v1alpha1",
 		Resource: "gitrepositories",
 	}
-	GVKSubscription = schema.GroupVersionResource{
+	GVRSubscription = schema.GroupVersionResource{
 		Group:    "eventing.kyma-project.io",
 		Version:  "v1alpha1",
 		Resource: "subscriptions",

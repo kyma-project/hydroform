@@ -1,125 +1,127 @@
 package operator
 
 import (
-	"context"
+	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/kyma-incubator/hydroform/function/pkg/client"
-	mockclient "github.com/kyma-incubator/hydroform/function/pkg/client/automock"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func Test_subscriptionOperator_Apply(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func newTestSubscription(name, namespace string) (unstructured.Unstructured, error) {
+	subscription := types.Subscription{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "Subscription",
+			APIVersion: GVRSubscription.Version,
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: types.SubscriptionSpec{
+			Filter: types.Filter{
+				Filters: []types.EventFilter{},
+			},
+			ID:       "",
+			Protocol: "",
+			ProtocolSettings: types.ProtocolSettings{
+				ContentMode:     "",
+				ExemptHandshake: false,
+				Qos:             "",
+				WebhookAuth: types.WebhookAuth{
+					ClientID:     "",
+					ClientSecret: "",
+					GrantType:    "",
+					Scope:        []string{},
+					TokenURL:     "",
+					Type:         "",
+				},
+			},
+			Sink: fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace),
+		},
+	}
+	subscriptionObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&subscription)
+	if err != nil {
+		return unstructured.Unstructured{}, err
+	}
+	return unstructured.Unstructured{Object: subscriptionObject}, nil
+}
 
-	type fields struct {
-		fnRef  functionReference
-		items  []unstructured.Unstructured
-		Client client.Client
+func Test_buildMatchRemovedSubscriptionsPredicate(t *testing.T) {
+
+	var subscription1 unstructured.Unstructured
+	var subscription2 unstructured.Unstructured
+
+	for i, s := range []*unstructured.Unstructured{
+		&subscription1, &subscription2,
+	} {
+		var err error
+		(*s), err = newTestSubscription(fmt.Sprintf("test-%d", i+1), "test-namespace")
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	type args struct {
-		ctx  context.Context
-		opts ApplyOptions
+		fnRef        functionReference
+		items        []unstructured.Unstructured
+		subscription unstructured.Unstructured
 	}
-
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
+		want    bool
 		wantErr bool
 	}{
 		{
-			name: "apply",
+			name: "no match 1",
 			args: args{
-				ctx: context.Background(),
-				opts: ApplyOptions{
-					Options: Options{
-						WaitForApply: true,
-					},
-					OwnerReferences: []v1.OwnerReference{
-						{
-							Kind: "Function",
-							UID:  "123",
-						},
-					},
+				items: []unstructured.Unstructured{subscription1, subscription2},
+				fnRef: functionReference{
+					name:      "test-1",
+					namespace: "test-namespace",
 				},
+				subscription: subscription1,
 			},
-			fields: fields{
-				items: []unstructured.Unstructured{testObj},
-				Client: func() client.Client {
-					result := mockclient.NewMockClient(ctrl)
-
-					result.EXPECT().
-						List(gomock.Any(), gomock.Any()).
-						Return(&unstructured.UnstructuredList{}, nil).
-						Times(1)
-
-					result.EXPECT().
-						Get(gomock.Any(), gomock.Any(), gomock.Any()).
-						Return(testObj.DeepCopy(), nil).
-						Times(1)
-
-					fakeWatcher := watch.NewRaceFreeFake()
-					testObject := fixUnstructured("test", "test")
-					fakeWatcher.Add(&testObject)
-
-					result.EXPECT().
-						Watch(gomock.Any(), gomock.Any()).
-						Return(fakeWatcher, nil).
-						Times(1)
-
-					return result
-				}(),
+			want: false,
+		},
+		{
+			name: "no match 2",
+			args: args{
+				items: []unstructured.Unstructured{subscription1, subscription2},
+				fnRef: functionReference{
+					name:      "test-me",
+					namespace: "test-namespace",
+				},
+				subscription: subscription1,
 			},
-			wantErr: false,
+			want: false,
+		},
+		{
+			name: "match",
+			args: args{
+				items: []unstructured.Unstructured{subscription2},
+				fnRef: functionReference{
+					name:      "test-1",
+					namespace: "test-namespace",
+				},
+				subscription: subscription1,
+			},
+			want: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tr := subscriptionOperator{
-				fnRef:  tt.fields.fnRef,
-				items:  tt.fields.items,
-				Client: tt.fields.Client,
+			predicate := buildMatchRemovedSubscriptionsPredicate(tt.args.fnRef, tt.args.items)
+			got, err := predicate(tt.args.subscription.Object)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("buildMatchRemovedSubscriptionsPredicate() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-			if err := tr.Apply(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
-				t.Errorf("subscriptionOperator.Apply() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_subscriptionOperator_Delete(t *testing.T) {
-	type fields struct {
-		fnRef  functionReference
-		items  []unstructured.Unstructured
-		Client client.Client
-	}
-	type args struct {
-		ctx  context.Context
-		opts DeleteOptions
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tr := subscriptionOperator{
-				fnRef:  tt.fields.fnRef,
-				items:  tt.fields.items,
-				Client: tt.fields.Client,
-			}
-			if err := tr.Delete(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
-				t.Errorf("subscriptionOperator.Delete() error = %v, wantErr %v", err, tt.wantErr)
+			if got != tt.want {
+				t.Errorf("predicate() bool = %v, want %v", got, tt.want)
 			}
 		})
 	}

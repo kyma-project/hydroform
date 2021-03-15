@@ -99,9 +99,13 @@ func Test_mergeMap(t *testing.T) {
 	}
 }
 
-func Test_triggersOperator_Apply(t *testing.T) {
+func Test_applyTriggers(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	testPredicate := func(map[string]interface{}) (bool, error) {
+		return false, nil
+	}
 
 	type fields struct {
 		items  []unstructured.Unstructured
@@ -301,15 +305,14 @@ func Test_triggersOperator_Apply(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			t := NewTriggersOperator(tt.fields.Client, "test", "test-namespace", tt.fields.items...)
-			if err := t.Apply(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := applyTriggers(tt.args.ctx, tt.fields.Client, testPredicate, tt.fields.items, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Apply() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func Test_triggersOperator_Delete(t *testing.T) {
+func Test_deleteTriggers(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	type fields struct {
@@ -425,8 +428,7 @@ func Test_triggersOperator_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			t := NewTriggersOperator(tt.fields.Client, "test", "test-namespace", tt.fields.items...)
-			if err := t.Delete(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := deleteTriggers(tt.args.ctx, tt.fields.Client, tt.fields.items, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -596,7 +598,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	}
 }
 
-func Test_Predicate(t *testing.T) {
+func Test_buildMatchRemovedTriggerPredicate(t *testing.T) {
 	type args struct {
 		trigger unstructured.Unstructured
 		fnRef   functionReference
