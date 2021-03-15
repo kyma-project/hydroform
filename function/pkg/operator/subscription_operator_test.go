@@ -21,24 +21,6 @@ func newTestSubscription(name, namespace string) (unstructured.Unstructured, err
 			Namespace: namespace,
 		},
 		Spec: types.SubscriptionSpec{
-			Filter: types.Filter{
-				Filters: []types.EventFilter{},
-			},
-			ID:       "",
-			Protocol: "",
-			ProtocolSettings: types.ProtocolSettings{
-				ContentMode:     "",
-				ExemptHandshake: false,
-				Qos:             "",
-				WebhookAuth: types.WebhookAuth{
-					ClientID:     "",
-					ClientSecret: "",
-					GrantType:    "",
-					Scope:        []string{},
-					TokenURL:     "",
-					Type:         "",
-				},
-			},
 			Sink: fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace),
 		},
 	}
