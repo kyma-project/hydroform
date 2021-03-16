@@ -33,19 +33,22 @@ func Test_PrerequisiteGetComponents(t *testing.T) {
 	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), logger.NewLogger(true))
 	require.NoError(t, err)
 
-	compDef := ComponentDefinition{
-		Name:      "prerequisite1",
-		Namespace: "namespace1",
+	installationCfg := &config.Config{
+		ComponentList: &config.ComponentList{
+			Components: []config.ComponentDefinition{
+				{
+					Name:      "prerequisite1",
+					Namespace: "namespace1",
+				},
+			},
+		},
 	}
-	componentList := []ComponentDefinition{compDef}
 
-	installationCfg := &config.Config{}
-
-	provider := NewPrerequisitesProvider(overridesProvider, "", componentList, installationCfg)
+	provider := NewPrerequisitesProvider(overridesProvider, installationCfg)
 
 	res, err := provider.GetComponents()
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res), "Number of prerequisite components not as expected")
-	require.Equal(t, compDef.Name, res[0].Name)
-	require.Equal(t, compDef.Namespace, res[0].Namespace)
+	require.Equal(t, installationCfg.ComponentList.Components[0].Name, res[0].Name)
+	require.Equal(t, installationCfg.ComponentList.Components[0].Namespace, res[0].Namespace)
 }

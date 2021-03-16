@@ -15,7 +15,7 @@ import (
 type PrerequisitesProvider struct {
 	overridesProvider overrides.OverridesProvider
 	resourcesPath     string ////A root directory where subdirectories of components' charts are located.
-	components        []ComponentDefinition
+	components        []config.ComponentDefinition
 	helmConfig        helm.Config
 	log               logger.Interface
 	profile           string
@@ -26,7 +26,7 @@ type PrerequisitesProvider struct {
 //resourcesPath is a directory where subdirectories of components' charts are located.
 //
 //componentList is a slice of pairs: [component-name, namespace]
-func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, resourcesPath string, components []ComponentDefinition, cfg *config.Config) *PrerequisitesProvider {
+func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, cfg *config.Config) *PrerequisitesProvider {
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
 		BackoffInitialIntervalSeconds: cfg.BackoffInitialIntervalSeconds,
@@ -38,8 +38,8 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, res
 
 	return &PrerequisitesProvider{
 		overridesProvider: overridesProvider,
-		resourcesPath:     resourcesPath,
-		components:        components,
+		resourcesPath:     cfg.ResourcePath,
+		components:        cfg.ComponentList.Components,
 		helmConfig:        helmCfg,
 		log:               cfg.Log,
 		profile:           cfg.Profile,

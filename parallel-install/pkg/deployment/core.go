@@ -21,9 +21,8 @@ var incompatibleLocalComponents = []string{"apiserver-proxy", "iam-kubeconfig-se
 
 type core struct {
 	// Contains list of components to install (inclusive pre-requisites)
-	componentList *components.ComponentList
-	cfg           *config.Config
-	overrides     *Overrides
+	cfg       *config.Config
+	overrides *Overrides
 	// Used to send progress events of a running install/uninstall process
 	processUpdates chan<- ProcessUpdate
 	kubeClient     kubernetes.Interface
@@ -39,14 +38,9 @@ type core struct {
 //
 //processUpdates can be an optional feedback channel provided by the caller
 func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*core, error) {
-	clList, err := components.NewComponentList(cfg.ComponentsListFile)
-	if err != nil {
-		return nil, err
-	}
-
 	if isK3dCluster(kubeClient) {
 		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
-		removeFromComponentList(clList, incompatibleLocalComponents)
+		removeFromComponentList(cfg.ComponentList, incompatibleLocalComponents)
 	}
 
 	registerOverridesInterceptors(ob)
@@ -57,7 +51,6 @@ func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Int
 	}
 
 	return &core{
-		componentList:  clList,
 		cfg:            cfg,
 		overrides:      &overrides,
 		processUpdates: processUpdates,
@@ -79,8 +72,8 @@ func (i *core) getConfig() (overrides.OverridesProvider, components.Provider, *e
 		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider: exiting")
 	}
 
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.Prerequisites, i.cfg)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.Components, i.cfg)
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.cfg)
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg)
 
 	engineCfg := engine.Config{
 		WorkersCount: i.cfg.WorkersCount,
@@ -141,7 +134,7 @@ func isK3dCluster(kubeClient kubernetes.Interface) bool {
 	return false
 }
 
-func removeFromComponentList(cl *components.ComponentList, componentNames []string) {
+func removeFromComponentList(cl *config.ComponentList, componentNames []string) {
 	for _, compName := range componentNames {
 		cl.Remove(compName)
 	}

@@ -57,6 +57,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	compList, err := config.NewComponentList("./components.yaml")
+	if err != nil {
+		log.Fatalf("Cannot read component list: %s", err)
+	}
 	installationCfg := &config.Config{
 		WorkersCount:                  4,
 		CancelTimeout:                 20 * time.Minute,
@@ -67,7 +71,7 @@ func main() {
 		Log:                           log,
 		HelmMaxRevisionHistory:        10,
 		Profile:                       *profile,
-		ComponentsListFile:            "./components.yaml",
+		ComponentList:                 compList,
 		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
 		InstallationResourcePath:      fmt.Sprintf("%s/src/github.com/kyma-project/kyma/installation/resources", goPath),
 		Version:                       *version,

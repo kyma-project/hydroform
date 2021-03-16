@@ -1,11 +1,11 @@
-//Package config defines top-level configuration settings for library users.
 package config
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"os"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 )
 
 //Configures various install/uninstall operation parameters.
@@ -32,8 +32,8 @@ type Config struct {
 	HelmMaxRevisionHistory int
 	//Installation / Upgrade profile: evaluation|production
 	Profile string
-	// Path to Kyma components list
-	ComponentsListFile string
+	// Kyma components list
+	ComponentList *ComponentList
 	// Path to Kyma resources
 	ResourcePath string
 	// Path to Kyma installation resources
@@ -49,8 +49,8 @@ func (c *Config) validate() error {
 	if c.WorkersCount <= 0 {
 		return fmt.Errorf("Workers count cannot be <= 0")
 	}
-	if err := c.pathExists(c.ComponentsListFile, "Components list"); err != nil {
-		return err
+	if c.ComponentList == nil {
+		return fmt.Errorf("Component list undefined")
 	}
 	return nil
 }
