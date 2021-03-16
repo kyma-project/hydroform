@@ -40,7 +40,7 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, resour
 		KymaMetadata: (&helm.KymaMetadata{
 			Profile:      cfg.Profile,
 			Version:      cfg.Version,
-			Component:    "true", //flag will always be set for any Kyma component
+			Component:    true, //flag will always be set for any Kyma component
 			OperationID:  uuid.New().String(),
 			CreationTime: time.Now().Unix(),
 		}),

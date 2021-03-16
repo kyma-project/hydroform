@@ -4,16 +4,18 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/avast/retry-go"
-	"k8s.io/client-go/dynamic"
 	"os"
 	"time"
+
+	"github.com/avast/retry-go"
+	"k8s.io/client-go/dynamic"
 
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 	"k8s.io/client-go/rest"
@@ -133,13 +135,13 @@ func main() {
 		log.Info("Kyma deployed!")
 	}
 
-	kymaMeta, err := deployer.ReadKymaMetadata()
-	if err != nil {
-		log.Errorf("Failed to read Kyma metadata: %v", err)
+	metadataProvider := helm.NewKymaMetadataProvider(kubeClient)
+	versions, err := metadataProvider.Versions()
+	if err == nil {
+		log.Infof("Found %d Kyma version: %s", len(versions), versions[0].Version)
+	} else {
+		log.Errorf("Failed to deploy Kyma: %v", err)
 	}
-
-	log.Infof("Kyma version: %s", kymaMeta.Version)
-	log.Infof("Kyma status: %s", kymaMeta.Status)
 
 	//Delete Kyma
 	deleter, err := deployment.NewDeletion(installationCfg, builder, kubeClient, progressCh)

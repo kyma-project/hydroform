@@ -100,7 +100,13 @@ func Test_MetadataSet(t *testing.T) {
 		metaProv := NewKymaMetadataProvider(k8sMock)
 		err := metaProv.Set((&release.Release{Name: "test", Namespace: "default", Version: 1}), expectedStruct)
 		require.NoError(t, err)
-		require.Equal(t, expectedLabels, k8sMock.Fake.Actions()[1].(k8st.UpdateAction).GetObject().(*v1.Secret).GetObjectMeta().GetLabels())
+		expected := map[string]string{
+			"kymaComponent":    "true",
+			"kymaProfile":      "profile",
+			"kymaVersion":      "123",
+			"kymaOperationID":  "opsid",
+			"kymaCreationTime": "1615831194"}
+		require.Equal(t, expected, k8sMock.Fake.Actions()[1].(k8st.UpdateAction).GetObject().(*v1.Secret).GetObjectMeta().GetLabels())
 	})
 
 	t.Run("Release not found", func(t *testing.T) {
