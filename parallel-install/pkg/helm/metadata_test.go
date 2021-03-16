@@ -13,14 +13,15 @@ import (
 )
 
 var expectedLabels = map[string]string{
-	"kymaComponent":    "test",
+	"name":             "test", //name of Kyma component (this label is set by Helm and contains the chart name)
+	"kymaComponent":    "true",
 	"kymaProfile":      "profile",
 	"kymaVersion":      "123",
 	"kymaOperationID":  "opsid",
 	"kymaCreationTime": "1615831194"}
 
 var expectedStruct = &KymaMetadata{
-	Component:    "test",
+	Component:    true,
 	Version:      "123",
 	Profile:      "profile",
 	OperationID:  "opsid",
@@ -115,8 +116,128 @@ func Test_Version(t *testing.T) {
 	t.Run("No Kyma installed", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset()
 		metaProv := NewKymaMetadataProvider(k8sMock)
-		versions, err := metaProv.Version()
+		versions, err := metaProv.Versions()
 		require.NoError(t, err)
 		require.Empty(t, versions)
+	})
+	t.Run("One version of Kyma installed", func(t *testing.T) {
+		k8sMock := fake.NewSimpleClientset(
+			&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "sh.helm.release.v1.test.v1",
+					Namespace: "",
+					Labels:    expectedLabels,
+				},
+			},
+		)
+		metaProv := NewKymaMetadataProvider(k8sMock)
+		versions, err := metaProv.Versions()
+		require.NoError(t, err)
+		require.Equal(t, 1, len(versions))
+		expectedVersions := []*KymaVersion{
+			&KymaVersion{
+				Version:      "123",
+				OperationID:  "opsid",
+				CreationTime: 1615831194,
+				Components:   []string{"test"},
+			},
+		}
+		require.Equal(t, expectedVersions, versions)
+	})
+	t.Run("Different versions of Kyma installed", func(t *testing.T) {
+		k8sMock := fake.NewSimpleClientset(
+			&v1.Secret{ //installed from "master" by operation "aaa:1000000000"
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "sh.helm.release.v1.test.v1",
+					Namespace: "",
+					Labels: map[string]string{
+						"name":             "test", //name of Kyma component (provide by Helm)
+						"kymaComponent":    "true",
+						"kymaProfile":      "profile",
+						"kymaVersion":      "master",
+						"kymaOperationID":  "aaa",
+						"kymaCreationTime": "1000000000"},
+				},
+			},
+			&v1.Secret{ //installed from "master" by operation "aaa:1000000000"
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "sh.helm.release.v1.test2.v2",
+					Namespace: "",
+					Labels: map[string]string{
+						"name":             "test2", //name of Kyma component (provide by Helm)
+						"kymaComponent":    "true",
+						"kymaProfile":      "profile",
+						"kymaVersion":      "master",
+						"kymaOperationID":  "aaa",
+						"kymaCreationTime": "1000000000"},
+				},
+			},
+			&v1.Secret{ //installed from "2.0.0" release by operation "bbb:2000000000"
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "sh.helm.release.v1.test1.v1",
+					Namespace: "",
+					Labels: map[string]string{
+						"name":             "test1", //name of Kyma component (provide by Helm)
+						"kymaComponent":    "true",
+						"kymaProfile":      "profile",
+						"kymaVersion":      "2.0.0",
+						"kymaOperationID":  "bbb",
+						"kymaCreationTime": "2000000000"},
+				},
+			},
+			&v1.Secret{ //installed (upgrade) from "2.0.1" release by operation "ccc:3000000000"
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "sh.helm.release.v1.test1.v2",
+					Namespace: "",
+					Labels: map[string]string{
+						"name":             "test1", //name of Kyma component (provide by Helm)
+						"kymaComponent":    "true",
+						"kymaProfile":      "profile",
+						"kymaVersion":      "2.0.1",
+						"kymaOperationID":  "ccc",
+						"kymaCreationTime": "3000000000"},
+				},
+			},
+			&v1.Secret{ //installed from "master" by operation "ddd:4000000000"
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "sh.helm.release.v1.test3.v1",
+					Namespace: "",
+					Labels: map[string]string{
+						"name":             "test3", //name of Kyma component (provide by Helm)
+						"kymaComponent":    "true",
+						"kymaProfile":      "profile",
+						"kymaVersion":      "master",
+						"kymaOperationID":  "ddd",
+						"kymaCreationTime": "4000000000"},
+				},
+			},
+		)
+		metaProv := NewKymaMetadataProvider(k8sMock)
+		versions, err := metaProv.Versions()
+		require.NoError(t, err)
+		require.Equal(t, 3, len(versions))
+		expectedVersions := []*KymaVersion{
+			&KymaVersion{
+				Version:      "master",
+				OperationID:  "ddd",
+				CreationTime: 4000000000,
+				Components:   []string{"test3"},
+			},
+			&KymaVersion{
+				Version:      "master",
+				OperationID:  "aaa",
+				CreationTime: 1000000000,
+				Components:   []string{"test", "test2"},
+			},
+			&KymaVersion{
+				Version:      "2.0.1",
+				OperationID:  "ccc",
+				CreationTime: 3000000000,
+				Components:   []string{"test1"},
+			},
+		}
+		for _, version := range versions {
+			require.Contains(t, expectedVersions, version)
+		}
 	})
 }

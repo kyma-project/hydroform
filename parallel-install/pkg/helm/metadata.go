@@ -57,19 +57,25 @@ func (err *kymaMetadataFieldUnknownError) Error() string {
 type KymaMetadata struct {
 	Profile      string
 	Version      string
-	Component    string
+	Component    bool //indicator flag to which is always set to 'true' (used in lookups)
 	OperationID  string
 	CreationTime int64
 }
 
 func (km *KymaMetadata) isValid() bool {
 	//check whether all mandatory fields are defined
-	return km.Version != "" && km.Component != "" && km.OperationID != "" && km.CreationTime > 0
+	return km.Version != "" && km.Component && km.OperationID != "" && km.CreationTime > 0
 }
 
 type KymaVersion struct {
-	Version    string
-	Components []string
+	Version      string
+	OperationID  string
+	CreationTime int64
+	Components   []string
+}
+
+func (v *KymaVersion) String() string {
+	return fmt.Sprintf("%s:%s(%d)", v.Version, v.OperationID, v.CreationTime)
 }
 
 type KymaMetadataProvider struct {
@@ -82,15 +88,14 @@ func NewKymaMetadataProvider(client kubernetes.Interface) *KymaMetadataProvider 
 	}
 }
 
-func (mp *KymaMetadataProvider) Version() ([]*KymaVersion, error) {
+func (mp *KymaMetadataProvider) Versions() ([]*KymaVersion, error) {
+	//get all secrets which are labeled as Kyma component
 	compField, err := mp.structField("Component")
 	if err != nil {
 		return nil, err
 	}
-
-	//get all secrets which are labeled as Kyma component
 	options := metaV1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=true", compField.Name()),
+		LabelSelector: fmt.Sprintf("%s=true", mp.labelName(compField)),
 	}
 	secrets, err := mp.kubeClient.CoreV1().Secrets("").List(context.Background(), options)
 	if err != nil {
@@ -109,26 +114,28 @@ func (mp *KymaMetadataProvider) Version() ([]*KymaVersion, error) {
 }
 
 func (mp *KymaMetadataProvider) resolveKymaVersions(secretsPerComp map[string][]v1.Secret) ([]*KymaVersion, error) {
-	//collect all Kyma versions in cluster
-	versionField, err := mp.structField("Version")
-	if err != nil {
-		return nil, err
-	}
-
-	versions := make(map[string]*KymaVersion)
+	versions := make(map[string]*KymaVersion) //we se the opsID as differentiator between the different versions
 	for compName, secrets := range secretsPerComp {
 		latestSecret, err := mp.findLatestSecret(compName, secrets)
 		if err != nil {
 			return nil, err
 		}
-		kymaVersionOfComp := latestSecret.Labels[mp.labelName(versionField)]
-		if kymaVersion, ok := versions[kymaVersionOfComp]; !ok {
-			versions[kymaVersionOfComp] = &KymaVersion{
-				Version: kymaVersionOfComp,
-			}
-		} else {
-			kymaVersion.Components = append(kymaVersion.Components, compName)
+		metadata, err := mp.unmarshalMetadata(latestSecret)
+		if err != nil {
+			return nil, err
 		}
+		kymaVersion, ok := versions[metadata.OperationID]
+		if !ok {
+			//create version instance if missing
+			kymaVersion = &KymaVersion{
+				Version:      metadata.Version,
+				OperationID:  metadata.OperationID,
+				CreationTime: metadata.CreationTime,
+			}
+			versions[metadata.OperationID] = kymaVersion
+		}
+		//add component to version
+		kymaVersion.Components = append(kymaVersion.Components, compName)
 	}
 
 	return mp.versionFromMap(versions), nil
@@ -230,6 +237,8 @@ func (mp *KymaMetadataProvider) marshalMetadata(secret *v1.Secret, metadata *Kym
 	var labelValue string
 	for _, field := range structs.New(metadata).Fields() {
 		switch field.Kind() {
+		case reflect.Bool:
+			labelValue = fmt.Sprintf("%t", field.Value())
 		case reflect.String:
 			labelValue = field.Value().(string)
 		case reflect.Int64:
@@ -248,6 +257,12 @@ func (mp *KymaMetadataProvider) unmarshalMetadata(secret *v1.Secret) (*KymaMetad
 		if value, ok := secret.Labels[mp.labelName(field)]; ok {
 			//convert label-values to typed values
 			switch field.Kind() {
+			case reflect.Bool:
+				typedValue, err = strconv.ParseBool(value)
+				if err != nil {
+					return nil, fmt.Errorf("Cannot unmarshal KymaMetadata field '%s' "+
+						"because value '%s' cannot be converted to bool", field.Name(), value)
+				}
 			case reflect.String:
 				typedValue = value
 			case reflect.Int64:
