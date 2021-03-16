@@ -189,7 +189,7 @@ func TestNewSubscriptions(t *testing.T) {
 									"type":         "",
 								},
 							},
-							"sink": "test-name.test-namespace.svc.cluster.local",
+							"sink": "http://test-name.test-namespace.svc.cluster.local",
 						},
 					},
 				},
