@@ -82,9 +82,9 @@ func Test_ValidateDeployment(t *testing.T) {
 }
 
 func newComponentList(t *testing.T) *ComponentList {
-	clList, err := NewComponentList("../test/data/componentlist.yaml")
+	compList, err := NewComponentList("../test/data/componentlist.yaml")
 	require.NoError(t, err)
-	return clList
+	return compList
 }
 
 func filePath(t *testing.T) string {

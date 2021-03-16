@@ -131,7 +131,7 @@ func Test_Version(t *testing.T) {
 			&v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sh.helm.release.v1.test.v1",
-					Namespace: "",
+					Namespace: "somewhere",
 					Labels:    expectedLabels,
 				},
 			},
@@ -145,7 +145,12 @@ func Test_Version(t *testing.T) {
 				Version:      "123",
 				OperationID:  "opsid",
 				CreationTime: 1615831194,
-				Components:   []string{"test"},
+				Components: []*KymaComponent{
+					&KymaComponent{
+						Name:      "test",
+						Namespace: "somewhere",
+					},
+				},
 			},
 		}
 		require.Equal(t, expectedVersions, versions)
@@ -155,7 +160,7 @@ func Test_Version(t *testing.T) {
 			&v1.Secret{ //installed from "master" by operation "aaa:1000000000"
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sh.helm.release.v1.test.v1",
-					Namespace: "",
+					Namespace: "test",
 					Labels: map[string]string{
 						"name":             "test", //name of Kyma component (provide by Helm)
 						"kymaComponent":    "true",
@@ -168,7 +173,7 @@ func Test_Version(t *testing.T) {
 			&v1.Secret{ //installed from "master" by operation "aaa:1000000000"
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sh.helm.release.v1.test2.v2",
-					Namespace: "",
+					Namespace: "test2",
 					Labels: map[string]string{
 						"name":             "test2", //name of Kyma component (provide by Helm)
 						"kymaComponent":    "true",
@@ -181,7 +186,7 @@ func Test_Version(t *testing.T) {
 			&v1.Secret{ //installed from "2.0.0" release by operation "bbb:2000000000"
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sh.helm.release.v1.test1.v1",
-					Namespace: "",
+					Namespace: "test1",
 					Labels: map[string]string{
 						"name":             "test1", //name of Kyma component (provide by Helm)
 						"kymaComponent":    "true",
@@ -194,7 +199,7 @@ func Test_Version(t *testing.T) {
 			&v1.Secret{ //installed (upgrade) from "2.0.1" release by operation "ccc:3000000000"
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sh.helm.release.v1.test1.v2",
-					Namespace: "",
+					Namespace: "test1",
 					Labels: map[string]string{
 						"name":             "test1", //name of Kyma component (provide by Helm)
 						"kymaComponent":    "true",
@@ -207,7 +212,7 @@ func Test_Version(t *testing.T) {
 			&v1.Secret{ //installed from "master" by operation "ddd:4000000000"
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sh.helm.release.v1.test3.v1",
-					Namespace: "",
+					Namespace: "test3",
 					Labels: map[string]string{
 						"name":             "test3", //name of Kyma component (provide by Helm)
 						"kymaComponent":    "true",
@@ -227,19 +232,38 @@ func Test_Version(t *testing.T) {
 				Version:      "master",
 				OperationID:  "ddd",
 				CreationTime: 4000000000,
-				Components:   []string{"test3"},
+				Components: []*KymaComponent{
+					&KymaComponent{
+						Name:      "test3",
+						Namespace: "test3",
+					},
+				},
 			},
 			&KymaVersion{
 				Version:      "master",
 				OperationID:  "aaa",
 				CreationTime: 1000000000,
-				Components:   []string{"test", "test2"},
+				Components: []*KymaComponent{
+					&KymaComponent{
+						Name:      "test",
+						Namespace: "test",
+					},
+					&KymaComponent{
+						Name:      "test2",
+						Namespace: "test2",
+					},
+				},
 			},
 			&KymaVersion{
 				Version:      "2.0.1",
 				OperationID:  "ccc",
 				CreationTime: 3000000000,
-				Components:   []string{"test1"},
+				Components: []*KymaComponent{
+					&KymaComponent{
+						Name:      "test1",
+						Namespace: "test1",
+					},
+				},
 			},
 		}
 		for _, version := range versions {

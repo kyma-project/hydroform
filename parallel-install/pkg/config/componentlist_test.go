@@ -17,25 +17,25 @@ func Test_ComponentList_New(t *testing.T) {
 
 func Test_ComponentList_Remove(t *testing.T) {
 	t.Run("Remove Prerequisite", func(t *testing.T) {
-		clList := newCompList(t, "../test/data/componentlist.yaml")
-		clList.Remove("prereqcomp1")
-		require.Equal(t, 1, len(clList.Prerequisites), "Different amount of prerequisite components")
-		require.Equal(t, 3, len(clList.Components), "Different amount of components")
-		require.Equal(t, "prereqcomp2", clList.Prerequisites[0].Name)
+		compList := newCompList(t, "../test/data/componentlist.yaml")
+		compList.Remove("prereqcomp1")
+		require.Equal(t, 1, len(compList.Prerequisites), "Different amount of prerequisite components")
+		require.Equal(t, 3, len(compList.Components), "Different amount of components")
+		require.Equal(t, "prereqcomp2", compList.Prerequisites[0].Name)
 	})
 	t.Run("Remove Component", func(t *testing.T) {
-		clList := newCompList(t, "../test/data/componentlist.yaml")
-		clList.Remove("comp2")
-		require.Equal(t, 2, len(clList.Prerequisites), "Different amount of prerequisite components")
-		require.Equal(t, 2, len(clList.Components), "Different amount of components")
-		require.Equal(t, "comp1", clList.Components[0].Name)
-		require.Equal(t, "comp3", clList.Components[1].Name)
+		compList := newCompList(t, "../test/data/componentlist.yaml")
+		compList.Remove("comp2")
+		require.Equal(t, 2, len(compList.Prerequisites), "Different amount of prerequisite components")
+		require.Equal(t, 2, len(compList.Components), "Different amount of components")
+		require.Equal(t, "comp1", compList.Components[0].Name)
+		require.Equal(t, "comp3", compList.Components[1].Name)
 	})
 }
 
-func verifyComponentList(t *testing.T, clList *ComponentList) {
-	prereqs := clList.Prerequisites
-	comps := clList.Components
+func verifyComponentList(t *testing.T, compList *ComponentList) {
+	prereqs := compList.Prerequisites
+	comps := compList.Components
 	// verify amount of components
 
 	require.Equal(t, 2, len(prereqs), "Different amount of prerequisite components")
@@ -57,8 +57,8 @@ func verifyComponentList(t *testing.T, clList *ComponentList) {
 }
 
 func newCompList(t *testing.T, compFile string) *ComponentList {
-	clList, err := NewComponentList(compFile)
+	compList, err := NewComponentList(compFile)
 	require.NoError(t, err)
-	verifyComponentList(t, clList)
-	return clList
+	verifyComponentList(t, compList)
+	return compList
 }
