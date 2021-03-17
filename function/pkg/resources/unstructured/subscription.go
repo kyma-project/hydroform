@@ -104,8 +104,23 @@ func filterSources(s workspace.Subscription) []string {
 }
 
 func toTypesFilter(filter workspace.Filter) types.Filter {
+	var filters []types.EventFilter
+	for _, evtFilter := range filter.Filters {
+		filters = append(filters, types.EventFilter{
+			EventSource: types.EventFilterProperty{
+				Property: evtFilter.EventSource.Property,
+				Type:     evtFilter.EventSource.Type,
+				Value:    evtFilter.EventSource.Value,
+			},
+			EventType: types.EventFilterProperty{
+				Property: evtFilter.EventType.Property,
+				Type:     evtFilter.EventType.Type,
+				Value:    evtFilter.EventType.Value,
+			},
+		})
+	}
 	return types.Filter{
 		Dialect: filter.Dialect,
-		Filters: []types.EventFilter{},
+		Filters: filters,
 	}
 }

@@ -32,8 +32,8 @@ type EventFilterProperty struct {
 }
 
 type EventFilter struct {
-	EventSource EventFilterProperty `json:"eventSource"`
-	EventType   EventFilterProperty `json:"eventType"`
+	EventSource EventFilterProperty `yaml:"eventSource"`
+	EventType   EventFilterProperty `yaml:"eventType"`
 }
 
 type Filter struct {
