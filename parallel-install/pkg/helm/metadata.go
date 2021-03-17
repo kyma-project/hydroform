@@ -68,7 +68,8 @@ func (km *KymaMetadata) isValid() bool {
 }
 
 type KymaVersion struct {
-	Name         string
+	Version      string
+	Profile      string
 	OperationID  string
 	CreationTime int64
 	Components   []*KymaComponent
@@ -133,7 +134,8 @@ func (mp *KymaMetadataProvider) resolveKymaVersions(secretsPerComp map[string][]
 		if !ok {
 			//create version instance if missing
 			kymaVersion = &KymaVersion{
-				Name:         metadata.Version,
+				Version:      metadata.Version,
+				Profile:      metadata.Profile,
 				OperationID:  metadata.OperationID,
 				CreationTime: metadata.CreationTime,
 			}

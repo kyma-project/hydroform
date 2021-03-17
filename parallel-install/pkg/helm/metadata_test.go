@@ -143,6 +143,7 @@ func Test_Version(t *testing.T) {
 		expectedVersions := []*KymaVersion{
 			&KymaVersion{
 				Version:      "123",
+				Profile:      "profile",
 				OperationID:  "opsid",
 				CreationTime: 1615831194,
 				Components: []*KymaComponent{
@@ -190,7 +191,7 @@ func Test_Version(t *testing.T) {
 					Labels: map[string]string{
 						"name":             "test1", //name of Kyma component (provide by Helm)
 						"kymaComponent":    "true",
-						"kymaProfile":      "profile",
+						"kymaProfile":      "evaluation",
 						"kymaVersion":      "2.0.0",
 						"kymaOperationID":  "bbb",
 						"kymaCreationTime": "2000000000"},
@@ -203,7 +204,7 @@ func Test_Version(t *testing.T) {
 					Labels: map[string]string{
 						"name":             "test1", //name of Kyma component (provide by Helm)
 						"kymaComponent":    "true",
-						"kymaProfile":      "profile",
+						"kymaProfile":      "production",
 						"kymaVersion":      "2.0.1",
 						"kymaOperationID":  "ccc",
 						"kymaCreationTime": "3000000000"},
@@ -230,6 +231,7 @@ func Test_Version(t *testing.T) {
 		expectedVersions := []*KymaVersion{
 			&KymaVersion{
 				Version:      "master",
+				Profile:      "profile",
 				OperationID:  "ddd",
 				CreationTime: 4000000000,
 				Components: []*KymaComponent{
@@ -241,6 +243,7 @@ func Test_Version(t *testing.T) {
 			},
 			&KymaVersion{
 				Version:      "master",
+				Profile:      "profile",
 				OperationID:  "aaa",
 				CreationTime: 1000000000,
 				Components: []*KymaComponent{
@@ -256,6 +259,7 @@ func Test_Version(t *testing.T) {
 			},
 			&KymaVersion{
 				Version:      "2.0.1",
+				Profile:      "production",
 				OperationID:  "ccc",
 				CreationTime: 3000000000,
 				Components: []*KymaComponent{
