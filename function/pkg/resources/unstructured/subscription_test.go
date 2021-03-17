@@ -156,10 +156,9 @@ func TestNewSubscriptions(t *testing.T) {
 					Runtime: "python38",
 					Subscriptions: []workspace.Subscription{
 						{
-							Name:     "fixme",
-							Protocol: "fixme",
+							Protocol: "NATS",
 							Filter: workspace.Filter{
-								Dialect: "fixme",
+								Dialect: "klingon",
 								Filters: []workspace.EventFilter{
 									{
 										EventSource: workspace.EventFilterProperty{
@@ -170,7 +169,7 @@ func TestNewSubscriptions(t *testing.T) {
 										EventType: workspace.EventFilterProperty{
 											Property: "type",
 											Type:     "exact",
-											Value:    "c.a",
+											Value:    "c",
 										},
 									},
 								},
@@ -195,6 +194,7 @@ func TestNewSubscriptions(t *testing.T) {
 						"spec": map[string]interface{}{
 							"protocol": "NATS",
 							"filter": map[string]interface{}{
+								"dialect": "klingon",
 								"filters": []interface{}{
 									map[string]interface{}{
 										"eventSource": map[string]interface{}{
