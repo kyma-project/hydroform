@@ -73,8 +73,8 @@ func (i *core) getConfig() (overrides.OverridesProvider, components.Provider, *e
 	}
 
 	kymaMetadata := helm.NewKymaMetadata(i.cfg.Version, i.cfg.Profile)
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.cfg, kymaMetadata)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg, kymaMetadata)
+	prerequisitesProvider := components.NewComponentsProvider(overridesProvider, i.cfg, i.cfg.ComponentList.Prerequisites, kymaMetadata)
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg, i.cfg.ComponentList.Components, kymaMetadata)
 
 	engineCfg := engine.Config{
 		WorkersCount: i.cfg.WorkersCount,

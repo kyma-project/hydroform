@@ -3,6 +3,7 @@ package components
 import (
 	"testing"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -33,7 +34,7 @@ func Test_GetComponents(t *testing.T) {
 	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), logger.NewLogger(true))
 	require.NoError(t, err)
 
-	installationCfg := &config.Config{
+	instCfg := &config.Config{
 		ComponentList: &config.ComponentList{
 			Components: []config.ComponentDefinition{
 				{
@@ -48,7 +49,7 @@ func Test_GetComponents(t *testing.T) {
 		},
 	}
 
-	provider := NewComponentsProvider(overridesProvider, installationCfg)
+	provider := NewComponentsProvider(overridesProvider, instCfg, instCfg.ComponentList.Components, helm.NewKymaMetadata("version", "profile"))
 
 	res, err := provider.GetComponents()
 	require.NoError(t, err)
