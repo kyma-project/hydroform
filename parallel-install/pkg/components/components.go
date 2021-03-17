@@ -3,9 +3,7 @@ package components
 import (
 	"fmt"
 	"path"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
@@ -28,7 +26,7 @@ type ComponentsProvider struct {
 }
 
 //NewComponentsProvider returns a ComponentsProvider instance.
-func NewComponentsProvider(overridesProvider overrides.OverridesProvider, cfg *config.Config) *ComponentsProvider {
+func NewComponentsProvider(overridesProvider overrides.OverridesProvider, cfg *config.Config, kymaMetadata *helm.KymaMetadata) *ComponentsProvider {
 
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
@@ -37,13 +35,7 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, cfg *c
 		Log:                           cfg.Log,
 		MaxHistory:                    cfg.HelmMaxRevisionHistory,
 		Atomic:                        cfg.Atomic,
-		KymaMetadata: (&helm.KymaMetadata{
-			Profile:      cfg.Profile,
-			Version:      cfg.Version,
-			Component:    true, //flag will always be set for any Kyma component
-			OperationID:  uuid.New().String(),
-			CreationTime: time.Now().Unix(),
-		}),
+		KymaMetadata:                  kymaMetadata,
 	}
 
 	return &ComponentsProvider{

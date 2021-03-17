@@ -6,7 +6,9 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -82,6 +84,16 @@ type KymaComponent struct {
 
 func (v *KymaVersion) String() string {
 	return fmt.Sprintf("%s:%s(%d)", v.Version, v.OperationID, v.CreationTime)
+}
+
+func NewKymaMetadata(version, profile string) *KymaMetadata {
+	return &KymaMetadata{
+		Profile:      profile,
+		Version:      version,
+		Component:    true, //flag will always be set for any Kyma component
+		OperationID:  uuid.New().String(),
+		CreationTime: time.Now().Unix(),
+	}
 }
 
 type KymaMetadataProvider struct {

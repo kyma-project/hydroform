@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 //these components will be removed from component list if running on a local cluster
@@ -72,8 +72,9 @@ func (i *core) getConfig() (overrides.OverridesProvider, components.Provider, *e
 		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider: exiting")
 	}
 
-	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.cfg)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg)
+	kymaMetadata := helm.NewKymaMetadata(i.cfg.Version, i.cfg.Profile)
+	prerequisitesProvider := components.NewPrerequisitesProvider(overridesProvider, i.cfg, kymaMetadata)
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg, kymaMetadata)
 
 	engineCfg := engine.Config{
 		WorkersCount: i.cfg.WorkersCount,

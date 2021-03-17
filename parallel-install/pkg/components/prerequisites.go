@@ -26,7 +26,7 @@ type PrerequisitesProvider struct {
 //resourcesPath is a directory where subdirectories of components' charts are located.
 //
 //componentList is a slice of pairs: [component-name, namespace]
-func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, cfg *config.Config) *PrerequisitesProvider {
+func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, cfg *config.Config, kymaMetadata *helm.KymaMetadata) *PrerequisitesProvider {
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
 		BackoffInitialIntervalSeconds: cfg.BackoffInitialIntervalSeconds,
@@ -34,6 +34,7 @@ func NewPrerequisitesProvider(overridesProvider overrides.OverridesProvider, cfg
 		Log:                           cfg.Log,
 		MaxHistory:                    cfg.HelmMaxRevisionHistory,
 		Atomic:                        cfg.Atomic,
+		KymaMetadata:                  kymaMetadata,
 	}
 
 	return &PrerequisitesProvider{
