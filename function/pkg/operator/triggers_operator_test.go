@@ -99,7 +99,7 @@ func Test_mergeMap(t *testing.T) {
 	}
 }
 
-func Test_applyTriggers(t *testing.T) {
+func Test_applySubscriptions(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -122,7 +122,7 @@ func Test_applyTriggers(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "wipe triggers error",
+			name: "wipe subscriptions error",
 			args: args{
 				opts: ApplyOptions{
 					OwnerReferences: []v1.OwnerReference{
@@ -305,14 +305,14 @@ func Test_applyTriggers(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			if err := applyTriggers(tt.args.ctx, tt.fields.Client, testPredicate, tt.fields.items, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := applySubscriptions(tt.args.ctx, tt.fields.Client, testPredicate, tt.fields.items, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Apply() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func Test_deleteTriggers(t *testing.T) {
+func Test_deleteSubscriptions(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	type fields struct {
@@ -428,14 +428,14 @@ func Test_deleteTriggers(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			if err := deleteTriggers(tt.args.ctx, tt.fields.Client, tt.fields.items, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := deleteSubscriptions(tt.args.ctx, tt.fields.Client, tt.fields.items, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func Test_triggersOperator_wipeRemoved(t *testing.T) {
+func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	type args struct {
@@ -587,70 +587,12 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			predicate := buildMatchRemovedTriggerPredicate(functionReference{
+			predicate := buildMatchRemovedSubscriptionsPredicate(functionReference{
 				name:      "test-function-name",
 				namespace: "test-namespace",
 			}, tt.args.items)
 			if err := wipeRemoved(tt.args.ctx, tt.args.Client, predicate, tt.args.opts.Options); (err != nil) != tt.wantErr {
 				t1.Errorf("wipeRemoved() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_buildMatchRemovedTriggerPredicate(t *testing.T) {
-	type args struct {
-		trigger unstructured.Unstructured
-		fnRef   functionReference
-		items   []unstructured.Unstructured
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		{
-			name: "no match 1",
-			args: args{
-				items:   []unstructured.Unstructured{testObj2, testObj},
-				fnRef:   functionReference{name: "test-function-name", namespace: "test-namespace"},
-				trigger: testObj,
-			},
-			want:    false,
-			wantErr: false,
-		},
-		{
-			name: "no match 2",
-			args: args{
-				items:   []unstructured.Unstructured{testObj, testObj2},
-				fnRef:   functionReference{name: "test-function-name1", namespace: "test-namespace"},
-				trigger: testObj,
-			},
-			want:    false,
-			wantErr: false,
-		},
-		{
-			name: "match",
-			args: args{
-				items:   []unstructured.Unstructured{testObj2},
-				fnRef:   functionReference{name: "test-function-name", namespace: "test-namespace"},
-				trigger: testObj,
-			},
-			want:    true,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			predicate := buildMatchRemovedTriggerPredicate(tt.args.fnRef, tt.args.items)
-			got, err := predicate(tt.args.trigger.Object)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("predicate() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("predicate() bool = %v, want %v", got, tt.want)
 			}
 		})
 	}

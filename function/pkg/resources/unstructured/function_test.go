@@ -185,12 +185,12 @@ func Test_newFunction(t *testing.T) {
 										EventSource: workspace.EventFilterProperty{
 											Property: "type",
 											Type:     "exact",
-											Value:    "test-trigger-type.test-trigger-etv",
+											Value:    "test-subscription-type.test-subscription-etv",
 										},
 										EventType: workspace.EventFilterProperty{
 											Property: "source",
 											Type:     "exact",
-											Value:    "test-trigger-source",
+											Value:    "test-subscription-source",
 										},
 									},
 								},
@@ -615,12 +615,12 @@ func Test_newGitFunction(t *testing.T) {
 										EventSource: workspace.EventFilterProperty{
 											Property: "source",
 											Type:     "exact",
-											Value:    "test-trigger-source",
+											Value:    "test-subscription-source",
 										},
 										EventType: workspace.EventFilterProperty{
 											Property: "type",
 											Type:     "exact",
-											Value:    "test-trigger-type.test-trigger-etv",
+											Value:    "test-subscription-type.test-subscription-etv",
 										},
 									},
 								},
@@ -749,12 +749,12 @@ func Test_newGitFunction(t *testing.T) {
 										EventSource: workspace.EventFilterProperty{
 											Property: "source",
 											Type:     "exact",
-											Value:    "test-trigger-source",
+											Value:    "test-subscription-source",
 										},
 										EventType: workspace.EventFilterProperty{
 											Property: "type",
 											Type:     "exact",
-											Value:    "test-trigger-type.test-trigger-etv",
+											Value:    "test-subscription-type.test-subscription-etv",
 										},
 									},
 								},

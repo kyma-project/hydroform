@@ -18,13 +18,6 @@ const (
 
 const CfgFilename = "config.yaml"
 
-type Trigger struct {
-	Name             string `yaml:"name"`
-	EventTypeVersion string `yaml:"eventTypeVersion"`
-	Source           string `yaml:"source"`
-	Type             string `yaml:"type"`
-}
-
 type EventFilterProperty struct {
 	Property string `yaml:"property"`
 	Type     string `yaml:"type,omitempty"`

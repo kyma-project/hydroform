@@ -218,7 +218,7 @@ func Test_Synchronise(t *testing.T) {
 			},
 		},
 		{
-			name:    "getting triggers as unstructured list should fail",
+			name:    "getting subscriptions as unstructured list should fail",
 			wantErr: true,
 			args: args{
 				cfg: Cfg{
@@ -247,7 +247,7 @@ func Test_Synchronise(t *testing.T) {
 			},
 		},
 		{
-			name: "inline happy path with triggers",
+			name: "inline happy path with subscriptions",
 			args: args{
 				cfg: Cfg{
 					Name:      name,
@@ -522,7 +522,7 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 			{
 				Object: map[string]interface{}{
 					"metadata": map[string]interface{}{
-						"name":      "trigger1",
+						"name":      "subscription1",
 						"namespace": "test-ns",
 					},
 					"spec": map[string]interface{}{

@@ -2,6 +2,7 @@ package operator
 
 import (
 	"context"
+	"errors"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
@@ -28,11 +29,55 @@ func NewSubscriptionsOperator(c client.Client, fnName, fnNamespace string, u ...
 
 func (t subscriptionOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	predicate := buildMatchRemovedSubscriptionsPredicate(t.fnRef, t.items)
-	return applyTriggers(ctx, t.Client, predicate, t.items, opts)
+	return applySubscriptions(ctx, t.Client, predicate, t.items, opts)
 }
 
 func (t subscriptionOperator) Delete(ctx context.Context, opts DeleteOptions) error {
-	return deleteTriggers(ctx, t.Client, t.items, opts)
+	return deleteSubscriptions(ctx, t.Client, t.items, opts)
+}
+
+type functionReference struct {
+	name      string
+	namespace string
+}
+
+type predicate func(map[string]interface{}) (bool, error)
+
+var errNotFound = errors.New("not found")
+
+func deleteSubscriptions(ctx context.Context, c client.Client, items []unstructured.Unstructured, opts DeleteOptions) error {
+	for _, u := range items {
+		// fire pre callbacks
+		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
+			return err
+		}
+		state, err := deleteObject(ctx, c, u, opts)
+		// fire post callbacks
+		if err := fireCallbacks(state, err, opts.Post...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func contains(s []unstructured.Unstructured, name string) bool {
+	for _, u := range s {
+		if u.GetName() == name {
+			return true
+		}
+	}
+	return false
+}
+
+func mergeMap(l map[string]string, r map[string]string) map[string]string {
+	if l == nil {
+		return r
+	}
+
+	for k, v := range r {
+		l[k] = v
+	}
+	return l
 }
 
 // buildMatchRemovedSubscriptionsPredicate - creates a predicate to match the subscriptions that should be deleted
@@ -50,4 +95,28 @@ func buildMatchRemovedSubscriptionsPredicate(fnRef functionReference, items []un
 		containsSubscription := contains(items, subscription.ObjectMeta.Name)
 		return !containsSubscription, nil
 	}
+}
+
+func applySubscriptions(ctx context.Context, c client.Client, p predicate, items []unstructured.Unstructured, opts ApplyOptions) error {
+	if err := wipeRemoved(ctx, c, p, opts.Options); err != nil {
+		return err
+	}
+	// apply all subscriptions
+	for _, u := range items {
+		u.SetOwnerReferences(opts.OwnerReferences)
+		// fire pre callbacks
+		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
+			return err
+		}
+		applied, statusEntry, err := applyObject(ctx, c, u, opts.DryRun)
+		if opts.WaitForApply && applied != nil {
+			err = waitForObject(ctx, c, *applied)
+		}
+		// fire post callbacks
+		if err := fireCallbacks(statusEntry, err, opts.Post...); err != nil {
+			return err
+		}
+		u.SetUnstructuredContent(applied.Object)
+	}
+	return nil
 }
