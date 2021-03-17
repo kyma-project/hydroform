@@ -109,7 +109,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 	config.Runtime = function.Spec.Runtime
 	config.Labels = function.Spec.Labels
-	config.Env = convertCoreV1EnvToEnvVar(function.Spec.Env)
+	config.Env = toWorkspaceEnvVar(function.Spec.Env)
 
 	ul, err := build("", operator.GVRSubscription).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -132,20 +132,10 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				continue
 			}
 
-			filters := make([]EventFilter, len(subscription.Spec.Filter.Filters))
-			for _, filter := range subscription.Spec.Filter.Filters {
-				filters = append(filters, EventFilter{
-					EventSource: EventFilterProperty{
-						Property: filter.EventSource.Property,
-						Type:     filter.EventSource.Type,
-						Value:    filter.EventSource.Value,
-					},
-					EventType: EventFilterProperty{
-						Property: filter.EventType.Property,
-						Type:     filter.EventSource.Type,
-						Value:    filter.EventSource.Value,
-					},
-				})
+			var filters []EventFilter
+			for _, fromFilter := range subscription.Spec.Filter.Filters {
+				toFilter := toWorkspaceEnvFilter(fromFilter)
+				filters = append(filters, toFilter)
 			}
 
 			config.Subscriptions = append(config.Subscriptions, Subscription{
@@ -212,7 +202,7 @@ func InlineFileNames(r types.Runtime) (SourceFileName, DepsFileName, bool) {
 	}
 }
 
-func convertCoreV1EnvToEnvVar(envs []corev1.EnvVar) []EnvVar {
+func toWorkspaceEnvVar(envs []corev1.EnvVar) []EnvVar {
 	outEnvs := make([]EnvVar, 0)
 	for _, env := range envs {
 
@@ -241,4 +231,19 @@ func convertCoreV1EnvToEnvVar(envs []corev1.EnvVar) []EnvVar {
 		outEnvs = append(outEnvs, newEnv)
 	}
 	return outEnvs
+}
+
+func toWorkspaceEnvFilter(filter types.EventFilter) EventFilter {
+	return EventFilter{
+		EventSource: EventFilterProperty{
+			Property: filter.EventSource.Property,
+			Type:     filter.EventSource.Type,
+			Value:    filter.EventSource.Value,
+		},
+		EventType: EventFilterProperty{
+			Property: filter.EventType.Property,
+			Type:     filter.EventType.Type,
+			Value:    filter.EventType.Value,
+		},
+	}
 }
