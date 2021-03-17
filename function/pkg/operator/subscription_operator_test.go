@@ -21,7 +21,7 @@ func newTestSubscription(name, namespace string) (unstructured.Unstructured, err
 			Namespace: namespace,
 		},
 		Spec: types.SubscriptionSpec{
-			Sink: fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace),
+			Sink: fmt.Sprintf("http://%s.%s.svc.cluster.local", name, namespace),
 		},
 	}
 	subscriptionObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&subscription)
@@ -32,7 +32,6 @@ func newTestSubscription(name, namespace string) (unstructured.Unstructured, err
 }
 
 func Test_buildMatchRemovedSubscriptionsPredicate(t *testing.T) {
-
 	var subscription1 unstructured.Unstructured
 	var subscription2 unstructured.Unstructured
 
