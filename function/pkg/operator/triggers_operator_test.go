@@ -436,6 +436,19 @@ func Test_deleteSubscriptions(t *testing.T) {
 }
 
 func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
+	var subscription1 unstructured.Unstructured
+	var subscription2 unstructured.Unstructured
+
+	for i, s := range []*unstructured.Unstructured{
+		&subscription1, &subscription2,
+	} {
+		var err error
+		(*s), err = newTestSubscription(fmt.Sprintf("test-%d", i+1), "test-namespace")
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	type args struct {
@@ -462,7 +475,7 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
+				items: []unstructured.Unstructured{subscription1},
 			},
 			wantErr: true,
 		},
@@ -477,7 +490,7 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
-								testObj2,
+								subscription2,
 							},
 						}, nil).
 						Times(1)
@@ -489,7 +502,7 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
+				items: []unstructured.Unstructured{subscription1},
 			},
 			wantErr: true,
 		},
@@ -503,7 +516,7 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
-								testObj2,
+								subscription2,
 							},
 						}, nil).
 						Times(1)
@@ -515,7 +528,7 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
+				items: []unstructured.Unstructured{subscription1},
 				opts: ApplyOptions{
 					Options: Options{
 						Callbacks: Callbacks{
@@ -540,14 +553,14 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
-								testObj2,
+								subscription2,
 							},
 						}, nil).
 						Times(1)
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
+				items: []unstructured.Unstructured{subscription1},
 				opts: ApplyOptions{
 					Options: Options{
 						Callbacks: Callbacks{
@@ -572,14 +585,14 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
-								testObj,
+								subscription1,
 							},
 						}, nil).
 						Times(1)
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
+				items: []unstructured.Unstructured{subscription1},
 				opts:  ApplyOptions{},
 			},
 			wantErr: false,
@@ -588,7 +601,7 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
 			predicate := buildMatchRemovedSubscriptionsPredicate(functionReference{
-				name:      "test-function-name",
+				name:      "test-2",
 				namespace: "test-namespace",
 			}, tt.args.items)
 			if err := wipeRemoved(tt.args.ctx, tt.args.Client, predicate, tt.args.opts.Options); (err != nil) != tt.wantErr {
