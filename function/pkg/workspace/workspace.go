@@ -111,27 +111,50 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	config.Labels = function.Spec.Labels
 	config.Env = convertCoreV1EnvToEnvVar(function.Spec.Env)
 
-	ul, err := build("", operator.GVKTriggers).List(ctx, v1.ListOptions{})
+	ul, err := build("", operator.GVRSubscription).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 
 	if ul != nil {
 		for _, item := range ul.Items {
-			var trigger types.Trigger
-			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &trigger); err != nil {
+			var subscription types.Subscription
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &subscription); err != nil {
 				return err
 			}
 
-			if !trigger.IsReference(function.Name, function.Namespace) {
+			if !subscription.IsReference(function.Name, function.Namespace) {
 				continue
 			}
 
-			config.Triggers = append(config.Triggers, Trigger{
-				EventTypeVersion: trigger.Spec.Filter.Attributes.EventTypeVersion,
-				Source:           trigger.Spec.Filter.Attributes.Source,
-				Type:             trigger.Spec.Filter.Attributes.Type,
-				Name:             trigger.ObjectMeta.Name,
+			filterLen := subscription.Spec.Filter.Filters
+			if len(filterLen) == 0 {
+				continue
+			}
+
+			filters := make([]EventFilter, len(subscription.Spec.Filter.Filters))
+			for _, filter := range subscription.Spec.Filter.Filters {
+				filters = append(filters, EventFilter{
+					EventSource: EventFilterProperty{
+						Property: filter.EventSource.Property,
+						Type:     filter.EventSource.Type,
+						Value:    filter.EventSource.Value,
+					},
+					EventType: EventFilterProperty{
+						Property: filter.EventType.Property,
+						Type:     filter.EventSource.Type,
+						Value:    filter.EventSource.Value,
+					},
+				})
+			}
+
+			config.Subscriptions = append(config.Subscriptions, Subscription{
+				Name:     subscription.Name,
+				Protocol: subscription.Spec.Protocol,
+				Filter: Filter{
+					Dialect: subscription.Spec.Filter.Dialect,
+					Filters: filters,
+				},
 			})
 		}
 	}

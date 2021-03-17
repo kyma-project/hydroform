@@ -30,11 +30,27 @@ func Test_newSubscriptions(t *testing.T) {
 					Name:      "should-fail",
 					Namespace: "failed-tests",
 					Runtime:   "nodejs12",
-					Triggers: []workspace.Trigger{
+					Subscriptions: []workspace.Subscription{
 						{
-							EventTypeVersion: "a",
-							Source:           "b",
-							Type:             "c",
+							Name:     "fixme",
+							Protocol: "fixme",
+							Filter: workspace.Filter{
+								Dialect: "fixme",
+								Filters: []workspace.EventFilter{
+									{
+										EventSource: workspace.EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "b",
+										},
+										EventType: workspace.EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "c.a",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -138,11 +154,27 @@ func TestNewSubscriptions(t *testing.T) {
 						"test": "me",
 					},
 					Runtime: "python38",
-					Triggers: []workspace.Trigger{
+					Subscriptions: []workspace.Subscription{
 						{
-							EventTypeVersion: "a",
-							Source:           "b",
-							Type:             "c",
+							Name:     "fixme",
+							Protocol: "fixme",
+							Filter: workspace.Filter{
+								Dialect: "fixme",
+								Filters: []workspace.EventFilter{
+									{
+										EventSource: workspace.EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "b",
+										},
+										EventType: workspace.EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "c.a",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -173,7 +205,7 @@ func TestNewSubscriptions(t *testing.T) {
 										"eventType": map[string]interface{}{
 											"property": "type",
 											"type":     "exact",
-											"value":    "c.a",
+											"value":    "c",
 										},
 									},
 								},

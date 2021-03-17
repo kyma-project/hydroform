@@ -45,14 +45,9 @@ func newSubscriptions(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstr
 	//TODO remove http protocol once it will be fixed in eventng
 	sink := fmt.Sprintf("http://%s.%s.svc.cluster.local", cfg.Name, cfg.Namespace)
 
-	for _, subscriptionInfo := range cfg.Triggers {
-		subscriptionName := subscriptionInfo.Name
-		if subscriptionName == "" {
-			subscriptionName = joinNonEmpty([]string{
-				cfg.Name,
-				subscriptionInfo.Source,
-			}, "-")
-		}
+	for _, subscriptionInfo := range cfg.Subscriptions {
+		name := generateSubscriptionName(cfg.Name, subscriptionInfo)
+		filter := toTypesFilter(subscriptionInfo.Filter)
 
 		subscription := types.Subscription{
 			TypeMeta: v1.TypeMeta{
@@ -60,37 +55,19 @@ func newSubscriptions(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstr
 				Kind:       "Subscription",
 			},
 			ObjectMeta: v1.ObjectMeta{
-				Name:      subscriptionName,
+				Name:      name,
 				Namespace: cfg.Namespace,
 				Labels:    cfg.Labels,
 			},
 			Spec: types.SubscriptionSpec{
-				Protocol: "NATS",
+				Protocol: subscriptionInfo.Protocol,
 				Sink:     sink,
 				ProtocolSettings: types.ProtocolSettings{
 					ExemptHandshake: true,
 					Qos:             "AT-LEAST-ONCE",
 					WebhookAuth:     types.WebhookAuth{},
 				},
-				Filter: types.Filter{
-					Filters: []types.EventFilter{
-						{
-							EventSource: types.EventFilterProperty{
-								Property: "source",
-								Type:     "exact",
-								Value:    subscriptionInfo.Source,
-							},
-							EventType: types.EventFilterProperty{
-								Property: "type",
-								Type:     "exact",
-								Value: joinNonEmpty([]string{
-									subscriptionInfo.Type,
-									subscriptionInfo.EventTypeVersion,
-								}, "."),
-							},
-						},
-					},
-				},
+				Filter: filter,
 			},
 		}
 
@@ -105,4 +82,30 @@ func newSubscriptions(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstr
 	}
 
 	return list, nil
+}
+
+func generateSubscriptionName(functionName string, s workspace.Subscription) string {
+	subscriptionName := s.Name
+	subscriptionSources := filterSources(s)
+
+	if subscriptionName == "" {
+		elems := append([]string{functionName}, subscriptionSources...)
+		subscriptionName = joinNonEmpty(elems, "-")
+	}
+	return subscriptionName
+}
+
+func filterSources(s workspace.Subscription) []string {
+	result := []string{}
+	for _, evtFilter := range s.Filter.Filters {
+		result = append(result, evtFilter.EventSource.Value)
+	}
+	return result
+}
+
+func toTypesFilter(filter workspace.Filter) types.Filter {
+	return types.Filter{
+		Dialect: filter.Dialect,
+		Filters: []types.EventFilter{},
+	}
 }

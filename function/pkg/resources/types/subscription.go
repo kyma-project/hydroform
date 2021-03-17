@@ -53,6 +53,6 @@ type WebhookAuth struct {
 }
 
 func (s Subscription) IsReference(name, namespace string) bool {
-	expectedSinkName := fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace)
+	expectedSinkName := fmt.Sprintf("http://%s.%s.svc.cluster.local", name, namespace)
 	return expectedSinkName == s.Spec.Sink
 }

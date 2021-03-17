@@ -175,11 +175,26 @@ func Test_newFunction(t *testing.T) {
 							DepsHandlerName:   "test.my.deps",
 						},
 					},
-					Triggers: []workspace.Trigger{
+					Subscriptions: []workspace.Subscription{
 						{
-							EventTypeVersion: "test-trigger-etv",
-							Source:           "test-trigger-source",
-							Type:             "test-trigger-type",
+							Name:     "test",
+							Protocol: "",
+							Filter: workspace.Filter{
+								Filters: []workspace.EventFilter{
+									{
+										EventSource: workspace.EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "test-trigger-type.test-trigger-etv",
+										},
+										EventType: workspace.EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "test-trigger-source",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -589,11 +604,27 @@ func Test_newGitFunction(t *testing.T) {
 							BaseDir:   "test-base-dir",
 						},
 					},
-					Triggers: []workspace.Trigger{
+					Subscriptions: []workspace.Subscription{
 						{
-							EventTypeVersion: "test-trigger-etv",
-							Source:           "test-trigger-source",
-							Type:             "test-trigger-type",
+							Name:     "fixme",
+							Protocol: "fixme",
+							Filter: workspace.Filter{
+								Dialect: "fixme",
+								Filters: []workspace.EventFilter{
+									{
+										EventSource: workspace.EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "test-trigger-source",
+										},
+										EventType: workspace.EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "test-trigger-type.test-trigger-etv",
+										},
+									},
+								},
+							},
 						},
 					},
 					Env: []workspace.EnvVar{
@@ -707,11 +738,27 @@ func Test_newGitFunction(t *testing.T) {
 							BaseDir:    "test-base-dir",
 						},
 					},
-					Triggers: []workspace.Trigger{
+					Subscriptions: []workspace.Subscription{
 						{
-							EventTypeVersion: "test-trigger-etv",
-							Source:           "test-trigger-source",
-							Type:             "test-trigger-type",
+							Name:     "fixmne",
+							Protocol: "fixme",
+							Filter: workspace.Filter{
+								Dialect: "fixme",
+								Filters: []workspace.EventFilter{
+									{
+										EventSource: workspace.EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "test-trigger-source",
+										},
+										EventType: workspace.EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "test-trigger-type.test-trigger-etv",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
