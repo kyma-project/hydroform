@@ -1,7 +1,6 @@
 package components
 
 import (
-	"fmt"
 	"path"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -12,7 +11,7 @@ import (
 
 //Provider is an entity that produces a list of components for Kyma installation or uninstallation.
 type Provider interface {
-	GetComponents() ([]KymaComponent, error)
+	GetComponents() []KymaComponent
 }
 
 //ComponentsProvider implements the Provider interface.
@@ -49,12 +48,8 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, cfg *c
 }
 
 //Implements Provider.GetComponents.
-func (p *ComponentsProvider) GetComponents() ([]KymaComponent, error) {
+func (p *ComponentsProvider) GetComponents() []KymaComponent {
 	helmClient := helm.NewClient(p.helmConfig)
-
-	if len(p.components) < 1 {
-		return nil, fmt.Errorf("Could not find any components to install on Installation CR")
-	}
 
 	var components []KymaComponent
 	for _, component := range p.components {
@@ -70,5 +65,5 @@ func (p *ComponentsProvider) GetComponents() ([]KymaComponent, error) {
 		components = append(components, cmp)
 	}
 
-	return components, nil
+	return components
 }
