@@ -122,9 +122,9 @@ func Test_Version(t *testing.T) {
 	t.Run("No Kyma installed", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset()
 		metaProv := NewKymaMetadataProvider(k8sMock)
-		versions, err := metaProv.Versions()
+		versionSet, err := metaProv.Versions()
 		require.NoError(t, err)
-		require.Empty(t, versions)
+		require.Equal(t, 0, versionSet.Count())
 	})
 	t.Run("One version of Kyma installed", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset(
@@ -137,9 +137,9 @@ func Test_Version(t *testing.T) {
 			},
 		)
 		metaProv := NewKymaMetadataProvider(k8sMock)
-		versions, err := metaProv.Versions()
+		versionSet, err := metaProv.Versions()
 		require.NoError(t, err)
-		require.Equal(t, 1, len(versions))
+		require.Equal(t, 1, len(versionSet.Versions))
 		expectedVersions := []*KymaVersion{
 			&KymaVersion{
 				Version:      "123",
@@ -154,7 +154,7 @@ func Test_Version(t *testing.T) {
 				},
 			},
 		}
-		require.Equal(t, expectedVersions, versions)
+		require.Equal(t, expectedVersions, versionSet.Versions)
 	})
 	t.Run("Different versions of Kyma installed", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset(
@@ -225,9 +225,9 @@ func Test_Version(t *testing.T) {
 			},
 		)
 		metaProv := NewKymaMetadataProvider(k8sMock)
-		versions, err := metaProv.Versions()
+		versionSet, err := metaProv.Versions()
 		require.NoError(t, err)
-		require.Equal(t, 3, len(versions))
+		require.Equal(t, 3, len(versionSet.Versions))
 		expectedVersions := []*KymaVersion{
 			&KymaVersion{
 				Version:      "master",
@@ -270,7 +270,7 @@ func Test_Version(t *testing.T) {
 				},
 			},
 		}
-		for _, version := range versions {
+		for _, version := range versionSet.Versions {
 			require.Contains(t, expectedVersions, version)
 		}
 	})

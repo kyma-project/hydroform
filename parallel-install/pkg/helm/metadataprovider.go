@@ -6,9 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -56,46 +54,6 @@ func (err *kymaMetadataFieldUnknownError) Error() string {
 	return fmt.Sprintf("Kyma metadata struct does not contain a field '%s'", err.field)
 }
 
-type KymaMetadata struct {
-	Profile      string
-	Version      string
-	Component    bool //indicator flag to which is always set to 'true' (used in lookups)
-	OperationID  string
-	CreationTime int64
-}
-
-func (km *KymaMetadata) isValid() bool {
-	//check whether all mandatory fields are defined
-	return km.Version != "" && km.Component && km.OperationID != "" && km.CreationTime > 0
-}
-
-type KymaVersion struct {
-	Version      string
-	Profile      string
-	OperationID  string
-	CreationTime int64
-	Components   []*KymaComponent
-}
-
-type KymaComponent struct {
-	Name      string
-	Namespace string
-}
-
-func (v *KymaVersion) String() string {
-	return fmt.Sprintf("%s:%s(%d)", v.Version, v.OperationID, v.CreationTime)
-}
-
-func NewKymaMetadata(version, profile string) *KymaMetadata {
-	return &KymaMetadata{
-		Profile:      profile,
-		Version:      version,
-		Component:    true, //flag will always be set for any Kyma component
-		OperationID:  uuid.New().String(),
-		CreationTime: time.Now().Unix(),
-	}
-}
-
 type KymaMetadataProvider struct {
 	kubeClient kubernetes.Interface
 }
@@ -106,7 +64,7 @@ func NewKymaMetadataProvider(client kubernetes.Interface) *KymaMetadataProvider 
 	}
 }
 
-func (mp *KymaMetadataProvider) Versions() ([]*KymaVersion, error) {
+func (mp *KymaMetadataProvider) Versions() (*KymaVersionSet, error) {
 	//get all secrets which are labeled as Kyma component
 	compField, err := mp.structField("Component")
 	if err != nil {
@@ -128,7 +86,13 @@ func (mp *KymaMetadataProvider) Versions() ([]*KymaVersion, error) {
 		}
 	}
 
-	return mp.resolveKymaVersions(secretsPerComp)
+	versions, err := mp.resolveKymaVersions(secretsPerComp)
+	if err != nil {
+		return nil, err
+	}
+	return &KymaVersionSet{
+		Versions: versions,
+	}, nil
 }
 
 func (mp *KymaMetadataProvider) resolveKymaVersions(secretsPerComp map[string][]v1.Secret) ([]*KymaVersion, error) {

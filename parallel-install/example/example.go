@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/avast/retry-go"
@@ -140,9 +141,9 @@ func main() {
 	}
 
 	metadataProvider := helm.NewKymaMetadataProvider(kubeClient)
-	versions, err := metadataProvider.Versions()
+	versionSet, err := metadataProvider.Versions()
 	if err == nil {
-		log.Infof("Found %d Kyma version: %s", len(versions), versions[0].Version)
+		log.Infof("Found %d Kyma version: %s", versionSet.Count(), strings.Join(versionSet.Names(), ", "))
 	} else {
 		log.Errorf("Failed to deploy Kyma: %v", err)
 	}
