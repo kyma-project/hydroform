@@ -69,9 +69,9 @@ type KymaVersion struct {
 	components   []*KymaComponent
 }
 
-//Components returns all components of this version in increasing priority order (first installed to the latest installed components)
+//Components returns all components of this version in increasing priority order (latest installed to the first installed components)
 func (v *KymaVersion) Components() []*KymaComponent {
-	sort.Slice(v.components, func(i, j int) bool { return v.components[i].Priority < v.components[j].Priority })
+	sort.Slice(v.components, func(i, j int) bool { return v.components[i].Priority > v.components[j].Priority })
 	return v.components
 }
 
