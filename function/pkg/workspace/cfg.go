@@ -66,16 +66,25 @@ type SecretKeySelector struct {
 	Key  string `yaml:"key"`
 }
 
+type ApiRule struct {
+	Host    string   `yaml:"host"`
+	Name    string   `yaml:"name"`
+	Port    int      `yaml:"port"`
+	Methods []string `yaml:"methods"`
+	Handler string   `yaml:"handler"`
+	Path    string   `yaml:"path"`
+}
+
 type Cfg struct {
-	WorkspaceVersion string            `yaml:"workspaceVersion"`
-	Name             string            `yaml:"name"`
-	Namespace        string            `yaml:"namespace"`
-	Labels           map[string]string `yaml:"labels,omitempty"`
-	Runtime          types.Runtime     `yaml:"runtime"`
-	Source           Source            `yaml:"source"`
-	Resources        Resources         `yaml:"resource,omitempty"`
+	Name      string            `yaml:"name"`
+	Namespace string            `yaml:"namespace"`
+	Labels    map[string]string `yaml:"labels,omitempty"`
+	Runtime   types.Runtime     `yaml:"runtime"`
+	Source    Source            `yaml:"source"`
+	Resources Resources         `yaml:"resource,omitempty"`
 	Subscriptions    []Subscription    `yaml:"subscriptions,omitempty"`
-	Env              []EnvVar          `yaml:"env,omitempty"`
+	Env       []EnvVar          `yaml:"env,omitempty"`
+	ApiRule   ApiRule           `yaml:"apiRule,omitempty"`
 }
 
 type Source struct {
