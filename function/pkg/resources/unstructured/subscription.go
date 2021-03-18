@@ -94,7 +94,7 @@ func generateSubscriptionName(functionName string, s workspace.Subscription) str
 }
 
 func filterSources(s workspace.Subscription) []string {
-	result := []string{}
+	var result []string
 	for _, evtFilter := range s.Filter.Filters {
 		result = append(result, evtFilter.EventSource.Value)
 	}
