@@ -16,7 +16,7 @@ type subscriptionOperator struct {
 	client.Client
 }
 
-func NewSubscriptionsOperator(c client.Client, fnName, fnNamespace string, u ...unstructured.Unstructured) Operator {
+func NewSubscriptionOperator(c client.Client, fnName, fnNamespace string, u ...unstructured.Unstructured) Operator {
 	return &subscriptionOperator{
 		Client: c,
 		items:  u,
