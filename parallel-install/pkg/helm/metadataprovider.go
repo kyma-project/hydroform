@@ -118,9 +118,10 @@ func (mp *KymaMetadataProvider) resolveKymaVersions(secretsPerComp map[string][]
 			versions[metadata.OperationID] = kymaVersion
 		}
 		//add component to version
-		kymaVersion.Components = append(kymaVersion.Components, &KymaComponent{
+		kymaVersion.components = append(kymaVersion.components, &KymaComponent{
 			Name:      compName,
 			Namespace: latestSecret.Namespace,
+			Priority:  metadata.Counter,
 		})
 	}
 
@@ -186,7 +187,7 @@ func (mp *KymaMetadataProvider) Set(release *release.Release, metadata *KymaMeta
 	}
 
 	//update secret
-	mp.marshalMetadata(secret, metadata)
+	mp.marshalMetadata(secret, metadata.increment())
 	_, err = mp.kubeClient.CoreV1().Secrets(release.Namespace).Update(context.Background(), secret, metaV1.UpdateOptions{})
 	return err
 }

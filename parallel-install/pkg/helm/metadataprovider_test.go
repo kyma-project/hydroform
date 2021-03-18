@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -105,7 +106,8 @@ func Test_MetadataSet(t *testing.T) {
 			"kymaProfile":      "profile",
 			"kymaVersion":      "123",
 			"kymaOperationID":  "opsid",
-			"kymaCreationTime": "1615831194"}
+			"kymaCreationTime": "1615831194",
+			"kymaCounter":      fmt.Sprintf("%d", kymaMetadataCount)}
 		require.Equal(t, expected, k8sMock.Fake.Actions()[1].(k8st.UpdateAction).GetObject().(*v1.Secret).GetObjectMeta().GetLabels())
 	})
 
@@ -146,7 +148,7 @@ func Test_Version(t *testing.T) {
 				Profile:      "profile",
 				OperationID:  "opsid",
 				CreationTime: 1615831194,
-				Components: []*KymaComponent{
+				components: []*KymaComponent{
 					&KymaComponent{
 						Name:      "test",
 						Namespace: "somewhere",
@@ -168,7 +170,8 @@ func Test_Version(t *testing.T) {
 						"kymaProfile":      "profile",
 						"kymaVersion":      "master",
 						"kymaOperationID":  "aaa",
-						"kymaCreationTime": "1000000000"},
+						"kymaCreationTime": "1000000000",
+						"kymaPriority":     "1000000000"},
 				},
 			},
 			&v1.Secret{ //installed from "master" by operation "aaa:1000000000"
@@ -181,7 +184,8 @@ func Test_Version(t *testing.T) {
 						"kymaProfile":      "profile",
 						"kymaVersion":      "master",
 						"kymaOperationID":  "aaa",
-						"kymaCreationTime": "1000000000"},
+						"kymaCreationTime": "1000000000",
+						"kymaPriority":     "1000000001"},
 				},
 			},
 			&v1.Secret{ //installed from "2.0.0" release by operation "bbb:2000000000"
@@ -194,7 +198,8 @@ func Test_Version(t *testing.T) {
 						"kymaProfile":      "evaluation",
 						"kymaVersion":      "2.0.0",
 						"kymaOperationID":  "bbb",
-						"kymaCreationTime": "2000000000"},
+						"kymaCreationTime": "2000000000",
+						"kymaPriority":     "2000000000"},
 				},
 			},
 			&v1.Secret{ //installed (upgrade) from "2.0.1" release by operation "ccc:3000000000"
@@ -207,7 +212,8 @@ func Test_Version(t *testing.T) {
 						"kymaProfile":      "production",
 						"kymaVersion":      "2.0.1",
 						"kymaOperationID":  "ccc",
-						"kymaCreationTime": "3000000000"},
+						"kymaCreationTime": "3000000000",
+						"kymaPriority":     "3000000000"},
 				},
 			},
 			&v1.Secret{ //installed from "master" by operation "ddd:4000000000"
@@ -220,7 +226,8 @@ func Test_Version(t *testing.T) {
 						"kymaProfile":      "profile",
 						"kymaVersion":      "master",
 						"kymaOperationID":  "ddd",
-						"kymaCreationTime": "4000000000"},
+						"kymaCreationTime": "4000000000",
+						"kymaPriority":     "4000000000"},
 				},
 			},
 		)
@@ -232,21 +239,9 @@ func Test_Version(t *testing.T) {
 			&KymaVersion{
 				Version:      "master",
 				Profile:      "profile",
-				OperationID:  "ddd",
-				CreationTime: 4000000000,
-				Components: []*KymaComponent{
-					&KymaComponent{
-						Name:      "test3",
-						Namespace: "test3",
-					},
-				},
-			},
-			&KymaVersion{
-				Version:      "master",
-				Profile:      "profile",
 				OperationID:  "aaa",
 				CreationTime: 1000000000,
-				Components: []*KymaComponent{
+				components: []*KymaComponent{
 					&KymaComponent{
 						Name:      "test",
 						Namespace: "test",
@@ -262,10 +257,22 @@ func Test_Version(t *testing.T) {
 				Profile:      "production",
 				OperationID:  "ccc",
 				CreationTime: 3000000000,
-				Components: []*KymaComponent{
+				components: []*KymaComponent{
 					&KymaComponent{
 						Name:      "test1",
 						Namespace: "test1",
+					},
+				},
+			},
+			&KymaVersion{
+				Version:      "master",
+				Profile:      "profile",
+				OperationID:  "ddd",
+				CreationTime: 4000000000,
+				components: []*KymaComponent{
+					&KymaComponent{
+						Name:      "test3",
+						Namespace: "test3",
 					},
 				},
 			},

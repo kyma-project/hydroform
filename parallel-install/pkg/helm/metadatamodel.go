@@ -2,10 +2,17 @@ package helm
 
 import (
 	"fmt"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+var (
+	kymaMetadataCount int64 = time.Now().Unix()
+	mu                sync.Mutex
 )
 
 type KymaMetadata struct {
@@ -14,11 +21,20 @@ type KymaMetadata struct {
 	Component    bool //indicator flag to which is always set to 'true' (used in lookups)
 	OperationID  string
 	CreationTime int64
+	Counter      int64 //count metaData usage
 }
 
 func (km *KymaMetadata) isValid() bool {
 	//check whether all mandatory fields are defined
 	return km.Version != "" && km.Component && km.OperationID != "" && km.CreationTime > 0
+}
+
+func (km *KymaMetadata) increment() *KymaMetadata {
+	mu.Lock()
+	kymaMetadataCount++
+	km.Counter = kymaMetadataCount
+	mu.Unlock()
+	return km
 }
 
 type KymaVersionSet struct {
@@ -50,12 +66,18 @@ type KymaVersion struct {
 	Profile      string
 	OperationID  string
 	CreationTime int64
-	Components   []*KymaComponent
+	components   []*KymaComponent
+}
+
+//Components returns all components of this version in increasing priority order (first installed to the latest installed components)
+func (v *KymaVersion) Components() []*KymaComponent {
+	sort.Slice(v.components, func(i, j int) bool { return v.components[i].Priority < v.components[j].Priority })
+	return v.components
 }
 
 func (v *KymaVersion) ComponentNames() []string {
 	result := []string{}
-	for _, comp := range v.Components {
+	for _, comp := range v.Components() {
 		result = append(result, comp.Name)
 	}
 	return result
@@ -68,6 +90,7 @@ func (v *KymaVersion) String() string {
 type KymaComponent struct {
 	Name      string
 	Namespace string
+	Priority  int64
 }
 
 func NewKymaMetadata(version, profile string) *KymaMetadata {
