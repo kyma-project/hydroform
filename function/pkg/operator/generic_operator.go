@@ -24,6 +24,11 @@ var (
 		Version:  "v1alpha1",
 		Resource: "gitrepositories",
 	}
+	GVKApiRule = schema.GroupVersionResource{
+		Group:    "gateway.kyma-project.io",
+		Version:  "v1alpha1",
+		Resource: "apirules",
+	}
 )
 
 type genericOperator struct {

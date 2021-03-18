@@ -51,6 +51,15 @@ type SecretKeySelector struct {
 	Key  string `yaml:"key"`
 }
 
+type ApiRule struct {
+	Host    string   `yaml:"host"`
+	Name    string   `yaml:"name"`
+	Port    int      `yaml:"port"`
+	Methods []string `yaml:"methods"`
+	Handler string   `yaml:"handler"`
+	Path    string   `yaml:"path"`
+}
+
 type Cfg struct {
 	Name      string            `yaml:"name"`
 	Namespace string            `yaml:"namespace"`
@@ -60,6 +69,7 @@ type Cfg struct {
 	Resources Resources         `yaml:"resource,omitempty"`
 	Triggers  []Trigger         `yaml:"triggers,omitempty"`
 	Env       []EnvVar          `yaml:"env,omitempty"`
+	ApiRule   ApiRule           `yaml:"apiRule,omitempty"`
 }
 
 type Source struct {
