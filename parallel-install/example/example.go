@@ -57,11 +57,15 @@ func main() {
 		log.Error("Failed to Add overrides file. Exiting...")
 		os.Exit(1)
 	}
+	newKymaOverrides := make(map[string]interface{})
+	newKymaOverrides["isBEBEnabled"] = true
+	builder.AddOverrides("global", newKymaOverrides)
 
 	compList, err := config.NewComponentList("./components.yaml")
 	if err != nil {
 		log.Fatalf("Cannot read component list: %s", err)
 	}
+
 	installationCfg := &config.Config{
 		WorkersCount:                  4,
 		CancelTimeout:                 20 * time.Minute,
@@ -113,9 +117,10 @@ func main() {
 		Log:                      installationCfg.Log,
 	}
 
+	resourceParser := &preinstaller.GenericResourceParser{}
 	resourceManager := preinstaller.NewDefaultResourceManager(dynamicClient, preInstallerCfg.Log, commonRetryOpts)
 	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, resourceManager)
-	preInstaller := preinstaller.NewPreInstaller(resourceApplier, preInstallerCfg, dynamicClient, commonRetryOpts)
+	preInstaller := preinstaller.NewPreInstaller(resourceApplier, resourceParser, preInstallerCfg, dynamicClient, commonRetryOpts)
 
 	result, err := preInstaller.InstallCRDs()
 	if err != nil || len(result.NotInstalled) > 0 {

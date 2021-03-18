@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
 
 // Copied and modified code from https://github.com/moby/moby/tree/master/pkg/namesgenerator because of K8S can't use char `_` in names
@@ -138,6 +139,7 @@ var (
 // formatted as "adjective-name". For example 'quizzical_rafal'. If retry is true, a random
 // integer between 0 and 10 will be added to the end of the name, e.g `focused_filip3`
 func GenerateName(isSuffix bool) string {
+	rand.Seed(time.Now().UnixNano())
 	name := fmt.Sprintf("%s-%s", left[rand.Intn(len(left))], right[rand.Intn(len(right))])
 	if isSuffix {
 		name = fmt.Sprintf("%s%d", name, rand.Intn(10))

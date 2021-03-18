@@ -25,3 +25,11 @@ func TestNameRetries(t *testing.T) {
 	}
 
 }
+
+func TestDuplicateNames(t *testing.T) {
+	firstName := GenerateName(true)
+	secondName := GenerateName(true)
+	if firstName == secondName {
+		t.Fatalf("Duplicate generated names")
+	}
+}

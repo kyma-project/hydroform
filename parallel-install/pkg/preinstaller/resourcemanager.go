@@ -4,12 +4,14 @@ import (
 	"context"
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"regexp"
 )
+
+//go:generate mockery --name ResourceManager
 
 // ResourceManager manages resources on a k8s cluster.
 type ResourceManager interface {
@@ -53,32 +55,33 @@ func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructu
 		return nil
 	}, c.retryOptions...)
 
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (obj *unstructured.Unstructured, err error) {
-	obj, err = c.getResource(resourceName, resourceSchema)
-	if err != nil {
-		notFoundError := "not found"
-		matched, _ := regexp.MatchString(notFoundError, err.Error())
-		if matched {
-			c.log.Infof("Resource %s was not found.", resourceName)
-			return nil, nil
-		}
-	} else {
-		return obj, err
-	}
-
 	err = retry.Do(func() error {
 		obj, err = c.getResource(resourceName, resourceSchema)
 		if err != nil {
-			c.log.Errorf("Error occurred during resource get: %s", err.Error())
-			return err
+			if apierrors.IsNotFound(err) {
+				c.log.Infof("Resource %s was not found.", resourceName)
+				return nil
+			} else {
+				c.log.Errorf("Error occurred during resource get: %s", err.Error())
+				return err
+			}
 		}
 
 		return err
 
 	}, c.retryOptions...)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return obj, nil
 }
@@ -99,6 +102,10 @@ func (c *DefaultResourceManager) UpdateResource(resource *unstructured.Unstructu
 
 		return nil
 	}, c.retryOptions...)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return obj, nil
 }

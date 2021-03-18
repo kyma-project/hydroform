@@ -24,8 +24,8 @@ func TestResourceManager_CreateResource(t *testing.T) {
 		// given
 		manager := NewDefaultResourceManager(dynamicClient, log, retryOptions)
 		resourceName := "namespace"
-		resource := fixNamespaceResourceWith(resourceName)
-		resourceSchema := prepareSchemaFor(resource)
+		resource := fixResourceWith(resourceName)
+		resourceSchema := fixResourceGvkSchema()
 
 		// when
 		err := manager.CreateResource(resource, resourceSchema)
@@ -59,10 +59,10 @@ func TestResourceManager_GetResource(t *testing.T) {
 	t.Run("should get pre-created resource", func(t *testing.T) {
 		// given
 		resourceName := "namespace"
-		resource := fixNamespaceResourceWith(resourceName)
+		resource := fixResourceWith(resourceName)
 		customDynamicClient := fake.NewSimpleDynamicClient(scheme, resource)
 		manager := NewDefaultResourceManager(customDynamicClient, log, retryOptions)
-		resourceSchema := prepareSchemaFor(resource)
+		resourceSchema := fixResourceGvkSchema()
 
 		// when
 		retrievedResource, err := manager.GetResource(resourceName, resourceSchema)
@@ -76,7 +76,7 @@ func TestResourceManager_GetResource(t *testing.T) {
 	})
 }
 
-func TestResourceManager_UpdateRefreshableResource(t *testing.T) {
+func TestResourceManager_UpdateResource(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	retryOptions := getTestingRetryOptions()
@@ -85,10 +85,10 @@ func TestResourceManager_UpdateRefreshableResource(t *testing.T) {
 	t.Run("should update resource", func(t *testing.T) {
 		// given
 		resourceName := "namespace"
-		resource := fixNamespaceResourceWith(resourceName)
+		resource := fixResourceWith(resourceName)
+		resourceSchema := fixResourceGvkSchema()
 		customDynamicClient := fake.NewSimpleDynamicClient(scheme, resource)
 		manager := NewDefaultResourceManager(customDynamicClient, log, retryOptions)
-		resourceSchema := prepareSchemaFor(resource)
 		labels := map[string]string{
 			"key": "value",
 		}
@@ -104,11 +104,11 @@ func TestResourceManager_UpdateRefreshableResource(t *testing.T) {
 	})
 }
 
-func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
+func fixResourceWith(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Namespace",
+			"apiVersion": "group/v1",
+			"kind":       "Kind",
 			"metadata": map[string]interface{}{
 				"name": name,
 			},
@@ -116,11 +116,10 @@ func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
 	}
 }
 
-func prepareSchemaFor(resource *unstructured.Unstructured) schema.GroupVersionResource {
-	gvk := resource.GroupVersionKind()
+func fixResourceGvkSchema() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
-		Group:    gvk.Group,
-		Version:  gvk.Version,
-		Resource: pluralForm(gvk.Kind),
+		Group:    "group",
+		Version:  "v1",
+		Resource: "kinds",
 	}
 }

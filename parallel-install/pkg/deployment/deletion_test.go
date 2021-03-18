@@ -5,6 +5,8 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
@@ -14,7 +16,12 @@ import (
 
 func TestDeployment_StartKymaUninstallation(t *testing.T) {
 
-	kubeClient := fake.NewSimpleClientset()
+	kubeClient := fake.NewSimpleClientset(&v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "kyma-installer",
+			Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
+		},
+	})
 	i := newDeletion(t, nil, kubeClient)
 
 	t.Run("should uninstall Kyma", func(t *testing.T) {
@@ -23,12 +30,16 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			hc: hc,
 		}
 		overridesProvider := &mockOverridesProvider{}
-		eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+		prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			WorkersCount: 1,
+			Log:          logger.NewLogger(true),
+		})
+		componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 			WorkersCount: 2,
 			Log:          logger.NewLogger(true),
 		})
 
-		err := i.startKymaUninstallation(provider, eng)
+		err := i.startKymaUninstallation(prerequisitesEng, componentsEng)
 
 		assert.NoError(t, err)
 	})
@@ -42,13 +53,17 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := i.startKymaUninstallation(provider, eng)
+			err := i.startKymaUninstallation(prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -73,13 +88,17 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := i.startKymaUninstallation(provider, eng)
+			err := i.startKymaUninstallation(prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
@@ -96,7 +115,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 		})
 	})
 
-	t.Run("should uninstall components and fail to deploy Kyma prerequisites", func(t *testing.T) {
+	t.Run("should uninstall components and fail to uninstall Kyma prerequisites", func(t *testing.T) {
 		t.Run("due to cancel timeout", func(t *testing.T) {
 			hc := &mockHelmClient{
 				componentProcessingTime: 40,
@@ -105,19 +124,23 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := i.startKymaUninstallation(provider, eng)
+			err := i.startKymaUninstallation(prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
 
 			assert.Error(t, err)
-			assert.EqualError(t, err, "Kyma prerequisites uninstallation failed due to the timeout")
+			assert.EqualError(t, err, "Kyma uninstallation failed due to the timeout")
 
 			t.Logf("Elapsed time: %v", elapsed.Seconds())
 			// Cancel timeout occurs at 150 ms
@@ -144,19 +167,23 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 				hc: hc,
 			}
 			overridesProvider := &mockOverridesProvider{}
-			eng := engine.NewEngine(overridesProvider, provider, engine.Config{
+			prerequisitesEng := engine.NewEngine(overridesProvider, provider, engine.Config{
+				WorkersCount: 1,
+				Log:          logger.NewLogger(true),
+			})
+			componentsEng := engine.NewEngine(overridesProvider, provider, engine.Config{
 				WorkersCount: 2,
 				Log:          logger.NewLogger(true),
 			})
 
 			start := time.Now()
-			err := inst.startKymaUninstallation(provider, eng)
+			err := inst.startKymaUninstallation(prerequisitesEng, componentsEng)
 			end := time.Now()
 
 			elapsed := end.Sub(start)
 
 			assert.Error(t, err)
-			assert.EqualError(t, err, "Force quit: Kyma prerequisites uninstallation failed due to the timeout")
+			assert.EqualError(t, err, "Force quit: Kyma uninstallation failed due to the timeout")
 
 			t.Logf("Elapsed time: %v", elapsed.Seconds())
 			// Prerequisites and two components deployment lasts over 280 ms (multiple of 71[ms], 2 workers uninstalling components in parallel)
@@ -173,10 +200,12 @@ func newDeletion(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient kube
 	compList, err := config.NewComponentList("../test/data/componentlist.yaml")
 	assert.NoError(t, err)
 	config := &config.Config{
-		CancelTimeout: cancelTimeout,
-		QuitTimeout:   quitTimeout,
-		Log:           logger.NewLogger(true),
-		ComponentList: compList,
+		CancelTimeout:                 cancelTimeout,
+		QuitTimeout:                   quitTimeout,
+		BackoffInitialIntervalSeconds: 1,
+		BackoffMaxElapsedTimeSeconds:  1,
+		Log:                           logger.NewLogger(true),
+		ComponentList:                 compList,
 	}
 	core, err := newCore(config, &OverridesBuilder{}, kubeClient, procUpdates)
 	assert.NoError(t, err)

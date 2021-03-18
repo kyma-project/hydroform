@@ -15,7 +15,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/prerequisites"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 )
 
 //TODO: has to be taken from component list! See https://github.com/kyma-incubator/hydroform/issues/181
@@ -42,12 +42,12 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes
 
 //StartKymaUninstallation removes Kyma from a cluster
 func (i *Deletion) StartKymaUninstallation() error {
-	_, prerequisitesProvider, engine, err := i.getConfig()
+	_, prerequisitesEng, componentsEng, err := i.getConfig()
 	if err != nil {
 		return err
 	}
 
-	err = i.startKymaUninstallation(prerequisitesProvider, engine)
+	err = i.startKymaUninstallation(prerequisitesEng, componentsEng)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (i *Deletion) StartKymaUninstallation() error {
 	return err
 }
 
-func (i *Deletion) startKymaUninstallation(prerequisitesProvider components.Provider, eng *engine.Engine) error {
+func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
 	i.cfg.Log.Info("Kyma uninstallation started")
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -66,7 +66,7 @@ func (i *Deletion) startKymaUninstallation(prerequisitesProvider components.Prov
 	quitTimeout := i.cfg.QuitTimeout
 
 	startTime := time.Now()
-	err := i.uninstallComponents(cancelCtx, cancel, eng, cancelTimeout, quitTimeout)
+	err := i.uninstallComponents(UninstallComponents, cancelCtx, cancel, componentsEng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -77,12 +77,15 @@ func (i *Deletion) startKymaUninstallation(prerequisitesProvider components.Prov
 	cancelTimeout = calculateDuration(startTime, endTime, i.cfg.CancelTimeout)
 	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
 
-	prerequisites, err := prerequisitesProvider.GetComponents()
+	err = i.uninstallComponents(UninstallPreRequisites, cancelCtx, cancel, prerequisitesEng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
-
-	err = i.uninstallPrerequisites(cancelCtx, cancel, prerequisites, cancelTimeout, quitTimeout)
+	ns := namespace.Namespace{
+		KubeClient: i.kubeClient,
+		Log:        i.cfg.Log,
+	}
+	err = ns.DeleteInstallerNamespace()
 	if err != nil {
 		return err
 	}
@@ -90,55 +93,7 @@ func (i *Deletion) startKymaUninstallation(prerequisitesProvider components.Prov
 	return nil
 }
 
-func (i *Deletion) uninstallPrerequisites(ctx context.Context, cancelFunc context.CancelFunc, p []components.KymaComponent, cancelTimeout time.Duration, quitTimeout time.Duration) error {
-
-	cancelTimeoutChan := time.After(cancelTimeout)
-	quitTimeoutChan := time.After(quitTimeout)
-	timeoutOccurred := false
-
-	prereq := prerequisites.Prerequisites{
-		Context:       ctx,
-		KubeClient:    i.kubeClient,
-		Prerequisites: p,
-		Log:           i.cfg.Log,
-	}
-	prereqStatusChan := prereq.UninstallPrerequisites()
-
-	i.processUpdate(UninstallPreRequisites, ProcessStart, nil)
-
-Prerequisites:
-	for {
-		select {
-		case prerequisiteErr, ok := <-prereqStatusChan:
-			if ok {
-				if prerequisiteErr != nil {
-					i.processUpdate(UninstallPreRequisites, ProcessExecutionFailure, prerequisiteErr)
-					i.cfg.Log.Errorf("Failed to uninstall a prerequisite: %s", prerequisiteErr)
-				}
-			} else {
-				if timeoutOccurred {
-					err := fmt.Errorf("Kyma prerequisites uninstallation failed due to the timeout")
-					i.processUpdate(UninstallPreRequisites, ProcessTimeoutFailure, err)
-					return err
-				}
-				break Prerequisites
-			}
-		case <-cancelTimeoutChan:
-			timeoutOccurred = true
-			i.cfg.Log.Error("Timeout reached. Cancelling uninstallation")
-			cancelFunc()
-		case <-quitTimeoutChan:
-			err := fmt.Errorf("Force quit: Kyma prerequisites uninstallation failed due to the timeout")
-			i.processUpdate(UninstallPreRequisites, ProcessForceQuitFailure, err)
-			i.cfg.Log.Error("Uninstallation doesn't stop after it's canceled. Enforcing quit")
-			return err
-		}
-	}
-	i.processUpdate(UninstallPreRequisites, ProcessFinished, nil)
-	return nil
-}
-
-func (i *Deletion) uninstallComponents(ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+func (i *Deletion) uninstallComponents(phase InstallationPhase, ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
 	var statusMap = map[string]string{}
@@ -150,7 +105,7 @@ func (i *Deletion) uninstallComponents(ctx context.Context, cancelFunc context.C
 		return err
 	}
 
-	i.processUpdate(UninstallComponents, ProcessStart, nil)
+	i.processUpdate(phase, ProcessStart, nil)
 
 	//Await completion
 UninstallLoop:
@@ -158,7 +113,7 @@ UninstallLoop:
 		select {
 		case cmp, ok := <-statusChan:
 			if ok {
-				i.processUpdateComponent(UninstallComponents, cmp)
+				i.processUpdateComponent(phase, cmp)
 				if cmp.Status == components.StatusError {
 					errCount++
 				}
@@ -166,13 +121,13 @@ UninstallLoop:
 			} else {
 				if errCount > 0 {
 					err := fmt.Errorf("Kyma uninstallation failed due to errors in %d component(s)", errCount)
-					i.processUpdate(UninstallComponents, ProcessExecutionFailure, err)
+					i.processUpdate(phase, ProcessExecutionFailure, err)
 					i.logStatuses(statusMap)
 					return err
 				}
 				if timeoutOccured {
 					err := fmt.Errorf("Kyma uninstallation failed due to the timeout")
-					i.processUpdate(UninstallComponents, ProcessTimeoutFailure, err)
+					i.processUpdate(phase, ProcessTimeoutFailure, err)
 					i.logStatuses(statusMap)
 					return err
 				}
@@ -184,12 +139,12 @@ UninstallLoop:
 			cancelFunc()
 		case <-quitTimeoutChan:
 			err := fmt.Errorf("Force quit: Kyma uninstallation failed due to the timeout")
-			i.processUpdate(UninstallComponents, ProcessForceQuitFailure, err)
+			i.processUpdate(phase, ProcessForceQuitFailure, err)
 			i.cfg.Log.Error("Uninstallation doesn't stop after it's canceled. Enforcing quit")
 			return err
 		}
 	}
-	i.processUpdate(UninstallComponents, ProcessFinished, nil)
+	i.processUpdate(phase, ProcessFinished, nil)
 	return nil
 }
 
