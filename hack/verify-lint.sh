@@ -37,11 +37,9 @@ golangci::run_checks() {
     golint gofmt misspell gochecknoinits unparam scopelint gosec
   )
 
-  ENABLE=$(sed 's/ /,/g' <<< "${LINTS[@]}")
-
   echo "Checks: ${LINTS[*]}"
   cd $ROOT_PATH
-  golangci-lint --disable-all --enable="${ENABLE}" --timeout=10m run --config $CURRENT_DIR/.golangci.yml
+  golangci-lint --disable-all --enable="$(sed 's/ /,/g' <<< "${LINTS[@]}")" --timeout=10m run --config $CURRENT_DIR/.golangci.yml
 
   echo -e "${GREEN}√ run golangci-lint${NC}"
 }
