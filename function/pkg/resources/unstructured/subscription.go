@@ -10,9 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const (
-	apiVersionSubscription = "eventing.kyma-project.io/v1alpha1"
-)
+const apiVersionSubscription = "eventing.kyma-project.io/v1alpha1"
 
 func joinNonEmpty(elems []string, sep string) string {
 	length := len(elems)
