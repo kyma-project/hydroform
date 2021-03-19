@@ -73,9 +73,10 @@ func (i *core) getConfig() (overrides.OverridesProvider, *engine.Engine, *engine
 		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider: exiting")
 	}
 
-	kymaMetadata := helm.NewKymaMetadata(i.cfg.Version, i.cfg.Profile)
-	prerequisitesProvider := components.NewComponentsProvider(overridesProvider, i.cfg, i.cfg.ComponentList.Prerequisites, kymaMetadata)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg, i.cfg.ComponentList.Components, kymaMetadata)
+	//create KymaComponentMetadataTemplate and set prerequisites flag
+	kymaMetadataTpl := helm.NewKymaComponentMetadataTemplate(i.cfg.Version, i.cfg.Profile)
+	prerequisitesProvider := components.NewComponentsProvider(overridesProvider, i.cfg, i.cfg.ComponentList.Prerequisites, kymaMetadataTpl.ForPrerequisites())
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg, i.cfg.ComponentList.Components, kymaMetadataTpl.ForComponents())
 
 	prerequisitesEngineCfg := engine.Config{
 		// prerequisite components need to be installed sequentially, so only 1 worker should be used

@@ -35,7 +35,7 @@ type Config struct {
 	MaxHistory                    int              //Maximum number of revisions saved per release
 	Log                           logger.Interface //Used for logging
 	Atomic                        bool
-	KymaMetadata                  *KymaMetadata
+	KymaComponentMetadataTemplate *KymaComponentMetadataTemplate
 }
 
 //Client implements the ClientInterface.
@@ -304,7 +304,7 @@ func (c *Client) updateKymaMetadata(cfg *action.Configuration, rel *release.Rele
 	//add Kyma metadata to Helm release secret
 	kubeClient, err := cfg.KubernetesClientSet()
 	if err == nil {
-		err = (&KymaMetadataProvider{kubeClient: kubeClient}).Set(rel, c.cfg.KymaMetadata)
+		err = (&KymaMetadataProvider{kubeClient: kubeClient}).Set(rel, c.cfg.KymaComponentMetadataTemplate)
 	}
 	if err != nil {
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)

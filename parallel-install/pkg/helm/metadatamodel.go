@@ -8,33 +8,109 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 var (
-	kymaMetadataCount int64 = time.Now().Unix()
-	mu                sync.Mutex
+	kymaComponentPriority int64 = 0 //used to sequentially order the created Kyma component metadata
+	mu                    sync.Mutex
 )
 
-type KymaMetadata struct {
+type KymaComponentMetadataTemplate struct {
+	Profile      string
+	Version      string
+	Prerequisite bool //flag to mark pre-requisite components
+	Component    bool //indicator flag to which is always set to 'true' (used in lookups)
+	OperationID  string
+	CreationTime int64
+	ready        bool
+}
+
+func (kmt *KymaComponentMetadataTemplate) ForPrerequisites() *KymaComponentMetadataTemplate {
+	return kmt.clone(true)
+}
+
+func (kmt *KymaComponentMetadataTemplate) ForComponents() *KymaComponentMetadataTemplate {
+	return kmt.clone(false)
+}
+
+func (kmt *KymaComponentMetadataTemplate) clone(isPrerequisiteTemplate bool) *KymaComponentMetadataTemplate {
+	return &KymaComponentMetadataTemplate{
+		Profile:      kmt.Profile,
+		Version:      kmt.Version,
+		Component:    kmt.Component,
+		OperationID:  kmt.OperationID,
+		CreationTime: kmt.CreationTime,
+		Prerequisite: isPrerequisiteTemplate,
+		ready:        true,
+	}
+}
+
+func (kmt *KymaComponentMetadataTemplate) Build(namespace, name string) (*KymaComponentMetadata, error) {
+	if !kmt.ready {
+		return nil, fmt.Errorf("KymaComponentMetadataTemplate is not ready: call ForPrerequisite() or ForComponent()")
+	}
+
+	mu.Lock()
+	kymaComponentPriority++
+	mu.Unlock()
+	compMeta := &KymaComponentMetadata{
+		Profile:      kmt.Profile,
+		Version:      kmt.Version,
+		Component:    kmt.Component,
+		OperationID:  kmt.OperationID,
+		CreationTime: kmt.CreationTime,
+		Name:         name,
+		Namespace:    namespace,
+		Priority:     kymaComponentPriority,
+		Prerequisite: kmt.Prerequisite,
+	}
+	if err := compMeta.isValid(); err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("Kyma component '%s' is invalid", compMeta))
+	}
+	return compMeta, nil
+}
+
+type KymaComponentMetadata struct {
 	Profile      string
 	Version      string
 	Component    bool //indicator flag to which is always set to 'true' (used in lookups)
 	OperationID  string
 	CreationTime int64
-	Counter      int64 //count metaData usage
+	Name         string
+	Namespace    string
+	Priority     int64
+	Prerequisite bool
 }
 
-func (km *KymaMetadata) isValid() bool {
+func (km *KymaComponentMetadata) isValid() error {
 	//check whether all mandatory fields are defined
-	return km.Version != "" && km.Component && km.OperationID != "" && km.CreationTime > 0
+	if km.Version == "" {
+		return fmt.Errorf("Version is missing")
+	}
+	if !km.Component {
+		return fmt.Errorf("Component flag not set to true")
+	}
+	if km.OperationID == "" {
+		return fmt.Errorf("Operation ID is empty")
+	}
+	if km.CreationTime == 0 {
+		return fmt.Errorf("Creation time is 0")
+	}
+	if km.Priority == 0 {
+		return fmt.Errorf("Priority is 0")
+	}
+	if km.Name == "" {
+		return fmt.Errorf("Name is missing")
+	}
+	if km.Namespace == "" {
+		return fmt.Errorf("Namespace is missing")
+	}
+	return nil
 }
 
-func (km *KymaMetadata) increment() *KymaMetadata {
-	mu.Lock()
-	kymaMetadataCount++
-	km.Counter = kymaMetadataCount
-	mu.Unlock()
-	return km
+func (km *KymaComponentMetadata) String() string {
+	return fmt.Sprintf("%s:%s:%d", km.Namespace, km.Name, km.Priority)
 }
 
 type KymaVersionSet struct {
@@ -66,12 +142,22 @@ type KymaVersion struct {
 	Profile      string
 	OperationID  string
 	CreationTime int64
-	components   []*KymaComponent
+	components   []*KymaComponentMetadata
 }
 
 //Components returns all components of this version in increasing priority order (latest installed to the first installed components)
-func (v *KymaVersion) Components() []*KymaComponent {
-	sort.Slice(v.components, func(i, j int) bool { return v.components[i].Priority > v.components[j].Priority })
+func (v *KymaVersion) Components() []*KymaComponentMetadata {
+	sort.Slice(v.components, func(i, j int) bool {
+		prio1 := v.components[i].Priority
+		if v.components[i].Prerequisite { //boost if pre-requisite
+			prio1 += 100000000
+		}
+		prio2 := v.components[j].Priority
+		if v.components[j].Prerequisite { //boost if pre-requisite
+			prio2 += 100000000
+		}
+		return prio1 > prio2
+	})
 	return v.components
 }
 
@@ -93,8 +179,8 @@ type KymaComponent struct {
 	Priority  int64
 }
 
-func NewKymaMetadata(version, profile string) *KymaMetadata {
-	return &KymaMetadata{
+func NewKymaComponentMetadataTemplate(version, profile string) *KymaComponentMetadataTemplate {
+	return &KymaComponentMetadataTemplate{
 		Profile:      profile,
 		Version:      version,
 		Component:    true, //flag will always be set for any Kyma component

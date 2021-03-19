@@ -40,10 +40,11 @@ func (err *helmSecretNameInvalidError) Error() string {
 
 type kymaMetadataUnavailableError struct {
 	secret string
+	err    error
 }
 
 func (err *kymaMetadataUnavailableError) Error() string {
-	return fmt.Sprintf("Kyma metadata not found in HELM secret '%s'", err.secret)
+	return fmt.Sprintf("Kyma component metadata not found or incomplete in HELM secret '%s': %s", err.secret, err.err.Error())
 }
 
 type kymaMetadataFieldUnknownError struct {
@@ -81,7 +82,7 @@ func (mp *KymaMetadataProvider) Versions() (*KymaVersionSet, error) {
 	//group secrets by component-name (required to find latest secret)
 	secretsPerComp := make(map[string][]v1.Secret)
 	for _, secret := range secrets.Items {
-		if name, ok := secret.Labels["name"]; ok {
+		if name, ok := secret.Labels["kymaName"]; ok {
 			secretsPerComp[name] = append(secretsPerComp[name], secret)
 		}
 	}
@@ -102,34 +103,30 @@ func (mp *KymaMetadataProvider) resolveKymaVersions(secretsPerComp map[string][]
 		if err != nil {
 			return nil, err
 		}
-		metadata, err := mp.unmarshalMetadata(latestSecret)
+		compMeta, err := mp.unmarshalMetadata(latestSecret)
 		if err != nil {
 			return nil, err
 		}
-		kymaVersion, ok := versions[metadata.OperationID]
+		kymaVersion, ok := versions[compMeta.OperationID]
 		if !ok {
 			//create version instance if missing
 			kymaVersion = &KymaVersion{
-				Version:      metadata.Version,
-				Profile:      metadata.Profile,
-				OperationID:  metadata.OperationID,
-				CreationTime: metadata.CreationTime,
+				Version:      compMeta.Version,
+				Profile:      compMeta.Profile,
+				OperationID:  compMeta.OperationID,
+				CreationTime: compMeta.CreationTime,
 			}
-			versions[metadata.OperationID] = kymaVersion
+			versions[compMeta.OperationID] = kymaVersion
 		}
 		//add component to version
-		kymaVersion.components = append(kymaVersion.components, &KymaComponent{
-			Name:      compName,
-			Namespace: latestSecret.Namespace,
-			Priority:  metadata.Counter,
-		})
+		kymaVersion.components = append(kymaVersion.components, compMeta)
 	}
 
 	return mp.versionFromMap(versions), nil
 }
 
 func (mp *KymaMetadataProvider) structField(fieldName string) (*structs.Field, error) {
-	field := structs.New(KymaMetadata{}).Field(fieldName)
+	field := structs.New(KymaComponentMetadata{}).Field(fieldName)
 	if field == nil {
 		return nil, &kymaMetadataFieldUnknownError{field: fieldName}
 	}
@@ -171,9 +168,9 @@ func (mp *KymaMetadataProvider) findLatestSecret(name string, secrets []v1.Secre
 	return &latestSecret, nil
 }
 
-func (mp *KymaMetadataProvider) Set(release *release.Release, metadata *KymaMetadata) error {
-	if metadata == nil {
-		return fmt.Errorf("No Kyma metadata provided for Helm release '%s' (namespace '%s')", release.Name, release.Namespace)
+func (mp *KymaMetadataProvider) Set(release *release.Release, compMetaTpl *KymaComponentMetadataTemplate) error {
+	if compMetaTpl == nil {
+		return fmt.Errorf("No Kyma metadata factory provided for Helm release '%s' (namespace '%s')", release.Name, release.Namespace)
 	}
 
 	secretName := mp.secretName(release.Name, release.Version)
@@ -187,15 +184,19 @@ func (mp *KymaMetadataProvider) Set(release *release.Release, metadata *KymaMeta
 	}
 
 	//update secret
-	mp.marshalMetadata(secret, metadata.increment())
+	metadata, err := compMetaTpl.Build(release.Namespace, release.Name)
+	if err != nil {
+		return err
+	}
+	mp.marshalMetadata(secret, metadata)
 	_, err = mp.kubeClient.CoreV1().Secrets(release.Namespace).Update(context.Background(), secret, metaV1.UpdateOptions{})
 	return err
 }
 
-func (mp *KymaMetadataProvider) Get(name string) (*KymaMetadata, error) {
+func (mp *KymaMetadataProvider) Get(name string) (*KymaComponentMetadata, error) {
 	secret, err := mp.latestSecret(name, "")
 	if err != nil {
-		return &KymaMetadata{}, err
+		return nil, err
 	}
 	return mp.unmarshalMetadata(secret)
 }
@@ -217,7 +218,7 @@ func (mp *KymaMetadataProvider) latestSecret(name, namespace string) (*v1.Secret
 	return latestSecret, nil
 }
 
-func (mp *KymaMetadataProvider) marshalMetadata(secret *v1.Secret, metadata *KymaMetadata) {
+func (mp *KymaMetadataProvider) marshalMetadata(secret *v1.Secret, metadata *KymaComponentMetadata) {
 	if secret.Labels == nil {
 		secret.Labels = make(map[string]string)
 	}
@@ -236,8 +237,8 @@ func (mp *KymaMetadataProvider) marshalMetadata(secret *v1.Secret, metadata *Kym
 	}
 }
 
-func (mp *KymaMetadataProvider) unmarshalMetadata(secret *v1.Secret) (*KymaMetadata, error) {
-	var metadata *KymaMetadata = &KymaMetadata{}
+func (mp *KymaMetadataProvider) unmarshalMetadata(secret *v1.Secret) (*KymaComponentMetadata, error) {
+	var metadata *KymaComponentMetadata = &KymaComponentMetadata{}
 	var typedValue interface{}
 	var err error
 	for _, field := range structs.New(metadata).Fields() {
@@ -247,7 +248,7 @@ func (mp *KymaMetadataProvider) unmarshalMetadata(secret *v1.Secret) (*KymaMetad
 			case reflect.Bool:
 				typedValue, err = strconv.ParseBool(value)
 				if err != nil {
-					return nil, fmt.Errorf("Cannot unmarshal KymaMetadata field '%s' "+
+					return nil, fmt.Errorf("Cannot unmarshal KymaComponentMetadata field '%s' "+
 						"because value '%s' cannot be converted to bool", field.Name(), value)
 				}
 			case reflect.String:
@@ -255,11 +256,11 @@ func (mp *KymaMetadataProvider) unmarshalMetadata(secret *v1.Secret) (*KymaMetad
 			case reflect.Int64:
 				typedValue, err = strconv.ParseInt(value, 10, 64)
 				if err != nil {
-					return nil, fmt.Errorf("Cannot unmarshal KymaMetadata field '%s' "+
+					return nil, fmt.Errorf("Cannot unmarshal KymaComponentMetadata field '%s' "+
 						"because value '%s' cannot be converted to int64", field.Name(), value)
 				}
 			default:
-				return nil, fmt.Errorf("Cannot unmarshal KymaMetadata field '%s' "+
+				return nil, fmt.Errorf("Cannot unmarshal KymaComponentMetadata field '%s' "+
 					"because kind '%s' is not supported yet", field.Name(), field.Kind().String())
 			}
 			//set the typed value to the field
@@ -268,10 +269,10 @@ func (mp *KymaMetadataProvider) unmarshalMetadata(secret *v1.Secret) (*KymaMetad
 			}
 		}
 	}
-	if metadata.isValid() {
-		return metadata, nil
+	if err := metadata.isValid(); err != nil {
+		return nil, &kymaMetadataUnavailableError{secret: secret.Name, err: err}
 	}
-	return nil, &kymaMetadataUnavailableError{secret: secret.Name}
+	return metadata, nil
 }
 
 func (mp *KymaMetadataProvider) labelName(field *structs.Field) string {

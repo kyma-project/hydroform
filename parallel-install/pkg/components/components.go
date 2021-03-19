@@ -25,7 +25,7 @@ type ComponentsProvider struct {
 }
 
 //NewComponentsProvider returns a ComponentsProvider instance.
-func NewComponentsProvider(overridesProvider overrides.OverridesProvider, cfg *config.Config, components []config.ComponentDefinition, kymaMetadata *helm.KymaMetadata) *ComponentsProvider {
+func NewComponentsProvider(overridesProvider overrides.OverridesProvider, cfg *config.Config, components []config.ComponentDefinition, tpl *helm.KymaComponentMetadataTemplate) *ComponentsProvider {
 
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
@@ -34,7 +34,7 @@ func NewComponentsProvider(overridesProvider overrides.OverridesProvider, cfg *c
 		Log:                           cfg.Log,
 		MaxHistory:                    cfg.HelmMaxRevisionHistory,
 		Atomic:                        cfg.Atomic,
-		KymaMetadata:                  kymaMetadata,
+		KymaComponentMetadataTemplate: tpl,
 	}
 
 	return &ComponentsProvider{
