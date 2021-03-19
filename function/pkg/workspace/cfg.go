@@ -18,11 +18,26 @@ const (
 
 const CfgFilename = "config.yaml"
 
-type Trigger struct {
-	Name             string `yaml:"name"`
-	EventTypeVersion string `yaml:"eventTypeVersion"`
-	Source           string `yaml:"source"`
-	Type             string `yaml:"type"`
+type EventFilterProperty struct {
+	Property string `yaml:"property"`
+	Type     string `yaml:"type,omitempty"`
+	Value    string `yaml:"value"`
+}
+
+type EventFilter struct {
+	EventSource EventFilterProperty `yaml:"eventSource"`
+	EventType   EventFilterProperty `yaml:"eventType"`
+}
+
+type Filter struct {
+	Dialect string        `yaml:"dialect,omitempty"`
+	Filters []EventFilter `yaml:"filters"`
+}
+
+type Subscription struct {
+	Name     string `yaml:"name"`
+	Protocol string `yaml:"protocol"`
+	Filter   Filter `yaml:"filter"`
 }
 
 type Resources struct {
@@ -52,14 +67,15 @@ type SecretKeySelector struct {
 }
 
 type Cfg struct {
-	Name      string            `yaml:"name"`
-	Namespace string            `yaml:"namespace"`
-	Labels    map[string]string `yaml:"labels,omitempty"`
-	Runtime   types.Runtime     `yaml:"runtime"`
-	Source    Source            `yaml:"source"`
-	Resources Resources         `yaml:"resource,omitempty"`
-	Triggers  []Trigger         `yaml:"triggers,omitempty"`
-	Env       []EnvVar          `yaml:"env,omitempty"`
+	WorkspaceVersion string            `yaml:"workspaceVersion"`
+	Name             string            `yaml:"name"`
+	Namespace        string            `yaml:"namespace"`
+	Labels           map[string]string `yaml:"labels,omitempty"`
+	Runtime          types.Runtime     `yaml:"runtime"`
+	Source           Source            `yaml:"source"`
+	Resources        Resources         `yaml:"resource,omitempty"`
+	Subscriptions    []Subscription    `yaml:"subscriptions,omitempty"`
+	Env              []EnvVar          `yaml:"env,omitempty"`
 }
 
 type Source struct {

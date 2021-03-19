@@ -109,29 +109,42 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 	config.Runtime = function.Spec.Runtime
 	config.Labels = function.Spec.Labels
-	config.Env = convertCoreV1EnvToEnvVar(function.Spec.Env)
+	config.Env = toWorkspaceEnvVar(function.Spec.Env)
 
-	ul, err := build("", operator.GVKTriggers).List(ctx, v1.ListOptions{})
+	ul, err := build("", operator.GVRSubscription).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 
 	if ul != nil {
 		for _, item := range ul.Items {
-			var trigger types.Trigger
-			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &trigger); err != nil {
+			var subscription types.Subscription
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &subscription); err != nil {
 				return err
 			}
 
-			if !trigger.IsReference(function.Name, function.Namespace) {
+			if !subscription.IsReference(function.Name, function.Namespace) {
 				continue
 			}
 
-			config.Triggers = append(config.Triggers, Trigger{
-				EventTypeVersion: trigger.Spec.Filter.Attributes.EventTypeVersion,
-				Source:           trigger.Spec.Filter.Attributes.Source,
-				Type:             trigger.Spec.Filter.Attributes.Type,
-				Name:             trigger.ObjectMeta.Name,
+			filterLen := subscription.Spec.Filter.Filters
+			if len(filterLen) == 0 {
+				continue
+			}
+
+			var filters []EventFilter
+			for _, fromFilter := range subscription.Spec.Filter.Filters {
+				toFilter := toWorkspaceEnvFilter(fromFilter)
+				filters = append(filters, toFilter)
+			}
+
+			config.Subscriptions = append(config.Subscriptions, Subscription{
+				Name:     subscription.Name,
+				Protocol: subscription.Spec.Protocol,
+				Filter: Filter{
+					Dialect: subscription.Spec.Filter.Dialect,
+					Filters: filters,
+				},
 			})
 		}
 	}
@@ -189,7 +202,7 @@ func InlineFileNames(r types.Runtime) (SourceFileName, DepsFileName, bool) {
 	}
 }
 
-func convertCoreV1EnvToEnvVar(envs []corev1.EnvVar) []EnvVar {
+func toWorkspaceEnvVar(envs []corev1.EnvVar) []EnvVar {
 	outEnvs := make([]EnvVar, 0)
 	for _, env := range envs {
 
@@ -218,4 +231,19 @@ func convertCoreV1EnvToEnvVar(envs []corev1.EnvVar) []EnvVar {
 		outEnvs = append(outEnvs, newEnv)
 	}
 	return outEnvs
+}
+
+func toWorkspaceEnvFilter(filter types.EventFilter) EventFilter {
+	return EventFilter{
+		EventSource: EventFilterProperty{
+			Property: filter.EventSource.Property,
+			Type:     filter.EventSource.Type,
+			Value:    filter.EventSource.Value,
+		},
+		EventType: EventFilterProperty{
+			Property: filter.EventType.Property,
+			Type:     filter.EventType.Type,
+			Value:    filter.EventType.Value,
+		},
+	}
 }

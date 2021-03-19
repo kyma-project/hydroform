@@ -86,11 +86,27 @@ func Test_initialize(t *testing.T) {
 			args: args{
 				cfg: Cfg{
 					Runtime: types.Python38,
-					Triggers: []Trigger{
+					Subscriptions: []Subscription{
 						{
-							EventTypeVersion: "test-version",
-							Source:           "test-source",
-							Type:             "test-type",
+							Name:     "fixme",
+							Protocol: "fixme",
+							Filter: Filter{
+								Dialect: "fixme",
+								Filters: []EventFilter{
+									{
+										EventSource: EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "test-source",
+										},
+										EventType: EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "test-type.test-version",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -189,7 +205,7 @@ func Test_Synchronise(t *testing.T) {
 			name:    "getting function should fail",
 			wantErr: true,
 			args: args{
-				build: func(namespace string, resource schema.GroupVersionResource) client.Client {
+				build: func(_ string, _ schema.GroupVersionResource) client.Client {
 					result := mockclient.NewMockClient(ctrl)
 
 					result.EXPECT().
@@ -202,7 +218,7 @@ func Test_Synchronise(t *testing.T) {
 			},
 		},
 		{
-			name:    "getting triggers as unstructured list should fail",
+			name:    "getting subscriptions as unstructured list should fail",
 			wantErr: true,
 			args: args{
 				cfg: Cfg{
@@ -231,7 +247,7 @@ func Test_Synchronise(t *testing.T) {
 			},
 		},
 		{
-			name: "inline happy path with triggers",
+			name: "inline happy path with subscriptions",
 			args: args{
 				cfg: Cfg{
 					Name:      name,
@@ -273,11 +289,27 @@ func Test_Synchronise(t *testing.T) {
 						Limits:   nil,
 						Requests: nil,
 					},
-					Triggers: []Trigger{
+					Subscriptions: []Subscription{
 						{
-							EventTypeVersion: "v1.0.0",
-							Source:           "the-source",
-							Type:             "t1",
+							Name:     "fixme",
+							Protocol: "fixme",
+							Filter: Filter{
+								Dialect: "fixme",
+								Filters: []EventFilter{
+									{
+										EventSource: EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "the-source",
+										},
+										EventType: EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "t1.v1.0.0",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -309,11 +341,27 @@ func Test_Synchronise(t *testing.T) {
 						Limits:   nil,
 						Requests: nil,
 					},
-					Triggers: []Trigger{
+					Subscriptions: []Subscription{
 						{
-							EventTypeVersion: "v1.0.0",
-							Source:           "the-source",
-							Type:             "t1",
+							Name:     "fixme",
+							Protocol: "fixme",
+							Filter: Filter{
+								Dialect: "fixme",
+								Filters: []EventFilter{
+									{
+										EventSource: EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "the-source",
+										},
+										EventType: EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "t1.v1.0.0",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -339,7 +387,7 @@ func Test_Synchronise(t *testing.T) {
 }
 
 func newStrWriterProvider() WriterProvider {
-	return func(path string) (io.Writer, Cancel, error) {
+	return func(_ string) (io.Writer, Cancel, error) {
 		var buffer bytes.Buffer
 		return &buffer, func() error {
 			return nil
@@ -474,7 +522,7 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 			{
 				Object: map[string]interface{}{
 					"metadata": map[string]interface{}{
-						"name":      "trigger1",
+						"name":      "subscription1",
 						"namespace": "test-ns",
 					},
 					"spec": map[string]interface{}{
