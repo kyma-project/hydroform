@@ -119,7 +119,7 @@ func (mp *KymaMetadataProvider) resolveKymaVersions(secretsPerComp map[string][]
 			versions[compMeta.OperationID] = kymaVersion
 		}
 		//add component to version
-		kymaVersion.components = append(kymaVersion.components, compMeta)
+		kymaVersion.Components = append(kymaVersion.Components, compMeta)
 	}
 
 	return mp.versionFromMap(versions), nil

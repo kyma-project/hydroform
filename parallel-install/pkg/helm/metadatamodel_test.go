@@ -9,7 +9,7 @@ import (
 
 func Test_VersionComponentSorting(t *testing.T) {
 	version := &KymaVersion{
-		components: []*KymaComponentMetadata{
+		Components: []*KymaComponentMetadata{
 			&KymaComponentMetadata{ //No. 4
 				Name:         "4",
 				Priority:     12,
@@ -37,7 +37,7 @@ func Test_VersionComponentSorting(t *testing.T) {
 			},
 		},
 	}
-	sortedComps := version.Components()
+	sortedComps := version.InstalledComponents()
 	for idx, comp := range sortedComps {
 		require.Equal(t, fmt.Sprintf("%d", idx), comp.Name)
 	}
@@ -47,7 +47,7 @@ func Test_VersionSetComponentSorting(t *testing.T) {
 	versionSet := &KymaVersionSet{
 		Versions: []*KymaVersion{
 			&KymaVersion{
-				components: []*KymaComponentMetadata{
+				Components: []*KymaComponentMetadata{
 					&KymaComponentMetadata{ //No. 6
 						Name:         "6",
 						Priority:     12,
@@ -71,7 +71,7 @@ func Test_VersionSetComponentSorting(t *testing.T) {
 				},
 			},
 			&KymaVersion{
-				components: []*KymaComponentMetadata{
+				Components: []*KymaComponentMetadata{
 					&KymaComponentMetadata{ //No. 4
 						Name:         "4",
 						Priority:     0,
@@ -91,7 +91,7 @@ func Test_VersionSetComponentSorting(t *testing.T) {
 			},
 		},
 	}
-	sortedComps := versionSet.Components()
+	sortedComps := versionSet.InstalledComponents()
 	for idx, comp := range sortedComps {
 		require.Equal(t, fmt.Sprintf("%d", idx), comp.Name)
 	}

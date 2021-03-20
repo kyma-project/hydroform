@@ -180,7 +180,7 @@ func Test_Version(t *testing.T) {
 				Profile:      "profile",
 				OperationID:  "opsid",
 				CreationTime: 1615831194,
-				components: []*KymaComponentMetadata{
+				Components: []*KymaComponentMetadata{
 					expectedKymaCompMetadata,
 				},
 			},
@@ -275,7 +275,7 @@ func Test_Version(t *testing.T) {
 				Profile:      "profile",
 				OperationID:  "aaa",
 				CreationTime: 1000000000,
-				components: []*KymaComponentMetadata{
+				Components: []*KymaComponentMetadata{
 					&KymaComponentMetadata{
 						Name:         "test",
 						Namespace:    "test",
@@ -303,7 +303,7 @@ func Test_Version(t *testing.T) {
 				Profile:      "production",
 				OperationID:  "ccc",
 				CreationTime: 3000000000,
-				components: []*KymaComponentMetadata{
+				Components: []*KymaComponentMetadata{
 					&KymaComponentMetadata{
 						Name:         "test1",
 						Namespace:    "test1",
@@ -321,7 +321,7 @@ func Test_Version(t *testing.T) {
 				Profile:      "profile",
 				OperationID:  "ddd",
 				CreationTime: 4000000000,
-				components: []*KymaComponentMetadata{
+				Components: []*KymaComponentMetadata{
 					&KymaComponentMetadata{
 						Name:         "test3",
 						Namespace:    "test3",

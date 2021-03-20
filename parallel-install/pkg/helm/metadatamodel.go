@@ -129,11 +129,11 @@ func (kvs *KymaVersionSet) Names() []string {
 	return names
 }
 
-//Components returns a sorted list of all components in the version set
-func (kvs *KymaVersionSet) Components() []*KymaComponentMetadata {
+//InstalledComponents returns a list of all components in the version set sorted by their installation order
+func (kvs *KymaVersionSet) InstalledComponents() []*KymaComponentMetadata {
 	var comps []*KymaComponentMetadata
 	for _, version := range kvs.Versions {
-		comps = append(comps, version.components...)
+		comps = append(comps, version.Components...)
 	}
 	return sortComponents(comps)
 }
@@ -151,17 +151,17 @@ type KymaVersion struct {
 	Profile      string
 	OperationID  string
 	CreationTime int64
-	components   []*KymaComponentMetadata
+	Components   []*KymaComponentMetadata
 }
 
-//Components returns a sorted list of all components in this version
-func (v *KymaVersion) Components() []*KymaComponentMetadata {
-	return sortComponents(v.components)
+//InstalledComponents returns a list of all components in the version sorted by their installation order
+func (v *KymaVersion) InstalledComponents() []*KymaComponentMetadata {
+	return sortComponents(v.Components)
 }
 
 func (v *KymaVersion) ComponentNames() []string {
 	result := []string{}
-	for _, comp := range v.Components() {
+	for _, comp := range v.InstalledComponents() {
 		result = append(result, comp.Name)
 	}
 	return result
