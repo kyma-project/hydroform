@@ -8,6 +8,7 @@ import (
 )
 
 func Test_VersionComponentSorting(t *testing.T) {
+	//we abuse the name to verify the correct sequence
 	version := &KymaVersion{
 		Components: []*KymaComponentMetadata{
 			&KymaComponentMetadata{ //No. 4
@@ -39,11 +40,12 @@ func Test_VersionComponentSorting(t *testing.T) {
 	}
 	sortedComps := version.InstalledComponents()
 	for idx, comp := range sortedComps {
-		require.Equal(t, fmt.Sprintf("%d", idx), comp.Name)
+		require.Equal(t, fmt.Sprintf("%d", idx), comp.Name) //expected order position is reflected in name
 	}
 }
 
 func Test_VersionSetComponentSorting(t *testing.T) {
+	//we abuse the name to verify the correct sequence
 	versionSet := &KymaVersionSet{
 		Versions: []*KymaVersion{
 			&KymaVersion{
@@ -93,6 +95,6 @@ func Test_VersionSetComponentSorting(t *testing.T) {
 	}
 	sortedComps := versionSet.InstalledComponents()
 	for idx, comp := range sortedComps {
-		require.Equal(t, fmt.Sprintf("%d", idx), comp.Name)
+		require.Equal(t, fmt.Sprintf("%d", idx), comp.Name) //expected order position is reflected in name
 	}
 }
