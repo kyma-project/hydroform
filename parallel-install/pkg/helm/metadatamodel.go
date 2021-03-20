@@ -129,6 +129,15 @@ func (kvs *KymaVersionSet) Names() []string {
 	return names
 }
 
+//Components returns a sorted list of all components in the version set
+func (kvs *KymaVersionSet) Components() []*KymaComponentMetadata {
+	var comps []*KymaComponentMetadata
+	for _, version := range kvs.Versions {
+		comps = append(comps, version.components...)
+	}
+	return sortComponents(comps)
+}
+
 func (kvs KymaVersionSet) String() string {
 	return strings.Join(kvs.Names(), ", ")
 }
@@ -145,20 +154,9 @@ type KymaVersion struct {
 	components   []*KymaComponentMetadata
 }
 
-//Components returns all components of this version in increasing priority order (latest installed to the first installed components)
+//Components returns a sorted list of all components in this version
 func (v *KymaVersion) Components() []*KymaComponentMetadata {
-	sort.Slice(v.components, func(i, j int) bool {
-		prio1 := v.components[i].Priority
-		if v.components[i].Prerequisite { //boost if pre-requisite
-			prio1 += 100000000
-		}
-		prio2 := v.components[j].Priority
-		if v.components[j].Prerequisite { //boost if pre-requisite
-			prio2 += 100000000
-		}
-		return prio1 > prio2
-	})
-	return v.components
+	return sortComponents(v.components)
 }
 
 func (v *KymaVersion) ComponentNames() []string {
@@ -187,4 +185,19 @@ func NewKymaComponentMetadataTemplate(version, profile string) *KymaComponentMet
 		OperationID:  uuid.New().String(),
 		CreationTime: time.Now().Unix(),
 	}
+}
+
+func sortComponents(comps []*KymaComponentMetadata) []*KymaComponentMetadata {
+	sort.Slice(comps, func(i, j int) bool {
+		prio1 := comps[i].Priority
+		if comps[i].Prerequisite { //boost if pre-requisite
+			prio1 -= 100000000
+		}
+		prio2 := comps[j].Priority
+		if comps[j].Prerequisite { //boost if pre-requisite
+			prio2 -= 100000000
+		}
+		return prio1 < prio2
+	})
+	return comps
 }
