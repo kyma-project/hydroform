@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	KymaLabelPrefix = "kyma"
+	KymaLabelPrefix = "kyma" //label prefix used to distinguish Kyma labels from Helm labels in the Helm secrets
 )
 
+//helmReleaseNotFoundError is fired when a release could not be found in the cluster
 type helmReleaseNotFoundError struct {
 	name string
 }
@@ -29,6 +30,7 @@ func (err *helmReleaseNotFoundError) Error() string {
 	return fmt.Sprintf("No installed Helm release found for component '%s'", err.name)
 }
 
+//helmSecretNameInvalidError is fired when the requested secret name became invalid
 type helmSecretNameInvalidError struct {
 	namespace string
 	secret    string
@@ -38,6 +40,7 @@ func (err *helmSecretNameInvalidError) Error() string {
 	return fmt.Sprintf("Could not resolve version of Helm secret '%s' (namespace '%s')", err.secret, err.namespace)
 }
 
+//kymaMetadataUnavailableError is fired when mandatory metadata labels were missing in the Helm secret
 type kymaMetadataUnavailableError struct {
 	secret string
 	err    error
@@ -47,6 +50,7 @@ func (err *kymaMetadataUnavailableError) Error() string {
 	return fmt.Sprintf("Kyma component metadata not found or incomplete in HELM secret '%s': %s", err.secret, err.err.Error())
 }
 
+//kymaMetadataFieldUnknownError is fired when a field of the metadata object doesn't exist (internal error, should never be fired)
 type kymaMetadataFieldUnknownError struct {
 	field string
 }
@@ -55,16 +59,19 @@ func (err *kymaMetadataFieldUnknownError) Error() string {
 	return fmt.Sprintf("Kyma metadata struct does not contain a field '%s'", err.field)
 }
 
+//KymaMetadataProvider enables access to Kyma component metadata and version information
 type KymaMetadataProvider struct {
 	kubeClient kubernetes.Interface
 }
 
+//NewKymaMetadataProvider creates a new KymaMetadataProvider
 func NewKymaMetadataProvider(client kubernetes.Interface) *KymaMetadataProvider {
 	return &KymaMetadataProvider{
 		kubeClient: client,
 	}
 }
 
+//Versions returns the set of installed Kyma versions
 func (mp *KymaMetadataProvider) Versions() (*KymaVersionSet, error) {
 	//get all secrets which are labeled as Kyma component
 	compField, err := mp.structField("Component")
@@ -96,6 +103,7 @@ func (mp *KymaMetadataProvider) Versions() (*KymaVersionSet, error) {
 	}, nil
 }
 
+//resolveKymaVersions creates KymaVersion instances from Helm Secret labels
 func (mp *KymaMetadataProvider) resolveKymaVersions(secretsPerComp map[string][]v1.Secret) ([]*KymaVersion, error) {
 	versions := make(map[string]*KymaVersion) //we se the opsID as differentiator between the different versions
 	for compName, secrets := range secretsPerComp {
@@ -125,6 +133,7 @@ func (mp *KymaMetadataProvider) resolveKymaVersions(secretsPerComp map[string][]
 	return mp.versionFromMap(versions), nil
 }
 
+//structField returns a structField from a KymaComponentMetadata object
 func (mp *KymaMetadataProvider) structField(fieldName string) (*structs.Field, error) {
 	field := structs.New(KymaComponentMetadata{}).Field(fieldName)
 	if field == nil {
@@ -133,6 +142,7 @@ func (mp *KymaMetadataProvider) structField(fieldName string) (*structs.Field, e
 	return field, nil
 }
 
+//versionFromMap returns the version instances tracked in the map
 func (mp *KymaMetadataProvider) versionFromMap(versionMap map[string]*KymaVersion) []*KymaVersion {
 	versions := make([]*KymaVersion, 0, len(versionMap))
 	for _, v := range versionMap {
@@ -141,6 +151,7 @@ func (mp *KymaMetadataProvider) versionFromMap(versionMap map[string]*KymaVersio
 	return versions
 }
 
+//findLatestSecret returns the latest Helm secret of a component
 func (mp *KymaMetadataProvider) findLatestSecret(name string, secrets []v1.Secret) (*v1.Secret, error) {
 	var latestSecret v1.Secret
 
@@ -168,6 +179,7 @@ func (mp *KymaMetadataProvider) findLatestSecret(name string, secrets []v1.Secre
 	return &latestSecret, nil
 }
 
+//Set adds Kyma metadata labels to a Helm secret
 func (mp *KymaMetadataProvider) Set(release *release.Release, compMetaTpl *KymaComponentMetadataTemplate) error {
 	if compMetaTpl == nil {
 		return fmt.Errorf("No Kyma metadata factory provided for Helm release '%s' (namespace '%s')", release.Name, release.Namespace)
@@ -193,6 +205,7 @@ func (mp *KymaMetadataProvider) Set(release *release.Release, compMetaTpl *KymaC
 	return err
 }
 
+//Get returns Kyma metadata of an installed component
 func (mp *KymaMetadataProvider) Get(name string) (*KymaComponentMetadata, error) {
 	secret, err := mp.latestSecret(name, "")
 	if err != nil {
@@ -201,6 +214,7 @@ func (mp *KymaMetadataProvider) Get(name string) (*KymaComponentMetadata, error)
 	return mp.unmarshalMetadata(secret)
 }
 
+//latestSecret returns the latest Helm secret of a component
 func (mp *KymaMetadataProvider) latestSecret(name, namespace string) (*v1.Secret, error) {
 	secrets, err := mp.kubeClient.CoreV1().Secrets(namespace).List(context.Background(), metaV1.ListOptions{})
 	if err != nil {
@@ -218,6 +232,7 @@ func (mp *KymaMetadataProvider) latestSecret(name, namespace string) (*v1.Secret
 	return latestSecret, nil
 }
 
+//marshalMetadata creates a KymaComponentMetadata from secret labels
 func (mp *KymaMetadataProvider) marshalMetadata(secret *v1.Secret, metadata *KymaComponentMetadata) {
 	if secret.Labels == nil {
 		secret.Labels = make(map[string]string)
@@ -237,6 +252,7 @@ func (mp *KymaMetadataProvider) marshalMetadata(secret *v1.Secret, metadata *Kym
 	}
 }
 
+//unmarshalMetadata converts a KymaComponentMetadata to secret labels
 func (mp *KymaMetadataProvider) unmarshalMetadata(secret *v1.Secret) (*KymaComponentMetadata, error) {
 	var metadata *KymaComponentMetadata = &KymaComponentMetadata{}
 	var typedValue interface{}
