@@ -88,9 +88,13 @@ func (mp *KymaMetadataProvider) Versions() (*KymaVersionSet, error) {
 	}
 
 	//group secrets by component-name (required to find latest secret)
+	nameField, err := mp.structField("Name")
+	if err != nil {
+		return nil, err
+	}
 	secretsPerComp := make(map[string][]v1.Secret)
 	for _, secret := range secrets.Items {
-		if name, ok := secret.Labels["kymaName"]; ok {
+		if name, ok := secret.Labels[mp.labelName(nameField)]; ok {
 			secretsPerComp[name] = append(secretsPerComp[name], secret)
 		}
 	}
