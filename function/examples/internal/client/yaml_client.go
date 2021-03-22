@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 type MapClient struct {
@@ -143,4 +144,8 @@ func (c *MapClient) List(ctx context.Context, opts metav1.ListOptions) (*unstruc
 		out.Items = append(out.Items, u)
 	}
 	return &out, nil
+}
+
+func (c *MapClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+	panic("not supported")
 }
