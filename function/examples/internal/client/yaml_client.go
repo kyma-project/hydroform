@@ -147,5 +147,5 @@ func (c *MapClient) List(ctx context.Context, opts metav1.ListOptions) (*unstruc
 }
 
 func (c *MapClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	panic("not supported")
+	panic("not implemented")
 }
