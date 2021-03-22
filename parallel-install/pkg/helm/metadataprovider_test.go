@@ -13,15 +13,15 @@ import (
 )
 
 var expectedLabels = map[string]string{
-	"kymaName":         "test",
-	"kymaNamespace":    "testNs",
-	"kymaComponent":    "true",
-	"kymaProfile":      "profile",
-	"kymaVersion":      "123",
-	"kymaOperationID":  "opsid",
-	"kymaCreationTime": "1615831194",
-	"kymaPriority":     "1",
-	"kymaPrerequisite": "false"}
+	KymaLabelPrefix + "name":         "test",
+	KymaLabelPrefix + "namespace":    "testNs",
+	KymaLabelPrefix + "component":    "true",
+	KymaLabelPrefix + "profile":      "profile",
+	KymaLabelPrefix + "version":      "123",
+	KymaLabelPrefix + "operationID":  "opsid",
+	KymaLabelPrefix + "creationTime": "1615831194",
+	KymaLabelPrefix + "priority":     "1",
+	KymaLabelPrefix + "prerequisite": "false"}
 
 var expectedKymaCompMetadata = &KymaComponentMetadata{
 	Name:         "test",
@@ -137,8 +137,8 @@ func Test_MetadataSet(t *testing.T) {
 		for k, v := range expectedLabels {
 			expectedLabelsCopy[k] = v
 		}
-		expectedLabelsCopy["kymaPriority"] = "2"
-		expectedLabelsCopy["kymaPrerequisite"] = "true"
+		expectedLabelsCopy[KymaLabelPrefix+"priority"] = "2"
+		expectedLabelsCopy[KymaLabelPrefix+"prerequisite"] = "true"
 
 		require.Equal(t, expectedLabelsCopy, k8sMock.Fake.Actions()[1].(k8st.UpdateAction).GetObject().(*v1.Secret).GetObjectMeta().GetLabels())
 	})
@@ -194,14 +194,14 @@ func Test_Version(t *testing.T) {
 					Name:      "sh.helm.release.v1.test.v1",
 					Namespace: "test",
 					Labels: map[string]string{
-						"kymaName":         "test",
-						"kymaNamespace":    "test",
-						"kymaComponent":    "true",
-						"kymaProfile":      "profile",
-						"kymaVersion":      "master",
-						"kymaOperationID":  "aaa",
-						"kymaCreationTime": "1000000000",
-						"kymaPriority":     "1"},
+						KymaLabelPrefix + "name":         "test",
+						KymaLabelPrefix + "namespace":    "test",
+						KymaLabelPrefix + "component":    "true",
+						KymaLabelPrefix + "profile":      "profile",
+						KymaLabelPrefix + "version":      "master",
+						KymaLabelPrefix + "operationID":  "aaa",
+						KymaLabelPrefix + "creationTime": "1000000000",
+						KymaLabelPrefix + "priority":     "1"},
 				},
 			},
 			&v1.Secret{ //installed from "master" by operation "aaa:1000000000"
@@ -209,14 +209,14 @@ func Test_Version(t *testing.T) {
 					Name:      "sh.helm.release.v1.test2.v2",
 					Namespace: "test2",
 					Labels: map[string]string{
-						"kymaName":         "test2",
-						"kymaNamespace":    "test2",
-						"kymaComponent":    "true",
-						"kymaProfile":      "profile",
-						"kymaVersion":      "master",
-						"kymaOperationID":  "aaa",
-						"kymaCreationTime": "1000000000",
-						"kymaPriority":     "2"},
+						KymaLabelPrefix + "name":         "test2",
+						KymaLabelPrefix + "namespace":    "test2",
+						KymaLabelPrefix + "component":    "true",
+						KymaLabelPrefix + "profile":      "profile",
+						KymaLabelPrefix + "version":      "master",
+						KymaLabelPrefix + "operationID":  "aaa",
+						KymaLabelPrefix + "creationTime": "1000000000",
+						KymaLabelPrefix + "priority":     "2"},
 				},
 			},
 			&v1.Secret{ //installed from "2.0.0" release by operation "bbb:2000000000"
@@ -224,14 +224,14 @@ func Test_Version(t *testing.T) {
 					Name:      "sh.helm.release.v1.test1.v1",
 					Namespace: "test1",
 					Labels: map[string]string{
-						"kymaName":         "test1",
-						"kymaNamespace":    "test1",
-						"kymaComponent":    "true",
-						"kymaProfile":      "evaluation",
-						"kymaVersion":      "2.0.0",
-						"kymaOperationID":  "bbb",
-						"kymaCreationTime": "2000000000",
-						"kymaPriority":     "1"},
+						KymaLabelPrefix + "name":         "test1",
+						KymaLabelPrefix + "namespace":    "test1",
+						KymaLabelPrefix + "component":    "true",
+						KymaLabelPrefix + "profile":      "evaluation",
+						KymaLabelPrefix + "version":      "2.0.0",
+						KymaLabelPrefix + "operationID":  "bbb",
+						KymaLabelPrefix + "creationTime": "2000000000",
+						KymaLabelPrefix + "priority":     "1"},
 				},
 			},
 			&v1.Secret{ //installed (upgrade) from "2.0.1" release by operation "ccc:3000000000"
@@ -239,14 +239,14 @@ func Test_Version(t *testing.T) {
 					Name:      "sh.helm.release.v1.test1.v2",
 					Namespace: "test1",
 					Labels: map[string]string{
-						"kymaName":         "test1",
-						"kymaNamespace":    "test1",
-						"kymaComponent":    "true",
-						"kymaProfile":      "production",
-						"kymaVersion":      "2.0.1",
-						"kymaOperationID":  "ccc",
-						"kymaCreationTime": "3000000000",
-						"kymaPriority":     "1"},
+						KymaLabelPrefix + "name":         "test1",
+						KymaLabelPrefix + "namespace":    "test1",
+						KymaLabelPrefix + "component":    "true",
+						KymaLabelPrefix + "profile":      "production",
+						KymaLabelPrefix + "version":      "2.0.1",
+						KymaLabelPrefix + "operationID":  "ccc",
+						KymaLabelPrefix + "creationTime": "3000000000",
+						KymaLabelPrefix + "priority":     "1"},
 				},
 			},
 			&v1.Secret{ //installed from "master" by operation "ddd:4000000000"
@@ -254,14 +254,14 @@ func Test_Version(t *testing.T) {
 					Name:      "sh.helm.release.v1.test3.v1",
 					Namespace: "test3",
 					Labels: map[string]string{
-						"kymaName":         "test3",
-						"kymaNamespace":    "test3",
-						"kymaComponent":    "true",
-						"kymaProfile":      "profile",
-						"kymaVersion":      "master",
-						"kymaOperationID":  "ddd",
-						"kymaCreationTime": "4000000000",
-						"kymaPriority":     "1"},
+						KymaLabelPrefix + "name":         "test3",
+						KymaLabelPrefix + "namespace":    "test3",
+						KymaLabelPrefix + "component":    "true",
+						KymaLabelPrefix + "profile":      "profile",
+						KymaLabelPrefix + "version":      "master",
+						KymaLabelPrefix + "operationID":  "ddd",
+						KymaLabelPrefix + "creationTime": "4000000000",
+						KymaLabelPrefix + "priority":     "1"},
 				},
 			},
 		)

@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -18,7 +19,7 @@ import (
 )
 
 const (
-	KymaLabelPrefix = "kyma" //label prefix used to distinguish Kyma labels from Helm labels in the Helm secrets
+	KymaLabelPrefix = "kyma-project.io/install." //label prefix used to distinguish Kyma labels from Helm labels in the Helm secrets
 )
 
 //helmReleaseNotFoundError is fired when a release could not be found in the cluster
@@ -292,7 +293,14 @@ func (mp *KymaMetadataProvider) unmarshalMetadata(secret *v1.Secret) (*KymaCompo
 }
 
 func (mp *KymaMetadataProvider) labelName(field *structs.Field) string {
-	return fmt.Sprintf("%s%s", KymaLabelPrefix, field.Name())
+	return fmt.Sprintf("%s%s", KymaLabelPrefix, lowercaseFirst(field.Name()))
+}
+
+func lowercaseFirst(str string) string {
+	for i, v := range str {
+		return string(unicode.ToLower(v)) + str[i+1:]
+	}
+	return ""
 }
 
 func (mp *KymaMetadataProvider) secretPrefix(name string) string {
