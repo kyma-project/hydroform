@@ -182,6 +182,14 @@ func Test_newFunction(t *testing.T) {
 							Type:             "test-trigger-type",
 						},
 					},
+					ApiRule: workspace.ApiRule{
+						Host:    "test-host",
+						Name:    "test-name",
+						Port:    "80",
+						Methods: []string{"POST"},
+						Handler: "test-handler",
+						Path:    "test-path",
+					},
 				},
 			},
 			wantOut: unstructured.Unstructured{
@@ -596,6 +604,14 @@ func Test_newGitFunction(t *testing.T) {
 							Type:             "test-trigger-type",
 						},
 					},
+					ApiRule: workspace.ApiRule{
+						Host:    "test-host",
+						Name:    "test-name",
+						Port:    "80",
+						Methods: []string{"POST"},
+						Handler: "test-handler",
+						Path:    "test-path",
+					},
 					Env: []workspace.EnvVar{
 						{
 							Name:  "TEST_ENV",
@@ -713,6 +729,14 @@ func Test_newGitFunction(t *testing.T) {
 							Source:           "test-trigger-source",
 							Type:             "test-trigger-type",
 						},
+					},
+					ApiRule: workspace.ApiRule{
+						Host:    "test-host",
+						Name:    "test-name",
+						Port:    "80",
+						Methods: []string{"POST"},
+						Handler: "test-handler",
+						Path:    "test-path",
 					},
 				},
 			},
