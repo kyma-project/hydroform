@@ -6,6 +6,7 @@ build:
 	./provision/before-commit.sh ci
 	./install/before-commit.sh ci
 	./parallel-install/before-commit.sh ci
+	./function/before-commit.sh ci
 
 .PHONY: ci-pr
 ci-pr: build
