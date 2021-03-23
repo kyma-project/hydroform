@@ -16,11 +16,26 @@ import (
 
 const prPrefix = "PR-"
 
-// CloneRevision clones the repository in the given URL to the given path and checks out the given revision.
+// CloneRepo clones the repository in the given URL to the given dstPath and checks out the given revision.
+// revision can be 'master', a release version (e.g. 1.4.1), a commit hash (e.g. 34edf09a) or a PR (e.g. PR-9486).
+func CloneRepo(url, dstPath, rev string) error {
+	rev, err := ResolveRevision(url, rev)
+	if err != nil {
+		return err
+	}
+
+	if err := CloneRevision(url, dstPath, rev); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CloneRevision clones the repository in the given URL to the given dstPath and checks out the given revision.
 // The clone downloads the bare minimum to only get the given revision.
 // If the revision is empty, HEAD will be used.
-func CloneRevision(url, path, rev string) error {
-	r, err := git.PlainCloneContext(context.Background(), path, false, &git.CloneOptions{
+func CloneRevision(url, dstPath, rev string) error {
+	r, err := git.PlainCloneContext(context.Background(), dstPath, false, &git.CloneOptions{
 		Depth:      0,
 		URL:        url,
 		NoCheckout: rev != "", // only checkout HEAD if the revision is empty
