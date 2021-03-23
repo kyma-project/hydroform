@@ -13,7 +13,7 @@ const testDir string = "tmp"
 
 func TestMain(m *testing.M) {
 	//create and erase tmp-folder
-	if err := os.MkdirAll(testDir, 0700); err != nil {
+	if err := os.MkdirAll(testDir, os.ModePerm); err != nil {
 		panic(err)
 	}
 	exitVal := m.Run()

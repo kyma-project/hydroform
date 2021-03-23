@@ -23,7 +23,7 @@ func GetFile(file, dstDir string) (string, error) {
 	return "", err
 }
 
-// GetFiles downloads a list of files. Destination directory will be createb if it does not exist.
+// GetFiles downloads a list of files. Destination directory will be created if it does not exist.
 // It returns the paths to the downloaded files.
 // If the provided file is not a URL, it checks if it exists locally
 func GetFiles(files []string, dstDir string) ([]string, error) {
@@ -105,7 +105,7 @@ func download(url, dstDir, dstFile string) (string, error) {
 
 func createDstDir(dstDir string) error {
 	if _, err := os.Stat(dstDir); os.IsNotExist(err) {
-		return os.MkdirAll(dstDir, 0700)
+		return os.MkdirAll(dstDir, os.ModePerm)
 	}
 	return nil
 }
