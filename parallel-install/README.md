@@ -15,7 +15,7 @@ To do so, provide the `deployment.NewDeployment` function with the necessary par
 
 | Parameter      | Type                              | Example value | Description                                                                                                                            |
 | -------------- | --------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| overrides      | `deployment.Overrides{}`          | -             | An instance of `deployment.Overrides` including all overrides which Helm has to consider.                                              |
+| overrides      | `deployment.Overrides{}`          | -             | An instance of `deployment.Overrides` including all overrides that Helm must consider.                                              |
 | cfg            | `config.Config`                   | -             | Specifies fine-grained configuration for the deployment process. See the table with `config.Config` configuration options for details. |
 | processUpdates | `chan<- deployment.ProcessUpdate` | -             | The library caller can pass a channel to retrieve updates of the running installation or uninstallation process.                       |
 
@@ -94,4 +94,3 @@ Required parameters:
 | url       | `string` | `https://github.com/kyma-project/kyma` | URL to the git repository.                                                                                                                                              |
 | dstPath   | `string` | `myWorkspace/repos/kyma`               | Path to which the repository will be cloned.                                                                                                                            |
 | rev       | `string` | `master`                               | Revision which is used for checking out the repository. It can be `master`, a release version (e.g. `1.4.1`), a commit hash (e.g. `34edf09a`) or a PR (e.g. `PR-9486`). |
-
