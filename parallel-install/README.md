@@ -51,46 +51,46 @@ To learn how to use the library to deploy Kyma on a Gardener cluster, see this [
 ## Utility Packages
 
 ### Download Package
-`download` package allows you to download remote files.
+The `download` package allows you to download remote files.
 
-`download.GetFile` downloads a single file and returns the path to the downloaded file. Destination directory will be created if it does not exist.  
+`download.GetFile` downloads a single file and returns the path to the downloaded file. If the destination directory does not exist, it is created automatically.  
 Required parameters:
 | Parameter | Type     | Example value                                                                         | Description                                                                                                                       |
 | --------- | -------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| file      | `string` | `https://storage.googleapis.com/kyma-mps-dev-artifacts/prometheus-config-updater.zip` | A URL or a local path. If it is a URL, file will be downloaded. If it is a local path, file will be checked if it exists locally. |
-| dstDir    | `string` | `myWorkspace/files`                                                                   | Path to which the file will be downloaded.                                                                                        |
+| file      | `string` | `https://storage.googleapis.com/kyma-mps-dev-artifacts/prometheus-config-updater.zip` | A URL or a local path. If it is a URL, the file is downloaded. If it is a local path, there's a check whether the file exists locally. |
+| dstDir    | `string` | `myWorkspace/files`                                                                   | Path to which the file is downloaded.                                                                                        |
   
-`download.GetFiles` downloads a list of files and returns the paths to the downloaded files. Destination directory will be created if it does not exist.  
+`download.GetFiles` downloads a list of files and returns the paths to the downloaded files. If the destination directory does not exist, it is created automatically.  
 Required parameters:
 | Parameter | Type       | Example value                                                                                                                                                                            | Description                                                                                                                           |
 | --------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| files     | `[]string` | `[]string{"https://storage.googleapis.com/kyma-mps-dev-artifacts/prometheus-config-updater.zip", "https://storage.googleapis.com/kyma-mps-dev-artifacts/avs-bridge-noparent-1.3.5.tgz"}` | A list of URLs or local paths. For each URL, file will be downloaded. For each local path, file will be checked if it exists locally. |
-| dstDir    | `string`   | `myWorkspace/files`                                                                                                                                                                      | Path to which the files will be downloaded.                                                                                           |
+| files     | `[]string` | `[]string{"https://storage.googleapis.com/kyma-mps-dev-artifacts/prometheus-config-updater.zip", "https://storage.googleapis.com/kyma-mps-dev-artifacts/avs-bridge-noparent-1.3.5.tgz"}` | A list of URLs or local paths. For each URL, the file is downloaded. For each local path, there's a check whether the file exists locally. |
+| dstDir    | `string`   | `myWorkspace/files`                                                                                                                                                                      | Path to which the files are downloaded.                                                                                           |
 
 ### Archive Package
-`archive` package allows you to decompress `zip` and `tar.gz`/`tgz` files.
+The `archive` package allows you to decompress `zip` and `tar.gz`/`tgz` files.
 
 `archive.Unzip` decompress a `zip` file, moving all the files and folders within the zip file to an output directory.  
 Required parameters:
 | Parameter | Type     | Example value                                     | Description                                                                            |
 | --------- | -------- | ------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| src       | `string` | `myWorkspace/files/prometheus-config-updater.zip` | Path to the zip file.                                                                  |
-| dst       | `string` | `myWorkspace/files/prometheusConfigUpdater`       | Path to the output directory in which files/folders within the zip file will be moved. |
+| src       | `string` | `myWorkspace/files/prometheus-config-updater.zip` | Path to the `zip` file.                                                                  |
+| dst       | `string` | `myWorkspace/files/prometheusConfigUpdater`       | Path to the output directory in which files and folders within the `zip` file are moved. |
 
 `archive.Untar` decompress a `tar.gz`/`tgz` file, moving all the files and folders within the `tar.gz`/`tgz` file to an output directory.  
 Required parameters:
 | Parameter | Type     | Example value                                     | Description                                                                                       |
 | --------- | -------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | src       | `string` | `myWorkspace/files/avs-bridge-noparent-1.3.5.tgz` | Path to the `tar.gz`/`tgz` file.                                                                  |
-| dst       | `string` | `myWorkspace/files/avsBridgeNoparent`             | Path to the output directory in which files/folders within the `tar.gz`/`tgz` file will be moved. |
+| dst       | `string` | `myWorkspace/files/avsBridgeNoparent`             | Path to the output directory in which files and folders within the `tar.gz`/`tgz` file are moved. |
 
 ### Git Package
-`git` package allows you to clone git repositories.  
+The `git` package allows you to clone Git repositories.  
 
-`git.CloneRepo` clones a git repository.  
+`git.CloneRepo` clones a Git repository.  
 Required parameters:
 | Parameter | Type     | Example value                          | Description                                                                                                                                                             |
 | --------- | -------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| url       | `string` | `https://github.com/kyma-project/kyma` | URL to the git repository.                                                                                                                                              |
-| dstPath   | `string` | `myWorkspace/repos/kyma`               | Path to which the repository will be cloned.                                                                                                                            |
-| rev       | `string` | `master`                               | Revision which is used for checking out the repository. It can be `master`, a release version (e.g. `1.4.1`), a commit hash (e.g. `34edf09a`) or a PR (e.g. `PR-9486`). |
+| url       | `string` | `https://github.com/kyma-project/kyma` | URL to the Git repository.                                                                                                                                              |
+| dstPath   | `string` | `myWorkspace/repos/kyma`               | Path to which the repository is cloned.                                                                                                                            |
+| rev       | `string` | `master`                               | Revision which is used for checking out the repository. It can be `master`, a release version (e.g. `1.4.1`), a commit hash (e.g. `34edf09a`), or a PR (e.g. `PR-9486`). |
