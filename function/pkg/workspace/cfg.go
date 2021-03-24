@@ -73,8 +73,8 @@ type ApiRule struct {
 	Methods        []string `yaml:"methods"`
 	Handler        string   `yaml:"handler"`
 	Path           string   `yaml:"path"`
-	JwksUrls       []string `yaml:"jwksUrls"`
-	TrustedIssuers []string `yaml:"trustedIssuers"`
+	JwksUrls       []string `yaml:"jwks_urls"`
+	TrustedIssuers []string `yaml:"trusted_issuers"`
 }
 
 type Cfg struct {

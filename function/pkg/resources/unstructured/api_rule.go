@@ -32,15 +32,15 @@ func NewApiRule(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
 				Port: cfg.ApiRule.Port,
 			},
 			Rules: []types.Rules{{
-				//		AccessStrategies: []types.AccessStrategies{{
-				//			Config:  types.Config{
-				//				JwksUrls:       cfg.ApiRule.JwksUrls,
-				//				TrustedIssuers: cfg.ApiRule.TrustedIssuers,
-				//			},
-				//			Handler: cfg.ApiRule.Handler,
-				//		}},
-				//		Methods: cfg.ApiRule.Methods,
-				Path: cfg.ApiRule.Path,
+				AccessStrategies: []types.AccessStrategies{{
+					Config: types.Config{
+						JwksUrls:       cfg.ApiRule.JwksUrls,
+						TrustedIssuers: cfg.ApiRule.TrustedIssuers,
+					},
+					Handler: cfg.ApiRule.Handler,
+				}},
+				Methods: cfg.ApiRule.Methods,
+				Path:    cfg.ApiRule.Path,
 			}},
 			Gateway: apiRuleGateway,
 		},
