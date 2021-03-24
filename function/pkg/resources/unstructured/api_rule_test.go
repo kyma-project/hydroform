@@ -2,12 +2,13 @@ package unstructured
 
 import (
 	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"reflect"
 	"testing"
 )
 
 func TestNewApiRule(t *testing.T) {
+	g := gomega.NewWithT(t)
 	type args struct {
 		cfg workspace.Cfg
 	}
@@ -27,12 +28,14 @@ func TestNewApiRule(t *testing.T) {
 						"test": "me",
 					},
 					ApiRule: workspace.ApiRule{
-						Host:    "test-host",
-						Name:    "test-name",
-						Port:    "80",
-						Methods: []string{"POST"},
-						Handler: "test-handler",
-						Path:    "test-path",
+						Host:           "test-host",
+						Name:           "test-name",
+						Port:           "80",
+						Methods:        []string{"POST"},
+						Handler:        "test-handler",
+						Path:           "test-path",
+						JwksUrls:       []string{"test"},
+						TrustedIssuers: []string{"test"},
 					},
 				},
 			},
@@ -54,15 +57,19 @@ func TestNewApiRule(t *testing.T) {
 							"name": "function-name",
 							"port": "80",
 						},
-						"rules": []map[string]interface{}{
-							{
-								//			"accessStrategies": []map[string]interface{}{
-								//				{
-								//					//"config": "map[]",
-								//					"handler": "test-handler",
-								//				}},
-								//			"methods": []string{"POST"},
-								"path": "test-path",
+						"rules": []interface{}{
+							map[string]interface{}{
+								"methods": []interface{}{"POST"},
+								"path":    "test-path",
+								"accessStrategies": []interface{}{
+									map[string]interface{}{
+										"handler": "test-handler",
+										"config": map[string]interface{}{
+											"jwks_urls":       []interface{}{"test"},
+											"trusted_issuers": []interface{}{"test"},
+										},
+									},
+								},
 							},
 						},
 						"gateway": apiRuleGateway,
@@ -72,15 +79,10 @@ func TestNewApiRule(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+
 		t.Run(tt.name, func(t *testing.T) {
-			gotOut, err := NewApiRule(tt.args.cfg)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewApiRule() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(gotOut, tt.wantOut) {
-				t.Errorf("NewApiRule() gotOut = %v, want %v", gotOut, tt.wantOut)
-			}
+			gotOut, _ := NewApiRule(tt.args.cfg)
+			g.Expect(gotOut).To(gomega.Equal(tt.wantOut))
 		})
 	}
 }

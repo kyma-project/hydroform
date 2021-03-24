@@ -16,8 +16,8 @@ type ApiRule struct {
 }
 
 type Config struct {
-	JwksUrls       []string `yaml:"jwks_urls"`
-	TrustedIssuers []string `yaml:"trusted_issuers"`
+	JwksUrls       []string `json:"jwks_urls"`
+	TrustedIssuers []string `json:"trusted_issuers"`
 }
 
 type AccessStrategies struct {
@@ -25,9 +25,9 @@ type AccessStrategies struct {
 	Handler string `yaml:"handler"`
 }
 type Rules struct {
-	//AccessStrategies []AccessStrategies `yaml:"accessStrategies"`
-	//Methods          []string           `yaml:"methods"`
-	Path string `yaml:"path"`
+	AccessStrategies []AccessStrategies `yaml:"accessStrategies"`
+	Methods          []string           `yaml:"methods"`
+	Path             string             `yaml:"path"`
 }
 type Service struct {
 	Host string `yaml:"host"`
