@@ -83,7 +83,7 @@ fi
 ##
 # Currently linting will run but not fail even if errors happen. Remove || true once linting issues are fixed per module
 if [[ "$1" == "$CI_FLAG" ]]; then
-  SKIP_INSTALL="true" ../hack/verify-lint.sh $(pwd) || true
+  SKIP_VERIFY="true" ../hack/verify-lint.sh $(pwd) || true
 else
   ../hack/verify-lint.sh $(pwd) || true 
 fi
