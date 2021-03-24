@@ -69,7 +69,7 @@ type SecretKeySelector struct {
 type ApiRule struct {
 	Host           string   `yaml:"host"`
 	Name           string   `yaml:"name"`
-	Port           string   `yaml:"port"`
+	Port           int64    `yaml:"port"`
 	Methods        []string `yaml:"methods"`
 	Handler        string   `yaml:"handler"`
 	Path           string   `yaml:"path"`

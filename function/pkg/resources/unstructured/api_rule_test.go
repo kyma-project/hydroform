@@ -30,7 +30,7 @@ func TestNewApiRule(t *testing.T) {
 					ApiRule: workspace.ApiRule{
 						Host:           "test-host",
 						Name:           "test-name",
-						Port:           "80",
+						Port:           80,
 						Methods:        []string{"POST"},
 						Handler:        "test-handler",
 						Path:           "test-path",
@@ -55,7 +55,7 @@ func TestNewApiRule(t *testing.T) {
 						"service": map[string]interface{}{
 							"host": "test-host",
 							"name": "function-name",
-							"port": "80",
+							"port": int64(80),
 						},
 						"rules": []interface{}{
 							map[string]interface{}{
