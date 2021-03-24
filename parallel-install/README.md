@@ -11,7 +11,7 @@ The library allows you to configure several parallel workers. This feature signi
 The top-level interface for library users is defined in the `deployment` package, in the `Installer` interface.
 Before starting the deployment or uninstallation process, you need to provide a complete configuration
 by creating an instance of the `Deployment` struct.
-To do so, provide the `deployment.NewDeployment` function with necessary parameters:
+To do so, provide the `deployment.NewDeployment` function with the necessary parameters:
 
 | Parameter      | Type                              | Example value | Description                                                                                                                            |
 | -------------- | --------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -94,5 +94,4 @@ Required parameters:
 | url       | `string` | `https://github.com/kyma-project/kyma` | URL to the git repository.                                                                                                                                              |
 | dstPath   | `string` | `myWorkspace/repos/kyma`               | Path to which the repository will be cloned.                                                                                                                            |
 | rev       | `string` | `master`                               | Revision which is used for checking out the repository. It can be `master`, a release version (e.g. `1.4.1`), a commit hash (e.g. `34edf09a`) or a PR (e.g. `PR-9486`). |
-
 
