@@ -49,7 +49,7 @@ Once you have a configured `Deployment` instance, use the following functions ac
 To learn how to use the library to deploy Kyma on a Gardener cluster, see this [example](../parallel-install/example/example.go).
 
 ## Utility Packages
-The `parallel-install` library provides you with utility packages that helps you with Kyma installation.
+The `parallel-install` library provides utility packages that help you with the Kyma installation.
 
 ### Download Package
 The `download` package allows you to download remote files.
