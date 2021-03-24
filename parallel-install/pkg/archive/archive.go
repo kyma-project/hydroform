@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// Unzip will decompress a zip file, moving all files and folders
+// Unzip extracts a zip file, moving all files and folders
 // within the zip file (src) to an output directory (dst).
 func Unzip(src string, dst string) error {
 	zr, err := zip.OpenReader(src)
@@ -65,7 +65,7 @@ func Unzip(src string, dst string) error {
 	return nil
 }
 
-// Untar will decompress a tar.gz/tgz file, moving all files and folders
+// Untar extracts a tar.gz/tgz file, moving all files and folders
 // within the tar file (src) to an output directory (dst).
 // NOTE: Untar is mainly taken from a go internal pkg: https://pkg.go.dev/golang.org/x/build/internal/untar
 func Untar(src string, dst string) (err error) {
