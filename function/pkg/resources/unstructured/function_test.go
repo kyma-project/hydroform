@@ -185,7 +185,7 @@ func Test_newFunction(t *testing.T) {
 					ApiRule: workspace.ApiRule{
 						Host:    "test-host",
 						Name:    "test-name",
-						Port:    "80",
+						Port:    80,
 						Methods: []string{"POST"},
 						Handler: "test-handler",
 						Path:    "test-path",
@@ -607,7 +607,7 @@ func Test_newGitFunction(t *testing.T) {
 					ApiRule: workspace.ApiRule{
 						Host:    "test-host",
 						Name:    "test-name",
-						Port:    "80",
+						Port:    80,
 						Methods: []string{"POST"},
 						Handler: "test-handler",
 						Path:    "test-path",
@@ -733,7 +733,7 @@ func Test_newGitFunction(t *testing.T) {
 					ApiRule: workspace.ApiRule{
 						Host:    "test-host",
 						Name:    "test-name",
-						Port:    "80",
+						Port:    80,
 						Methods: []string{"POST"},
 						Handler: "test-handler",
 						Path:    "test-path",

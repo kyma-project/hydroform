@@ -3,9 +3,9 @@ package types
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 type ApiRuleSpec struct {
-	Gateway string  `yaml:"gateway"`
-	Rules   []Rules `yaml:"rules"`
-	Service Service `yaml:"service"`
+	Gateway string  `json:"gateway"`
+	Rules   []Rules `json:"rules"`
+	Service Service `json:"service"`
 }
 
 type ApiRule struct {
@@ -16,21 +16,21 @@ type ApiRule struct {
 }
 
 type Config struct {
-	JwksUrls       []string `json:"jwks_urls"`
-	TrustedIssuers []string `json:"trusted_issuers"`
+	JwksUrls       []string `json:"jwks_urls,omitempty"`
+	TrustedIssuers []string `json:"trusted_issuers,omitempty"`
 }
 
 type AccessStrategies struct {
-	Config  Config `yaml:"config"`
-	Handler string `yaml:"handler"`
+	Config  Config `json:"config,omitempty"`
+	Handler string `json:"handler"`
 }
 type Rules struct {
-	AccessStrategies []AccessStrategies `yaml:"accessStrategies"`
-	Methods          []string           `yaml:"methods"`
-	Path             string             `yaml:"path"`
+	AccessStrategies []AccessStrategies `json:"accessStrategies"`
+	Methods          []string           `json:"methods"`
+	Path             string             `json:"path"`
 }
 type Service struct {
-	Host string `yaml:"host"`
-	Name string `yaml:"name"`
-	Port string `yaml:"port"`
+	Host string `json:"host"`
+	Name string `json:"name"`
+	Port int64  `json:"port"`
 }
