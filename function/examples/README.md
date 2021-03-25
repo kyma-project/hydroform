@@ -9,7 +9,7 @@ This module contains examples showing how to use Function API.
 Operators allow you to perform these two operations on the given resources: `apply` and `delete`. 
 Both operations can accept callbacks that will be executed before and/or after each operation.
 
-The library contains two implementations of an operator interface: `GenericOperator` and `TriggersOperator`.
+The library contains two implementations of an operator interface: `GenericOperator` and `SubscriptionOperator`.
 
 See how the examples use specific libraries to:
 
@@ -35,28 +35,31 @@ See how the examples use specific libraries to [handle sibling-children owner re
 
 The Function workspace is a configuration YAML file that was designed to work with the Kyma CLI `init`, `apply`, and `sync` commands to quickly create or update Kubernetes resources.
 
-It aggregates properties of a Function object and other Function-related objects, such as triggers.
+It aggregates properties of a Function object and other Function-related objects, such as subscriptions.
 
 A sample configuration file looks as follows:
 
 ```yaml
-name: example
-namespace: example-ns
-runtime: python38
-resource:
-    limits:
-        cpu: 100m
-        memory: 128Mi
-    requests:
-        cpu: 50m
-        memory: 64Mi
+name: function-crazy-karol9
+namespace: testme
+runtime: nodejs12
 source:
-    sourceType: inline
-    sourcePath: /tmp/test-fn-git
-triggers:
-    version: v1
-    type: t1
-    source: src1
+  sourceType: inline
+  sourcePath: /tmp/cli-test
+subscriptions:
+  - name: first-function-subscription
+    protocol: NATS
+    filter:
+      dialect: NATS100
+      filters:
+        - eventSource:
+            property: source
+            type: exact
+            value: ""
+          eventType:
+            property: type
+            type: exact
+            value: sap.kyma.custom.test.order.created.v1
 ```
 
 See how the examples use specific libraries to:

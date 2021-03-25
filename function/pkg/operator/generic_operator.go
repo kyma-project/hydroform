@@ -9,20 +9,21 @@ import (
 )
 
 var (
+	//FIXME rename to GVR...
 	GVKFunction = schema.GroupVersionResource{
 		Group:    "serverless.kyma-project.io",
 		Version:  "v1alpha1",
 		Resource: "functions",
 	}
-	GVKTriggers = schema.GroupVersionResource{
-		Group:    "eventing.knative.dev",
-		Version:  "v1alpha1",
-		Resource: "triggers",
-	}
 	GVRGitRepository = schema.GroupVersionResource{
 		Group:    "serverless.kyma-project.io",
 		Version:  "v1alpha1",
 		Resource: "gitrepositories",
+	}
+	GVRSubscription = schema.GroupVersionResource{
+		Group:    "eventing.kyma-project.io",
+		Version:  "v1alpha1",
+		Resource: "subscriptions",
 	}
 )
 
