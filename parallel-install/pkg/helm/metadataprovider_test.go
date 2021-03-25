@@ -152,7 +152,7 @@ func Test_MetadataSet(t *testing.T) {
 	})
 }
 
-func Test_Version(t *testing.T) {
+func Test_Versions(t *testing.T) {
 	t.Run("No Kyma installed", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset()
 		metaProv := NewKymaMetadataProvider(k8sMock)

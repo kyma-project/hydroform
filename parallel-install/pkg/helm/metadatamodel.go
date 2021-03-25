@@ -139,6 +139,17 @@ func (kvs *KymaVersionSet) Names() []string {
 	return names
 }
 
+//Latest returns the latest installed Kyma version
+func (kvs *KymaVersionSet) Latest() *KymaVersion {
+	var latest *KymaVersion
+	for _, version := range kvs.Versions {
+		if latest == nil || version.CreationTime > latest.CreationTime {
+			latest = version
+		}
+	}
+	return latest
+}
+
 //InstalledComponents returns a list of all components sorted by their installation sequence
 func (kvs *KymaVersionSet) InstalledComponents() []*KymaComponentMetadata {
 	var comps []*KymaComponentMetadata
