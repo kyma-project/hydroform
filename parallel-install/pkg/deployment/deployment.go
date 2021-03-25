@@ -52,7 +52,7 @@ func (i *Deployment) StartKymaDeployment() error {
 	return i.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
 }
 
-func (i *Deployment) startKymaDeployment(overridesProvider overrides.OverridesProvider, prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
+func (i *Deployment) startKymaDeployment(overridesProvider overrides.Provider, prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

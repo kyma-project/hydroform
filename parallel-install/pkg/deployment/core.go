@@ -66,7 +66,7 @@ func (i *core) logStatuses(statusMap map[string]string) {
 	}
 }
 
-func (i *core) getConfig() (overrides.OverridesProvider, *engine.Engine, *engine.Engine, error) {
+func (i *core) getConfig() (overrides.Provider, *engine.Engine, *engine.Engine, error) {
 	overridesProvider, err := overrides.New(i.kubeClient, i.overrides.Map(), i.cfg.Log)
 
 	if err != nil {

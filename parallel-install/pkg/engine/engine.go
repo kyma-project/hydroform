@@ -33,13 +33,13 @@ type Config struct {
 
 //Engine implements Installation interface
 type Engine struct {
-	overridesProvider  overrides.OverridesProvider
+	overridesProvider  overrides.Provider
 	componentsProvider components.Provider
 	cfg                Config
 }
 
 //NewEngine returns new Engine instance
-func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider components.Provider, cfg Config) *Engine {
+func NewEngine(overridesProvider overrides.Provider, componentsProvider components.Provider, cfg Config) *Engine {
 	return &Engine{
 		overridesProvider:  overridesProvider,
 		componentsProvider: componentsProvider,

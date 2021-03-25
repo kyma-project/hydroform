@@ -16,7 +16,7 @@ type Provider interface {
 
 //ComponentsProvider implements the Provider interface.
 type ComponentsProvider struct {
-	overridesProvider overrides.OverridesProvider
+	overridesProvider overrides.Provider
 	resourcesPath     string //A root directory where subdirectories of components' charts are located.
 	components        []config.ComponentDefinition
 	helmConfig        helm.Config
@@ -25,7 +25,7 @@ type ComponentsProvider struct {
 }
 
 //NewComponentsProvider returns a ComponentsProvider instance.
-func NewComponentsProvider(overridesProvider overrides.OverridesProvider, cfg *config.Config, components []config.ComponentDefinition, tpl *helm.KymaComponentMetadataTemplate) *ComponentsProvider {
+func NewComponentsProvider(overridesProvider overrides.Provider, cfg *config.Config, components []config.ComponentDefinition, tpl *helm.KymaComponentMetadataTemplate) *ComponentsProvider {
 
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
