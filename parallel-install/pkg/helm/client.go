@@ -123,7 +123,7 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 	return nil
 }
 
-func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
+func (c *Client) upgradeRelease(namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
 	upgrade := action.NewUpgrade(cfg)
 	upgrade.Atomic = c.cfg.Atomic
 	upgrade.CleanupOnFail = true
@@ -159,7 +159,7 @@ func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name s
 	return nil
 }
 
-func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
+func (c *Client) installRelease(namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
 	install := action.NewInstall(cfg)
 	install.ReleaseName = name
 	install.Namespace = namespace
@@ -220,9 +220,9 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 		}
 
 		if upgrade {
-			err = c.upgradeRelease(ctx, chartDir, namespace, name, comboValues, cfg, chart)
+			err = c.upgradeRelease(namespace, name, comboValues, cfg, chart)
 		} else {
-			err = c.installRelease(ctx, chartDir, namespace, name, comboValues, cfg, chart)
+			err = c.installRelease(namespace, name, comboValues, cfg, chart)
 		}
 		return err
 	}
@@ -245,9 +245,8 @@ func (c *Client) isUpgrade(name string, cfg *action.Configuration) (bool, error)
 	if err != nil {
 		if err == driver.ErrReleaseNotFound {
 			return false, nil
-		} else {
-			return false, err
 		}
+		return false, err
 	}
 
 	return true, nil

@@ -175,7 +175,7 @@ func Test_Versions(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 1, len(versionSet.Versions))
 		expectedVersions := []*KymaVersion{
-			&KymaVersion{
+			{
 				Version:      "123",
 				Profile:      "profile",
 				OperationID:  "opsid",
@@ -270,13 +270,13 @@ func Test_Versions(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 3, len(versionSet.Versions))
 		expectedVersions := []*KymaVersion{
-			&KymaVersion{
+			{
 				Version:      "master",
 				Profile:      "profile",
 				OperationID:  "aaa",
 				CreationTime: 1000000000,
 				Components: []*KymaComponentMetadata{
-					&KymaComponentMetadata{
+					{
 						Name:         "test",
 						Namespace:    "test",
 						Component:    true,
@@ -286,7 +286,7 @@ func Test_Versions(t *testing.T) {
 						CreationTime: int64(1000000000),
 						Priority:     int64(1),
 					},
-					&KymaComponentMetadata{
+					{
 						Name:         "test2",
 						Namespace:    "test2",
 						Component:    true,
@@ -298,13 +298,13 @@ func Test_Versions(t *testing.T) {
 					},
 				},
 			},
-			&KymaVersion{
+			{
 				Version:      "2.0.1",
 				Profile:      "production",
 				OperationID:  "ccc",
 				CreationTime: 3000000000,
 				Components: []*KymaComponentMetadata{
-					&KymaComponentMetadata{
+					{
 						Name:         "test1",
 						Namespace:    "test1",
 						Component:    true,
@@ -316,13 +316,13 @@ func Test_Versions(t *testing.T) {
 					},
 				},
 			},
-			&KymaVersion{
+			{
 				Version:      "master",
 				Profile:      "profile",
 				OperationID:  "ddd",
 				CreationTime: 4000000000,
 				Components: []*KymaComponentMetadata{
-					&KymaComponentMetadata{
+					{
 						Name:         "test3",
 						Namespace:    "test3",
 						Component:    true,

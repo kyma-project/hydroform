@@ -66,7 +66,7 @@ func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, comp
 	quitTimeout := i.cfg.QuitTimeout
 
 	startTime := time.Now()
-	err := i.uninstallComponents(UninstallComponents, cancelCtx, cancel, componentsEng, cancelTimeout, quitTimeout)
+	err := i.uninstallComponents(cancelCtx, cancel, UninstallComponents, componentsEng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, comp
 	cancelTimeout = calculateDuration(startTime, endTime, i.cfg.CancelTimeout)
 	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
 
-	err = i.uninstallComponents(UninstallPreRequisites, cancelCtx, cancel, prerequisitesEng, cancelTimeout, quitTimeout)
+	err = i.uninstallComponents(cancelCtx, cancel, UninstallPreRequisites, prerequisitesEng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, comp
 	return nil
 }
 
-func (i *Deletion) uninstallComponents(phase InstallationPhase, ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+func (i *Deletion) uninstallComponents(ctx context.Context, cancelFunc context.CancelFunc, phase InstallationPhase, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
 	var statusMap = map[string]string{}

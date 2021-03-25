@@ -75,7 +75,7 @@ func (i *Deployment) startKymaDeployment(overridesProvider overrides.OverridesPr
 	if err != nil {
 		return err
 	}
-	err = i.deployComponents(InstallPreRequisites, cancelCtx, cancel, prerequisitesEng, cancelTimeout, quitTimeout)
+	err = i.deployComponents(cancelCtx, cancel, InstallPreRequisites, prerequisitesEng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -86,10 +86,10 @@ func (i *Deployment) startKymaDeployment(overridesProvider overrides.OverridesPr
 	cancelTimeout = calculateDuration(startTime, endTime, i.cfg.CancelTimeout)
 	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
 
-	return i.deployComponents(InstallComponents, cancelCtx, cancel, componentsEng, cancelTimeout, quitTimeout)
+	return i.deployComponents(cancelCtx, cancel, InstallComponents, componentsEng, cancelTimeout, quitTimeout)
 }
 
-func (i *Deployment) deployComponents(phase InstallationPhase, ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.CancelFunc, phase InstallationPhase, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false

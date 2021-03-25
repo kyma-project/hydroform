@@ -110,6 +110,9 @@ func (p *Provider) ReadOverridesFromCluster() error {
 	}
 
 	componentOverrideCMs, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), componentListOpts)
+	if err != nil {
+		return err
+	}
 
 	for _, cm := range componentOverrideCMs.Items {
 		var componentValues []string

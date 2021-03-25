@@ -54,12 +54,15 @@ func main() {
 
 	builder := &deployment.OverridesBuilder{}
 	if err := builder.AddFile("./overrides.yaml"); err != nil {
-		log.Error("Failed to Add overrides file. Exiting...")
+		log.Error("Failed to add overrides file. Exiting...")
 		os.Exit(1)
 	}
 	newKymaOverrides := make(map[string]interface{})
 	newKymaOverrides["isBEBEnabled"] = true
-	builder.AddOverrides("global", newKymaOverrides)
+	if err := builder.AddOverrides("global", newKymaOverrides); err != nil {
+		log.Error("Failed to add overrides isBEBEnabled. Exiting...")
+		os.Exit(1)
+	}
 
 	compList, err := config.NewComponentList("./components.yaml")
 	if err != nil {
