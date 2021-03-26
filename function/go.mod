@@ -10,6 +10,7 @@ require (
 	github.com/docker/docker v20.10.3+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0 // indirect
+	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815 // indirect
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
