@@ -101,7 +101,7 @@ func (ob *OverridesBuilder) mergeSources() (map[string]interface{}, error) {
 			err = yaml.Unmarshal(data, &fileOverrides)
 		}
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("Failed to process configuration values defined in file '%s'", file))
 		}
 		// merge
 		if err := mergo.Map(&result, fileOverrides, mergo.WithOverride); err != nil {
