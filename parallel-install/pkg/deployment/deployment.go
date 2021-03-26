@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,35 +44,15 @@ func (i *Deployment) StartKymaDeployment() error {
 		return err
 	}
 
-	attr, err := metadata.NewAttributes(i.cfg.Version, i.cfg.Profile, i.cfg.ComponentsListFile)
-	if err != nil {
-		return err
-	}
-
-	err = i.metadataProvider.WriteKymaDeploymentInProgress(attr)
-	if err != nil {
-		return err
-	}
-
 	overridesProvider, prerequisitesEng, componentsEng, err := i.getConfig()
 	if err != nil {
 		return err
 	}
 
-	err = i.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
-	if err != nil {
-		metaDataErr := i.metadataProvider.WriteKymaDeploymentError(attr, err.Error())
-		if metaDataErr != nil {
-			return metaDataErr
-		}
-		return err
-	}
-
-	err = i.metadataProvider.WriteKymaDeployed(attr)
-	return err
+	return i.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
 }
 
-func (i *Deployment) startKymaDeployment(overridesProvider overrides.OverridesProvider, prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
+func (i *Deployment) startKymaDeployment(overridesProvider overrides.Provider, prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -96,7 +75,7 @@ func (i *Deployment) startKymaDeployment(overridesProvider overrides.OverridesPr
 	if err != nil {
 		return err
 	}
-	err = i.deployComponents(InstallPreRequisites, cancelCtx, cancel, prerequisitesEng, cancelTimeout, quitTimeout)
+	err = i.deployComponents(cancelCtx, cancel, InstallPreRequisites, prerequisitesEng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -107,15 +86,10 @@ func (i *Deployment) startKymaDeployment(overridesProvider overrides.OverridesPr
 	cancelTimeout = calculateDuration(startTime, endTime, i.cfg.CancelTimeout)
 	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
 
-	err = i.deployComponents(InstallComponents, cancelCtx, cancel, componentsEng, cancelTimeout, quitTimeout)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return i.deployComponents(cancelCtx, cancel, InstallComponents, componentsEng, cancelTimeout, quitTimeout)
 }
 
-func (i *Deployment) deployComponents(phase InstallationPhase, ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.CancelFunc, phase InstallationPhase, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false
@@ -202,11 +176,7 @@ func (i *Deployment) createKymaNamespace(namespace string) error {
 		},
 	}, metav1.CreateOptions{})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (i *Deployment) updateKymaNamespace(namespace string) error {
@@ -216,9 +186,5 @@ func (i *Deployment) updateKymaNamespace(namespace string) error {
 		},
 	}, metav1.UpdateOptions{})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

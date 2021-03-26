@@ -1,4 +1,4 @@
-package components
+package config
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -71,11 +72,11 @@ func NewComponentList(componentsListPath string) (*ComponentList, error) {
 	fileExt := filepath.Ext(componentsListPath)
 	if fileExt == ".json" {
 		if err := json.Unmarshal(data, &compListData); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("Failed to process components file '%s'", componentsListPath))
 		}
 	} else if fileExt == ".yaml" || fileExt == ".yml" {
 		if err := yaml.Unmarshal(data, &compListData); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("Failed to process components file '%s'", componentsListPath))
 		}
 	} else {
 		return nil, fmt.Errorf("File extension '%s' is not supported for component list files", fileExt)

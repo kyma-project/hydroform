@@ -21,7 +21,7 @@ var componentListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, 
 
 //Provider type caches overrides for further use.
 //It contains overrides from the cluster and the manually-provided ones.
-type Provider struct {
+type defaultProvider struct {
 	overrides                    map[string]interface{}
 	additionalOverrides          map[string]interface{}
 	componentOverrides           map[string]map[string]interface{}
@@ -30,8 +30,8 @@ type Provider struct {
 	log                          logger.Interface
 }
 
-//OverridesProvider defines the contract for reading overrides for a given Helm release.
-type OverridesProvider interface {
+//Provider defines the contract for reading overrides for a given Helm release.
+type Provider interface {
 	//OverridesGetterFunctionFor returns a function returning overrides for a Helm release with the provided name.
 	//Before using this function, ensure that the overrides cache is populated by calling the ReadOverridesFromCluster function.
 	OverridesGetterFunctionFor(name string) func() map[string]interface{}
@@ -48,8 +48,8 @@ type OverridesProvider interface {
 //There is one difference from the plain Helm's values.yaml file: These are not values for a single release but for the entire Kyma installation.
 //Because of that, you have to put values for a specific Component (e.g: Component name is "foo") under a key equal to the component's name (i.e: "foo").
 //You can also put overrides under a "global" key. These will merge with the top-level "global" Helm key for every Helm chart.
-func New(client kubernetes.Interface, overrides map[string]interface{}, log logger.Interface) (OverridesProvider, error) {
-	provider := Provider{
+func New(client kubernetes.Interface, overrides map[string]interface{}, log logger.Interface) (Provider, error) {
+	provider := defaultProvider{
 		kubeClient: client,
 		log:        log,
 	}
@@ -62,7 +62,7 @@ func New(client kubernetes.Interface, overrides map[string]interface{}, log logg
 	return &provider, nil
 }
 
-func (p *Provider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {
+func (p *defaultProvider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {
 	return func() map[string]interface{} {
 		if val, ok := p.componentOverrides[name]; ok {
 			val = MergeMaps(val, p.overrides)
@@ -72,7 +72,7 @@ func (p *Provider) OverridesGetterFunctionFor(name string) func() map[string]int
 	}
 }
 
-func (p *Provider) ReadOverridesFromCluster() error {
+func (p *defaultProvider) ReadOverridesFromCluster() error {
 
 	// TODO: add retries
 	//Read global overrides
@@ -110,6 +110,9 @@ func (p *Provider) ReadOverridesFromCluster() error {
 	}
 
 	componentOverrideCMs, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), componentListOpts)
+	if err != nil {
+		return err
+	}
 
 	for _, cm := range componentOverrideCMs.Items {
 		var componentValues []string
@@ -140,7 +143,7 @@ func (p *Provider) ReadOverridesFromCluster() error {
 	return nil
 }
 
-func (p *Provider) parseAdditionalOverrides(additionalOverrides map[string]interface{}) error {
+func (p *defaultProvider) parseAdditionalOverrides(additionalOverrides map[string]interface{}) error {
 
 	if p.additionalComponentOverrides == nil {
 		p.additionalComponentOverrides = make(map[string]map[string]interface{})

@@ -2,6 +2,7 @@ package preinstaller
 
 import (
 	"context"
+
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -69,10 +70,9 @@ func (c *DefaultResourceManager) GetResource(resourceName string, resourceSchema
 			if apierrors.IsNotFound(err) {
 				c.log.Infof("Resource %s was not found.", resourceName)
 				return nil
-			} else {
-				c.log.Errorf("Error occurred during resource get: %s", err.Error())
-				return err
 			}
+			c.log.Errorf("Error occurred during resource get: %s", err.Error())
+			return err
 		}
 
 		return err

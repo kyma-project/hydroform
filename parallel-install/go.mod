@@ -6,7 +6,9 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.1.0
+	github.com/fatih/structs v1.1.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/google/uuid v1.2.0
 	github.com/imdario/mergo v0.3.11
 	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/pkg/errors v0.9.1

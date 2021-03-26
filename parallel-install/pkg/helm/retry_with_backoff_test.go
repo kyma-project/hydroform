@@ -3,9 +3,10 @@ package helm
 import (
 	"context"
 	"errors"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"testing"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +14,7 @@ import (
 func TestNoBackoff(t *testing.T) {
 	var count int = 0
 	o := func() error {
-		count += 1
+		count++
 		return nil
 	}
 
@@ -34,7 +35,7 @@ func newClient() *Client {
 func TestOneBackoff(t *testing.T) {
 	var count int = 0
 	o := func() error {
-		count += 1
+		count++
 		if count < 2 {
 			return errors.New("failure")
 		}
@@ -52,7 +53,7 @@ func TestBackoffWithCancel(t *testing.T) {
 
 	var count int = 0
 	o1 := func() error {
-		count += 1
+		count++
 		return errors.New("failure")
 	}
 	//Ensure more than 4 retries are done in 20[ms]
@@ -65,7 +66,7 @@ func TestBackoffWithCancel(t *testing.T) {
 	defer cancel()
 
 	o2 := func() error {
-		count += 1
+		count++
 		t.Log("Operation run: #", count)
 
 		//Cancel processing after 3rd retry

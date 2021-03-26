@@ -4,16 +4,19 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/avast/retry-go"
 	"k8s.io/client-go/dynamic"
-	"os"
-	"time"
 
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 	"k8s.io/client-go/rest"
@@ -51,14 +54,20 @@ func main() {
 
 	builder := &deployment.OverridesBuilder{}
 	if err := builder.AddFile("./overrides.yaml"); err != nil {
-		log.Error("Failed to Add overrides file. Exiting...")
+		log.Error("Failed to add overrides file. Exiting...")
+		os.Exit(1)
+	}
+	newKymaOverrides := make(map[string]interface{})
+	newKymaOverrides["isBEBEnabled"] = true
+	if err := builder.AddOverrides("global", newKymaOverrides); err != nil {
+		log.Error("Failed to add overrides isBEBEnabled. Exiting...")
 		os.Exit(1)
 	}
 
-	newKymaOverrides := make(map[string]interface{})
-	newKymaOverrides["isBEBEnabled"] = true
-
-	builder.AddOverrides("global", newKymaOverrides)
+	compList, err := config.NewComponentList("./components.yaml")
+	if err != nil {
+		log.Fatalf("Cannot read component list: %s", err)
+	}
 
 	installationCfg := &config.Config{
 		WorkersCount:                  4,
@@ -70,7 +79,7 @@ func main() {
 		Log:                           log,
 		HelmMaxRevisionHistory:        10,
 		Profile:                       *profile,
-		ComponentsListFile:            "./components.yaml",
+		ComponentList:                 compList,
 		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
 		InstallationResourcePath:      fmt.Sprintf("%s/src/github.com/kyma-project/kyma/installation/resources", goPath),
 		Version:                       *version,
@@ -139,13 +148,13 @@ func main() {
 		log.Info("Kyma deployed!")
 	}
 
-	kymaMeta, err := deployer.ReadKymaMetadata()
-	if err != nil {
-		log.Errorf("Failed to read Kyma metadata: %v", err)
+	metadataProvider := helm.NewKymaMetadataProvider(kubeClient)
+	versionSet, err := metadataProvider.Versions()
+	if err == nil {
+		log.Infof("Found %d Kyma version: %s", versionSet.Count(), strings.Join(versionSet.Names(), ", "))
+	} else {
+		log.Errorf("Failed to deploy Kyma: %v", err)
 	}
-
-	log.Infof("Kyma version: %s", kymaMeta.Version)
-	log.Infof("Kyma status: %s", kymaMeta.Status)
 
 	//Delete Kyma
 	deleter, err := deployment.NewDeletion(installationCfg, builder, kubeClient, progressCh)
