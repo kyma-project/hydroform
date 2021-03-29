@@ -128,7 +128,7 @@ func (c *Client) upgradeRelease(namespace, name string, overrides map[string]int
 	upgrade.Atomic = c.cfg.Atomic
 	upgrade.CleanupOnFail = true
 	upgrade.Wait = true
-	upgrade.ReuseValues = false
+	upgrade.ReuseValues = true
 	upgrade.Recreate = false
 	upgrade.MaxHistory = c.cfg.MaxHistory
 	upgrade.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
