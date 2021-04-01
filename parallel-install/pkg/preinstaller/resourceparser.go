@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -87,7 +88,13 @@ func initializeDefaultDecoder() (runtime.Decoder, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = apiextv1.AddToScheme(sch)
+	if err != nil {
+		return nil, err
+	}
+
+	err = apiextv1beta1.AddToScheme(sch)
 	if err != nil {
 		return nil, err
 	}

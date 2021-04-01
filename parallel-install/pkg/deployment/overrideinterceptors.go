@@ -241,7 +241,7 @@ func NewFallbackOverrideInterceptor(fallback interface{}) *FallbackOverrideInter
 
 // This struct is introduced to ensure backward compatibility of Kyma 2.0 with 1.x
 // It can be removed when Kyma 2.0 is released
-type InstallLegacyCRDsInterceptor struct {}
+type InstallLegacyCRDsInterceptor struct{}
 
 func (i *InstallLegacyCRDsInterceptor) String(value interface{}, key string) string {
 	return fmt.Sprintf("%v", value)
@@ -252,7 +252,7 @@ func (i *InstallLegacyCRDsInterceptor) Intercept(value interface{}, key string) 
 	return false, nil
 }
 
-func (i*InstallLegacyCRDsInterceptor) Undefined(overrides map[string]interface{}, key string) error {
+func (i *InstallLegacyCRDsInterceptor) Undefined(overrides map[string]interface{}, key string) error {
 	// We should never install CRDs in the legacy way with Kyma 2.0
 	return NewFallbackOverrideInterceptor(false).Undefined(overrides, key)
 }
