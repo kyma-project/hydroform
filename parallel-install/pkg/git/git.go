@@ -81,7 +81,7 @@ func ResolveRevision(repo, rev string) (string, error) {
 	case strings.HasPrefix(rev, "PR-"):
 		// get PR HEAD commit ID
 		return PRHead(repo, rev)
-
+	//Install the specific branch (e.g. main) or return error message
 	default:
 		if ref, err := BranchHead(repo, rev); err == nil {
 			return ref, nil
