@@ -3,7 +3,9 @@ package deployment
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -21,10 +23,13 @@ import (
 //Deployment deploys Kyma on a cluster
 type Deployment struct {
 	*core
+	mutex      *sync.Mutex
+	InProgress bool
+	errors     func(error)
 }
 
 //NewDeployment creates a new Deployment instance for deploying Kyma on a cluster.
-func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
+func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate), errors func(error)) (*Deployment, error) {
 	if err := cfg.ValidateDeployment(); err != nil {
 		return nil, err
 	}
@@ -35,6 +40,24 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernet
 	}
 
 	return &Deployment{core}, nil
+}
+
+func (i *Deployment) StartKymaDeploymentAsync() error {
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+	if i.InProgress {
+		return errors.New("Installation already in progress")
+	}
+
+	i.InProgress = true
+	go func() {
+		err := i.StartKymaDeployment()
+		if err != nil {
+			i.errors(err)
+		}
+	}()
+
+	return nil
 }
 
 //StartKymaDeployment deploys Kyma to a cluster
