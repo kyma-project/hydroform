@@ -32,7 +32,7 @@ func buildMatchRemovedApiRulePredicate(fnName string, items []unstructured.Unstr
 			return false, err
 		}
 
-		if apiRule.Spec.Service.Name != fnName {
+		if !apiRule.IsReference(fnName) {
 			return false, nil
 		}
 

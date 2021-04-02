@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -84,11 +85,18 @@ func fromRuntime(runtime types.Runtime) (workspace, error) {
 	}
 }
 
-func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build) error {
-	return synchronise(ctx, config, outputPath, build, defaultWriterProvider)
+const (
+	ApiRuleGateway = "kyma-gateway.kyma-system.svc.cluster.local"
+	ApiRulePath    = "/.*"
+	ApiRuleHandler = "allow"
+	ApiRulePort    = int64(80)
+)
+
+func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, kymaAddress string) error {
+	return synchronise(ctx, config, outputPath, build, defaultWriterProvider, kymaAddress)
 }
 
-func synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, writerProvider WriterProvider) error {
+func synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, writerProvider WriterProvider, kymaAddress string) error {
 
 	u, err := build(config.Namespace, operator.GVRFunction).Get(ctx, config.Name, v1.GetOptions{})
 	if err != nil {
@@ -146,6 +154,39 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 					Filters: filters,
 				},
 			})
+		}
+	}
+
+	ul, err = build(config.Namespace, operator.GVRApiRule).List(ctx, v1.ListOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	if ul != nil {
+		for _, item := range ul.Items {
+			var apiRule types.ApiRule
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &apiRule); err != nil {
+				return err
+			}
+
+			if !apiRule.IsReference(function.Name) {
+				continue
+			}
+
+			newApiRule := ApiRule{
+				Name:    setIfNotEqual(apiRule.Name, function.Name),
+				Gateway: setIfNotEqual(apiRule.Spec.Gateway, ApiRuleGateway),
+				Service: Service{
+					Host: setIfNotEqual(apiRule.Spec.Service.Host, fmt.Sprintf("%s.%s", function.Name, kymaAddress)),
+				},
+				Rules: toWorkspaceRules(apiRule.Spec.Rules),
+			}
+
+			if apiRule.Spec.Service.Port != ApiRulePort {
+				newApiRule.Service.Port = apiRule.Spec.Service.Port
+			}
+
+			config.ApiRules = append(config.ApiRules, newApiRule)
 		}
 	}
 
@@ -246,4 +287,49 @@ func toWorkspaceEnvFilter(filter types.EventFilter) EventFilter {
 			Value:    filter.EventType.Value,
 		},
 	}
+}
+
+func toWorkspaceRules(rules []types.Rule) []Rule {
+	var out []Rule
+	for _, rule := range rules {
+		out = append(out, Rule{
+			Path:             setIfNotEqual(rule.Path, ApiRulePath),
+			Methods:          rule.Methods,
+			AccessStrategies: toWorkspaceAccessStrategies(rule.AccessStrategies),
+		})
+	}
+
+	return out
+}
+
+func toWorkspaceAccessStrategies(accessStrategies []types.AccessStrategie) []AccessStrategie {
+	if len(accessStrategies) == 1 && accessStrategies[0].Handler == ApiRuleHandler {
+		// apiRule is configured with default handler without configuration
+		return nil
+	}
+
+	var out []AccessStrategie
+	for _, as := range accessStrategies {
+		accessStrategie := AccessStrategie{
+			Handler: setIfNotEqual(as.Handler, ApiRuleHandler),
+		}
+		if as.Config != nil {
+			accessStrategie.Config = AccessStrategieConfig{
+				JwksUrls:       as.Config.JwksUrls,
+				TrustedIssuers: as.Config.TrustedIssuers,
+				RequiredScope:  as.Config.RequiredScope,
+			}
+		}
+
+		out = append(out, accessStrategie)
+	}
+
+	return out
+}
+
+func setIfNotEqual(val, defVal string) string {
+	if val != defVal {
+		return val
+	}
+	return ""
 }

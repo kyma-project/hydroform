@@ -15,10 +15,6 @@ import (
 const (
 	apiRuleApiVersion = "gateway.kyma-project.io/v1alpha1"
 	apiRuleKind       = "APIRule"
-	apiRuleGateway    = "kyma-gateway.kyma-system.svc.cluster.local"
-	apiRulePath       = "/.*"
-	apiRuleHandler    = "allow"
-	apiRulePort       = int64(80)
 )
 
 func NewApiRule(cfg workspace.Cfg, clusterAddress string) ([]unstructured.Unstructured, error) {
@@ -49,11 +45,11 @@ func prepareApiRule(name, namespace, host string, labels map[string]string, apiR
 		Spec: types.ApiRuleSpec{
 			Service: types.Service{
 				Host: defaultString(apiRule.Service.Host, fmt.Sprintf("%s.%s", name, host)),
-				Port: defaultInt64(apiRule.Service.Port, apiRulePort),
+				Port: defaultInt64(apiRule.Service.Port, workspace.ApiRulePort),
 				Name: name,
 			},
 			Rules:   prepareRules(apiRule.Rules),
-			Gateway: defaultString(apiRule.Gateway, apiRuleGateway),
+			Gateway: defaultString(apiRule.Gateway, workspace.ApiRuleGateway),
 		},
 	}
 }
@@ -64,7 +60,7 @@ func prepareRules(rules []workspace.Rule) []types.Rule {
 		typesRules = append(typesRules, types.Rule{
 			AccessStrategies: prepareAccessStrategies(rule.AccessStrategies),
 			Methods:          rule.Methods,
-			Path:             defaultString(rule.Path, apiRulePath),
+			Path:             defaultString(rule.Path, workspace.ApiRulePath),
 		})
 	}
 	return typesRules
@@ -74,7 +70,7 @@ func prepareAccessStrategies(accessStrategies []workspace.AccessStrategie) []typ
 	if len(accessStrategies) == 0 {
 		return []types.AccessStrategie{
 			{
-				Handler: apiRuleHandler,
+				Handler: workspace.ApiRuleHandler,
 			},
 		}
 	}
@@ -82,7 +78,7 @@ func prepareAccessStrategies(accessStrategies []workspace.AccessStrategie) []typ
 	strategies := []types.AccessStrategie{}
 	for _, strategie := range accessStrategies {
 		as := types.AccessStrategie{
-			Handler: defaultString(strategie.Handler, apiRuleHandler),
+			Handler: defaultString(strategie.Handler, workspace.ApiRuleHandler),
 		}
 		if !reflect.DeepEqual(strategie.Config, workspace.AccessStrategieConfig{}) {
 			as.Config = &types.Config{

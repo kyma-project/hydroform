@@ -74,25 +74,25 @@ type ApiRule struct {
 }
 
 type Service struct {
-	Host string `yaml:"host"`
-	Port int64  `yaml:"port"`
+	Host string `yaml:"host,omitempty"`
+	Port int64  `yaml:"port,omitempty"`
 }
 
 type Rule struct {
-	Path             string            `yaml:"path"`
-	Methods          []string          `yaml:"methods"`
-	AccessStrategies []AccessStrategie `yaml:"accessStrategies"`
+	Path             string            `yaml:"path,omitempty"`
+	Methods          []string          `yaml:"methods,omitempty"`
+	AccessStrategies []AccessStrategie `yaml:"accessStrategies,omitempty"`
 }
 
 type AccessStrategie struct {
 	Config  AccessStrategieConfig `json:"config,omitempty"`
-	Handler string                `json:"handler"`
+	Handler string                `json:"handler,omitempty"`
 }
 
 type AccessStrategieConfig struct {
-	JwksUrls       []string `yaml:"jwksUrls"`
-	TrustedIssuers []string `yaml:"trustedIssuers"`
-	RequiredScope  []string `yaml:"requiredScope"`
+	JwksUrls       []string `yaml:"jwksUrls,omitempty"`
+	TrustedIssuers []string `yaml:"trustedIssuers,omitempty"`
+	RequiredScope  []string `yaml:"requiredScope,omitempty"`
 }
 
 type Cfg struct {

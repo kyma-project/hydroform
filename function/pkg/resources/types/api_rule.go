@@ -36,3 +36,7 @@ type Service struct {
 	Name string `json:"name"`
 	Port int64  `json:"port"`
 }
+
+func (ar ApiRule) IsReference(name string) bool {
+	return ar.Spec.Service.Name == name
+}
