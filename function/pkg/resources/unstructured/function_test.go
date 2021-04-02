@@ -197,13 +197,25 @@ func Test_newFunction(t *testing.T) {
 							},
 						},
 					},
-					ApiRule: workspace.ApiRule{
-						Host:    "test-host",
-						Name:    "test-name",
-						Port:    80,
-						Methods: []string{"POST"},
-						Handler: "test-handler",
-						Path:    "test-path",
+					ApiRules: []workspace.ApiRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -635,13 +647,25 @@ func Test_newGitFunction(t *testing.T) {
 							},
 						},
 					},
-					ApiRule: workspace.ApiRule{
-						Host:    "test-host",
-						Name:    "test-name",
-						Port:    80,
-						Methods: []string{"POST"},
-						Handler: "test-handler",
-						Path:    "test-path",
+					ApiRules: []workspace.ApiRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
 					},
 					Env: []workspace.EnvVar{
 						{
@@ -777,13 +801,25 @@ func Test_newGitFunction(t *testing.T) {
 							},
 						},
 					},
-					ApiRule: workspace.ApiRule{
-						Host:    "test-host",
-						Name:    "test-name",
-						Port:    80,
-						Methods: []string{"POST"},
-						Handler: "test-handler",
-						Path:    "test-path",
+					ApiRules: []workspace.ApiRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},

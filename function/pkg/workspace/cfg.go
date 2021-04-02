@@ -67,14 +67,32 @@ type SecretKeySelector struct {
 }
 
 type ApiRule struct {
-	Host           string   `yaml:"host"`
-	Name           string   `yaml:"name"`
-	Port           int64    `yaml:"port"`
-	Methods        []string `yaml:"methods"`
-	Handler        string   `yaml:"handler"`
-	Path           string   `yaml:"path"`
-	JwksUrls       []string `yaml:"jwks_urls"`
-	TrustedIssuers []string `yaml:"trusted_issuers"`
+	Name    string  `yaml:"name,omitempty"`
+	Gateway string  `yaml:"gateway,omitempty"`
+	Service Service `yaml:"service,omitempty"`
+	Rules   []Rule  `yaml:"rules,omitempty"`
+}
+
+type Service struct {
+	Host string `yaml:"host"`
+	Port int64  `yaml:"port"`
+}
+
+type Rule struct {
+	Path             string            `yaml:"path"`
+	Methods          []string          `yaml:"methods"`
+	AccessStrategies []AccessStrategie `yaml:"accessStrategies"`
+}
+
+type AccessStrategie struct {
+	Config  AccessStrategieConfig `json:"config,omitempty"`
+	Handler string                `json:"handler"`
+}
+
+type AccessStrategieConfig struct {
+	JwksUrls       []string `yaml:"jwksUrls"`
+	TrustedIssuers []string `yaml:"trustedIssuers"`
+	RequiredScope  []string `yaml:"requiredScope"`
 }
 
 type Cfg struct {
@@ -86,7 +104,7 @@ type Cfg struct {
 	Resources Resources         `yaml:"resource,omitempty"`
 	Subscriptions    []Subscription    `yaml:"subscriptions,omitempty"`
 	Env       []EnvVar          `yaml:"env,omitempty"`
-	ApiRule   ApiRule           `yaml:"apiRule,omitempty"`
+	ApiRules  []ApiRule         `yaml:"apiRules,omitempty"`
 }
 
 type Source struct {
