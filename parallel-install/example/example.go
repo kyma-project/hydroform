@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
 	"time"
@@ -86,7 +87,7 @@ func main() {
 	}
 
 	// used to receive progress updates of the install/uninstall process
-	var progressCh chan deployment.ProcessUpdate
+	/*var progressCh chan deployment.ProcessUpdate
 	if !(*verbose) {
 		progressCh = make(chan deployment.ProcessUpdate)
 		ctx := renderProgress(progressCh, log)
@@ -94,7 +95,7 @@ func main() {
 			close(progressCh)
 			<-ctx.Done()
 		}()
-	}
+	}*/
 
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
@@ -136,7 +137,7 @@ func main() {
 	}
 
 	//Deploy Kyma
-	deployer, err := deployment.NewDeployment(installationCfg, builder, kubeClient, progressCh)
+	deployer, err := deployment.NewDeployment(installationCfg, builder, kubeClient, callbackUpdate)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
@@ -157,7 +158,7 @@ func main() {
 	}
 
 	//Delete Kyma
-	deleter, err := deployment.NewDeletion(installationCfg, builder, kubeClient, progressCh)
+	deleter, err := deployment.NewDeletion(installationCfg, builder, kubeClient, callbackUpdate)
 	if err != nil {
 		log.Fatalf("Failed to create deleter: %v", err)
 	}
@@ -173,6 +174,28 @@ func getClientConfig(kubeconfig string) (*rest.Config, error) {
 		return clientcmd.BuildConfigFromFlags("", kubeconfig)
 	}
 	return rest.InClusterConfig()
+}
+
+func callbackUpdate(update deployment.ProcessUpdate) {
+
+	showCompStatus := func(comp components.KymaComponent) {
+		if comp.Name != "" {
+			log.Infof("Status of component '%s': %s", comp.Name, comp.Status)
+		}
+	}
+
+	switch update.Event {
+	case deployment.ProcessStart:
+		log.Infof("Starting installation phase '%s'", update.Phase)
+	case deployment.ProcessRunning:
+		showCompStatus(update.Component)
+	case deployment.ProcessFinished:
+		log.Infof("Finished installation phase '%s' successfully", update.Phase)
+	default:
+		//any failure case
+		log.Infof("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
+		showCompStatus(update.Component)
+	}
 }
 
 func renderProgress(progressCh chan deployment.ProcessUpdate, log logger.Interface) context.Context {

@@ -104,7 +104,7 @@ func (i *core) processUpdate(phase InstallationPhase, event ProcessEvent, err er
 	if i.processUpdates == nil {
 		return
 	}
-	// fire event
+	//fire callback
 	i.processUpdates(ProcessUpdate{
 		Event:     event,
 		Phase:     phase,
@@ -123,12 +123,12 @@ func (i *core) processUpdateComponent(phase InstallationPhase, comp components.K
 	if comp.Status == components.StatusError {
 		event = ProcessExecutionFailure
 	}
-	// fire event
-	i.processUpdates <- ProcessUpdate{
+	//// fire callback
+	i.processUpdates(ProcessUpdate{
 		Event:     event,
 		Phase:     phase,
 		Component: comp,
-	}
+	})
 }
 
 func isK3dCluster(kubeClient kubernetes.Interface) bool {

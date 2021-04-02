@@ -25,11 +25,10 @@ type Deployment struct {
 	*core
 	mutex      *sync.Mutex
 	InProgress bool
-	errors     func(error)
 }
 
 //NewDeployment creates a new Deployment instance for deploying Kyma on a cluster.
-func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate), errors func(error)) (*Deployment, error) {
+func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*Deployment, error) {
 	if err := cfg.ValidateDeployment(); err != nil {
 		return nil, err
 	}
@@ -39,7 +38,7 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernet
 		return nil, err
 	}
 
-	return &Deployment{core}, nil
+	return &Deployment{core, &sync.Mutex{}, false }, nil
 }
 
 func (i *Deployment) StartKymaDeploymentAsync() error {
@@ -53,7 +52,7 @@ func (i *Deployment) StartKymaDeploymentAsync() error {
 	go func() {
 		err := i.StartKymaDeployment()
 		if err != nil {
-			i.errors(err)
+			i.processUpdate(InstallPreRequisites, ProcessStart, err)
 		}
 	}()
 
