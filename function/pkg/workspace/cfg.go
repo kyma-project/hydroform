@@ -96,15 +96,15 @@ type AccessStrategieConfig struct {
 }
 
 type Cfg struct {
-	Name      string            `yaml:"name"`
-	Namespace string            `yaml:"namespace"`
-	Labels    map[string]string `yaml:"labels,omitempty"`
-	Runtime   types.Runtime     `yaml:"runtime"`
-	Source    Source            `yaml:"source"`
-	Resources Resources         `yaml:"resource,omitempty"`
-	Subscriptions    []Subscription    `yaml:"subscriptions,omitempty"`
-	Env       []EnvVar          `yaml:"env,omitempty"`
-	ApiRules  []ApiRule         `yaml:"apiRules,omitempty"`
+	Name          string            `yaml:"name"`
+	Namespace     string            `yaml:"namespace"`
+	Labels        map[string]string `yaml:"labels,omitempty"`
+	Runtime       types.Runtime     `yaml:"runtime"`
+	Source        Source            `yaml:"source"`
+	Resources     Resources         `yaml:"resource,omitempty"`
+	Subscriptions []Subscription    `yaml:"subscriptions,omitempty"`
+	Env           []EnvVar          `yaml:"env,omitempty"`
+	ApiRules      []ApiRule         `yaml:"apiRules,omitempty"`
 }
 
 type Source struct {
