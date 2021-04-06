@@ -20,7 +20,7 @@ import (
 //these components will be removed from component list if running on a local cluster
 var incompatibleLocalComponents = []string{"apiserver-proxy", "iam-kubeconfig-service"}
 
-type core struct {
+type Core struct {
 	// Contains list of components to install (inclusive pre-requisites)
 	cfg       *config.Config
 	overrides *Overrides
@@ -38,7 +38,7 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func NewCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*core, error) {
+func NewCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*Core, error) {
 	if isK3dCluster(kubeClient) {
 		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
 		removeFromComponentList(cfg.ComponentList, incompatibleLocalComponents)
@@ -51,7 +51,7 @@ func NewCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Int
 		return nil, err
 	}
 
-	return &core{
+	return &Core{
 		cfg:            cfg,
 		overrides:      &overrides,
 		processUpdates: processUpdates,
@@ -59,14 +59,14 @@ func NewCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Int
 	}, nil
 }
 
-func (i *core) logStatuses(statusMap map[string]string) {
+func (i *Core) logStatuses(statusMap map[string]string) {
 	i.cfg.Log.Infof("Components processed so far:")
 	for k, v := range statusMap {
 		i.cfg.Log.Infof("Component: %s, Status: %s", k, v)
 	}
 }
 
-func (i *core) getConfig() (overrides.Provider, *engine.Engine, *engine.Engine, error) {
+func (i *Core) getConfig() (overrides.Provider, *engine.Engine, *engine.Engine, error) {
 	overridesProvider, err := overrides.New(i.kubeClient, i.overrides.Map(), i.cfg.Log)
 
 	if err != nil {
@@ -100,7 +100,7 @@ func calculateDuration(start time.Time, end time.Time, duration time.Duration) t
 }
 
 // Send process update event
-func (i *core) processUpdate(phase InstallationPhase, event ProcessEvent, err error) {
+func (i *Core) processUpdate(phase InstallationPhase, event ProcessEvent, err error) {
 	if i.processUpdates == nil {
 		return
 	}
@@ -114,7 +114,7 @@ func (i *core) processUpdate(phase InstallationPhase, event ProcessEvent, err er
 }
 
 // Send process update event related to a component
-func (i *core) processUpdateComponent(phase InstallationPhase, comp components.KymaComponent) {
+func (i *Core) processUpdateComponent(phase InstallationPhase, comp components.KymaComponent) {
 	if i.processUpdates == nil {
 		return
 	}

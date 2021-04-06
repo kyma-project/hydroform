@@ -22,7 +22,7 @@ import (
 
 //Deployment deploys Kyma on a cluster
 type Deployment struct {
-	*core
+	*Core
 	mutex      *sync.Mutex
 	InProgress bool
 }
@@ -33,7 +33,7 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernet
 		return nil, err
 	}
 
-	core, err := NewCore(cfg, ob, kubeClient, processUpdates)
+	core, err :=  NewCore(cfg, ob, kubeClient, processUpdates)
 	if err != nil {
 		return nil, err
 	}
