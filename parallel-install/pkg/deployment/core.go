@@ -38,7 +38,7 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*core, error) {
+func NewCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*core, error) {
 	if isK3dCluster(kubeClient) {
 		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
 		removeFromComponentList(cfg.ComponentList, incompatibleLocalComponents)
