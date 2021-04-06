@@ -67,10 +67,6 @@ func CloneRevision(url, dstPath, rev string) error {
 // ResolveRevision tries to convert a pseudo-revision reference (e.g. semVer, tag, PR, master, etc...) into a revision that can be checked out.
 func ResolveRevision(repo, rev string) (string, error) {
 	switch {
-	//Install the master version
-	case strings.EqualFold(rev, "master"):
-		return BranchHead(repo, rev)
-
 	//Install the specific commit hash (e.g. 34edf09a)
 	case isHex(rev):
 		// no need for conversion
@@ -85,9 +81,13 @@ func ResolveRevision(repo, rev string) (string, error) {
 	case strings.HasPrefix(rev, "PR-"):
 		// get PR HEAD commit ID
 		return PRHead(repo, rev)
-
+	//Install the specific branch (e.g. main) or return error message
 	default:
-		return "", fmt.Errorf("failed to parse the rev parameter. It can take one of the following: 'master', commit hash (e.g. 34edf09a), release version (e.g. 1.4.1), PR (e.g. PR-9486)")
+		if ref, err := BranchHead(repo, rev); err == nil {
+			return ref, nil
+		} else {
+			return "", errors.Wrap(err, fmt.Sprintf("Could not find a branch with name '%s'\nfailed to parse the rev parameter. It can take one of the following: branch name (e.g. main), commit hash (e.g. 34edf09a), release version (e.g. 1.4.1), PR (e.g. PR-9486)", rev))
+		}
 	}
 }
 
