@@ -3,7 +3,6 @@ package deployment
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -39,24 +38,6 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernet
 	}
 
 	return &Deployment{core, &sync.Mutex{}, false}, nil
-}
-
-func (i *Deployment) StartKymaDeploymentAsync() error {
-	i.mutex.Lock()
-	defer i.mutex.Unlock()
-	if i.InProgress {
-		return errors.New("Installation already in progress")
-	}
-
-	i.InProgress = true
-	go func() {
-		err := i.StartKymaDeployment()
-		if err != nil {
-			i.processUpdate(InstallPreRequisites, ProcessStart, err)
-		}
-	}()
-
-	return nil
 }
 
 //StartKymaDeployment deploys Kyma to a cluster
