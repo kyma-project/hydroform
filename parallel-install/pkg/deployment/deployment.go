@@ -38,7 +38,7 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernet
 		return nil, err
 	}
 
-	return &Deployment{core, &sync.Mutex{}, false }, nil
+	return &Deployment{core, &sync.Mutex{}, false}, nil
 }
 
 func (i *Deployment) StartKymaDeploymentAsync() error {
