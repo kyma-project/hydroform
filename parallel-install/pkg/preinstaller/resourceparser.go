@@ -94,8 +94,7 @@ func initializeDefaultDecoder() (runtime.Decoder, error) {
 		return nil, err
 	}
 
-	err = apiextv1beta1.AddToScheme(sch)
-	if err != nil {
+	if err := apiextv1beta1.AddToScheme(sch); err != nil {
 		return nil, err
 	}
 
