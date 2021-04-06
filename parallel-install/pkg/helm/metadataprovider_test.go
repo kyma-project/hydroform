@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -335,8 +336,21 @@ func Test_Versions(t *testing.T) {
 				},
 			},
 		}
+		//compare different versions (distinguished by their operationID)
+		versionMap := make(map[string]*KymaVersion, len(versionSet.Versions))
 		for _, version := range versionSet.Versions {
-			require.Contains(t, expectedVersions, version)
+			versionMap[version.OperationID] = version
+		}
+		for _, kymaVersion := range expectedVersions {
+			version, ok := versionMap[kymaVersion.OperationID]
+			require.True(t, ok, fmt.Sprintf("Version with name is '%s' missing in version set", kymaVersion.Version))
+			require.Equal(t, kymaVersion.Version, version.Version)
+			require.Equal(t, len(kymaVersion.Components), len(version.Components))
+			for _, comp := range kymaVersion.Components {
+				require.Equal(t, comp.Name, comp.Name)
+				require.Equal(t, comp.Priority, comp.Priority)
+				require.Equal(t, comp.CreationTime, comp.CreationTime)
+			}
 		}
 	})
 }
