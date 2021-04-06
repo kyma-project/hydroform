@@ -22,7 +22,7 @@ import (
 //Deployment deploys Kyma on a cluster
 type Deployment struct {
 	*Core
-	mutex      *sync.Mutex
+	Mutex      *sync.Mutex
 	InProgress bool
 }
 
