@@ -23,7 +23,7 @@ var kymaNamespaces = []string{"kyma-system", "kyma-integration", "istio-system",
 
 //Deletion removes Kyma from a cluster
 type Deletion struct {
-	*core
+	*Core
 }
 
 //NewDeletion creates a new Deployment instance for deleting Kyma on a cluster.
@@ -32,7 +32,7 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes
 		return nil, err
 	}
 
-	core, err := newCore(cfg, ob, kubeClient, processUpdates)
+	core, err := NewCore(cfg, ob, kubeClient, processUpdates)
 	if err != nil {
 		return nil, err
 	}
