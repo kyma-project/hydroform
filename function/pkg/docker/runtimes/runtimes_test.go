@@ -378,7 +378,7 @@ func TestContainerImage(t *testing.T) {
 			args: args{
 				runtime: types.Python38,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-python38:4bed80da",
+			want: "eu.gcr.io/kyma-project/function-runtime-python38:PR-11040",
 		},
 	}
 	for _, tt := range tests {
