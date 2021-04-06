@@ -88,6 +88,7 @@ func ResolveRevision(repo, rev string) (string, error) {
 		} else {
 			return "", errors.Wrap(err, fmt.Sprintf("Could not find a branch with name '%s'\nfailed to parse the rev parameter. It can take one of the following: branch name (e.g. main), commit hash (e.g. 34edf09a), release version (e.g. 1.4.1), PR (e.g. PR-9486)", rev))
 		}
+	}
 }
 
 // BranchHead finds the HEAD commit hash of the given branch in the given repository.
