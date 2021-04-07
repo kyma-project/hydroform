@@ -101,6 +101,7 @@ func (cl *ComponentList) Remove(compName string) {
 	}
 }
 
+//Add creates a new component definition and adds it to the component list
 func (cl *ComponentList) Add(compName, namespace string) {
 	compDef := ComponentDefinition{
 		Name:      compName,
