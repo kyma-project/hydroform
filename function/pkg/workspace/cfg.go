@@ -69,24 +69,24 @@ type SecretKeySelector struct {
 type ApiRule struct {
 	Name    string  `yaml:"name,omitempty"`
 	Gateway string  `yaml:"gateway,omitempty"`
-	Service Service `yaml:"service,omitempty"`
-	Rules   []Rule  `yaml:"rules,omitempty"`
+	Service Service `yaml:"service"`
+	Rules   []Rule  `yaml:"rules"`
 }
 
 type Service struct {
-	Host string `yaml:"host,omitempty"`
+	Host string `yaml:"host"`
 	Port int64  `yaml:"port,omitempty"`
 }
 
 type Rule struct {
 	Path             string            `yaml:"path,omitempty"`
-	Methods          []string          `yaml:"methods,omitempty"`
-	AccessStrategies []AccessStrategie `yaml:"accessStrategies,omitempty"`
+	Methods          []string          `yaml:"methods"`
+	AccessStrategies []AccessStrategie `yaml:"accessStrategies"`
 }
 
 type AccessStrategie struct {
-	Config  AccessStrategieConfig `json:"config,omitempty"`
-	Handler string                `json:"handler,omitempty"`
+	Config  AccessStrategieConfig `yaml:"config,omitempty"`
+	Handler string                `yaml:"handler"`
 }
 
 type AccessStrategieConfig struct {
