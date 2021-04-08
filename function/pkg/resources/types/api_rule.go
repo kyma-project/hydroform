@@ -2,17 +2,17 @@ package types
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-type ApiRuleSpec struct {
+type APIRuleSpec struct {
 	Gateway string  `json:"gateway"`
 	Rules   []Rule  `json:"rules"`
 	Service Service `json:"service"`
 }
 
-type ApiRule struct {
-	ApiVersion        string `json:"apiVersion"`
+type APIRule struct {
+	APIVersion        string `json:"apiVersion"`
 	Kind              string `json:"kind"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              ApiRuleSpec `json:"spec"`
+	Spec              APIRuleSpec `json:"spec"`
 }
 
 type Config struct {
@@ -37,6 +37,6 @@ type Service struct {
 	Port int64  `json:"port"`
 }
 
-func (ar ApiRule) IsReference(name string) bool {
+func (ar APIRule) IsReference(name string) bool {
 	return ar.Spec.Service.Name == name
 }

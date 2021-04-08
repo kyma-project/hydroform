@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -14,9 +15,9 @@ import (
 func Test_buildMatchRemovedApiRulePredicate(t *testing.T) {
 	g := gomega.NewWithT(t)
 	apiRules := []unstructured.Unstructured{
-		fixRawApiRule("test-name-1", "fn-name"),
-		fixRawApiRule("test-name-2", "fn-name"),
-		fixRawApiRule("test-name-3", "fn-name"),
+		fixRawAPIRule("test-name-1", "fn-name"),
+		fixRawAPIRule("test-name-2", "fn-name"),
+		fixRawAPIRule("test-name-3", "fn-name"),
 	}
 
 	tests := []struct {
@@ -29,21 +30,21 @@ func Test_buildMatchRemovedApiRulePredicate(t *testing.T) {
 		{
 			name:     "should predicate to remove given apiRule",
 			fnName:   "fn-name",
-			givenObj: fixRawApiRule("test-name-4", "fn-name"),
+			givenObj: fixRawAPIRule("test-name-4", "fn-name"),
 			wantErr:  gomega.BeNil(),
 			wantBool: true,
 		},
 		{
 			name:     "should return false because apiRule is one of items on the list",
 			fnName:   "fn-name",
-			givenObj: fixRawApiRule("test-name-3", "fn-name"),
+			givenObj: fixRawAPIRule("test-name-3", "fn-name"),
 			wantErr:  gomega.BeNil(),
 			wantBool: false,
 		},
 		{
 			name:     "should return false because apiRule.service.name != fnName",
 			fnName:   "fn-name",
-			givenObj: fixRawApiRule("test-name-4", "fn-name-2"),
+			givenObj: fixRawAPIRule("test-name-4", "fn-name-2"),
 			wantErr:  gomega.BeNil(),
 			wantBool: false,
 		},
@@ -51,7 +52,7 @@ func Test_buildMatchRemovedApiRulePredicate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			predicateFn := buildMatchRemovedApiRulePredicate(tt.fnName, apiRules)
+			predicateFn := buildMatchRemovedAPIRulePredicate(tt.fnName, apiRules)
 			out, err := predicateFn(tt.givenObj.Object)
 			g.Expect(err).To(tt.wantErr)
 			g.Expect(out).To(gomega.Equal(tt.wantBool))
@@ -98,9 +99,9 @@ func Test_apiRuleOperator_Apply(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			o := NewApiRuleOperator(tt.client, "fn-name", []unstructured.Unstructured{}...)
+			o := NewAPIRuleOperator(tt.client, "fn-name", []unstructured.Unstructured{}...)
 
-			err := o.Apply(nil, ApplyOptions{})
+			err := o.Apply(context.Background(), ApplyOptions{})
 
 			g.Expect(err).To(tt.wantErr)
 		})
@@ -146,16 +147,16 @@ func Test_apiRuleOperator_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			o := NewApiRuleOperator(tt.client, "fn-name", []unstructured.Unstructured{{}}...)
+			o := NewAPIRuleOperator(tt.client, "fn-name", []unstructured.Unstructured{{}}...)
 
-			err := o.Delete(nil, DeleteOptions{})
+			err := o.Delete(context.Background(), DeleteOptions{})
 
 			g.Expect(err).To(tt.wantErr)
 		})
 	}
 }
 
-func fixRawApiRule(name, fnName string) unstructured.Unstructured {
+func fixRawAPIRule(name, fnName string) unstructured.Unstructured {
 	return unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "gateway.kyma-project.io/v1alpha1",

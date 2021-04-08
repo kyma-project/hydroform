@@ -14,7 +14,7 @@ type apiRuleOperator struct {
 	genericOperator genericOperator
 }
 
-func NewApiRuleOperator(c client.Client, fnName string, u ...unstructured.Unstructured) Operator {
+func NewAPIRuleOperator(c client.Client, fnName string, u ...unstructured.Unstructured) Operator {
 	return &apiRuleOperator{
 		fnRef: fnName,
 		genericOperator: genericOperator{
@@ -24,10 +24,10 @@ func NewApiRuleOperator(c client.Client, fnName string, u ...unstructured.Unstru
 	}
 }
 
-// buildMatchRemovedApiRulePredicate - creates a predicate to match the objects that should be deleted
-func buildMatchRemovedApiRulePredicate(fnName string, items []unstructured.Unstructured) func(map[string]interface{}) (bool, error) {
+// buildMatchRemovedAPIRulePredicate - creates a predicate to match the objects that should be deleted
+func buildMatchRemovedAPIRulePredicate(fnName string, items []unstructured.Unstructured) func(map[string]interface{}) (bool, error) {
 	return func(obj map[string]interface{}) (bool, error) {
-		var apiRule types.ApiRule
+		var apiRule types.APIRule
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &apiRule); err != nil {
 			return false, err
 		}
@@ -36,13 +36,13 @@ func buildMatchRemovedApiRulePredicate(fnName string, items []unstructured.Unstr
 			return false, nil
 		}
 
-		containsApiRule := contains(items, apiRule.ObjectMeta.Name)
-		return !containsApiRule, nil
+		containsAPIRule := contains(items, apiRule.ObjectMeta.Name)
+		return !containsAPIRule, nil
 	}
 }
 
 func (o apiRuleOperator) Apply(ctx context.Context, opts ApplyOptions) error {
-	predicateFn := buildMatchRemovedApiRulePredicate(o.fnRef, o.genericOperator.items)
+	predicateFn := buildMatchRemovedAPIRulePredicate(o.fnRef, o.genericOperator.items)
 
 	if err := wipeRemoved(ctx, o.genericOperator.Client, predicateFn, opts.Options); err != nil {
 		return err

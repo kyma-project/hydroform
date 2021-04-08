@@ -312,7 +312,7 @@ func Test_Synchronise(t *testing.T) {
 							},
 						},
 					},
-					ApiRules: []ApiRule{
+					APIRules: []APIRule{
 						{
 							Name:    "test-name",
 							Gateway: "test-gateway",
@@ -390,7 +390,7 @@ func Test_Synchronise(t *testing.T) {
 							},
 						},
 					},
-					ApiRules: []ApiRule{
+					APIRules: []APIRule{
 						{
 							Name:    "test-name",
 							Gateway: "test-gateway",
@@ -524,7 +524,7 @@ func Test_Synchronise(t *testing.T) {
 							},
 						},
 					},
-					ApiRules: []ApiRule{
+					APIRules: []APIRule{
 						{
 							Name:    "test-name",
 							Gateway: "test-gateway",
@@ -563,7 +563,7 @@ func Test_Synchronise(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := synchronise(tt.args.ctx, tt.args.cfg, tt.args.outputPath, tt.args.build, newStrWriterProvider(), "test")
+			err := synchronise(tt.args.ctx, tt.args.cfg, tt.args.outputPath, tt.args.build, newStrWriterProvider())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Synchronise() error = %v, wantErr %v", err, tt.wantErr)
 				return

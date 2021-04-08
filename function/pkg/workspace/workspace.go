@@ -85,17 +85,17 @@ func fromRuntime(runtime types.Runtime) (workspace, error) {
 }
 
 const (
-	ApiRuleGateway = "kyma-gateway.kyma-system.svc.cluster.local"
-	ApiRulePath    = "/.*"
-	ApiRuleHandler = "allow"
-	ApiRulePort    = int64(80)
+	APIRuleGateway = "kyma-gateway.kyma-system.svc.cluster.local"
+	APIRulePath    = "/.*"
+	APIRuleHandler = "allow"
+	APIRulePort    = int64(80)
 )
 
-func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, kymaAddress string) error {
-	return synchronise(ctx, config, outputPath, build, defaultWriterProvider, kymaAddress)
+func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build) error {
+	return synchronise(ctx, config, outputPath, build, defaultWriterProvider)
 }
 
-func synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, writerProvider WriterProvider, kymaAddress string) error {
+func synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, writerProvider WriterProvider) error {
 
 	u, err := build(config.Namespace, operator.GVRFunction).Get(ctx, config.Name, v1.GetOptions{})
 	if err != nil {
@@ -163,7 +163,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 	if ul != nil {
 		for _, item := range ul.Items {
-			var apiRule types.ApiRule
+			var apiRule types.APIRule
 			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &apiRule); err != nil {
 				return err
 			}
@@ -172,20 +172,20 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				continue
 			}
 
-			newApiRule := ApiRule{
+			newAPIRule := APIRule{
 				Name:    setIfNotEqual(apiRule.Name, function.Name),
-				Gateway: setIfNotEqual(apiRule.Spec.Gateway, ApiRuleGateway),
+				Gateway: setIfNotEqual(apiRule.Spec.Gateway, APIRuleGateway),
 				Service: Service{
 					Host: apiRule.Spec.Service.Host,
 				},
 				Rules: toWorkspaceRules(apiRule.Spec.Rules),
 			}
 
-			if apiRule.Spec.Service.Port != ApiRulePort {
-				newApiRule.Service.Port = apiRule.Spec.Service.Port
+			if apiRule.Spec.Service.Port != APIRulePort {
+				newAPIRule.Service.Port = apiRule.Spec.Service.Port
 			}
 
-			config.ApiRules = append(config.ApiRules, newApiRule)
+			config.APIRules = append(config.APIRules, newAPIRule)
 		}
 	}
 
@@ -292,7 +292,7 @@ func toWorkspaceRules(rules []types.Rule) []Rule {
 	var out []Rule
 	for _, rule := range rules {
 		out = append(out, Rule{
-			Path:             setIfNotEqual(rule.Path, ApiRulePath),
+			Path:             setIfNotEqual(rule.Path, APIRulePath),
 			Methods:          rule.Methods,
 			AccessStrategies: toWorkspaceAccessStrategies(rule.AccessStrategies),
 		})

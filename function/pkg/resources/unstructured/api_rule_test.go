@@ -41,7 +41,7 @@ func TestNewApiRule(t *testing.T) {
 				cfg: workspace.Cfg{
 					Name:      "test-name",
 					Namespace: "test-ns",
-					ApiRules: []workspace.ApiRule{
+					APIRules: []workspace.APIRule{
 						{
 							Rules: []workspace.Rule{
 								{
@@ -55,7 +55,7 @@ func TestNewApiRule(t *testing.T) {
 			wantOut: []unstructured.Unstructured{
 				{
 					Object: map[string]interface{}{
-						"apiVersion": apiRuleApiVersion,
+						"apiVersion": apiRuleAPIVersion,
 						"kind":       apiRuleKind,
 						"metadata": map[string]interface{}{
 							"name":              "test-name",
@@ -95,7 +95,7 @@ func TestNewApiRule(t *testing.T) {
 					Labels: map[string]string{
 						"test": "me",
 					},
-					ApiRules: []workspace.ApiRule{
+					APIRules: []workspace.APIRule{
 						{
 							Name:    "test-name",
 							Gateway: "test-gateway",
@@ -127,7 +127,7 @@ func TestNewApiRule(t *testing.T) {
 			wantOut: []unstructured.Unstructured{
 				{
 					Object: map[string]interface{}{
-						"apiVersion": apiRuleApiVersion,
+						"apiVersion": apiRuleAPIVersion,
 						"kind":       apiRuleKind,
 						"metadata": map[string]interface{}{
 							"name":              "test-name",
@@ -169,7 +169,7 @@ func TestNewApiRule(t *testing.T) {
 	for _, tt := range tests {
 
 		t.Run(tt.name, func(t *testing.T) {
-			gotOut, err := NewApiRule(tt.args.cfg, tt.args.defaultAddress)
+			gotOut, err := NewAPIRule(tt.args.cfg, tt.args.defaultAddress)
 			g.Expect(gotOut).To(gomega.Equal(tt.wantOut))
 			g.Expect(err).To(tt.wantErr)
 		})

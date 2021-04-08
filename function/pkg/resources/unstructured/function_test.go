@@ -197,7 +197,7 @@ func Test_newFunction(t *testing.T) {
 							},
 						},
 					},
-					ApiRules: []workspace.ApiRule{
+					APIRules: []workspace.APIRule{
 						{
 							Name: "test-name",
 							Service: workspace.Service{
@@ -647,7 +647,7 @@ func Test_newGitFunction(t *testing.T) {
 							},
 						},
 					},
-					ApiRules: []workspace.ApiRule{
+					APIRules: []workspace.APIRule{
 						{
 							Name: "test-name",
 							Service: workspace.Service{
@@ -801,7 +801,7 @@ func Test_newGitFunction(t *testing.T) {
 							},
 						},
 					},
-					ApiRules: []workspace.ApiRule{
+					APIRules: []workspace.APIRule{
 						{
 							Name: "test-name",
 							Service: workspace.Service{

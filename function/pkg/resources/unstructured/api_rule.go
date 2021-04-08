@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	apiRuleApiVersion = "gateway.kyma-project.io/v1alpha1"
+	apiRuleAPIVersion = "gateway.kyma-project.io/v1alpha1"
 	apiRuleKind       = "APIRule"
 )
 
-func NewApiRule(cfg workspace.Cfg, clusterAddress string) ([]unstructured.Unstructured, error) {
+func NewAPIRule(cfg workspace.Cfg, clusterAddress string) ([]unstructured.Unstructured, error) {
 	var out []unstructured.Unstructured
-	for _, cfgApiRule := range cfg.ApiRules {
-		apiRule := prepareApiRule(cfg.Name, cfg.Namespace, clusterAddress, cfg.Labels, cfgApiRule)
+	for _, cfgAPIRule := range cfg.APIRules {
+		apiRule := prepareAPIRule(cfg.Name, cfg.Namespace, clusterAddress, cfg.Labels, cfgAPIRule)
 
 		unstructuredRepo, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&apiRule)
 		if err != nil {
@@ -33,23 +33,23 @@ func NewApiRule(cfg workspace.Cfg, clusterAddress string) ([]unstructured.Unstru
 	return out, nil
 }
 
-func prepareApiRule(name, namespace, host string, labels map[string]string, apiRule workspace.ApiRule) types.ApiRule {
-	return types.ApiRule{
-		ApiVersion: apiRuleApiVersion,
+func prepareAPIRule(name, namespace, host string, labels map[string]string, apiRule workspace.APIRule) types.APIRule {
+	return types.APIRule{
+		APIVersion: apiRuleAPIVersion,
 		Kind:       apiRuleKind,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaultString(apiRule.Name, name),
 			Namespace: namespace,
 			Labels:    labels,
 		},
-		Spec: types.ApiRuleSpec{
+		Spec: types.APIRuleSpec{
 			Service: types.Service{
 				Host: defaultString(apiRule.Service.Host, fmt.Sprintf("%s.%s", name, host)),
-				Port: defaultInt64(apiRule.Service.Port, workspace.ApiRulePort),
+				Port: defaultInt64(apiRule.Service.Port, workspace.APIRulePort),
 				Name: name,
 			},
 			Rules:   prepareRules(apiRule.Rules),
-			Gateway: defaultString(apiRule.Gateway, workspace.ApiRuleGateway),
+			Gateway: defaultString(apiRule.Gateway, workspace.APIRuleGateway),
 		},
 	}
 }
@@ -60,7 +60,7 @@ func prepareRules(rules []workspace.Rule) []types.Rule {
 		typesRules = append(typesRules, types.Rule{
 			AccessStrategies: prepareAccessStrategies(rule.AccessStrategies),
 			Methods:          rule.Methods,
-			Path:             defaultString(rule.Path, workspace.ApiRulePath),
+			Path:             defaultString(rule.Path, workspace.APIRulePath),
 		})
 	}
 	return typesRules
@@ -70,7 +70,7 @@ func prepareAccessStrategies(accessStrategies []workspace.AccessStrategie) []typ
 	if len(accessStrategies) == 0 {
 		return []types.AccessStrategie{
 			{
-				Handler: workspace.ApiRuleHandler,
+				Handler: workspace.APIRuleHandler,
 			},
 		}
 	}
@@ -78,7 +78,7 @@ func prepareAccessStrategies(accessStrategies []workspace.AccessStrategie) []typ
 	strategies := []types.AccessStrategie{}
 	for _, strategie := range accessStrategies {
 		as := types.AccessStrategie{
-			Handler: defaultString(strategie.Handler, workspace.ApiRuleHandler),
+			Handler: defaultString(strategie.Handler, workspace.APIRuleHandler),
 		}
 		if !reflect.DeepEqual(strategie.Config, workspace.AccessStrategieConfig{}) {
 			as.Config = &types.Config{

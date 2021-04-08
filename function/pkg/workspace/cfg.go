@@ -66,7 +66,7 @@ type SecretKeySelector struct {
 	Key  string `yaml:"key"`
 }
 
-type ApiRule struct {
+type APIRule struct {
 	Name    string  `yaml:"name,omitempty"`
 	Gateway string  `yaml:"gateway,omitempty"`
 	Service Service `yaml:"service"`
@@ -104,7 +104,7 @@ type Cfg struct {
 	Resources     Resources         `yaml:"resource,omitempty"`
 	Subscriptions []Subscription    `yaml:"subscriptions,omitempty"`
 	Env           []EnvVar          `yaml:"env,omitempty"`
-	ApiRules      []ApiRule         `yaml:"apiRules,omitempty"`
+	APIRules      []APIRule         `yaml:"apiRules,omitempty"`
 }
 
 type Source struct {
