@@ -2,7 +2,6 @@ package workspace
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 
@@ -177,7 +176,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				Name:    setIfNotEqual(apiRule.Name, function.Name),
 				Gateway: setIfNotEqual(apiRule.Spec.Gateway, ApiRuleGateway),
 				Service: Service{
-					Host: setIfNotEqual(apiRule.Spec.Service.Host, fmt.Sprintf("%s.%s", function.Name, kymaAddress)),
+					Host: apiRule.Spec.Service.Host,
 				},
 				Rules: toWorkspaceRules(apiRule.Spec.Rules),
 			}
@@ -303,25 +302,16 @@ func toWorkspaceRules(rules []types.Rule) []Rule {
 }
 
 func toWorkspaceAccessStrategies(accessStrategies []types.AccessStrategie) []AccessStrategie {
-	if len(accessStrategies) == 1 && accessStrategies[0].Handler == ApiRuleHandler {
-		// apiRule is configured with default handler without configuration
-		return nil
-	}
-
 	var out []AccessStrategie
 	for _, as := range accessStrategies {
-		accessStrategie := AccessStrategie{
-			Handler: setIfNotEqual(as.Handler, ApiRuleHandler),
-		}
-		if as.Config != nil {
-			accessStrategie.Config = AccessStrategieConfig{
+		out = append(out, AccessStrategie{
+			Handler: as.Handler,
+			Config: AccessStrategieConfig{
 				JwksUrls:       as.Config.JwksUrls,
 				TrustedIssuers: as.Config.TrustedIssuers,
 				RequiredScope:  as.Config.RequiredScope,
-			}
-		}
-
-		out = append(out, accessStrategie)
+			},
+		})
 	}
 
 	return out
