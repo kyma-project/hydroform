@@ -4,7 +4,6 @@ package deployment
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -22,8 +21,6 @@ import (
 //Deployment deploys Kyma on a cluster
 type Deployment struct {
 	*core
-	mutex      *sync.Mutex
-	InProgress bool
 }
 
 //NewDeployment creates a new Deployment instance for deploying Kyma on a cluster.
@@ -37,7 +34,7 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernet
 		return nil, err
 	}
 
-	return &Deployment{core, &sync.Mutex{}, false}, nil
+	return &Deployment{core}, nil
 }
 
 //StartKymaDeployment deploys Kyma to a cluster
