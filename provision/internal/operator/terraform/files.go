@@ -127,6 +127,9 @@ variable "worker_maximum"			{}
 variable "worker_minimum"			{}
 variable "machine_image_name"		{}
 variable "machine_image_version"	{}
+variable "privileged_containers"	{
+	default = "false"
+}
 
 
 provider "gardener" {
@@ -235,7 +238,7 @@ resource "gardener_shoot" "gardener_cluster" {
       }
   
 	  kubernetes {
-		allow_privileged_containers = true
+		allow_privileged_containers = var.privileged_containers
 		version = var.kubernetes_version
 	  }
   }
