@@ -41,7 +41,7 @@ func Test_GetFile(t *testing.T) {
 
 func Test_GetFiles(t *testing.T) {
 	_, currFile, _, _ := runtime.Caller(1)
-	files, err := GetFiles([]string{currFile, "https://raw.githubusercontent.com/kyma-project/kyma/master/LICENSE"}, testDir)
+	files, err := GetFiles([]string{currFile, "https://raw.githubusercontent.com/kyma-project/kyma/main/LICENSE"}, testDir)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{currFile, filepath.Join(testDir, "LICENSE")}, files, "Retrieved files differ in names")
 
