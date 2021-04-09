@@ -11,6 +11,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const defaultNamespace = "kyma-system"
+
 // ComponentList collects component definitions
 type ComponentList struct {
 	Prerequisites []ComponentDefinition
@@ -67,7 +69,7 @@ func NewComponentList(componentsListPath string) (*ComponentList, error) {
 	}
 
 	var compListData *ComponentListData = &ComponentListData{
-		DefaultNamespace: "kyma-system",
+		DefaultNamespace: defaultNamespace,
 	}
 	fileExt := filepath.Ext(componentsListPath)
 	if fileExt == ".json" {
@@ -85,7 +87,7 @@ func NewComponentList(componentsListPath string) (*ComponentList, error) {
 	return compListData.process(), nil
 }
 
-//Remove drops any component definition with this particular name (independent whether it is listed as prequisite or component)
+// Remove drops any component definition with this particular name (independent whether it is listed as prequisite or component)
 func (cl *ComponentList) Remove(compName string) {
 	for idx, comp := range cl.Prerequisites {
 		if comp.Name == compName {
@@ -97,4 +99,17 @@ func (cl *ComponentList) Remove(compName string) {
 			cl.Components = append(cl.Components[:idx], cl.Components[idx+1:]...)
 		}
 	}
+}
+
+// Add creates a new component definition and adds it to the component list
+// If namespace is an empty string, then the default namespace is used
+func (cl *ComponentList) Add(compName, namespace string) {
+	compDef := ComponentDefinition{
+		Name:      compName,
+		Namespace: namespace,
+	}
+	if compDef.Namespace == "" {
+		compDef.Namespace = defaultNamespace
+	}
+	cl.Components = append(cl.Components, compDef)
 }
