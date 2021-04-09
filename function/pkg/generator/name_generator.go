@@ -135,7 +135,7 @@ var (
 )
 
 // GenerateName generates a random name from the list of adjectives and names of some kyma creators
-// formatted as "adjective-name". For example 'quizzical_rafal'. If retry is true, a random
+// formatted as "adjective-name". For example 'quizzical_rafal'. If isSuffix is true, a random
 // integer between 0 and 10 will be added to the end of the name, e.g `focused_filip3`
 func GenerateName(isSuffix bool) (string, error) {
 	adjIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(left))))
