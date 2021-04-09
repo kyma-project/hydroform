@@ -109,16 +109,16 @@ functionBlock:
 	return nil
 }
 
-func wipeRemoved(ctx context.Context, i client.Client, deletePredicate func(obj map[string]interface{}) (bool, error), opts Options) error {
-	list, err := i.List(ctx, v1.ListOptions{})
+func wipeRemoved(ctx context.Context, c client.Client, deletePredicate func(obj map[string]interface{}) (bool, error), opts Options) error {
+	list, err := c.List(ctx, v1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
 	policy := v1.DeletePropagationBackground
 
-	for _, item := range list.Items {
-		match, err := deletePredicate(item.Object)
+	for i := range list.Items {
+		match, err := deletePredicate(list.Items[i].Object)
 		if err != nil {
 			return err
 		}
@@ -127,20 +127,20 @@ func wipeRemoved(ctx context.Context, i client.Client, deletePredicate func(obj 
 			continue
 		}
 
-		if err := fireCallbacks(&item, nil, opts.Pre...); err != nil {
+		if err := fireCallbacks(&list.Items[i], nil, opts.Pre...); err != nil {
 			return err
 		}
 		// delete and delegate flow ctrl to caller
-		if err := i.Delete(ctx, item.GetName(), v1.DeleteOptions{
+		if err := c.Delete(ctx, list.Items[i].GetName(), v1.DeleteOptions{
 			DryRun:            opts.DryRun,
 			PropagationPolicy: &policy,
 		}); err != nil {
-			statusEntryFailed := client.NewPostStatusEntryDeleteFailed(item)
+			statusEntryFailed := client.NewPostStatusEntryDeleteFailed(list.Items[i])
 			if err := fireCallbacks(statusEntryFailed, err, opts.Post...); err != nil {
 				return err
 			}
 		}
-		statusEntryDeleted := client.NewPostStatusEntryDeleted(item)
+		statusEntryDeleted := client.NewPostStatusEntryDeleted(list.Items[i])
 		if err := fireCallbacks(statusEntryDeleted, nil, opts.Post...); err != nil {
 			return err
 		}

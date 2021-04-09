@@ -19,7 +19,7 @@ func (p WriterProvider) write(destinationDirPath string, fileTemplate file, cfg 
 		if closeFn == nil {
 			return
 		}
-		closeFn()
+		_ = closeFn()
 	}()
 
 	err = fileTemplate.write(writer, cfg)

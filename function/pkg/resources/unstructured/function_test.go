@@ -87,7 +87,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -201,7 +201,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -257,7 +257,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -307,7 +307,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -363,7 +363,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -421,7 +421,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -506,7 +506,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -655,7 +655,7 @@ func Test_newGitFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -765,7 +765,7 @@ func Test_newGitFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",

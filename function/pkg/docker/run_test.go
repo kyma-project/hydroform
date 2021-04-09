@@ -110,7 +110,7 @@ func TestRunContainer(t *testing.T) {
 	id := "test-id"
 
 	type args struct {
-		c    DockerClient
+		c    Client
 		ctx  context.Context
 		opts RunOpts
 	}
@@ -123,7 +123,7 @@ func TestRunContainer(t *testing.T) {
 		{
 			name: "should run container and return nil",
 			args: args{
-				c: func() DockerClient {
+				c: func() Client {
 					mock := mock_docker.NewMockDockerClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
@@ -143,7 +143,7 @@ func TestRunContainer(t *testing.T) {
 		{
 			name: "should return an error during creating a container",
 			args: args{
-				c: func() DockerClient {
+				c: func() Client {
 					mock := mock_docker.NewMockDockerClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
@@ -159,7 +159,7 @@ func TestRunContainer(t *testing.T) {
 		{
 			name: "should create container and return error during start",
 			args: args{
-				c: func() DockerClient {
+				c: func() Client {
 					mock := mock_docker.NewMockDockerClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
@@ -178,7 +178,7 @@ func TestRunContainer(t *testing.T) {
 		{
 			name: "should run a container with right options and return nil",
 			args: args{
-				c: func() DockerClient {
+				c: func() Client {
 					mock := mock_docker.NewMockDockerClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, &container.Config{
@@ -230,7 +230,7 @@ func TestRunContainer(t *testing.T) {
 		{
 			name: "should pull image if don't exists",
 			args: args{
-				c: func() DockerClient {
+				c: func() Client {
 					mock := mock_docker.NewMockDockerClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, &container.Config{
@@ -289,7 +289,7 @@ func TestRunContainer(t *testing.T) {
 		{
 			name: "should return error during the image pull",
 			args: args{
-				c: func() DockerClient {
+				c: func() Client {
 					mock := mock_docker.NewMockDockerClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
@@ -308,7 +308,7 @@ func TestRunContainer(t *testing.T) {
 		{
 			name: "should return error during the image pull",
 			args: args{
-				c: func() DockerClient {
+				c: func() Client {
 					mock := mock_docker.NewMockDockerClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),

@@ -36,7 +36,7 @@ func TestNewPublicGitRepository(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": gitRepositoryApiVersion,
+					"apiVersion": gitRepositoryAPIVersion,
 					"kind":       "GitRepository",
 					"metadata": map[string]interface{}{
 						"name":              "test-repository",
@@ -58,7 +58,7 @@ func TestNewPublicGitRepository(t *testing.T) {
 				t.Errorf("NewPublicGitRepository() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			json.NewEncoder(os.Stdout).Encode(&gotOut)
+			_ = json.NewEncoder(os.Stdout).Encode(&gotOut)
 			if !reflect.DeepEqual(gotOut, tt.wantOut) {
 				t.Errorf("NewPublicGitRepository() gotOut = %v, want %v", gotOut, tt.wantOut)
 			}
