@@ -17,7 +17,7 @@ import (
 const prPrefix = "PR-"
 
 // CloneRepo clones the repository in the given URL to the given dstPath and checks out the given revision.
-// revision can be 'master', a release version (e.g. 1.4.1), a commit hash (e.g. 34edf09a) or a PR (e.g. PR-9486).
+// revision can be 'main', a release version (e.g. 1.4.1), a commit hash (e.g. 34edf09a) or a PR (e.g. PR-9486).
 func CloneRepo(url, dstPath, rev string) error {
 	rev, err := ResolveRevision(url, rev)
 	if err != nil {
@@ -64,7 +64,7 @@ func CloneRevision(url, dstPath, rev string) error {
 	return nil
 }
 
-// ResolveRevision tries to convert a pseudo-revision reference (e.g. semVer, tag, PR, master, etc...) into a revision that can be checked out.
+// ResolveRevision tries to convert a pseudo-revision reference (e.g. semVer, tag, PR, main, etc...) into a revision that can be checked out.
 func ResolveRevision(repo, rev string) (string, error) {
 	switch {
 	//Install the specific commit hash (e.g. 34edf09a)
