@@ -62,6 +62,9 @@ func (c *Config) ValidateDeletion() error {
 	if err := c.validate(); err != nil { //deployment requires all core options
 		return err
 	}
+	if err := c.pathExists(c.KubeconfigPath, "Kubeconfig path"); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -74,6 +77,9 @@ func (c *Config) ValidateDeployment() error {
 		return err
 	}
 	if err := c.pathExists(c.InstallationResourcePath, "Installation resource path"); err != nil {
+		return err
+	}
+	if err := c.pathExists(c.KubeconfigPath, "Kubeconfig path"); err != nil {
 		return err
 	}
 	if c.Version == "" {

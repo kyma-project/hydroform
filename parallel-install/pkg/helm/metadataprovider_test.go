@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/release"
+	"k8s.io/client-go/kubernetes"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,7 +55,7 @@ func Test_MetadataGet(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		metadata, err := metaProv.Get("test")
 		require.NoError(t, err)
 		require.Equal(t, metadata, expectedKymaCompMetadata)
@@ -62,7 +63,7 @@ func Test_MetadataGet(t *testing.T) {
 
 	t.Run("No Helm release found", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset()
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		_, err := metaProv.Get("test")
 		require.Error(t, err)
 		require.Equal(t, err.Error(), (&helmReleaseNotFoundError{name: "test"}).Error())
@@ -78,7 +79,7 @@ func Test_MetadataGet(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		_, err := metaProv.Get("test")
 		require.Error(t, err)
 		require.IsType(t, err, (&kymaMetadataUnavailableError{secret: "sh.helm.release.v1.test.v1", err: err}))
@@ -93,7 +94,7 @@ func Test_MetadataGet(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		_, err := metaProv.Get("test")
 		require.Error(t, err)
 		require.Equal(t, err.Error(), (&helmSecretNameInvalidError{secret: "sh.helm.release.v1.test.vx", namespace: "default"}).Error())
@@ -112,7 +113,7 @@ func Test_MetadataSet(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		err := metaProv.Set((&release.Release{Name: "test", Namespace: "testNs", Version: 1}), kymaCompMetaTpl.ForComponents())
 		require.NoError(t, err)
 		require.Equal(t, expectedLabels, k8sMock.Fake.Actions()[1].(k8st.UpdateAction).GetObject().(*v1.Secret).GetObjectMeta().GetLabels())
@@ -128,7 +129,7 @@ func Test_MetadataSet(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		//test for prerequisites
 		err := metaProv.Set((&release.Release{Name: "test", Namespace: "testNs", Version: 1}), kymaCompMetaTpl.ForPrerequisites())
 		require.NoError(t, err)
@@ -146,7 +147,7 @@ func Test_MetadataSet(t *testing.T) {
 
 	t.Run("Release not found", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset()
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		err := metaProv.Set((&release.Release{Name: "test", Namespace: "default", Version: 1}), (&KymaComponentMetadataTemplate{}))
 		require.Error(t, err)
 		require.Equal(t, err.Error(), (&helmReleaseNotFoundError{name: "sh.helm.release.v1.test.v1"}).Error())
@@ -156,7 +157,7 @@ func Test_MetadataSet(t *testing.T) {
 func Test_Versions(t *testing.T) {
 	t.Run("No Kyma installed", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset()
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		versionSet, err := metaProv.Versions()
 		require.NoError(t, err)
 		require.Equal(t, 0, versionSet.Count())
@@ -171,7 +172,7 @@ func Test_Versions(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		versionSet, err := metaProv.Versions()
 		require.NoError(t, err)
 		require.Equal(t, 1, len(versionSet.Versions))
@@ -266,7 +267,7 @@ func Test_Versions(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		versionSet, err := metaProv.Versions()
 		require.NoError(t, err)
 		require.Equal(t, 3, len(versionSet.Versions))
@@ -353,4 +354,10 @@ func Test_Versions(t *testing.T) {
 			}
 		}
 	})
+}
+
+func getKymaMetadataProvider(client kubernetes.Interface) *KymaMetadataProvider {
+	return &KymaMetadataProvider{
+		kubeClient: client,
+	}
 }

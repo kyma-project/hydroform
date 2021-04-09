@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
+	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 //Deployment deploys Kyma on a cluster
@@ -24,8 +24,18 @@ type Deployment struct {
 }
 
 //NewDeployment creates a new Deployment instance for deploying Kyma on a cluster.
-func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
+func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
 	if err := cfg.ValidateDeployment(); err != nil {
+		return nil, err
+	}
+
+	restConfig, err := clientcmd.BuildConfigFromFlags("", cfg.KubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
 		return nil, err
 	}
 

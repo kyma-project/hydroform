@@ -10,6 +10,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/fatih/structs"
 	"helm.sh/helm/v3/pkg/release"
@@ -66,10 +67,20 @@ type KymaMetadataProvider struct {
 }
 
 //NewKymaMetadataProvider creates a new KymaMetadataProvider
-func NewKymaMetadataProvider(client kubernetes.Interface) *KymaMetadataProvider {
-	return &KymaMetadataProvider{
-		kubeClient: client,
+func NewKymaMetadataProvider(kubeconfigPath string) (*KymaMetadataProvider, error) {
+	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if err != nil {
+		return nil, err
 	}
+
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return &KymaMetadataProvider{
+		kubeClient: kubeClient,
+	}, nil
 }
 
 //Versions returns the set of installed Kyma versions

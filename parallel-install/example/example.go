@@ -9,10 +9,6 @@ import (
 	"time"
 
 	"github.com/avast/retry-go"
-	"k8s.io/client-go/dynamic"
-
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
@@ -45,11 +41,6 @@ func main() {
 	goPath := os.Getenv("GOPATH")
 	if goPath == "" {
 		log.Fatal("Please set GOPATH")
-	}
-
-	restConfig, err := getClientConfig(*kubeconfigPath)
-	if err != nil {
-		log.Fatalf("Unable to build kubernetes configuration. Error: %v", err)
 	}
 
 	builder := &deployment.OverridesBuilder{}
@@ -97,18 +88,6 @@ func main() {
 		}()
 	}
 
-	kubeClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		log.Error("Failed to create kube client. Exiting...")
-		os.Exit(1)
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(restConfig)
-	if err != nil {
-		log.Error("Failed to create kube dynamic client. Exiting...")
-		os.Exit(1)
-	}
-
 	commonRetryOpts := []retry.Option{
 		retry.Delay(time.Duration(installationCfg.BackoffInitialIntervalSeconds) * time.Second),
 		retry.Attempts(uint(installationCfg.BackoffMaxElapsedTimeSeconds / installationCfg.BackoffInitialIntervalSeconds)),
@@ -119,12 +98,20 @@ func main() {
 	preInstallerCfg := preinstaller.Config{
 		InstallationResourcePath: installationCfg.InstallationResourcePath,
 		Log:                      installationCfg.Log,
+		KubeconfigPath:           *kubeconfigPath,
 	}
 
 	resourceParser := &preinstaller.GenericResourceParser{}
-	resourceManager := preinstaller.NewDefaultResourceManager(dynamicClient, preInstallerCfg.Log, commonRetryOpts)
+	resourceManager, err := preinstaller.NewDefaultResourceManager(*kubeconfigPath, preInstallerCfg.Log, commonRetryOpts)
+	if err != nil {
+		log.Fatalf("Failed to create Kyma default resource manager: %v", err)
+	}
+
 	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, resourceManager)
-	preInstaller := preinstaller.NewPreInstaller(resourceApplier, resourceParser, preInstallerCfg, dynamicClient, commonRetryOpts)
+	preInstaller, err := preinstaller.NewPreInstaller(resourceApplier, resourceParser, preInstallerCfg, commonRetryOpts)
+	if err != nil {
+		log.Fatalf("Failed to create Kyma pre-installer: %v", err)
+	}
 
 	result, err := preInstaller.InstallCRDs()
 	if err != nil || len(result.NotInstalled) > 0 {
@@ -137,7 +124,7 @@ func main() {
 	}
 
 	//Deploy Kyma
-	deployer, err := deployment.NewDeployment(installationCfg, builder, kubeClient, progressCh)
+	deployer, err := deployment.NewDeployment(installationCfg, builder, progressCh)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
@@ -149,7 +136,11 @@ func main() {
 		log.Info("Kyma deployed!")
 	}
 
-	metadataProvider := helm.NewKymaMetadataProvider(kubeClient)
+	metadataProvider, err := helm.NewKymaMetadataProvider(*kubeconfigPath)
+	if err != nil {
+		log.Fatalf("Failed to create Kyma metadata provider: %v", err)
+	}
+
 	versionSet, err := metadataProvider.Versions()
 	if err == nil {
 		log.Infof("Found %d Kyma version: %s", versionSet.Count(), strings.Join(versionSet.Names(), ", "))
@@ -158,7 +149,7 @@ func main() {
 	}
 
 	//Delete Kyma
-	deleter, err := deployment.NewDeletion(installationCfg, builder, kubeClient, progressCh)
+	deleter, err := deployment.NewDeletion(installationCfg, builder, progressCh)
 	if err != nil {
 		log.Fatalf("Failed to create deleter: %v", err)
 	}

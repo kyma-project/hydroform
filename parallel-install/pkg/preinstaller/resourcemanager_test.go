@@ -2,11 +2,13 @@ package preinstaller
 
 import (
 	"fmt"
+	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
 	"reflect"
 	"regexp"
@@ -22,7 +24,7 @@ func TestResourceManager_CreateResource(t *testing.T) {
 
 	t.Run("should create resource", func(t *testing.T) {
 		// given
-		manager := NewDefaultResourceManager(dynamicClient, log, retryOptions)
+		manager := getDefaultResourceManager(dynamicClient, log, retryOptions)
 		resourceName := "namespace"
 		resource := fixResourceWith(resourceName)
 		resourceSchema := fixResourceGvkSchema()
@@ -44,7 +46,7 @@ func TestResourceManager_GetResource(t *testing.T) {
 
 	t.Run("should proceed without error when resource is not found", func(t *testing.T) {
 		// given
-		manager := NewDefaultResourceManager(dynamicClient, log, retryOptions)
+		manager := getDefaultResourceManager(dynamicClient, log, retryOptions)
 		resourceName := "resourceName"
 		resourceSchema := schema.GroupVersionResource{}
 
@@ -61,7 +63,7 @@ func TestResourceManager_GetResource(t *testing.T) {
 		resourceName := "namespace"
 		resource := fixResourceWith(resourceName)
 		customDynamicClient := fake.NewSimpleDynamicClient(scheme, resource)
-		manager := NewDefaultResourceManager(customDynamicClient, log, retryOptions)
+		manager := getDefaultResourceManager(customDynamicClient, log, retryOptions)
 		resourceSchema := fixResourceGvkSchema()
 
 		// when
@@ -88,7 +90,7 @@ func TestResourceManager_UpdateResource(t *testing.T) {
 		resource := fixResourceWith(resourceName)
 		resourceSchema := fixResourceGvkSchema()
 		customDynamicClient := fake.NewSimpleDynamicClient(scheme, resource)
-		manager := NewDefaultResourceManager(customDynamicClient, log, retryOptions)
+		manager := getDefaultResourceManager(customDynamicClient, log, retryOptions)
 		labels := map[string]string{
 			"key": "value",
 		}
@@ -121,5 +123,13 @@ func fixResourceGvkSchema() schema.GroupVersionResource {
 		Group:    "group",
 		Version:  "v1",
 		Resource: "kinds",
+	}
+}
+
+func getDefaultResourceManager(dynamicClient dynamic.Interface, log logger.Interface, retryOptions []retry.Option) *DefaultResourceManager{
+	return &DefaultResourceManager{
+		dynamicClient: dynamicClient,
+		log:           log,
+		retryOptions:  retryOptions,
 	}
 }
