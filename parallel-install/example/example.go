@@ -82,6 +82,7 @@ func main() {
 		ComponentList:                 compList,
 		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
 		InstallationResourcePath:      fmt.Sprintf("%s/src/github.com/kyma-project/kyma/installation/resources", goPath),
+		KubeconfigPath:                *kubeconfigPath,
 		Version:                       *version,
 	}
 

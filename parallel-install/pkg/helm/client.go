@@ -36,6 +36,7 @@ type Config struct {
 	Log                           logger.Interface //Used for logging
 	Atomic                        bool
 	KymaComponentMetadataTemplate *KymaComponentMetadataTemplate
+	KubeconfigPath                string
 }
 
 //Client implements the ClientInterface.
@@ -78,7 +79,7 @@ func NewClient(cfg Config) *Client {
 
 func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) error {
 
-	cfg, err := c.newActionConfig(namespace)
+	cfg, err := c.newActionConfig(namespace, c.cfg.KubeconfigPath)
 	if err != nil {
 		return err
 	}
@@ -196,7 +197,7 @@ func (c *Client) installRelease(namespace, name string, overrides map[string]int
 
 func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overridesValues map[string]interface{}, profile string) error {
 	operation := func() error {
-		cfg, err := c.newActionConfig(namespace)
+		cfg, err := c.newActionConfig(namespace, c.cfg.KubeconfigPath)
 		if err != nil {
 			return err
 		}
@@ -283,9 +284,10 @@ func (c *Client) retryWithBackoff(ctx context.Context, operation func() error, i
 	return nil
 }
 
-func (c *Client) newActionConfig(namespace string) (*action.Configuration, error) {
+func (c *Client) newActionConfig(namespace string, kubeconfigPath string) (*action.Configuration, error) {
 	clientGetter := genericclioptions.NewConfigFlags(false)
 	clientGetter.Namespace = &namespace
+	clientGetter.KubeConfig = &kubeconfigPath
 
 	cfg := new(action.Configuration)
 

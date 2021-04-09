@@ -35,6 +35,7 @@ func NewComponentsProvider(overridesProvider overrides.Provider, cfg *config.Con
 		MaxHistory:                    cfg.HelmMaxRevisionHistory,
 		Atomic:                        cfg.Atomic,
 		KymaComponentMetadataTemplate: tpl,
+		KubeconfigPath:                cfg.KubeconfigPath,
 	}
 
 	return &ComponentsProvider{
