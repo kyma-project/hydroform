@@ -87,7 +87,7 @@ func NewComponentList(componentsListPath string) (*ComponentList, error) {
 	return compListData.process(), nil
 }
 
-//Remove drops any component definition with this particular name (independent whether it is listed as prequisite or component)
+// Remove drops any component definition with this particular name (independent whether it is listed as prequisite or component)
 func (cl *ComponentList) Remove(compName string) {
 	for idx, comp := range cl.Prerequisites {
 		if comp.Name == compName {
@@ -101,7 +101,8 @@ func (cl *ComponentList) Remove(compName string) {
 	}
 }
 
-//Add creates a new component definition and adds it to the component list
+// Add creates a new component definition and adds it to the component list
+// If namespace is an empty string, then the default namespace is used
 func (cl *ComponentList) Add(compName, namespace string) {
 	compDef := ComponentDefinition{
 		Name:      compName,
