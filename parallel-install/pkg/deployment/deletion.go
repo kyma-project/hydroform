@@ -7,15 +7,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 )
 
 //TODO: has to be taken from component list! See https://github.com/kyma-incubator/hydroform/issues/181

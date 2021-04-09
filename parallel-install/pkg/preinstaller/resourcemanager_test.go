@@ -126,7 +126,7 @@ func fixResourceGvkSchema() schema.GroupVersionResource {
 	}
 }
 
-func getDefaultResourceManager(dynamicClient dynamic.Interface, log logger.Interface, retryOptions []retry.Option) *DefaultResourceManager{
+func getDefaultResourceManager(dynamicClient dynamic.Interface, log logger.Interface, retryOptions []retry.Option) *DefaultResourceManager {
 	return &DefaultResourceManager{
 		dynamicClient: dynamicClient,
 		log:           log,
