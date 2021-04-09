@@ -51,7 +51,7 @@ func initArgs(p types.ProviderType, cfg map[string]interface{}, clusterDir strin
 		// TODO remove this condition when fully migrated to modules
 		if m := tfMod(p); m != "" {
 			args = append(args, fmt.Sprintf("-from-module=%s", m))
-		}}
+		}
 	}
 	if runtime.GOOS == "windows" { // remove '\\?\' path prefix
 			clusterDir = clusterDir[4:]
