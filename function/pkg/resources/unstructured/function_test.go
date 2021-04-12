@@ -197,6 +197,26 @@ func Test_newFunction(t *testing.T) {
 							},
 						},
 					},
+					APIRules: []workspace.APIRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 			wantOut: unstructured.Unstructured{
@@ -627,6 +647,26 @@ func Test_newGitFunction(t *testing.T) {
 							},
 						},
 					},
+					APIRules: []workspace.APIRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
+					},
 					Env: []workspace.EnvVar{
 						{
 							Name:  "TEST_ENV",
@@ -755,6 +795,26 @@ func Test_newGitFunction(t *testing.T) {
 											Property: "type",
 											Type:     "exact",
 											Value:    "test-subscription-type.test-subscription-etv",
+										},
+									},
+								},
+							},
+						},
+					},
+					APIRules: []workspace.APIRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
 										},
 									},
 								},

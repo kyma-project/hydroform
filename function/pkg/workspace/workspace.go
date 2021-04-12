@@ -84,6 +84,13 @@ func fromRuntime(runtime types.Runtime) (workspace, error) {
 	}
 }
 
+const (
+	APIRuleGateway = "kyma-gateway.kyma-system.svc.cluster.local"
+	APIRulePath    = "/.*"
+	APIRuleHandler = "allow"
+	APIRulePort    = int64(80)
+)
+
 func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build) error {
 	return synchronise(ctx, config, outputPath, build, defaultWriterProvider)
 }
@@ -146,6 +153,39 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 					Filters: filters,
 				},
 			})
+		}
+	}
+
+	ul, err = build(config.Namespace, operator.GVRApiRule).List(ctx, v1.ListOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	if ul != nil {
+		for _, item := range ul.Items {
+			var apiRule types.APIRule
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &apiRule); err != nil {
+				return err
+			}
+
+			if !apiRule.IsReference(function.Name) {
+				continue
+			}
+
+			newAPIRule := APIRule{
+				Name:    setIfNotEqual(apiRule.Name, function.Name),
+				Gateway: setIfNotEqual(apiRule.Spec.Gateway, APIRuleGateway),
+				Service: Service{
+					Host: apiRule.Spec.Service.Host,
+				},
+				Rules: toWorkspaceRules(apiRule.Spec.Rules),
+			}
+
+			if apiRule.Spec.Service.Port != APIRulePort {
+				newAPIRule.Service.Port = apiRule.Spec.Service.Port
+			}
+
+			config.APIRules = append(config.APIRules, newAPIRule)
 		}
 	}
 
@@ -246,4 +286,40 @@ func toWorkspaceEnvFilter(filter types.EventFilter) EventFilter {
 			Value:    filter.EventType.Value,
 		},
 	}
+}
+
+func toWorkspaceRules(rules []types.Rule) []Rule {
+	var out []Rule
+	for _, rule := range rules {
+		out = append(out, Rule{
+			Path:             setIfNotEqual(rule.Path, APIRulePath),
+			Methods:          rule.Methods,
+			AccessStrategies: toWorkspaceAccessStrategies(rule.AccessStrategies),
+		})
+	}
+
+	return out
+}
+
+func toWorkspaceAccessStrategies(accessStrategies []types.AccessStrategie) []AccessStrategie {
+	var out []AccessStrategie
+	for _, as := range accessStrategies {
+		out = append(out, AccessStrategie{
+			Handler: as.Handler,
+			Config: AccessStrategieConfig{
+				JwksUrls:       as.Config.JwksUrls,
+				TrustedIssuers: as.Config.TrustedIssuers,
+				RequiredScope:  as.Config.RequiredScope,
+			},
+		})
+	}
+
+	return out
+}
+
+func setIfNotEqual(val, defVal string) string {
+	if val != defVal {
+		return val
+	}
+	return ""
 }

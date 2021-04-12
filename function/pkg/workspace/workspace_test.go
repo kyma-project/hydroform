@@ -247,7 +247,7 @@ func Test_Synchronise(t *testing.T) {
 			},
 		},
 		{
-			name: "inline happy path with subscriptions",
+			name: "inline happy path with subscriptions and apirules",
 			args: args{
 				cfg: Cfg{
 					Name:      name,
@@ -312,6 +312,32 @@ func Test_Synchronise(t *testing.T) {
 							},
 						},
 					},
+					APIRules: []APIRule{
+						{
+							Name:    "test-name",
+							Gateway: "test-gateway",
+							Service: Service{
+								Host: "test-host",
+								Port: 9090,
+							},
+							Rules: []Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"test-method"},
+									AccessStrategies: []AccessStrategie{
+										{
+											Config: AccessStrategieConfig{
+												JwksUrls:       []string{"test-jwks"},
+												TrustedIssuers: []string{"test-trusted"},
+												RequiredScope:  []string{"test-required"},
+											},
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 				build: func() client.Build {
 					c := inlineClient(ctrl, name, namespace)
@@ -364,9 +390,169 @@ func Test_Synchronise(t *testing.T) {
 							},
 						},
 					},
+					APIRules: []APIRule{
+						{
+							Name:    "test-name",
+							Gateway: "test-gateway",
+							Service: Service{
+								Host: "test-host",
+								Port: 9090,
+							},
+							Rules: []Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"test-method"},
+									AccessStrategies: []AccessStrategie{
+										{
+											Config: AccessStrategieConfig{
+												JwksUrls:       []string{"test-jwks"},
+												TrustedIssuers: []string{"test-trusted"},
+												RequiredScope:  []string{"test-required"},
+											},
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 				build: func() client.Build {
 					c := gitClient(ctrl, name, namespace)
+					return func(_ string, _ schema.GroupVersionResource) client.Client {
+						return c
+					}
+				}(),
+			},
+			wantErr: false,
+		},
+		{
+			name:    "getting apirules as unstructured list should fail",
+			wantErr: true,
+			args: args{
+				cfg: Cfg{
+					Name:      name,
+					Namespace: namespace,
+				},
+				build: func() client.Build {
+
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						Get(gomock.Any(), name, v1.GetOptions{}).
+						Return(&unstructured.Unstructured{Object: map[string]interface{}{"test": "test"}}, nil).
+						Times(1)
+
+					result.EXPECT().
+						List(gomock.Any(), v1.ListOptions{}).
+						Return(&unstructured.UnstructuredList{}, nil).
+						Times(1)
+
+					result.EXPECT().List(gomock.Any(), v1.ListOptions{}).
+						Return(&unstructured.UnstructuredList{}, errors.New("the error")).Times(1)
+
+					return func(_ string, _ schema.GroupVersionResource) client.Client {
+						return result
+					}
+				}(),
+				ctx: context.Background(),
+			},
+		},
+		{
+			name: "inline happy path with subscriptions and apirules",
+			args: args{
+				cfg: Cfg{
+					Name:      name,
+					Namespace: namespace,
+					Runtime:   types.Nodejs12,
+					Source: Source{
+						Type: SourceTypeInline,
+						SourceInline: SourceInline{
+							SourcePath:        "./testdir/inline",
+							SourceHandlerName: handlerJs,
+							DepsHandlerName:   packageJSON,
+						},
+					},
+					Env: []EnvVar{
+						{
+							Name:  "TEST_ENV",
+							Value: "test",
+						},
+						{
+							Name: "TEST_ENV_SECRET",
+							ValueFrom: &EnvVarSource{
+								SecretKeyRef: &SecretKeySelector{
+									Name: "secretName",
+									Key:  "secretKey",
+								},
+							},
+						},
+						{
+							Name: "TEST_ENV_CM",
+							ValueFrom: &EnvVarSource{
+								ConfigMapKeyRef: &ConfigMapKeySelector{
+									Name: "configMapName",
+									Key:  "configMapKey",
+								},
+							},
+						},
+					},
+					Resources: Resources{
+						Limits:   nil,
+						Requests: nil,
+					},
+					Subscriptions: []Subscription{
+						{
+							Name:     "fixme",
+							Protocol: "fixme",
+							Filter: Filter{
+								Dialect: "fixme",
+								Filters: []EventFilter{
+									{
+										EventSource: EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "the-source",
+										},
+										EventType: EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "t1.v1.0.0",
+										},
+									},
+								},
+							},
+						},
+					},
+					APIRules: []APIRule{
+						{
+							Name:    "test-name",
+							Gateway: "test-gateway",
+							Service: Service{
+								Host: "test-host",
+								Port: 9090,
+							},
+							Rules: []Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"test-method"},
+									AccessStrategies: []AccessStrategie{
+										{
+											Config: AccessStrategieConfig{
+												JwksUrls:       []string{"test-jwks"},
+												TrustedIssuers: []string{"test-trusted"},
+												RequiredScope:  []string{"test-required"},
+											},
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				build: func() client.Build {
+					c := inlineClient(ctrl, name, namespace)
 					return func(_ string, _ schema.GroupVersionResource) client.Client {
 						return c
 					}
@@ -546,6 +732,43 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 		},
 	}, nil).Times(1)
 
+	result.EXPECT().List(gomock.Any(), v1.ListOptions{}).
+		Return(&unstructured.UnstructuredList{
+			Items: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"name": "test-name",
+						},
+						"spec": map[string]interface{}{
+							"service": map[string]interface{}{
+								"host": "test-host",
+								"name": name,
+								"port": int64(9090),
+							},
+							"rules": []interface{}{
+								map[string]interface{}{
+									"methods": []interface{}{"test-method"},
+									"path":    "test-path",
+									"accessStrategies": []interface{}{
+										map[string]interface{}{
+											"handler": "test-handler",
+											"config": map[string]interface{}{
+												"jwks_urls":       []interface{}{"test-jwks"},
+												"trusted_issuers": []interface{}{"test-trusted"},
+												"required_scope":  []interface{}{"test-required"},
+											},
+										},
+									},
+								},
+							},
+							"gateway": "test-gateway",
+						},
+					},
+				},
+			},
+		}, nil).Times(1)
+
 	return result
 }
 
@@ -605,6 +828,9 @@ func gitClient(ctrl *gomock.Controller, name, namespace string) client.Client {
 		List(gomock.Any(), v1.ListOptions{}).
 		Return(&unstructured.UnstructuredList{}, nil).
 		Times(1)
+
+	result.EXPECT().List(gomock.Any(), gomock.Any()).
+		Return(&unstructured.UnstructuredList{}, nil).Times(1)
 
 	result.EXPECT().Get(gomock.Any(), name, v1.GetOptions{}).Return(&unstructured.Unstructured{
 		Object: map[string]interface{}{
