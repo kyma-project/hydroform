@@ -90,7 +90,7 @@ func Synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 func synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, writerProvider WriterProvider) error {
 
-	u, err := build(config.Namespace, operator.GVKFunction).Get(ctx, config.Name, v1.GetOptions{})
+	u, err := build(config.Namespace, operator.GVRFunction).Get(ctx, config.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}

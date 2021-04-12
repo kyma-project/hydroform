@@ -10,7 +10,6 @@ import (
 func TestContainerEnvs(t *testing.T) {
 	type args struct {
 		runtime   types.Runtime
-		debug     bool
 		hotDeploy bool
 	}
 	tests := []struct {
