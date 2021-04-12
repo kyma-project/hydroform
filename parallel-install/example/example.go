@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -85,17 +84,6 @@ func main() {
 		InstallationResourcePath:      fmt.Sprintf("%s/src/github.com/kyma-project/kyma/installation/resources", goPath),
 		Version:                       *version,
 	}
-
-	// used to receive progress updates of the install/uninstall process
-	/*var progressCh chan deployment.ProcessUpdate
-	if !(*verbose) {
-		progressCh = make(chan deployment.ProcessUpdate)
-		ctx := renderProgress(progressCh, log)
-		defer func() {
-			close(progressCh)
-			<-ctx.Done()
-		}()
-	}*/
 
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
@@ -196,34 +184,4 @@ func callbackUpdate(update deployment.ProcessUpdate) {
 		log.Infof("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
 		showCompStatus(update.Component)
 	}
-}
-
-func renderProgress(progressCh chan deployment.ProcessUpdate, log logger.Interface) context.Context {
-	context, cancel := context.WithCancel(context.Background())
-
-	showCompStatus := func(comp components.KymaComponent) {
-		if comp.Name != "" {
-			log.Infof("Status of component '%s': %s", comp.Name, comp.Status)
-		}
-	}
-	go func() {
-		defer cancel()
-
-		for update := range progressCh {
-			switch update.Event {
-			case deployment.ProcessStart:
-				log.Infof("Starting installation phase '%s'", update.Phase)
-			case deployment.ProcessRunning:
-				showCompStatus(update.Component)
-			case deployment.ProcessFinished:
-				log.Infof("Finished installation phase '%s' successfully", update.Phase)
-			default:
-				//any failure case
-				log.Infof("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
-				showCompStatus(update.Component)
-			}
-		}
-	}()
-
-	return context
 }
