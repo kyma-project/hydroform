@@ -39,12 +39,9 @@ func callbackUpdate(update ProcessUpdate) {
 	}
 }
 
-
-
 func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
-	//procUpdChan := make(chan ProcessUpdate)
 
-	// verify we received all expected events
+	//verify we received all expected events
 	receivedEvents := make(map[string]int)
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -102,7 +99,6 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 		assert.Equal(t, 1, count, fmt.Sprintf("Expected event '%s' missing, got %v", expectedEvent, receivedEvents))
 	}
 }
-
 
 
 
