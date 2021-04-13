@@ -370,7 +370,7 @@ func TestContainerImage(t *testing.T) {
 			args: args{
 				runtime: types.Nodejs14,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:4bed80da",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11091",
 		},
 		{
 			name: "should return image for Python38",
