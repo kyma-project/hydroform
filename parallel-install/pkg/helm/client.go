@@ -35,6 +35,8 @@ type Config struct {
 	MaxHistory                    int              //Maximum number of revisions saved per release
 	Log                           logger.Interface //Used for logging
 	Atomic                        bool
+	KymaComponentMetadataTemplate *KymaComponentMetadataTemplate
+	KubeconfigPath                string
 }
 
 //Client implements the ClientInterface.
@@ -77,7 +79,7 @@ func NewClient(cfg Config) *Client {
 
 func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) error {
 
-	cfg, err := c.newActionConfig(namespace)
+	cfg, err := c.newActionConfig(namespace, c.cfg.KubeconfigPath)
 	if err != nil {
 		return err
 	}
@@ -122,12 +124,12 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 	return nil
 }
 
-func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
+func (c *Client) upgradeRelease(namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
 	upgrade := action.NewUpgrade(cfg)
 	upgrade.Atomic = c.cfg.Atomic
 	upgrade.CleanupOnFail = true
 	upgrade.Wait = true
-	upgrade.ReuseValues = false
+	upgrade.ReuseValues = true
 	upgrade.Recreate = false
 	upgrade.MaxHistory = c.cfg.MaxHistory
 	upgrade.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
@@ -145,6 +147,10 @@ func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name s
 		return err
 	}
 
+	if err := c.updateKymaMetadata(cfg, rel); err != nil {
+		return err
+	}
+
 	if rel.Info.Status != release.StatusDeployed {
 		err = fmt.Errorf("Failed to upgrade %s. Status: %v", name, rel.Info.Status)
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
@@ -154,7 +160,7 @@ func (c *Client) upgradeRelease(ctx context.Context, chartDir, namespace, name s
 	return nil
 }
 
-func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
+func (c *Client) installRelease(namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
 	install := action.NewInstall(cfg)
 	install.ReleaseName = name
 	install.Namespace = namespace
@@ -176,6 +182,10 @@ func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name s
 		return err
 	}
 
+	if err := c.updateKymaMetadata(cfg, rel); err != nil {
+		return err
+	}
+
 	if rel.Info.Status != release.StatusDeployed {
 		err = fmt.Errorf("Failed to install %s. Status: %v", name, rel.Info.Status)
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
@@ -187,7 +197,7 @@ func (c *Client) installRelease(ctx context.Context, chartDir, namespace, name s
 
 func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overridesValues map[string]interface{}, profile string) error {
 	operation := func() error {
-		cfg, err := c.newActionConfig(namespace)
+		cfg, err := c.newActionConfig(namespace, c.cfg.KubeconfigPath)
 		if err != nil {
 			return err
 		}
@@ -211,17 +221,11 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 		}
 
 		if upgrade {
-			err = c.upgradeRelease(ctx, chartDir, namespace, name, comboValues, cfg, chart)
-			if err != nil {
-				return err
-			}
+			err = c.upgradeRelease(namespace, name, comboValues, cfg, chart)
 		} else {
-			err = c.installRelease(ctx, chartDir, namespace, name, comboValues, cfg, chart)
-			if err != nil {
-				return err
-			}
+			err = c.installRelease(namespace, name, comboValues, cfg, chart)
 		}
-		return nil
+		return err
 	}
 
 	initialInterval := time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
@@ -242,9 +246,8 @@ func (c *Client) isUpgrade(name string, cfg *action.Configuration) (bool, error)
 	if err != nil {
 		if err == driver.ErrReleaseNotFound {
 			return false, nil
-		} else {
-			return false, err
 		}
+		return false, err
 	}
 
 	return true, nil
@@ -281,9 +284,10 @@ func (c *Client) retryWithBackoff(ctx context.Context, operation func() error, i
 	return nil
 }
 
-func (c *Client) newActionConfig(namespace string) (*action.Configuration, error) {
+func (c *Client) newActionConfig(namespace string, kubeconfigPath string) (*action.Configuration, error) {
 	clientGetter := genericclioptions.NewConfigFlags(false)
 	clientGetter.Namespace = &namespace
+	clientGetter.KubeConfig = &kubeconfigPath
 
 	cfg := new(action.Configuration)
 
@@ -295,4 +299,16 @@ func (c *Client) newActionConfig(namespace string) (*action.Configuration, error
 	}
 
 	return cfg, nil
+}
+
+func (c *Client) updateKymaMetadata(cfg *action.Configuration, rel *release.Release) error {
+	//add Kyma metadata to Helm release secret
+	kubeClient, err := cfg.KubernetesClientSet()
+	if err == nil {
+		err = (&KymaMetadataProvider{kubeClient: kubeClient}).Set(rel, c.cfg.KymaComponentMetadataTemplate)
+	}
+	if err != nil {
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
+	}
+	return err
 }

@@ -87,7 +87,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -175,18 +175,53 @@ func Test_newFunction(t *testing.T) {
 							DepsHandlerName:   "test.my.deps",
 						},
 					},
-					Triggers: []workspace.Trigger{
+					Subscriptions: []workspace.Subscription{
 						{
-							EventTypeVersion: "test-trigger-etv",
-							Source:           "test-trigger-source",
-							Type:             "test-trigger-type",
+							Name:     "test",
+							Protocol: "",
+							Filter: workspace.Filter{
+								Filters: []workspace.EventFilter{
+									{
+										EventSource: workspace.EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "test-subscription-type.test-subscription-etv",
+										},
+										EventType: workspace.EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "test-subscription-source",
+										},
+									},
+								},
+							},
+						},
+					},
+					APIRules: []workspace.APIRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -242,7 +277,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -292,7 +327,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -348,7 +383,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -406,7 +441,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -491,7 +526,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -589,11 +624,47 @@ func Test_newGitFunction(t *testing.T) {
 							BaseDir:   "test-base-dir",
 						},
 					},
-					Triggers: []workspace.Trigger{
+					Subscriptions: []workspace.Subscription{
 						{
-							EventTypeVersion: "test-trigger-etv",
-							Source:           "test-trigger-source",
-							Type:             "test-trigger-type",
+							Name:     "fixme",
+							Protocol: "fixme",
+							Filter: workspace.Filter{
+								Dialect: "fixme",
+								Filters: []workspace.EventFilter{
+									{
+										EventSource: workspace.EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "test-subscription-source",
+										},
+										EventType: workspace.EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "test-subscription-type.test-subscription-etv",
+										},
+									},
+								},
+							},
+						},
+					},
+					APIRules: []workspace.APIRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
 						},
 					},
 					Env: []workspace.EnvVar{
@@ -624,7 +695,7 @@ func Test_newGitFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -707,18 +778,54 @@ func Test_newGitFunction(t *testing.T) {
 							BaseDir:    "test-base-dir",
 						},
 					},
-					Triggers: []workspace.Trigger{
+					Subscriptions: []workspace.Subscription{
 						{
-							EventTypeVersion: "test-trigger-etv",
-							Source:           "test-trigger-source",
-							Type:             "test-trigger-type",
+							Name:     "fixmne",
+							Protocol: "fixme",
+							Filter: workspace.Filter{
+								Dialect: "fixme",
+								Filters: []workspace.EventFilter{
+									{
+										EventSource: workspace.EventFilterProperty{
+											Property: "source",
+											Type:     "exact",
+											Value:    "test-subscription-source",
+										},
+										EventType: workspace.EventFilterProperty{
+											Property: "type",
+											Type:     "exact",
+											Value:    "test-subscription-type.test-subscription-etv",
+										},
+									},
+								},
+							},
+						},
+					},
+					APIRules: []workspace.APIRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",

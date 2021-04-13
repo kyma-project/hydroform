@@ -33,13 +33,13 @@ type Config struct {
 
 //Engine implements Installation interface
 type Engine struct {
-	overridesProvider  overrides.OverridesProvider
+	overridesProvider  overrides.Provider
 	componentsProvider components.Provider
 	cfg                Config
 }
 
 //NewEngine returns new Engine instance
-func NewEngine(overridesProvider overrides.OverridesProvider, componentsProvider components.Provider, cfg Config) *Engine {
+func NewEngine(overridesProvider overrides.Provider, componentsProvider components.Provider, cfg Config) *Engine {
 	return &Engine{
 		overridesProvider:  overridesProvider,
 		componentsProvider: componentsProvider,
@@ -75,10 +75,7 @@ type Installation interface {
 }
 
 func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, error) {
-	cmps, err := e.componentsProvider.GetComponents()
-	if err != nil {
-		return nil, err
-	}
+	cmps := e.componentsProvider.GetComponents()
 
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
@@ -100,10 +97,7 @@ func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, e
 }
 
 func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent, error) {
-	cmps, err := e.componentsProvider.GetComponents()
-	if err != nil {
-		return nil, err
-	}
+	cmps := e.componentsProvider.GetComponents()
 
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)

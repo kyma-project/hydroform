@@ -24,7 +24,7 @@ func main() {
 
 	cluster := &types.Cluster{
 		CPU:               1,
-		KubernetesVersion: "1.18.8",
+		KubernetesVersion: "1.19",
 		Name:              "hydro-aws",
 		DiskSizeGB:        35,
 		NodeCount:         2,
@@ -46,8 +46,9 @@ func main() {
 			"worker_maximum":         4,
 			"worker_minimum":         2,
 			"machine_image_name":     "gardenlinux",
-			"machine_image_version":  "27.1.0",
+			"machine_image_version":  "184.0.0",
 			"networking_type":        "calico",
+			//"privileged_containers": "true",
 		},
 	}
 

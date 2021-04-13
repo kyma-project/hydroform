@@ -84,13 +84,20 @@ func fromRuntime(runtime types.Runtime) (workspace, error) {
 	}
 }
 
+const (
+	APIRuleGateway = "kyma-gateway.kyma-system.svc.cluster.local"
+	APIRulePath    = "/.*"
+	APIRuleHandler = "allow"
+	APIRulePort    = int64(80)
+)
+
 func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build) error {
 	return synchronise(ctx, config, outputPath, build, defaultWriterProvider)
 }
 
 func synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, writerProvider WriterProvider) error {
 
-	u, err := build(config.Namespace, operator.GVKFunction).Get(ctx, config.Name, v1.GetOptions{})
+	u, err := build(config.Namespace, operator.GVRFunction).Get(ctx, config.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -109,30 +116,76 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 	config.Runtime = function.Spec.Runtime
 	config.Labels = function.Spec.Labels
-	config.Env = convertCoreV1EnvToEnvVar(function.Spec.Env)
+	config.Env = toWorkspaceEnvVar(function.Spec.Env)
 
-	ul, err := build("", operator.GVKTriggers).List(ctx, v1.ListOptions{})
+	ul, err := build("", operator.GVRSubscription).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 
 	if ul != nil {
 		for _, item := range ul.Items {
-			var trigger types.Trigger
-			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &trigger); err != nil {
+			var subscription types.Subscription
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &subscription); err != nil {
 				return err
 			}
 
-			if !trigger.IsReference(function.Name, function.Namespace) {
+			if !subscription.IsReference(function.Name, function.Namespace) {
 				continue
 			}
 
-			config.Triggers = append(config.Triggers, Trigger{
-				EventTypeVersion: trigger.Spec.Filter.Attributes.EventTypeVersion,
-				Source:           trigger.Spec.Filter.Attributes.Source,
-				Type:             trigger.Spec.Filter.Attributes.Type,
-				Name:             trigger.ObjectMeta.Name,
+			filterLen := subscription.Spec.Filter.Filters
+			if len(filterLen) == 0 {
+				continue
+			}
+
+			var filters []EventFilter
+			for _, fromFilter := range subscription.Spec.Filter.Filters {
+				toFilter := toWorkspaceEnvFilter(fromFilter)
+				filters = append(filters, toFilter)
+			}
+
+			config.Subscriptions = append(config.Subscriptions, Subscription{
+				Name:     subscription.Name,
+				Protocol: subscription.Spec.Protocol,
+				Filter: Filter{
+					Dialect: subscription.Spec.Filter.Dialect,
+					Filters: filters,
+				},
 			})
+		}
+	}
+
+	ul, err = build(config.Namespace, operator.GVRApiRule).List(ctx, v1.ListOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	if ul != nil {
+		for _, item := range ul.Items {
+			var apiRule types.APIRule
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &apiRule); err != nil {
+				return err
+			}
+
+			if !apiRule.IsReference(function.Name) {
+				continue
+			}
+
+			newAPIRule := APIRule{
+				Name:    setIfNotEqual(apiRule.Name, function.Name),
+				Gateway: setIfNotEqual(apiRule.Spec.Gateway, APIRuleGateway),
+				Service: Service{
+					Host: apiRule.Spec.Service.Host,
+				},
+				Rules: toWorkspaceRules(apiRule.Spec.Rules),
+			}
+
+			if apiRule.Spec.Service.Port != APIRulePort {
+				newAPIRule.Service.Port = apiRule.Spec.Service.Port
+			}
+
+			config.APIRules = append(config.APIRules, newAPIRule)
 		}
 	}
 
@@ -189,7 +242,7 @@ func InlineFileNames(r types.Runtime) (SourceFileName, DepsFileName, bool) {
 	}
 }
 
-func convertCoreV1EnvToEnvVar(envs []corev1.EnvVar) []EnvVar {
+func toWorkspaceEnvVar(envs []corev1.EnvVar) []EnvVar {
 	outEnvs := make([]EnvVar, 0)
 	for _, env := range envs {
 
@@ -218,4 +271,55 @@ func convertCoreV1EnvToEnvVar(envs []corev1.EnvVar) []EnvVar {
 		outEnvs = append(outEnvs, newEnv)
 	}
 	return outEnvs
+}
+
+func toWorkspaceEnvFilter(filter types.EventFilter) EventFilter {
+	return EventFilter{
+		EventSource: EventFilterProperty{
+			Property: filter.EventSource.Property,
+			Type:     filter.EventSource.Type,
+			Value:    filter.EventSource.Value,
+		},
+		EventType: EventFilterProperty{
+			Property: filter.EventType.Property,
+			Type:     filter.EventType.Type,
+			Value:    filter.EventType.Value,
+		},
+	}
+}
+
+func toWorkspaceRules(rules []types.Rule) []Rule {
+	var out []Rule
+	for _, rule := range rules {
+		out = append(out, Rule{
+			Path:             setIfNotEqual(rule.Path, APIRulePath),
+			Methods:          rule.Methods,
+			AccessStrategies: toWorkspaceAccessStrategies(rule.AccessStrategies),
+		})
+	}
+
+	return out
+}
+
+func toWorkspaceAccessStrategies(accessStrategies []types.AccessStrategie) []AccessStrategie {
+	var out []AccessStrategie
+	for _, as := range accessStrategies {
+		out = append(out, AccessStrategie{
+			Handler: as.Handler,
+			Config: AccessStrategieConfig{
+				JwksUrls:       as.Config.JwksUrls,
+				TrustedIssuers: as.Config.TrustedIssuers,
+				RequiredScope:  as.Config.RequiredScope,
+			},
+		})
+	}
+
+	return out
+}
+
+func setIfNotEqual(val, defVal string) string {
+	if val != defVal {
+		return val
+	}
+	return ""
 }

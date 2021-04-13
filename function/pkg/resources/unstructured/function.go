@@ -19,7 +19,7 @@ import (
 
 type ReadFile = func(filename string) ([]byte, error)
 
-const functionApiVersion = "serverless.kyma-project.io/v1alpha1"
+const functionAPIVersion = "serverless.kyma-project.io/v1alpha1"
 
 var errUnsupportedSource = fmt.Errorf("unsupported source")
 
@@ -120,7 +120,7 @@ func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
 	envs := prepareEnvVars(cfg.Env)
 
 	f := types.Function{
-		ApiVersion: functionApiVersion,
+		APIVersion: functionAPIVersion,
 		Kind:       "Function",
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cfg.Name,

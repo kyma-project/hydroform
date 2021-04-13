@@ -7,16 +7,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 )
 
 //TODO: has to be taken from component list! See https://github.com/kyma-incubator/hydroform/issues/181
@@ -28,8 +28,18 @@ type Deletion struct {
 }
 
 //NewDeletion creates a new Deployment instance for deleting Kyma on a cluster.
-func NewDeletion(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deletion, error) {
+func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates chan<- ProcessUpdate) (*Deletion, error) {
 	if err := cfg.ValidateDeletion(); err != nil {
+		return nil, err
+	}
+
+	restConfig, err := clientcmd.BuildConfigFromFlags("", cfg.KubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
 		return nil, err
 	}
 
@@ -48,35 +58,13 @@ func (i *Deletion) StartKymaUninstallation() error {
 		return err
 	}
 
-	attr, err := metadata.NewAttributes(i.cfg.Version, i.cfg.Profile, i.cfg.ComponentsListFile)
-	if err != nil {
-		return err
-	}
-
-	err = i.metadataProvider.WriteKymaUninstallationInProgress(attr)
-	if err != nil {
-		return err
-	}
-
 	err = i.startKymaUninstallation(prerequisitesEng, componentsEng)
 	if err != nil {
-		metaDataErr := i.metadataProvider.WriteKymaUninstallationError(attr, err.Error())
-		if metaDataErr != nil {
-			return metaDataErr
-		}
+		return err
 	}
 
 	err = i.deleteKymaNamespaces(kymaNamespaces)
-	if err != nil {
-		return err
-	}
-
-	err = i.metadataProvider.DeleteKymaMetadata()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
@@ -89,7 +77,7 @@ func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, comp
 	quitTimeout := i.cfg.QuitTimeout
 
 	startTime := time.Now()
-	err := i.uninstallComponents(UninstallComponents, cancelCtx, cancel, componentsEng, cancelTimeout, quitTimeout)
+	err := i.uninstallComponents(cancelCtx, cancel, UninstallComponents, componentsEng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -100,7 +88,7 @@ func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, comp
 	cancelTimeout = calculateDuration(startTime, endTime, i.cfg.CancelTimeout)
 	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
 
-	err = i.uninstallComponents(UninstallPreRequisites, cancelCtx, cancel, prerequisitesEng, cancelTimeout, quitTimeout)
+	err = i.uninstallComponents(cancelCtx, cancel, UninstallPreRequisites, prerequisitesEng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -116,7 +104,7 @@ func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, comp
 	return nil
 }
 
-func (i *Deletion) uninstallComponents(phase InstallationPhase, ctx context.Context, cancelFunc context.CancelFunc, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+func (i *Deletion) uninstallComponents(ctx context.Context, cancelFunc context.CancelFunc, phase InstallationPhase, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
 	var statusMap = map[string]string{}

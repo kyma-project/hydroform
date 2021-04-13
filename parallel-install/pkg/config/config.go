@@ -1,11 +1,11 @@
-//Package config defines top-level configuration settings for library users.
 package config
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"os"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 )
 
 //Configures various install/uninstall operation parameters.
@@ -32,12 +32,14 @@ type Config struct {
 	HelmMaxRevisionHistory int
 	//Installation / Upgrade profile: evaluation|production
 	Profile string
-	// Path to Kyma components list
-	ComponentsListFile string
+	// Kyma components list
+	ComponentList *ComponentList
 	// Path to Kyma resources
 	ResourcePath string
 	// Path to Kyma installation resources
 	InstallationResourcePath string
+	// Path to Kubeconfig
+	KubeconfigPath string
 	//Kyma version
 	Version string
 	//Atomic deployment
@@ -49,8 +51,8 @@ func (c *Config) validate() error {
 	if c.WorkersCount <= 0 {
 		return fmt.Errorf("Workers count cannot be <= 0")
 	}
-	if err := c.pathExists(c.ComponentsListFile, "Components list"); err != nil {
-		return err
+	if c.ComponentList == nil {
+		return fmt.Errorf("Component list undefined")
 	}
 	return nil
 }
@@ -58,6 +60,9 @@ func (c *Config) validate() error {
 // ValidateDeletion verifies that deletion specific options are provided
 func (c *Config) ValidateDeletion() error {
 	if err := c.validate(); err != nil { //deployment requires all core options
+		return err
+	}
+	if err := c.pathExists(c.KubeconfigPath, "Kubeconfig path"); err != nil {
 		return err
 	}
 	return nil
@@ -72,6 +77,9 @@ func (c *Config) ValidateDeployment() error {
 		return err
 	}
 	if err := c.pathExists(c.InstallationResourcePath, "Installation resource path"); err != nil {
+		return err
+	}
+	if err := c.pathExists(c.KubeconfigPath, "Kubeconfig path"); err != nil {
 		return err
 	}
 	if c.Version == "" {

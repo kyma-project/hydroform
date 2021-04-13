@@ -7,15 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/metadata"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 //these components will be removed from component list if running on a local cluster
@@ -23,13 +22,11 @@ var incompatibleLocalComponents = []string{"apiserver-proxy", "iam-kubeconfig-se
 
 type core struct {
 	// Contains list of components to install (inclusive pre-requisites)
-	componentList *components.ComponentList
-	cfg           *config.Config
-	overrides     *Overrides
+	cfg       *config.Config
+	overrides *Overrides
 	// Used to send progress events of a running install/uninstall process
-	processUpdates   chan<- ProcessUpdate
-	kubeClient       kubernetes.Interface
-	metadataProvider metadata.MetadataProvider
+	processUpdates chan<- ProcessUpdate
+	kubeClient     kubernetes.Interface
 }
 
 //new creates a new core instance
@@ -42,14 +39,9 @@ type core struct {
 //
 //processUpdates can be an optional feedback channel provided by the caller
 func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*core, error) {
-	clList, err := components.NewComponentList(cfg.ComponentsListFile)
-	if err != nil {
-		return nil, err
-	}
-
 	if isK3dCluster(kubeClient) {
 		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
-		removeFromComponentList(clList, incompatibleLocalComponents)
+		removeFromComponentList(cfg.ComponentList, incompatibleLocalComponents)
 	}
 
 	registerOverridesInterceptors(kubeClient, ob, cfg.Log)
@@ -59,21 +51,12 @@ func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Int
 		return nil, err
 	}
 
-	metadataProvider := metadata.New(kubeClient)
-
 	return &core{
-		componentList:    clList,
-		cfg:              cfg,
-		overrides:        &overrides,
-		processUpdates:   processUpdates,
-		kubeClient:       kubeClient,
-		metadataProvider: metadataProvider,
+		cfg:            cfg,
+		overrides:      &overrides,
+		processUpdates: processUpdates,
+		kubeClient:     kubeClient,
 	}, nil
-}
-
-//ReadKymaMetadata returns Kyma metadata
-func (i *core) ReadKymaMetadata() (*metadata.KymaMetadata, error) {
-	return i.metadataProvider.ReadKymaMetadata()
 }
 
 func (i *core) logStatuses(statusMap map[string]string) {
@@ -83,15 +66,17 @@ func (i *core) logStatuses(statusMap map[string]string) {
 	}
 }
 
-func (i *core) getConfig() (overrides.OverridesProvider, *engine.Engine, *engine.Engine, error) {
+func (i *core) getConfig() (overrides.Provider, *engine.Engine, *engine.Engine, error) {
 	overridesProvider, err := overrides.New(i.kubeClient, i.overrides.Map(), i.cfg.Log)
 
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider: exiting")
 	}
 
-	prerequisitesProvider := components.NewComponentsProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.Prerequisites, i.cfg)
-	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg.ResourcePath, i.componentList.Components, i.cfg)
+	//create KymaComponentMetadataTemplate and set prerequisites flag
+	kymaMetadataTpl := helm.NewKymaComponentMetadataTemplate(i.cfg.Version, i.cfg.Profile)
+	prerequisitesProvider := components.NewComponentsProvider(overridesProvider, i.cfg, i.cfg.ComponentList.Prerequisites, kymaMetadataTpl.ForPrerequisites())
+	componentsProvider := components.NewComponentsProvider(overridesProvider, i.cfg, i.cfg.ComponentList.Components, kymaMetadataTpl.ForComponents())
 
 	prerequisitesEngineCfg := engine.Config{
 		// prerequisite components need to be installed sequentially, so only 1 worker should be used
@@ -159,7 +144,7 @@ func isK3dCluster(kubeClient kubernetes.Interface) bool {
 	return false
 }
 
-func removeFromComponentList(cl *components.ComponentList, componentNames []string) {
+func removeFromComponentList(cl *config.ComponentList, componentNames []string) {
 	for _, compName := range componentNames {
 		cl.Remove(compName)
 	}

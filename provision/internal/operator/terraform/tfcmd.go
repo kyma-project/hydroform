@@ -2,15 +2,15 @@ package terraform
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-
 	be_init "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/command"
 	"github.com/kyma-incubator/hydroform/provision/types"
 	hashiCli "github.com/mitchellh/cli"
 	"github.com/pkg/errors"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 )
 
 // tfInit runs the 'terraform init' command with the specified options and config in the given working directory.
@@ -51,6 +51,9 @@ func initArgs(p types.ProviderType, cfg map[string]interface{}, clusterDir strin
 		if m := tfMod(p); m != "" {
 			args = append(args, fmt.Sprintf("-from-module=%s", m))
 		}
+	}
+	if runtime.GOOS == "windows" { // remove '\\?\' path prefix
+		clusterDir = clusterDir[4:]
 	}
 	args = append(args, clusterDir)
 

@@ -34,7 +34,7 @@ type mockProvider struct {
 	hc *mockHelmClient
 }
 
-func (p *mockProvider) GetComponents() ([]components.KymaComponent, error) {
+func (p *mockProvider) GetComponents() []components.KymaComponent {
 	return []components.KymaComponent{
 		{
 			Name:            "test1",
@@ -57,7 +57,7 @@ func (p *mockProvider) GetComponents() ([]components.KymaComponent, error) {
 			HelmClient:      p.hc,
 			Log:             logger.NewLogger(true),
 		},
-	}, nil
+	}
 }
 
 //mockOverridesProvider is used in test-cases of core extending objects, like Deletion an Deployment tests

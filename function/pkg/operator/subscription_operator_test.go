@@ -3,13 +3,16 @@ package operator
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/watch"
 	"reflect"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	mockclient "github.com/kyma-incubator/hydroform/function/pkg/client/automock"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -98,9 +101,13 @@ func Test_mergeMap(t *testing.T) {
 	}
 }
 
-func Test_triggersOperator_Apply(t *testing.T) {
+func Test_applySubscriptions(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	testPredicate := func(map[string]interface{}) (bool, error) {
+		return false, nil
+	}
 
 	type fields struct {
 		items  []unstructured.Unstructured
@@ -117,7 +124,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "wipe triggers error",
+			name: "wipe subscriptions error",
 			args: args{
 				opts: ApplyOptions{
 					OwnerReferences: []v1.OwnerReference{
@@ -284,7 +291,7 @@ func Test_triggersOperator_Apply(t *testing.T) {
 						Times(1)
 
 					fakeWatcher := watch.NewRaceFreeFake()
-					testObject := fixUnstructured("test", "test")
+					testObject := fixUnstructured()
 					fakeWatcher.Add(&testObject)
 
 					result.EXPECT().
@@ -300,15 +307,14 @@ func Test_triggersOperator_Apply(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			t := NewTriggersOperator(tt.fields.Client, "test", "test-namespace", tt.fields.items...)
-			if err := t.Apply(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := applySubscriptions(tt.args.ctx, tt.fields.Client, testPredicate, tt.fields.items, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Apply() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func Test_triggersOperator_Delete(t *testing.T) {
+func Test_deleteSubscriptions(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	type fields struct {
@@ -424,15 +430,27 @@ func Test_triggersOperator_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			t := NewTriggersOperator(tt.fields.Client, "test", "test-namespace", tt.fields.items...)
-			if err := t.Delete(tt.args.ctx, tt.args.opts); (err != nil) != tt.wantErr {
+			if err := deleteSubscriptions(tt.args.ctx, tt.fields.Client, tt.fields.items, tt.args.opts); (err != nil) != tt.wantErr {
 				t1.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func Test_triggersOperator_wipeRemoved(t *testing.T) {
+func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
+	var subscription1 unstructured.Unstructured
+	var subscription2 unstructured.Unstructured
+
+	for i, s := range []*unstructured.Unstructured{
+		&subscription1, &subscription2,
+	} {
+		var err error
+		(*s), err = newTestSubscription(fmt.Sprintf("test-%d", i+1), "test-namespace")
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	type args struct {
@@ -459,7 +477,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
+				items: []unstructured.Unstructured{subscription1},
 			},
 			wantErr: true,
 		},
@@ -474,7 +492,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
-								testObj2,
+								subscription2,
 							},
 						}, nil).
 						Times(1)
@@ -486,7 +504,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
+				items: []unstructured.Unstructured{subscription1},
 			},
 			wantErr: true,
 		},
@@ -500,7 +518,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
-								testObj2,
+								subscription2,
 							},
 						}, nil).
 						Times(1)
@@ -512,7 +530,7 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
+				items: []unstructured.Unstructured{subscription1},
 				opts: ApplyOptions{
 					Options: Options{
 						Callbacks: Callbacks{
@@ -537,14 +555,14 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
-								testObj2,
+								subscription2,
 							},
 						}, nil).
 						Times(1)
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
+				items: []unstructured.Unstructured{subscription1},
 				opts: ApplyOptions{
 					Options: Options{
 						Callbacks: Callbacks{
@@ -569,14 +587,14 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 						List(gomock.Any(), gomock.Any()).
 						Return(&unstructured.UnstructuredList{
 							Items: []unstructured.Unstructured{
-								testObj,
+								subscription1,
 							},
 						}, nil).
 						Times(1)
 
 					return result
 				}(),
-				items: []unstructured.Unstructured{testObj},
+				items: []unstructured.Unstructured{subscription1},
 				opts:  ApplyOptions{},
 			},
 			wantErr: false,
@@ -584,8 +602,8 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			predicate := buildMatchRemovedTriggerPredicate(functionReference{
-				name:      "test-function-name",
+			predicate := buildMatchRemovedSubscriptionsPredicate(functionReference{
+				name:      "test-2",
 				namespace: "test-namespace",
 			}, tt.args.items)
 			if err := wipeRemoved(tt.args.ctx, tt.args.Client, predicate, tt.args.opts.Options); (err != nil) != tt.wantErr {
@@ -595,11 +613,45 @@ func Test_triggersOperator_wipeRemoved(t *testing.T) {
 	}
 }
 
-func Test_Predicate(t *testing.T) {
+func newTestSubscription(name, namespace string) (unstructured.Unstructured, error) {
+	subscription := types.Subscription{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "Subscription",
+			APIVersion: GVRSubscription.Version,
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: types.SubscriptionSpec{
+			Sink: fmt.Sprintf("http://%s.%s.svc.cluster.local", name, namespace),
+		},
+	}
+	subscriptionObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&subscription)
+	if err != nil {
+		return unstructured.Unstructured{}, err
+	}
+	return unstructured.Unstructured{Object: subscriptionObject}, nil
+}
+
+func Test_buildMatchRemovedSubscriptionsPredicate(t *testing.T) {
+	var subscription1 unstructured.Unstructured
+	var subscription2 unstructured.Unstructured
+
+	for i, s := range []*unstructured.Unstructured{
+		&subscription1, &subscription2,
+	} {
+		var err error
+		(*s), err = newTestSubscription(fmt.Sprintf("test-%d", i+1), "test-namespace")
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	type args struct {
-		trigger unstructured.Unstructured
-		fnRef   functionReference
-		items   []unstructured.Unstructured
+		fnRef        functionReference
+		items        []unstructured.Unstructured
+		subscription unstructured.Unstructured
 	}
 	tests := []struct {
 		name    string
@@ -610,40 +662,46 @@ func Test_Predicate(t *testing.T) {
 		{
 			name: "no match 1",
 			args: args{
-				items:   []unstructured.Unstructured{testObj2, testObj},
-				fnRef:   functionReference{name: "test-function-name", namespace: "test-namespace"},
-				trigger: testObj,
+				items: []unstructured.Unstructured{subscription1, subscription2},
+				fnRef: functionReference{
+					name:      "test-1",
+					namespace: "test-namespace",
+				},
+				subscription: subscription1,
 			},
-			want:    false,
-			wantErr: false,
+			want: false,
 		},
 		{
 			name: "no match 2",
 			args: args{
-				items:   []unstructured.Unstructured{testObj, testObj2},
-				fnRef:   functionReference{name: "test-function-name1", namespace: "test-namespace"},
-				trigger: testObj,
+				items: []unstructured.Unstructured{subscription1, subscription2},
+				fnRef: functionReference{
+					name:      "test-me",
+					namespace: "test-namespace",
+				},
+				subscription: subscription1,
 			},
-			want:    false,
-			wantErr: false,
+			want: false,
 		},
 		{
 			name: "match",
 			args: args{
-				items:   []unstructured.Unstructured{testObj2},
-				fnRef:   functionReference{name: "test-function-name", namespace: "test-namespace"},
-				trigger: testObj,
+				items: []unstructured.Unstructured{subscription2},
+				fnRef: functionReference{
+					name:      "test-1",
+					namespace: "test-namespace",
+				},
+				subscription: subscription1,
 			},
-			want:    true,
-			wantErr: false,
+			want: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			predicate := buildMatchRemovedTriggerPredicate(tt.args.fnRef, tt.args.items)
-			got, err := predicate(tt.args.trigger.Object)
+			predicate := buildMatchRemovedSubscriptionsPredicate(tt.args.fnRef, tt.args.items)
+			got, err := predicate(tt.args.subscription.Object)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("predicate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("buildMatchRemovedSubscriptionsPredicate() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {

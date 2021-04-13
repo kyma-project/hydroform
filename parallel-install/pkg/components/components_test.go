@@ -3,6 +3,7 @@ package components
 import (
 	"testing"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -33,22 +34,24 @@ func Test_GetComponents(t *testing.T) {
 	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), logger.NewLogger(true))
 	require.NoError(t, err)
 
-	installationCfg := &config.Config{}
-
-	components := []ComponentDefinition{
-		{
-			Name:      "comp1",
-			Namespace: "ns1",
-		},
-		{
-			Name:      "comp2",
-			Namespace: "ns2",
+	instCfg := &config.Config{
+		ComponentList: &config.ComponentList{
+			Components: []config.ComponentDefinition{
+				{
+					Name:      "comp1",
+					Namespace: "ns1",
+				},
+				{
+					Name:      "comp2",
+					Namespace: "ns2",
+				},
+			},
 		},
 	}
 
-	provider := NewComponentsProvider(overridesProvider, "", components, installationCfg)
+	cmpMetadataTpl := helm.NewKymaComponentMetadataTemplate("version", "profile").ForComponents()
+	provider := NewComponentsProvider(overridesProvider, instCfg, instCfg.ComponentList.Components, cmpMetadataTpl)
 
-	res, err := provider.GetComponents()
-	require.NoError(t, err)
+	res := provider.GetComponents()
 	require.Equal(t, 2, len(res), "Number of components not as expected")
 }

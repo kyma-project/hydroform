@@ -1,12 +1,11 @@
 package generator
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
-	"time"
+	"math/big"
 )
 
-// Copied and modified code from https://github.com/moby/moby/tree/master/pkg/namesgenerator because of K8S can't use char `_` in names
 var (
 	left = [...]string{
 		"admiring",
@@ -136,13 +135,26 @@ var (
 )
 
 // GenerateName generates a random name from the list of adjectives and names of some kyma creators
-// formatted as "adjective-name". For example 'quizzical_rafal'. If retry is true, a random
+// formatted as "adjective-name". For example 'quizzical_rafal'. If isSuffix is true, a random
 // integer between 0 and 10 will be added to the end of the name, e.g `focused_filip3`
-func GenerateName(isSuffix bool) string {
-	rand.Seed(time.Now().UnixNano())
-	name := fmt.Sprintf("%s-%s", left[rand.Intn(len(left))], right[rand.Intn(len(right))])
-	if isSuffix {
-		name = fmt.Sprintf("%s%d", name, rand.Intn(10))
+func GenerateName(isSuffix bool) (string, error) {
+	adjIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(left))))
+	if err != nil {
+		return "", err
 	}
-	return name
+
+	nameIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(right))))
+	if err != nil {
+		return "", err
+	}
+
+	name := fmt.Sprintf("%s-%s", left[adjIndex.Int64()], right[nameIndex.Int64()])
+	if isSuffix {
+		index, err := rand.Int(rand.Reader, big.NewInt(10))
+		if err != nil {
+			return "", err
+		}
+		name = fmt.Sprintf("%s%d", name, index.Int64())
+	}
+	return name, nil
 }

@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 )
 
@@ -55,7 +57,11 @@ func newInternalLogger(verbose bool) *zap.SugaredLogger {
 		logger = newSilentLogger()
 	}
 
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			logger.Error(fmt.Sprintf("Sync failed: %s", err))
+		}
+	}()
 	return logger.Sugar()
 }
 

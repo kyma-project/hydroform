@@ -1,9 +1,10 @@
 package overrides
 
 import (
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"io/ioutil"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
@@ -44,11 +45,13 @@ func Test_ReadOverridesFromCluster(t *testing.T) {
 
 	// Read additional overrides file
 	data, err := ioutil.ReadFile("../test/data/overrides.yaml")
+	require.NoError(t, err)
 	var overrides map[string]interface{}
 	err = yaml.Unmarshal(data, &overrides)
 	require.NoError(t, err)
 
 	data, err = ioutil.ReadFile("../test/data/overrides-colliding.yaml")
+	require.NoError(t, err)
 	var overridesColliding map[string]interface{}
 	err = yaml.Unmarshal(data, &overridesColliding)
 	require.NoError(t, err)

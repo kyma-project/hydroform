@@ -71,15 +71,14 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 	case types.Python38:
 		if debug {
 			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py"}
-		} else {
-			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py"}
 		}
+		return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py"}
+
 	default:
 		if hotDeploy {
 			return []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"}
-		} else {
-			return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
 		}
+		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
 	}
 }
 

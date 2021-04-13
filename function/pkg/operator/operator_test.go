@@ -4,10 +4,11 @@ import (
 	"context"
 	errs "errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/watch"
 	"reflect"
 	"testing"
 	"time"
+
+	"k8s.io/apimachinery/pkg/watch"
 
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
@@ -419,7 +420,7 @@ func Test_waitForObject(t *testing.T) {
 				c: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
 					fakeWatcher := watch.NewRaceFreeFake()
-					testObject := fixUnstructured("test", "test")
+					testObject := fixUnstructured()
 					fakeWatcher.Add(&testObject)
 
 					result.EXPECT().
@@ -429,7 +430,7 @@ func Test_waitForObject(t *testing.T) {
 
 					return result
 				}(),
-				u: fixUnstructured("test", "test"),
+				u: fixUnstructured(),
 			},
 			wantErr: false,
 		},
@@ -440,7 +441,7 @@ func Test_waitForObject(t *testing.T) {
 				c: func() client.Client {
 					result := mockclient.NewMockClient(ctrl)
 					fakeWatcher := watch.NewRaceFreeFake()
-					testObject := fixUnstructured("test", "test")
+					testObject := fixUnstructured()
 					fakeWatcher.Modify(&testObject)
 
 					result.EXPECT().
@@ -450,7 +451,7 @@ func Test_waitForObject(t *testing.T) {
 
 					return result
 				}(),
-				u: fixUnstructured("test", "test"),
+				u: fixUnstructured(),
 			},
 			wantErr: true,
 		},
@@ -468,7 +469,7 @@ func Test_waitForObject(t *testing.T) {
 
 					return result
 				}(),
-				u: fixUnstructured("test", "test"),
+				u: fixUnstructured(),
 			},
 			wantErr: true,
 		},
@@ -482,12 +483,12 @@ func Test_waitForObject(t *testing.T) {
 	}
 }
 
-func fixUnstructured(name, namespace string) unstructured.Unstructured {
+func fixUnstructured() unstructured.Unstructured {
 	gitRepo := unstructured.Unstructured{}
 	gitRepo.SetAPIVersion("testapiversion")
 	gitRepo.SetKind("testkind")
-	gitRepo.SetName(name)
-	gitRepo.SetNamespace(namespace)
+	gitRepo.SetName("test")
+	gitRepo.SetNamespace("test")
 	gitRepo.SetResourceVersion("testResourceVersion")
 	return gitRepo
 }

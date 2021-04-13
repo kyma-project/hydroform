@@ -31,11 +31,10 @@ func main() {
 	uChild2 := xunstruct.NewSample("child2", "test-ns")
 	uSibling := xunstruct.NewSample("sibling", "test-ns")
 
-	m := manager.NewManager(map[operator.Operator][]operator.Operator{
-		operator.NewGenericOperator(&c, uParent): {
-			operator.NewGenericOperator(&c, uChild1, uChild2),
-		},
-		operator.NewGenericOperator(&c, uSibling): nil,
+	m := manager.NewManager()
+	m.AddParent(operator.NewGenericOperator(&c, uParent), []operator.Operator{
+		operator.NewGenericOperator(&c, uChild1, uChild2),
+		operator.NewGenericOperator(&c, uSibling),
 	})
 
 	if err := m.Do(ctx, manager.Options{SetOwnerReferences: true}); err != nil {

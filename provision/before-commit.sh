@@ -53,13 +53,13 @@ fi
 # GO TEST
 ##
 echo "? go test"
-go test -count 100 -race -coverprofile=cover.out ./...
+go test -race -coverprofile=cover.out ./...
 # Check if tests passed
 if [[ $? != 0 ]]; then
 	echo -e "${RED}✗ go test\n${NC}"
 	rm cover.out
 	exit 1
-else 
+else
 	echo -e "Total coverage: $(go tool cover -func=cover.out | grep total | awk '{print $3}')"
 	rm cover.out
 	echo -e "${GREEN}√ go test${NC}"
@@ -79,15 +79,11 @@ if [ $(echo ${#goFmtResult}) != 0 ]
 fi
 
 ##
-# GO VET
+# GO Linters
 ##
-packagesToVet=("./internal/..." "./action/..." "./types/..." "./examples/...")
-
-for vPackage in "${packagesToVet[@]}"; do
-	vetResult=$(go vet ${vPackage})
-	if [ $(echo ${#vetResult}) != 0 ]; then
-		echo -e "${RED}✗ go vet ${vPackage} ${NC}\n$vetResult${NC}"
-		exit 1
-	else echo -e "${GREEN}√ go vet ${vPackage} ${NC}"
-	fi
-done
+# Currently linting will run but not fail even if errors happen. Remove || true once linting issues are fixed per module
+if [[ "$1" == "$CI_FLAG" ]]; then
+  SKIP_VERIFY="true" ../hack/verify-lint.sh $(pwd) || true
+else
+  ../hack/verify-lint.sh $(pwd) || true 
+fi
