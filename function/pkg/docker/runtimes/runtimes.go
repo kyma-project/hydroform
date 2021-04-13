@@ -30,7 +30,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 
 func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	switch runtime {
-	case types.Nodejs12, types.Nodejs10:
+	case types.Nodejs12, types.Nodejs14:
 		return []string{NodejsPath}
 	case types.Python38:
 		envs := []string{Python38Path}
@@ -45,7 +45,7 @@ func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 
 func RuntimeDebugPort(runtime types.Runtime) string {
 	switch runtime {
-	case types.Nodejs12, types.Nodejs10:
+	case types.Nodejs12, types.Nodejs14:
 		return NodejsDebugEndpoint
 	case types.Python38:
 		return Python38DebugEndpoint
@@ -56,7 +56,7 @@ func RuntimeDebugPort(runtime types.Runtime) string {
 
 func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 	switch runtime {
-	case types.Nodejs12, types.Nodejs10:
+	case types.Nodejs12, types.Nodejs14:
 		runCommand := ""
 		if hotDeploy && debug {
 			runCommand = "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 --exitcrash kubeless.js "
@@ -86,8 +86,8 @@ func ContainerImage(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:4bed80da"
-	case types.Nodejs10:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs10:4bed80da"
+	case types.Nodejs14:
+		return "eu.gcr.io/kyma-project/function-runtime-Nodejs14:4bed80da"
 	case types.Python38:
 		return "eu.gcr.io/kyma-project/function-runtime-python38:4bed80da"
 	default:
@@ -99,7 +99,7 @@ func ContainerUser(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
 		return "1000"
-	case types.Nodejs10:
+	case types.Nodejs14:
 		return "1000"
 	case types.Python38:
 		return "root"

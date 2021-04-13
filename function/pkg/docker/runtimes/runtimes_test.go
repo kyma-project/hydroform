@@ -63,14 +63,14 @@ func TestContainerEnvs(t *testing.T) {
 			},
 		},
 		{
-			name: "should return envs for nodejs10",
+			name: "should return envs for nodejs14",
 			args: args{
-				runtime:   types.Nodejs10,
+				runtime:   types.Nodejs14,
 				hotDeploy: false,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=nodejs10",
+				"FUNC_RUNTIME=nodejs14",
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
@@ -78,14 +78,14 @@ func TestContainerEnvs(t *testing.T) {
 			},
 		},
 		{
-			name: "should return envs for nodejs10 with hotDeploy",
+			name: "should return envs for nodejs14 with hotDeploy",
 			args: args{
-				runtime:   types.Nodejs10,
+				runtime:   types.Nodejs14,
 				hotDeploy: true,
 			},
 			want: []string{
 				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=nodejs10",
+				"FUNC_RUNTIME=nodejs14",
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
@@ -165,8 +165,8 @@ func TestRuntimeDebugPort(t *testing.T) {
 			want:    NodejsDebugEndpoint,
 		},
 		{
-			name:    "should return nodejs10 debug port",
-			runtime: types.Nodejs10,
+			name:    "should return nodejs14 debug port",
+			runtime: types.Nodejs14,
 			want:    NodejsDebugEndpoint,
 		},
 		{
@@ -254,18 +254,18 @@ func TestContainerCommands(t *testing.T) {
 			},
 		},
 		{
-			name: "should return commands for Nodejs10",
+			name: "should return commands for Nodejs14",
 			args: args{
-				runtime: types.Nodejs10,
+				runtime: types.Nodejs14,
 			},
 			want: []string{
 				"/kubeless-npm-install.sh", "node kubeless.js",
 			},
 		},
 		{
-			name: "should return commands for Nodejs10 with hotDeploy",
+			name: "should return commands for Nodejs14 with hotDeploy",
 			args: args{
-				runtime:   types.Nodejs10,
+				runtime:   types.Nodejs14,
 				hotDeploy: true,
 			},
 			want: []string{
@@ -273,9 +273,9 @@ func TestContainerCommands(t *testing.T) {
 			},
 		},
 		{
-			name: "should return commands for Nodejs10 with hotDeploy",
+			name: "should return commands for Nodejs14 with hotDeploy",
 			args: args{
-				runtime:   types.Nodejs10,
+				runtime:   types.Nodejs14,
 				hotDeploy: true,
 			},
 			want: []string{
@@ -366,11 +366,11 @@ func TestContainerImage(t *testing.T) {
 			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:4bed80da",
 		},
 		{
-			name: "should return image for Nodejs10",
+			name: "should return image for Nodejs14",
 			args: args{
-				runtime: types.Nodejs10,
+				runtime: types.Nodejs14,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs10:4bed80da",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:4bed80da",
 		},
 		{
 			name: "should return image for Python38",
@@ -413,9 +413,9 @@ func TestContainerUser(t *testing.T) {
 			want: "1000",
 		},
 		{
-			name: "should return user for Nodejs10",
+			name: "should return user for Nodejs14",
 			args: args{
-				runtime: types.Nodejs10,
+				runtime: types.Nodejs14,
 			},
 			want: "1000",
 		},
