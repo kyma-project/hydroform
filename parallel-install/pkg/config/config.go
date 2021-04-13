@@ -40,6 +40,8 @@ type Config struct {
 	InstallationResourcePath string
 	// Path to Kubeconfig
 	KubeconfigPath string
+	// Content of Kubeconfig
+	KubeconfigContent string
 	//Kyma version
 	Version string
 	//Atomic deployment
