@@ -91,7 +91,7 @@ func ContainerImage(runtime types.Runtime) string {
 	case types.Python38:
 		return "eu.gcr.io/kyma-project/function-runtime-python38:4bed80da"
 	default:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:4bed80da"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:4bed80da"
 	}
 }
 
