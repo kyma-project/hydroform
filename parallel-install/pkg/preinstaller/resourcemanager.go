@@ -2,7 +2,6 @@ package preinstaller
 
 import (
 	"context"
-
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,6 +38,12 @@ type DefaultResourceManager struct {
 
 // NewResourceManager creates a new instance of ResourceManager.
 func NewDefaultResourceManager(kubeconfigPath string, log logger.Interface, retryOptions []retry.Option) (*DefaultResourceManager, error) {
+	// TODO
+	//kubeConfigManager, err := config.NewKubeConfigManager(&kubeconfigPath, nil)
+	//if err != nil {
+	//	return nil, err
+	//}
+
 	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
 		return nil, err

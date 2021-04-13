@@ -37,7 +37,8 @@ import (
 type Config struct {
 	InstallationResourcePath string           //Path to the installation resources.
 	Log                      logger.Interface //Logger to be used
-	KubeconfigPath           string
+	KubeconfigPath           string // Path to the kubeconfig file
+	KubeconfigRaw           string // Content of the kubeconfig file
 }
 
 // PreInstaller prepares k8s cluster for Kyma installation.

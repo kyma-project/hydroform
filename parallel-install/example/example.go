@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
 	"os"
 	"strings"
 	"time"
@@ -23,7 +22,7 @@ import (
 //main provides an example of how to integrate the parallel-install library with your code.
 func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
-	kubeconfigContent := flag.String("kubeconfigcontent", "", "Path to the Kubeconfig file")
+	kubeconfigRaw := flag.String("kubeconfigraw", "", "Raw content of the Kubeconfig file")
 	profile := flag.String("profile", "", "Deployment profile")
 	version := flag.String("version", "latest", "Kyma version")
 	verbose := flag.Bool("verbose", false, "Verbose mode")
@@ -32,9 +31,9 @@ func main() {
 
 	log := logger.NewLogger(*verbose)
 
-	kubeConfigManager, err := config.NewKubeConfigManager(kubeconfigPath, kubeconfigContent)
-	if err != nil {
-		log.Fatal(errors.Wrap(err, "Failed to instantiate KubeConfigManager"))
+	if (kubeconfigPath == nil || *kubeconfigPath == "") &&
+		(kubeconfigRaw == nil || *kubeconfigRaw == "") {
+		log.Fatal("either kubeconfig or kubeconfigcontent property has to be set")
 	}
 
 	if version == nil || *version == "" {
@@ -76,8 +75,8 @@ func main() {
 		ComponentList:                 compList,
 		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
 		InstallationResourcePath:      fmt.Sprintf("%s/src/github.com/kyma-project/kyma/installation/resources", goPath),
-		KubeconfigPath:                kubeConfigManager.Path(),
-		KubeconfigContent:             kubeConfigManager.Content(),
+		KubeconfigPath:                *kubeconfigPath,
+		KubeconfigContent:             *kubeconfigRaw,
 		Version:                       *version,
 	}
 
@@ -103,6 +102,7 @@ func main() {
 		InstallationResourcePath: installationCfg.InstallationResourcePath,
 		Log:                      installationCfg.Log,
 		KubeconfigPath:           *kubeconfigPath,
+		KubeconfigRaw: *kubeconfigRaw,
 	}
 
 	resourceParser := &preinstaller.GenericResourceParser{}
