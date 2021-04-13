@@ -48,7 +48,7 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 
 	mutex := &sync.Mutex{}
 
-	procUpd := func(procUpd ProcessUpdate){
+	procUpd := func(procUpd ProcessUpdate) {
 		mutex.Lock()
 		receivedEvents[processUpdateString(procUpd)]++
 		mutex.Unlock()
@@ -89,7 +89,6 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 		"InstallComponents-ProcessFinished",
 	}
 
-
 	assert.Equal(t, len(expectedEvents), len(receivedEvents),
 		fmt.Sprintf("Amount of expected and received events differ (got %v)", receivedEvents))
 
@@ -99,8 +98,6 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 		assert.Equal(t, 1, count, fmt.Sprintf("Expected event '%s' missing, got %v", expectedEvent, receivedEvents))
 	}
 }
-
-
 
 func processUpdateString(procUpd ProcessUpdate) string {
 	result := fmt.Sprintf("%s-%s", procUpd.Phase, procUpd.Event)
