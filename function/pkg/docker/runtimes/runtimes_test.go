@@ -356,7 +356,7 @@ func TestContainerImage(t *testing.T) {
 			args: args{
 				runtime: "",
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:4bed80da",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11091",
 		},
 		{
 			name: "should return image for Nodejs12",
