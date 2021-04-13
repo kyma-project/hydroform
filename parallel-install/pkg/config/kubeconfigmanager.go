@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -16,23 +17,22 @@ type kubeConfigManager struct {
 func NewKubeConfigManager(path, content *string) (*kubeConfigManager, error) {
 	pathExists := exists(path)
 	contentExists := exists(content)
+	resolvedPath := ""
+	resolvedContent := ""
 
-	if !pathExists && !contentExists {
+	if pathExists && contentExists {
+		resolvedPath = *path
+	} else if pathExists {
+		resolvedPath = *path
+	} else if contentExists {
+		resolvedContent = *content
+	} else {
 		return nil, errors.New("either kubeconfig or kubeconfigcontent property has to be set")
 	}
 
-	// TODO
-	// case 2: only path
-	// ....
-	// case 3: only content
-	// ...
-	// this.content = content
-	// case 4: both path and content
-	// ...
-
 	return &kubeConfigManager{
-		path:    *path,
-		content: "content",
+		path:    resolvedPath,
+		content: resolvedContent,
 	}, nil
 }
 
@@ -46,8 +46,7 @@ func (k *kubeConfigManager) Config() (*rest.Config, error) {
 	if k.path != "" {
 		return clientcmd.BuildConfigFromFlags("", k.resolvePath())
 	} else {
-		// TODO: how to convert raw kubeconfig to rest.Config?
-		return clientcmd.BuildConfigFromFlags("", k.resolvePath()) // TODO: change
+		return clientcmd.RESTConfigFromKubeConfig([]byte(k.content))
 	}
 }
 
@@ -56,7 +55,10 @@ func (k *kubeConfigManager) resolvePath() string {
 	if k.path != "" {
 		path = k.path
 	} else {
-		path = k.content // TODO: create a temporary file and provide path from content here
+		// TODO: check if it's correct, error handling, proper path (generated?)
+		APIConfig, _ := clientcmd.Load([]byte(k.content))
+		clientcmd.WriteToFile(*APIConfig, "test")
+		path = "test"
 	}
 
 	return path

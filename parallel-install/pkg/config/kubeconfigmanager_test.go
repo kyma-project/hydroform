@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_KubeConfigManager_New(t *testing.T) {
@@ -48,7 +49,7 @@ func Test_KubeConfigManager_New(t *testing.T) {
 			// then
 			assert.NotNil(t, manager)
 			assert.NoError(t, err)
-			assert.NotEmpty(t, manager.Path())
+			assert.Equal(t, manager.path, path)
 		})
 
 		t.Run("when path does not exist and content exists", func(t *testing.T) {
@@ -62,7 +63,22 @@ func Test_KubeConfigManager_New(t *testing.T) {
 			// then
 			assert.NotNil(t, manager)
 			assert.NoError(t, err)
-			assert.NotEmpty(t, manager.Path())
+			assert.Equal(t, manager.content, content)
+		})
+
+		t.Run("When path and content exists", func(t *testing.T) {
+			// given
+			path := "path"
+			content := "content"
+
+			// when
+			manager, err := NewKubeConfigManager(&path, &content)
+
+			// then
+			assert.NotNil(t, manager)
+			assert.NoError(t, err)
+			assert.Equal(t, manager.path, path)
+			assert.Empty(t, manager.content)
 		})
 
 	})
