@@ -6,7 +6,10 @@ import (
 )
 
 func TestNameFormat(t *testing.T) {
-	name := GenerateName(false)
+	name, err := GenerateName(false)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(name, "-") {
 		t.Fatalf("Generated name does not contain an underscore")
 	}
@@ -16,7 +19,10 @@ func TestNameFormat(t *testing.T) {
 }
 
 func TestNameRetries(t *testing.T) {
-	name := GenerateName(true)
+	name, err := GenerateName(true)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(name, "-") {
 		t.Fatalf("Generated name does not contain an underscore")
 	}
@@ -27,8 +33,14 @@ func TestNameRetries(t *testing.T) {
 }
 
 func TestDuplicateNames(t *testing.T) {
-	firstName := GenerateName(true)
-	secondName := GenerateName(true)
+	firstName, err := GenerateName(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondName, err := GenerateName(true)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if firstName == secondName {
 		t.Fatalf("Duplicate generated names")
 	}

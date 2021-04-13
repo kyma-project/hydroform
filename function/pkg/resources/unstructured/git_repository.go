@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const gitRepositoryApiVersion = "serverless.kyma-project.io/v1alpha1"
+const gitRepositoryAPIVersion = "serverless.kyma-project.io/v1alpha1"
 
 func NewPublicGitRepository(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
 	name := cfg.Name
@@ -17,7 +17,7 @@ func NewPublicGitRepository(cfg workspace.Cfg) (out unstructured.Unstructured, e
 	}
 
 	gitRepo := types.GitRepository{
-		ApiVersion: functionApiVersion,
+		APIVersion: functionAPIVersion,
 		Kind:       "GitRepository",
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

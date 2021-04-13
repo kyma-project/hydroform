@@ -23,7 +23,7 @@ import (
 
 //go:generate mockgen -source=run.go -destination=automock/run.go
 
-type DockerClient interface {
+type Client interface {
 	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig,
 		networkingConfig *network.NetworkingConfig, platform *specs.Platform, containerName string) (container.ContainerCreateCreatedBody, error)
 	ContainerStart(ctx context.Context, containerID string, options types.ContainerStartOptions) error
@@ -42,7 +42,7 @@ type RunOpts struct {
 	User          string
 }
 
-func RunContainer(ctx context.Context, c DockerClient, opts RunOpts) (string, error) {
+func RunContainer(ctx context.Context, c Client, opts RunOpts) (string, error) {
 	body, err := pullAndRun(ctx, c, &container.Config{
 		Env:          opts.Envs,
 		ExposedPorts: portSet(opts.Ports),
@@ -72,7 +72,7 @@ func RunContainer(ctx context.Context, c DockerClient, opts RunOpts) (string, er
 	return body.ID, nil
 }
 
-func pullAndRun(ctx context.Context, c DockerClient, config *container.Config, hostConfig *container.HostConfig,
+func pullAndRun(ctx context.Context, c Client, config *container.Config, hostConfig *container.HostConfig,
 	containerName string) (container.ContainerCreateCreatedBody, error) {
 	body, err := c.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
 	if apiclient.IsErrNotFound(err) {
@@ -93,7 +93,7 @@ func pullAndRun(ctx context.Context, c DockerClient, config *container.Config, h
 	return body, err
 }
 
-func FollowRun(ctx context.Context, c DockerClient, ID string, log func(...interface{})) error {
+func FollowRun(ctx context.Context, c Client, ID string, log func(...interface{})) error {
 	buf, err := c.ContainerAttach(ctx, ID, types.ContainerAttachOptions{
 		Stdout: true,
 		Stderr: true,
@@ -120,7 +120,7 @@ func FollowRun(ctx context.Context, c DockerClient, ID string, log func(...inter
 	return err
 }
 
-func Stop(ctx context.Context, c DockerClient, ID string, log func(...interface{})) func() {
+func Stop(ctx context.Context, c Client, ID string, log func(...interface{})) func() {
 	return func() {
 		log(fmt.Sprintf("\r- Removing container %s...\n", ID))
 		err := c.ContainerStop(ctx, ID, nil)

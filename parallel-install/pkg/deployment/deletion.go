@@ -11,6 +11,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -27,8 +28,18 @@ type Deletion struct {
 }
 
 //NewDeletion creates a new Deployment instance for deleting Kyma on a cluster.
-func NewDeletion(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*Deletion, error) {
+func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(ProcessUpdate)) (*Deletion, error) {
 	if err := cfg.ValidateDeletion(); err != nil {
+		return nil, err
+	}
+
+	restConfig, err := clientcmd.BuildConfigFromFlags("", cfg.KubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
 		return nil, err
 	}
 

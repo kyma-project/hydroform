@@ -28,6 +28,8 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"io/ioutil"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/tools/clientcmd"
+
 	"os"
 )
 
@@ -35,6 +37,7 @@ import (
 type Config struct {
 	InstallationResourcePath string           //Path to the installation resources.
 	Log                      logger.Interface //Logger to be used
+	KubeconfigPath           string
 }
 
 // PreInstaller prepares k8s cluster for Kyma installation.
@@ -75,14 +78,24 @@ type resourceInfoResult struct {
 }
 
 // NewPreInstaller creates a new instance of PreInstaller.
-func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
+func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, retryOptions []retry.Option) (*PreInstaller, error) {
+	restConfig, err := clientcmd.BuildConfigFromFlags("", cfg.KubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &PreInstaller{
 		applier:       applier,
 		parser:        parser,
 		cfg:           cfg,
 		dynamicClient: dynamicClient,
 		retryOptions:  retryOptions,
-	}
+	}, nil
 }
 
 // InstallCRDs on a k8s cluster.

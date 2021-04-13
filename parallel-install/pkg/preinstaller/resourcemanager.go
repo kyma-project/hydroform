@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 //go:generate mockery --name ResourceManager
@@ -37,12 +38,22 @@ type DefaultResourceManager struct {
 }
 
 // NewResourceManager creates a new instance of ResourceManager.
-func NewDefaultResourceManager(dynamicClient dynamic.Interface, log logger.Interface, retryOptions []retry.Option) *DefaultResourceManager {
+func NewDefaultResourceManager(kubeconfigPath string, log logger.Interface, retryOptions []retry.Option) (*DefaultResourceManager, error) {
+	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &DefaultResourceManager{
 		dynamicClient: dynamicClient,
 		log:           log,
 		retryOptions:  retryOptions,
-	}
+	}, nil
 }
 
 func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {

@@ -1,10 +1,12 @@
 package helm
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/release"
+	"k8s.io/client-go/kubernetes"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +55,7 @@ func Test_MetadataGet(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		metadata, err := metaProv.Get("test")
 		require.NoError(t, err)
 		require.Equal(t, metadata, expectedKymaCompMetadata)
@@ -61,7 +63,7 @@ func Test_MetadataGet(t *testing.T) {
 
 	t.Run("No Helm release found", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset()
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		_, err := metaProv.Get("test")
 		require.Error(t, err)
 		require.Equal(t, err.Error(), (&helmReleaseNotFoundError{name: "test"}).Error())
@@ -77,7 +79,7 @@ func Test_MetadataGet(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		_, err := metaProv.Get("test")
 		require.Error(t, err)
 		require.IsType(t, err, (&kymaMetadataUnavailableError{secret: "sh.helm.release.v1.test.v1", err: err}))
@@ -92,7 +94,7 @@ func Test_MetadataGet(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		_, err := metaProv.Get("test")
 		require.Error(t, err)
 		require.Equal(t, err.Error(), (&helmSecretNameInvalidError{secret: "sh.helm.release.v1.test.vx", namespace: "default"}).Error())
@@ -111,7 +113,7 @@ func Test_MetadataSet(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		err := metaProv.Set((&release.Release{Name: "test", Namespace: "testNs", Version: 1}), kymaCompMetaTpl.ForComponents())
 		require.NoError(t, err)
 		require.Equal(t, expectedLabels, k8sMock.Fake.Actions()[1].(k8st.UpdateAction).GetObject().(*v1.Secret).GetObjectMeta().GetLabels())
@@ -127,7 +129,7 @@ func Test_MetadataSet(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		//test for prerequisites
 		err := metaProv.Set((&release.Release{Name: "test", Namespace: "testNs", Version: 1}), kymaCompMetaTpl.ForPrerequisites())
 		require.NoError(t, err)
@@ -145,7 +147,7 @@ func Test_MetadataSet(t *testing.T) {
 
 	t.Run("Release not found", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset()
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		err := metaProv.Set((&release.Release{Name: "test", Namespace: "default", Version: 1}), (&KymaComponentMetadataTemplate{}))
 		require.Error(t, err)
 		require.Equal(t, err.Error(), (&helmReleaseNotFoundError{name: "sh.helm.release.v1.test.v1"}).Error())
@@ -155,7 +157,7 @@ func Test_MetadataSet(t *testing.T) {
 func Test_Versions(t *testing.T) {
 	t.Run("No Kyma installed", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset()
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		versionSet, err := metaProv.Versions()
 		require.NoError(t, err)
 		require.Equal(t, 0, versionSet.Count())
@@ -170,7 +172,7 @@ func Test_Versions(t *testing.T) {
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		versionSet, err := metaProv.Versions()
 		require.NoError(t, err)
 		require.Equal(t, 1, len(versionSet.Versions))
@@ -189,7 +191,7 @@ func Test_Versions(t *testing.T) {
 	})
 	t.Run("Different versions of Kyma installed", func(t *testing.T) {
 		k8sMock := fake.NewSimpleClientset(
-			&v1.Secret{ //installed from "master" by operation "aaa:1000000000"
+			&v1.Secret{ //installed from "main" by operation "aaa:1000000000"
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sh.helm.release.v1.test.v1",
 					Namespace: "test",
@@ -198,13 +200,13 @@ func Test_Versions(t *testing.T) {
 						KymaLabelPrefix + "namespace":    "test",
 						KymaLabelPrefix + "component":    "true",
 						KymaLabelPrefix + "profile":      "profile",
-						KymaLabelPrefix + "version":      "master",
+						KymaLabelPrefix + "version":      "main",
 						KymaLabelPrefix + "operationID":  "aaa",
 						KymaLabelPrefix + "creationTime": "1000000000",
 						KymaLabelPrefix + "priority":     "1"},
 				},
 			},
-			&v1.Secret{ //installed from "master" by operation "aaa:1000000000"
+			&v1.Secret{ //installed from "main" by operation "aaa:1000000000"
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sh.helm.release.v1.test2.v2",
 					Namespace: "test2",
@@ -213,7 +215,7 @@ func Test_Versions(t *testing.T) {
 						KymaLabelPrefix + "namespace":    "test2",
 						KymaLabelPrefix + "component":    "true",
 						KymaLabelPrefix + "profile":      "profile",
-						KymaLabelPrefix + "version":      "master",
+						KymaLabelPrefix + "version":      "main",
 						KymaLabelPrefix + "operationID":  "aaa",
 						KymaLabelPrefix + "creationTime": "1000000000",
 						KymaLabelPrefix + "priority":     "2"},
@@ -249,7 +251,7 @@ func Test_Versions(t *testing.T) {
 						KymaLabelPrefix + "priority":     "1"},
 				},
 			},
-			&v1.Secret{ //installed from "master" by operation "ddd:4000000000"
+			&v1.Secret{ //installed from "main" by operation "ddd:4000000000"
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sh.helm.release.v1.test3.v1",
 					Namespace: "test3",
@@ -258,20 +260,20 @@ func Test_Versions(t *testing.T) {
 						KymaLabelPrefix + "namespace":    "test3",
 						KymaLabelPrefix + "component":    "true",
 						KymaLabelPrefix + "profile":      "profile",
-						KymaLabelPrefix + "version":      "master",
+						KymaLabelPrefix + "version":      "main",
 						KymaLabelPrefix + "operationID":  "ddd",
 						KymaLabelPrefix + "creationTime": "4000000000",
 						KymaLabelPrefix + "priority":     "1"},
 				},
 			},
 		)
-		metaProv := NewKymaMetadataProvider(k8sMock)
+		metaProv := getKymaMetadataProvider(k8sMock)
 		versionSet, err := metaProv.Versions()
 		require.NoError(t, err)
 		require.Equal(t, 3, len(versionSet.Versions))
 		expectedVersions := []*KymaVersion{
 			{
-				Version:      "master",
+				Version:      "main",
 				Profile:      "profile",
 				OperationID:  "aaa",
 				CreationTime: 1000000000,
@@ -281,7 +283,7 @@ func Test_Versions(t *testing.T) {
 						Namespace:    "test",
 						Component:    true,
 						Profile:      "profile",
-						Version:      "master",
+						Version:      "main",
 						OperationID:  "aaa",
 						CreationTime: int64(1000000000),
 						Priority:     int64(1),
@@ -291,7 +293,7 @@ func Test_Versions(t *testing.T) {
 						Namespace:    "test2",
 						Component:    true,
 						Profile:      "profile",
-						Version:      "master",
+						Version:      "main",
 						OperationID:  "aaa",
 						CreationTime: int64(1000000000),
 						Priority:     int64(2),
@@ -317,7 +319,7 @@ func Test_Versions(t *testing.T) {
 				},
 			},
 			{
-				Version:      "master",
+				Version:      "main",
 				Profile:      "profile",
 				OperationID:  "ddd",
 				CreationTime: 4000000000,
@@ -327,7 +329,7 @@ func Test_Versions(t *testing.T) {
 						Namespace:    "test3",
 						Component:    true,
 						Profile:      "profile",
-						Version:      "master",
+						Version:      "main",
 						OperationID:  "ddd",
 						CreationTime: int64(4000000000),
 						Priority:     int64(1),
@@ -335,8 +337,27 @@ func Test_Versions(t *testing.T) {
 				},
 			},
 		}
+		//compare different versions (distinguished by their operationID)
+		versionMap := make(map[string]*KymaVersion, len(versionSet.Versions))
 		for _, version := range versionSet.Versions {
-			require.Contains(t, expectedVersions, version)
+			versionMap[version.OperationID] = version
+		}
+		for _, kymaVersion := range expectedVersions {
+			version, ok := versionMap[kymaVersion.OperationID]
+			require.True(t, ok, fmt.Sprintf("Version with name is '%s' missing in version set", kymaVersion.Version))
+			require.Equal(t, kymaVersion.Version, version.Version)
+			require.Equal(t, len(kymaVersion.Components), len(version.Components))
+			for _, comp := range kymaVersion.Components {
+				require.Equal(t, comp.Name, comp.Name)
+				require.Equal(t, comp.Priority, comp.Priority)
+				require.Equal(t, comp.CreationTime, comp.CreationTime)
+			}
 		}
 	})
+}
+
+func getKymaMetadataProvider(client kubernetes.Interface) *KymaMetadataProvider {
+	return &KymaMetadataProvider{
+		kubeClient: client,
+	}
 }
