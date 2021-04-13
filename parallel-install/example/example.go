@@ -102,7 +102,7 @@ func main() {
 		InstallationResourcePath: installationCfg.InstallationResourcePath,
 		Log:                      installationCfg.Log,
 		KubeconfigPath:           *kubeconfigPath,
-		KubeconfigRaw: *kubeconfigRaw,
+		KubeconfigRaw:            *kubeconfigRaw,
 	}
 
 	resourceParser := &preinstaller.GenericResourceParser{}
@@ -140,7 +140,7 @@ func main() {
 		log.Info("Kyma deployed!")
 	}
 
-	metadataProvider, err := helm.NewKymaMetadataProvider(*kubeconfigPath)
+	metadataProvider, err := helm.NewKymaMetadataProvider(*kubeconfigPath, *kubeconfigRaw)
 	if err != nil {
 		log.Fatalf("Failed to create Kyma metadata provider: %v", err)
 	}

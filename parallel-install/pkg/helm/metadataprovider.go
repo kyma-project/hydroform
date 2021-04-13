@@ -67,7 +67,7 @@ type KymaMetadataProvider struct {
 }
 
 //NewKymaMetadataProvider creates a new KymaMetadataProvider
-func NewKymaMetadataProvider(kubeconfigPath string) (*KymaMetadataProvider, error) {
+func NewKymaMetadataProvider(kubeconfigPath, kubeconfigRaw string) (*KymaMetadataProvider, error) {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
 		return nil, err

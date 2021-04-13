@@ -430,7 +430,7 @@ func getTestingConfig() Config {
 	return Config{
 		Log:                      logger.NewLogger(true),
 		InstallationResourcePath: "installationResourcePath",
-		KubeconfigPath: "kubeconfigPath",
+		KubeconfigPath:           "kubeconfigPath",
 	}
 }
 

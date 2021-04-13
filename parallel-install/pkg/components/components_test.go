@@ -47,6 +47,7 @@ func Test_GetComponents(t *testing.T) {
 				},
 			},
 		},
+		KubeconfigPath: "path",
 	}
 
 	cmpMetadataTpl := helm.NewKymaComponentMetadataTemplate("version", "profile").ForComponents()

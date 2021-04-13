@@ -21,6 +21,15 @@ func NewKubeConfigManager(path, content *string) (*kubeConfigManager, error) {
 		return nil, errors.New("either kubeconfig or kubeconfigcontent property has to be set")
 	}
 
+	// TODO
+	// case 2: only path
+	// ....
+	// case 3: only content
+	// ...
+	// this.content = content
+	// case 4: both path and content
+	// ...
+
 	return &kubeConfigManager{
 		path:    *path,
 		content: "content",
@@ -34,7 +43,12 @@ func (k *kubeConfigManager) Path() string {
 
 // Config returns a kubeconfig REST Config used by k8s clients.
 func (k *kubeConfigManager) Config() (*rest.Config, error) {
-	return clientcmd.BuildConfigFromFlags("", k.resolvePath())
+	if k.path != "" {
+		return clientcmd.BuildConfigFromFlags("", k.resolvePath())
+	} else {
+		// TODO: how to convert raw kubeconfig to rest.Config?
+		return clientcmd.BuildConfigFromFlags("", k.resolvePath()) // TODO: change
+	}
 }
 
 func (k *kubeConfigManager) resolvePath() string {
