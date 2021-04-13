@@ -195,6 +195,20 @@ func (c *Client) installRelease(namespace, name string, overrides map[string]int
 	return nil
 }
 
+func (c *Client) rollbackRelease(name string, cfg *action.Configuration) error {
+	rollback := action.NewRollback(cfg)
+	rollback.CleanupOnFail = true
+	rollback.Wait = true
+	rollback.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
+
+	c.cfg.Log.Infof("%s Starting rollback of release %s", logPrefix, name)
+	err := rollback.Run(name)
+	if err != nil {
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
+	}
+	return err
+}
+
 func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overridesValues map[string]interface{}, profile string) error {
 	operation := func() error {
 		cfg, err := c.newActionConfig(namespace, c.cfg.KubeconfigPath)
@@ -214,13 +228,12 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 
 		comboValues := overrides.MergeMaps(profileValues, overridesValues)
 
-		upgrade, err := c.isUpgrade(name, cfg)
-
+		isInstalled, err := c.isReleaseInstalled(ctx, namespace, name, cfg)
 		if err != nil {
 			return err
 		}
 
-		if upgrade {
+		if isInstalled {
 			err = c.upgradeRelease(namespace, name, comboValues, cfg, chart)
 		} else {
 			err = c.installRelease(namespace, name, comboValues, cfg, chart)
@@ -238,19 +251,48 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 	return nil
 }
 
-func (c *Client) isUpgrade(name string, cfg *action.Configuration) (bool, error) {
+func (c *Client) isReleaseInstalled(ctx context.Context, namespace, name string, cfg *action.Configuration) (bool, error) {
 	history := action.NewHistory(cfg)
-	history.Max = 1
+	history.Max = 2
 
-	_, err := history.Run(name)
+	rels, err := history.Run(name)
+
 	if err != nil {
 		if err == driver.ErrReleaseNotFound {
+			//release was never installed
+			c.cfg.Log.Infof("%s Release '%s' wasn't installed yet", logPrefix, name)
 			return false, nil
 		}
 		return false, err
 	}
 
+	//ensure last release is in consistent status
+	relsCount := len(rels)
+	lastRelease := rels[relsCount-1]
+	if c.isPendingReleaseStatus(lastRelease.Info.Status) {
+		c.cfg.Log.Infof("%s Release '%s' is in pending state '%s': starting cleanup", logPrefix, name, lastRelease.Info.Status)
+		if relsCount > 1 {
+			//rollback to previous release
+			c.cfg.Log.Infof("%s Release '%s' was already installed before: trigger rollback of pending release", logPrefix, name)
+			if err := c.rollbackRelease(name, cfg); err != nil {
+				return true, err
+			}
+		} else {
+			//first release installation wasn't finished: delete incomplete release
+			c.cfg.Log.Infof("%s Release '%s' was not installed before: trigger uninstall of pending release", logPrefix, name)
+			if err := c.UninstallRelease(ctx, namespace, name); err != nil {
+				return false, err
+			}
+			return false, nil
+		}
+	}
+
+	c.cfg.Log.Infof("%s Release '%s' is installed and has non-pending status", logPrefix, name)
 	return true, nil
+}
+
+func (c *Client) isPendingReleaseStatus(relStatus release.Status) bool {
+	return relStatus == release.StatusPendingInstall || relStatus == release.StatusPendingUpgrade || relStatus == release.StatusPendingRollback
 }
 
 func getProfileValues(ch chart.Chart, profileName string) (map[string]interface{}, error) {
