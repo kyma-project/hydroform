@@ -37,7 +37,7 @@ type Config struct {
 	Log                           logger.Interface //Used for logging
 	Atomic                        bool
 	KymaComponentMetadataTemplate *KymaComponentMetadataTemplate
-	KubeconfigSource config.KubeconfigSource
+	KubeconfigSource              config.KubeconfigSource
 }
 
 //Client implements the ClientInterface.

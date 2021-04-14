@@ -30,8 +30,8 @@ func Test_ValidateDeletion(t *testing.T) {
 	t.Run("Happy path", func(t *testing.T) {
 		fpath := filePath(t)
 		config = Config{
-			WorkersCount:   1,
-			ComponentList:  newComponentList(t),
+			WorkersCount:  1,
+			ComponentList: newComponentList(t),
 			KubeconfigSource: KubeconfigSource{
 				Path:    filepath.Dir(fpath),
 				Content: "",
@@ -96,7 +96,7 @@ func Test_ValidateDeployment(t *testing.T) {
 				Path:    filepath.Dir(fpath),
 				Content: "",
 			},
-			Version:                  "abc",
+			Version: "abc",
 		}
 		err := config.ValidateDeployment()
 		assert.NoError(t, err)
