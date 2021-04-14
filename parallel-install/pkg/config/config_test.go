@@ -37,17 +37,6 @@ func Test_ValidateDeletion(t *testing.T) {
 		err = config.ValidateDeletion()
 		assert.NoError(t, err)
 	})
-
-	t.Run("KubeconfigPath path not found", func(t *testing.T) {
-		config = Config{
-			WorkersCount:   1,
-			ComponentList:  newComponentList(t),
-			KubeconfigPath: "/a/dir/which/doesnot/exist",
-		}
-		err = config.ValidateDeletion()
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "not found")
-	})
 }
 
 func Test_ValidateDeployment(t *testing.T) {
@@ -70,20 +59,6 @@ func Test_ValidateDeployment(t *testing.T) {
 			ComponentList:            newComponentList(t),
 			ResourcePath:             filepath.Dir(fpath),
 			InstallationResourcePath: "/a/dir/which/doesnot/exist",
-		}
-		err := config.ValidateDeployment()
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "not found")
-	})
-
-	t.Run("KubeconfigPath path not found", func(t *testing.T) {
-		fpath := filePath(t)
-		config = Config{
-			WorkersCount:             1,
-			ComponentList:            newComponentList(t),
-			ResourcePath:             filepath.Dir(fpath),
-			InstallationResourcePath: filepath.Dir(fpath),
-			KubeconfigPath:           "/a/dir/which/doesnot/exist",
 		}
 		err := config.ValidateDeployment()
 		assert.Error(t, err)
