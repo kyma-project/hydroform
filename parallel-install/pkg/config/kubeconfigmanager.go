@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -31,7 +30,7 @@ func NewKubeConfigManager(kubeconfigSource KubeconfigSource) (*kubeConfigManager
 	contentExists := exists(kubeconfigSource.Content)
 
 	if !pathExists && !contentExists {
-		return nil, errors.New("either kubeconfig path or kubeconfig content property has to be set")
+		return nil, errors.New("Either kubeconfig path or kubeconfig content property must be set")
 	}
 
 	return &kubeConfigManager{
@@ -64,7 +63,6 @@ func (k *kubeConfigManager) Path() (string, CleanupFunc, error) {
 		}
 
 		cleanupFunc = func() error {
-			fmt.Println("padu!", k.temporaryPath)
 			return os.Remove(k.temporaryPath)
 		}
 
@@ -97,13 +95,13 @@ func createTemporaryFile(kubeconfigContent string) (string, error) {
 		return "", errors.Wrap(err, "Failed to generate a temporary file for kubeconfig")
 	}
 
+	resPath := tmpFile.Name()
 	if _, err = tmpFile.Write([]byte(kubeconfigContent)); err != nil {
-		return "", errors.Wrap(err, "Failed to write to the temporary file")
+		return "", errors.Wrapf(err, "Failed to write to the temporary file: %s", resPath)
 	}
 
-	resPath := tmpFile.Name()
 	if err := tmpFile.Close(); err != nil {
-		return "", errors.Wrap(err, "Failed to close the temporary file")
+		return "", errors.Wrapf(err, "Failed to close the temporary file: %s", resPath)
 	}
 
 	return resPath, nil
