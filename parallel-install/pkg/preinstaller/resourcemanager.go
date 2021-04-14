@@ -3,13 +3,13 @@ package preinstaller
 import (
 	"context"
 	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 //go:generate mockery --name ResourceManager
@@ -37,14 +37,13 @@ type DefaultResourceManager struct {
 }
 
 // NewResourceManager creates a new instance of ResourceManager.
-func NewDefaultResourceManager(kubeconfigPath string, log logger.Interface, retryOptions []retry.Option) (*DefaultResourceManager, error) {
-	// TODO
-	//kubeConfigManager, err := config.NewKubeConfigManager(&kubeconfigPath, nil)
-	//if err != nil {
-	//	return nil, err
-	//}
+func NewDefaultResourceManager(kubeconfigPath, kubeconfigRaw *string, log logger.Interface, retryOptions []retry.Option) (*DefaultResourceManager, error) {
+	manager, err := config.NewKubeConfigManager(kubeconfigPath,kubeconfigRaw )
+	if err != nil {
+		return nil, err
+	}
 
-	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	restConfig, err := manager.Config()
 	if err != nil {
 		return nil, err
 	}
