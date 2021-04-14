@@ -37,8 +37,8 @@ type DefaultResourceManager struct {
 }
 
 // NewResourceManager creates a new instance of ResourceManager.
-func NewDefaultResourceManager(kubeconfigPath, kubeconfigRaw *string, log logger.Interface, retryOptions []retry.Option) (*DefaultResourceManager, error) {
-	manager, err := config.NewKubeConfigManager(kubeconfigPath,kubeconfigRaw )
+func NewDefaultResourceManager(kubeconfigPath, kubeconfigRaw string, log logger.Interface, retryOptions []retry.Option) (*DefaultResourceManager, error) {
+	manager, err := config.NewKubeConfigManager(&kubeconfigPath, &kubeconfigRaw)
 	if err != nil {
 		return nil, err
 	}

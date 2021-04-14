@@ -106,7 +106,7 @@ func main() {
 	}
 
 	resourceParser := &preinstaller.GenericResourceParser{}
-	resourceManager, err := preinstaller.NewDefaultResourceManager(*kubeconfigPath, preInstallerCfg.Log, commonRetryOpts)
+	resourceManager, err := preinstaller.NewDefaultResourceManager(kubeconfigPath, kubeconfigRaw, preInstallerCfg.Log, commonRetryOpts)
 	if err != nil {
 		log.Fatalf("Failed to create Kyma default resource manager: %v", err)
 	}
