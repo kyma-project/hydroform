@@ -32,7 +32,10 @@ func NewComponentsProvider(overridesProvider overrides.Provider, cfg *config.Con
 		cfg.Log.Warn("kubeconfig was not provided, defaulting to empty string")
 		kubeconfigPath = ""
 	} else {
-		kubeconfigPath = manager.Path()
+		kubeconfigPath, err = manager.Path()
+		if err != nil {
+			cfg.Log.Error("Failed to resolve a path to the kubeconfig file")
+		}
 	}
 
 	helmCfg := helm.Config{

@@ -1,11 +1,10 @@
 package config
 
 import (
-	"errors"
 	"io/ioutil"
-	"log"
 	"os"
 
+	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -40,43 +39,45 @@ func NewKubeConfigManager(path, content *string) (*kubeConfigManager, error) {
 }
 
 // Path returns a path to the kubeconfig file.
-func (k *kubeConfigManager) Path() string {
+func (k *kubeConfigManager) Path() (string, error) {
 	return k.resolvePath()
 }
 
 // Config returns a kubeconfig REST Config used by k8s clients.
 func (k *kubeConfigManager) Config() (*rest.Config, error) {
-	if k.path != "" {
-		return clientcmd.BuildConfigFromFlags("", k.resolvePath())
+	if exists(&k.path) {
+		resolvedPath, err := k.resolvePath()
+		if err != nil {
+			return nil, err
+		}
+
+		return clientcmd.BuildConfigFromFlags("", resolvedPath)
 	} else {
 		return clientcmd.RESTConfigFromKubeConfig([]byte(k.content))
 	}
 }
 
-func (k *kubeConfigManager) resolvePath() string {
-	var path string
-	if k.path != "" {
+func (k *kubeConfigManager) resolvePath() (path string, err error) {
+	if exists(&k.path) {
 		path = k.path
 	} else {
-		// TODO: use clientcmd.Load and clientcmd.WriteToFile
-
 		tmpFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-*.yaml")
 		if err != nil {
-			log.Fatal(err)
+			return "", errors.Wrap(err, "Failed to generate a temporary file for kubeconfig")
 		}
-		path = tmpFile.Name()
-		log.Print(path)
 
 		if _, err = tmpFile.Write([]byte(k.content)); err != nil {
-			log.Fatal("Failed to write to temporary file", err)
+			return "", errors.Wrap(err, "Failed to write to the temporary file")
 		}
 
+		path = tmpFile.Name()
+
 		if err := tmpFile.Close(); err != nil {
-			log.Fatal(err)
+			return "", errors.Wrap(err, "Failed to close the temporary file")
 		}
 	}
 
-	return path
+	return path, nil
 }
 
 func exists(property *string) bool {

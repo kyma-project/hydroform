@@ -94,14 +94,14 @@ func Test_KubeConfigManager_Path(t *testing.T) {
 			// given
 			path := "path"
 			content := ""
-
-			// when
 			manager, err := NewKubeConfigManager(&path, &content)
 
+			// when
+			resolvedPath, err := manager.Path()
+
 			// then
-			assert.NotNil(t, manager)
 			assert.NoError(t, err)
-			assert.Equal(t, manager.Path(), path)
+			assert.Equal(t, manager.path, resolvedPath)
 		})
 
 		t.Run("when path does not exist and content exists", func(t *testing.T) {
@@ -112,14 +112,13 @@ func Test_KubeConfigManager_Path(t *testing.T) {
 			manager, err := NewKubeConfigManager(&path, &content)
 
 			// when
-			returnedPath := manager.Path()
+			resolvedPath, err := manager.Path()
 
 			// then
-			assert.NotNil(t, returnedPath)
 			assert.NoError(t, err)
-			assert.Contains(t, returnedPath, tempDir)
-			assert.Contains(t, returnedPath, "kubeconfig")
-			assert.Contains(t, returnedPath, ".yaml")
+			assert.Contains(t, resolvedPath, tempDir)
+			assert.Contains(t, resolvedPath, "kubeconfig")
+			assert.Contains(t, resolvedPath, ".yaml")
 		})
 	})
 }
