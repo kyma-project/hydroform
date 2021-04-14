@@ -24,7 +24,7 @@ func Test_KubeConfigManager_New(t *testing.T) {
 			// then
 			assert.Nil(t, manager)
 			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "property has to be set")
+			assert.Contains(t, err.Error(), "property must be set")
 		})
 
 	})

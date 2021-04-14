@@ -19,7 +19,7 @@ type kubeConfigManager struct {
 	temporaryPath    string // Mutable!
 }
 
-// CleanupFunc defines contract for the temporary kubeconfig file cleanup function.
+// CleanupFunc defines the contract for removing a temporary kubeconfig file.
 type CleanupFunc func() error
 
 // NewKubeConfigManager creates a new instance of KubeConfigManager.
@@ -39,21 +39,21 @@ func NewKubeConfigManager(kubeconfigSource KubeconfigSource) (*kubeConfigManager
 }
 
 // Path returns a path to the kubeconfig file.
-// It may render kubeconfig to a temporary file, returned CleanupFunc should be used to remove it.
+// It may render the kubeconfig to a temporary file, returned CleanupFunc should be used to remove it.
 func (k *kubeConfigManager) Path() (string, CleanupFunc, error) {
 	pathExists := exists(k.kubeconfigSource.Path)
-	contentExists := exists(k.kubeconfigSource.Content)
 
 	var resPath string
 	var cleanupFunc CleanupFunc
 
 	if pathExists {
-		// return exiting file path if exists
+		// return exiting file path
 		resPath = k.kubeconfigSource.Path
 		cleanupFunc = func() error { return nil }
-	} else if contentExists {
+	} else {
+		// kubeconfig content is set (forced by the constructor)
 
-		// return exiting file path if exists
+		// create temp file if necessary
 		if k.temporaryPath == "" {
 			tempPath, err := createTemporaryFile(k.kubeconfigSource.Content)
 			if err != nil {
@@ -62,11 +62,10 @@ func (k *kubeConfigManager) Path() (string, CleanupFunc, error) {
 			k.temporaryPath = tempPath
 		}
 
+		resPath = k.temporaryPath
 		cleanupFunc = func() error {
 			return os.Remove(k.temporaryPath)
 		}
-
-		resPath = k.temporaryPath
 	}
 
 	return resPath, cleanupFunc, nil
