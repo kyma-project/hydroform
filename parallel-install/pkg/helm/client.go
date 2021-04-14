@@ -7,9 +7,10 @@ package helm
 import (
 	"context"
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"strings"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
@@ -84,12 +85,15 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 		return err
 	}
 
-	path := manager.Path()
+	path, cleanupFunc, err := manager.Path()
+	if err != nil {
+		return err
+	}
 
 	defer func() {
-		err := manager.Cleanup()
-		if err != nil {
-			c.cfg.Log.Error(err)
+		cleanupErr := cleanupFunc()
+		if cleanupErr != nil {
+			c.cfg.Log.Error(cleanupErr)
 		}
 	}()
 
@@ -215,12 +219,15 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 		return err
 	}
 
-	path := manager.Path()
+	path, cleanupFunc, err := manager.Path()
+	if err != nil {
+		return err
+	}
 
 	defer func() {
-		err := manager.Cleanup()
-		if err != nil {
-			c.cfg.Log.Error(err)
+		cleanupErr := cleanupFunc()
+		if cleanupErr != nil {
+			c.cfg.Log.Error(cleanupErr)
 		}
 	}()
 

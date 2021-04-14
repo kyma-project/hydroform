@@ -49,9 +49,9 @@ type Config struct {
 // KubeconfigSource aggregates kubeconfig in a form of either a path or a raw content.
 // If both Path and Content are being provided, then path takes precedence.
 type KubeconfigSource struct {
-	// Path to Kubeconfig
+	// Path to the Kubeconfig file
 	Path string
-	// Content of Kubeconfig
+	// Kubeconfig content in YAML format
 	Content string
 }
 

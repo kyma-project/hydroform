@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -9,65 +10,76 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// kubeConfigManager handles kubeconfig path and kubeconfig content.
+const (
+	temporaryFilePattern = "kubeconfig-*.yaml"
+)
+
+// kubeConfigManager manages resolving kubeconfig from two possible sources: a file path or a kubeconfig content.
 type kubeConfigManager struct {
-	path    string
-	content string
+	kubeconfigSource KubeconfigSource
+	temporaryPath    string // Mutable!
 }
 
+// CleanupFunc defines contract for the temporary kubeconfig file cleanup function.
+type CleanupFunc func() error
+
 // NewKubeConfigManager creates a new instance of KubeConfigManager.
-// TODO: opisac priorytet brania configow
+// The logic follows contract defined by KubeconfigSource
 func NewKubeConfigManager(kubeconfigSource KubeconfigSource) (*kubeConfigManager, error) {
+
 	pathExists := exists(kubeconfigSource.Path)
 	contentExists := exists(kubeconfigSource.Content)
-	var resolvedPath string
-	var resolvedContent string
 
-	if pathExists && contentExists {
-		resolvedPath = kubeconfigSource.Path
-	} else if pathExists {
-		resolvedPath = kubeconfigSource.Path
-	} else if contentExists {
-		resolvedContent = kubeconfigSource.Content
-		tmpFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-*.yaml")
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to generate a temporary file for kubeconfig")
-		}
-
-		if _, err = tmpFile.Write([]byte(resolvedContent)); err != nil {
-			return nil, errors.Wrap(err, "Failed to write to the temporary file")
-		}
-
-		resolvedPath = tmpFile.Name()
-		if err := tmpFile.Close(); err != nil {
-			return nil, errors.Wrap(err, "Failed to close the temporary file")
-		}
-	} else {
-		return nil, errors.New("either kubeconfig or kubeconfigcontent property has to be set")
+	if !pathExists && !contentExists {
+		return nil, errors.New("either kubeconfig path or kubeconfig content property has to be set")
 	}
 
 	return &kubeConfigManager{
-		path:    resolvedPath,
-		content: resolvedContent,
+		kubeconfigSource: kubeconfigSource,
 	}, nil
 }
 
 // Path returns a path to the kubeconfig file.
-func (k *kubeConfigManager) Path() string {
-	return k.path
-}
+// It may render kubeconfig to a temporary file, returned CleanupFunc should be used to remove it.
+func (k *kubeConfigManager) Path() (string, CleanupFunc, error) {
+	pathExists := exists(k.kubeconfigSource.Path)
+	contentExists := exists(k.kubeconfigSource.Content)
 
-// Path returns a path to the kubeconfig file.
-func (k *kubeConfigManager) Cleanup() error {
-	return os.Remove(k.path)
+	var resPath string
+	var cleanupFunc CleanupFunc
+
+	if pathExists {
+		// return exiting file path if exists
+		resPath = k.kubeconfigSource.Path
+		cleanupFunc = func() error { return nil }
+	} else if contentExists {
+
+		// return exiting file path if exists
+		if k.temporaryPath == "" {
+			tempPath, err := createTemporaryFile(k.kubeconfigSource.Content)
+			if err != nil {
+				return "", nil, err
+			}
+			k.temporaryPath = tempPath
+		}
+
+		cleanupFunc = func() error {
+			fmt.Println("padu!", k.temporaryPath)
+			return os.Remove(k.temporaryPath)
+		}
+
+		resPath = k.temporaryPath
+	}
+
+	return resPath, cleanupFunc, nil
 }
 
 // Config returns a kubeconfig REST Config used by k8s clients.
 func (k *kubeConfigManager) Config() (*rest.Config, error) {
-	if exists(k.path) {
-		return clientcmd.BuildConfigFromFlags("", k.path)
+	if exists(k.kubeconfigSource.Path) {
+		return clientcmd.BuildConfigFromFlags("", k.kubeconfigSource.Path)
 	} else {
-		return clientcmd.RESTConfigFromKubeConfig([]byte(k.content))
+		return clientcmd.RESTConfigFromKubeConfig([]byte(k.kubeconfigSource.Content))
 	}
 }
 
@@ -77,4 +89,22 @@ func exists(property string) bool {
 	}
 
 	return true
+}
+
+func createTemporaryFile(kubeconfigContent string) (string, error) {
+	tmpFile, err := ioutil.TempFile(os.TempDir(), temporaryFilePattern)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to generate a temporary file for kubeconfig")
+	}
+
+	if _, err = tmpFile.Write([]byte(kubeconfigContent)); err != nil {
+		return "", errors.Wrap(err, "Failed to write to the temporary file")
+	}
+
+	resPath := tmpFile.Name()
+	if err := tmpFile.Close(); err != nil {
+		return "", errors.Wrap(err, "Failed to close the temporary file")
+	}
+
+	return resPath, nil
 }
