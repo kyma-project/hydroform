@@ -11,23 +11,15 @@ func Test_KubeConfigManager_New(t *testing.T) {
 
 	t.Run("should not create a new instance of KubeConfigManager", func(t *testing.T) {
 
-		t.Run("when path and content do not exist", func(t *testing.T) {
-			// when
-			manager, err := NewKubeConfigManager(nil, nil)
-
-			// then
-			assert.Nil(t, manager)
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "property has to be set")
-		})
-
 		t.Run("when path and content are empty", func(t *testing.T) {
 			// given
-			path := ""
-			content := ""
+			kubeconfigSource := KubeconfigSource{
+				Path:    "",
+				Content: "",
+			}
 
 			// when
-			manager, err := NewKubeConfigManager(&path, &content)
+			manager, err := NewKubeConfigManager(kubeconfigSource)
 
 			// then
 			assert.Nil(t, manager)
@@ -41,86 +33,58 @@ func Test_KubeConfigManager_New(t *testing.T) {
 
 		t.Run("when path exists and content does not exist", func(t *testing.T) {
 			// given
-			path := "path"
-			content := ""
+			kubeconfigSource := KubeconfigSource{
+				Path:    "path",
+				Content: "",
+			}
 
 			// when
-			manager, err := NewKubeConfigManager(&path, &content)
+			manager, err := NewKubeConfigManager(kubeconfigSource)
 
 			// then
 			assert.NotNil(t, manager)
 			assert.NoError(t, err)
-			assert.Equal(t, manager.path, path)
+			assert.Equal(t, manager.path, kubeconfigSource.Path)
 		})
 
 		t.Run("when path does not exist and content exists", func(t *testing.T) {
 			// given
-			path := ""
-			content := "content"
+			tempDir := os.TempDir()
+			kubeconfigSource := KubeconfigSource{
+				Path:    "",
+				Content: "content",
+			}
 
 			// when
-			manager, err := NewKubeConfigManager(&path, &content)
+			manager, err := NewKubeConfigManager(kubeconfigSource)
 
 			// then
 			assert.NotNil(t, manager)
 			assert.NoError(t, err)
-			assert.Equal(t, manager.content, content)
+			assert.Contains(t, manager.path, tempDir)
+			assert.Contains(t, manager.path, "kubeconfig")
+			assert.Contains(t, manager.path, ".yaml")
 		})
 
-		t.Run("When path and content exists", func(t *testing.T) {
+		t.Run("when path and content exists", func(t *testing.T) {
 			// given
-			path := "path"
-			content := "content"
+			kubeconfigSource := KubeconfigSource{
+				Path:    "path",
+				Content: "content",
+			}
 
 			// when
-			manager, err := NewKubeConfigManager(&path, &content)
+			manager, err := NewKubeConfigManager(kubeconfigSource)
 
 			// then
 			assert.NotNil(t, manager)
 			assert.NoError(t, err)
-			assert.Equal(t, manager.path, path)
+			assert.Equal(t, manager.path, kubeconfigSource.Path)
 			assert.Empty(t, manager.content)
 		})
 
 	})
 
-}
-
-func Test_KubeConfigManager_Path(t *testing.T) {
-
-	t.Run("should return a path to kubeconfig file", func(t *testing.T) {
-
-		t.Run("when path exists and content does not exist", func(t *testing.T) {
-			// given
-			path := "path"
-			content := ""
-			manager, err := NewKubeConfigManager(&path, &content)
-
-			// when
-			resolvedPath, err := manager.Path()
-
-			// then
-			assert.NoError(t, err)
-			assert.Equal(t, manager.path, resolvedPath)
-		})
-
-		t.Run("when path does not exist and content exists", func(t *testing.T) {
-			// given
-			path := ""
-			content := getKubeConfig()
-			tempDir := os.TempDir()
-			manager, err := NewKubeConfigManager(&path, &content)
-
-			// when
-			resolvedPath, err := manager.Path()
-
-			// then
-			assert.NoError(t, err)
-			assert.Contains(t, resolvedPath, tempDir)
-			assert.Contains(t, resolvedPath, "kubeconfig")
-			assert.Contains(t, resolvedPath, ".yaml")
-		})
-	})
 }
 
 func getKubeConfig() string {

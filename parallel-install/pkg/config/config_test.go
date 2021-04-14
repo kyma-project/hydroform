@@ -32,7 +32,10 @@ func Test_ValidateDeletion(t *testing.T) {
 		config = Config{
 			WorkersCount:   1,
 			ComponentList:  newComponentList(t),
-			KubeconfigPath: filepath.Dir(fpath),
+			KubeconfigSource: KubeconfigSource{
+				Path:    filepath.Dir(fpath),
+				Content: "",
+			},
 		}
 		err = config.ValidateDeletion()
 		assert.NoError(t, err)
@@ -72,7 +75,10 @@ func Test_ValidateDeployment(t *testing.T) {
 			ComponentList:            newComponentList(t),
 			ResourcePath:             filepath.Dir(fpath),
 			InstallationResourcePath: filepath.Dir(fpath),
-			KubeconfigPath:           filepath.Dir(fpath),
+			KubeconfigSource: KubeconfigSource{
+				Path:    filepath.Dir(fpath),
+				Content: "",
+			},
 		}
 		err := config.ValidateDeployment()
 		assert.Error(t, err)
@@ -86,7 +92,10 @@ func Test_ValidateDeployment(t *testing.T) {
 			ComponentList:            newComponentList(t),
 			ResourcePath:             filepath.Dir(fpath),
 			InstallationResourcePath: filepath.Dir(fpath),
-			KubeconfigPath:           filepath.Dir(fpath),
+			KubeconfigSource: KubeconfigSource{
+				Path:    filepath.Dir(fpath),
+				Content: "",
+			},
 			Version:                  "abc",
 		}
 		err := config.ValidateDeployment()

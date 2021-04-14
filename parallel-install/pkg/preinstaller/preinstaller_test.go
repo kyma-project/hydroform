@@ -3,6 +3,7 @@ package preinstaller
 import (
 	"fmt"
 	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
 	"github.com/pkg/errors"
@@ -430,7 +431,10 @@ func getTestingConfig() Config {
 	return Config{
 		Log:                      logger.NewLogger(true),
 		InstallationResourcePath: "installationResourcePath",
-		KubeconfigPath:           "kubeconfigPath",
+		KubeconfigSource: config.KubeconfigSource{
+			Path:    "path",
+			Content: "",
+		},
 	}
 }
 

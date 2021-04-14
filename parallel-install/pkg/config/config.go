@@ -38,14 +38,21 @@ type Config struct {
 	ResourcePath string
 	// Path to Kyma installation resources
 	InstallationResourcePath string
-	// Path to Kubeconfig
-	KubeconfigPath string
-	// Content of Kubeconfig
-	KubeconfigContent string
+	// Kubeconfig source
+	KubeconfigSource KubeconfigSource
 	//Kyma version
 	Version string
 	//Atomic deployment
 	Atomic bool
+}
+
+// KubeconfigSource aggregates kubeconfig in a form of either a path or a raw content.
+// If both Path and Content are being provided, then path takes precedence.
+type KubeconfigSource struct {
+	// Path to Kubeconfig
+	Path string
+	// Content of Kubeconfig
+	Content string
 }
 
 // validate verifies that mandatory options are provided

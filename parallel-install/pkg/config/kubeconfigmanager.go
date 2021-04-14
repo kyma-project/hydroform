@@ -16,18 +16,32 @@ type kubeConfigManager struct {
 }
 
 // NewKubeConfigManager creates a new instance of KubeConfigManager.
-func NewKubeConfigManager(path, content *string) (*kubeConfigManager, error) {
-	pathExists := exists(path)
-	contentExists := exists(content)
+// TODO: opisac priorytet brania configow
+func NewKubeConfigManager(kubeconfigSource KubeconfigSource) (*kubeConfigManager, error) {
+	pathExists := exists(kubeconfigSource.Path)
+	contentExists := exists(kubeconfigSource.Content)
 	var resolvedPath string
 	var resolvedContent string
 
 	if pathExists && contentExists {
-		resolvedPath = *path
+		resolvedPath = kubeconfigSource.Path
 	} else if pathExists {
-		resolvedPath = *path
+		resolvedPath = kubeconfigSource.Path
 	} else if contentExists {
-		resolvedContent = *content
+		resolvedContent = kubeconfigSource.Content
+		tmpFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-*.yaml")
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to generate a temporary file for kubeconfig")
+		}
+
+		if _, err = tmpFile.Write([]byte(resolvedContent)); err != nil {
+			return nil, errors.Wrap(err, "Failed to write to the temporary file")
+		}
+
+		resolvedPath = tmpFile.Name()
+		if err := tmpFile.Close(); err != nil {
+			return nil, errors.Wrap(err, "Failed to close the temporary file")
+		}
 	} else {
 		return nil, errors.New("either kubeconfig or kubeconfigcontent property has to be set")
 	}
@@ -39,49 +53,26 @@ func NewKubeConfigManager(path, content *string) (*kubeConfigManager, error) {
 }
 
 // Path returns a path to the kubeconfig file.
-func (k *kubeConfigManager) Path() (string, error) {
-	return k.resolvePath()
+func (k *kubeConfigManager) Path() string {
+	return k.path
+}
+
+// Path returns a path to the kubeconfig file.
+func (k *kubeConfigManager) Cleanup() error {
+	return os.Remove(k.path)
 }
 
 // Config returns a kubeconfig REST Config used by k8s clients.
 func (k *kubeConfigManager) Config() (*rest.Config, error) {
-	if exists(&k.path) {
-		resolvedPath, err := k.resolvePath()
-		if err != nil {
-			return nil, err
-		}
-
-		return clientcmd.BuildConfigFromFlags("", resolvedPath)
+	if exists(k.path) {
+		return clientcmd.BuildConfigFromFlags("", k.path)
 	} else {
 		return clientcmd.RESTConfigFromKubeConfig([]byte(k.content))
 	}
 }
 
-func (k *kubeConfigManager) resolvePath() (path string, err error) {
-	if exists(&k.path) {
-		path = k.path
-	} else {
-		tmpFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-*.yaml")
-		if err != nil {
-			return "", errors.Wrap(err, "Failed to generate a temporary file for kubeconfig")
-		}
-
-		if _, err = tmpFile.Write([]byte(k.content)); err != nil {
-			return "", errors.Wrap(err, "Failed to write to the temporary file")
-		}
-
-		path = tmpFile.Name()
-
-		if err := tmpFile.Close(); err != nil {
-			return "", errors.Wrap(err, "Failed to close the temporary file")
-		}
-	}
-
-	return path, nil
-}
-
-func exists(property *string) bool {
-	if property == nil || *property == "" {
+func exists(property string) bool {
+	if property == "" {
 		return false
 	}
 

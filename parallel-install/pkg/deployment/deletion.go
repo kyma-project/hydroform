@@ -31,7 +31,7 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates chan<-
 		return nil, err
 	}
 
-	manager, err := config.NewKubeConfigManager(&cfg.KubeconfigPath, &cfg.KubeconfigPath)
+	manager, err := config.NewKubeConfigManager(cfg.KubeconfigSource)
 	if err != nil {
 		return nil, err
 	}

@@ -26,18 +26,6 @@ type ComponentsProvider struct {
 
 //NewComponentsProvider returns a ComponentsProvider instance.
 func NewComponentsProvider(overridesProvider overrides.Provider, cfg *config.Config, components []config.ComponentDefinition, tpl *helm.KymaComponentMetadataTemplate) *ComponentsProvider {
-	var kubeconfigPath = ""
-	manager, err := config.NewKubeConfigManager(&cfg.KubeconfigPath, &cfg.KubeconfigContent)
-	if err != nil {
-		cfg.Log.Warn("kubeconfig was not provided, defaulting to empty string")
-		kubeconfigPath = ""
-	} else {
-		kubeconfigPath, err = manager.Path()
-		if err != nil {
-			cfg.Log.Error("Failed to resolve a path to the kubeconfig file")
-		}
-	}
-
 	helmCfg := helm.Config{
 		HelmTimeoutSeconds:            cfg.HelmTimeoutSeconds,
 		BackoffInitialIntervalSeconds: cfg.BackoffInitialIntervalSeconds,
@@ -46,7 +34,7 @@ func NewComponentsProvider(overridesProvider overrides.Provider, cfg *config.Con
 		MaxHistory:                    cfg.HelmMaxRevisionHistory,
 		Atomic:                        cfg.Atomic,
 		KymaComponentMetadataTemplate: tpl,
-		KubeconfigPath:                kubeconfigPath,
+		KubeconfigSource: cfg.KubeconfigSource,
 	}
 
 	return &ComponentsProvider{
