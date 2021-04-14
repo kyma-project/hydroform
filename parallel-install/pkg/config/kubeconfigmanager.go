@@ -2,6 +2,9 @@ package config
 
 import (
 	"errors"
+	"io/ioutil"
+	"log"
+	"os"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -17,8 +20,8 @@ type kubeConfigManager struct {
 func NewKubeConfigManager(path, content *string) (*kubeConfigManager, error) {
 	pathExists := exists(path)
 	contentExists := exists(content)
-	resolvedPath := ""
-	resolvedContent := ""
+	var resolvedPath string
+	var resolvedContent string
 
 	if pathExists && contentExists {
 		resolvedPath = *path
@@ -51,14 +54,26 @@ func (k *kubeConfigManager) Config() (*rest.Config, error) {
 }
 
 func (k *kubeConfigManager) resolvePath() string {
-	var path = ""
+	var path string
 	if k.path != "" {
 		path = k.path
 	} else {
-		// TODO: check if it's correct, error handling, proper path (generated?)
-		APIConfig, _ := clientcmd.Load([]byte(k.content))
-		clientcmd.WriteToFile(*APIConfig, "test")
-		path = "test"
+		// TODO: use clientcmd.Load and clientcmd.WriteToFile
+
+		tmpFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-*.yaml")
+		if err != nil {
+			log.Fatal(err)
+		}
+		path = tmpFile.Name()
+		log.Print(path)
+
+		if _, err = tmpFile.Write([]byte(k.content)); err != nil {
+			log.Fatal("Failed to write to temporary file", err)
+		}
+
+		if err := tmpFile.Close(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	return path

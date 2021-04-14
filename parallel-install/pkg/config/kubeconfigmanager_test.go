@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -83,4 +84,65 @@ func Test_KubeConfigManager_New(t *testing.T) {
 
 	})
 
+}
+
+func Test_KubeConfigManager_Path(t *testing.T) {
+
+	t.Run("should return a path to kubeconfig file", func(t *testing.T) {
+
+		t.Run("when path exists and content does not exist", func(t *testing.T) {
+			// given
+			path := "path"
+			content := ""
+
+			// when
+			manager, err := NewKubeConfigManager(&path, &content)
+
+			// then
+			assert.NotNil(t, manager)
+			assert.NoError(t, err)
+			assert.Equal(t, manager.Path(), path)
+		})
+
+		t.Run("when path does not exist and content exists", func(t *testing.T) {
+			// given
+			path := ""
+			content := getKubeConfig()
+			tempDir := os.TempDir()
+			manager, err := NewKubeConfigManager(&path, &content)
+
+			// when
+			returnedPath := manager.Path()
+
+			// then
+			assert.NotNil(t, returnedPath)
+			assert.NoError(t, err)
+			assert.Contains(t, returnedPath, tempDir)
+			assert.Contains(t, returnedPath, "kubeconfig")
+			assert.Contains(t, returnedPath, ".yaml")
+		})
+	})
+}
+
+func getKubeConfig() string {
+	return `apiVersion: v1
+kind: Config
+clusters:
+  - name: test
+    cluster:
+      server: 'https://test.example.com'
+      certificate-authority-data: >-
+        somerandomcert
+contexts:
+  - name: test
+    context:
+      cluster: test
+      user: test-token
+current-context: test
+users:
+  - name: test-token
+    user:
+      token: >-
+        somerandomtoken
+`
 }
