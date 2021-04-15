@@ -28,12 +28,7 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates chan
 		return nil, err
 	}
 
-	manager, err := config.NewKubeConfigManager(cfg.KubeconfigSource)
-	if err != nil {
-		return nil, err
-	}
-
-	restConfig, err := manager.Config()
+	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
 	if err != nil {
 		return nil, err
 	}

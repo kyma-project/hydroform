@@ -24,12 +24,13 @@ package preinstaller
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"io/ioutil"
 	"k8s.io/client-go/dynamic"
-	"os"
 )
 
 // Config defines configuration values for the PreInstaller.
@@ -78,12 +79,7 @@ type resourceInfoResult struct {
 
 // NewPreInstaller creates a new instance of PreInstaller.
 func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, retryOptions []retry.Option) (*PreInstaller, error) {
-	manager, err := config.NewKubeConfigManager(cfg.KubeconfigSource)
-	if err != nil {
-		return nil, err
-	}
-
-	restConfig, err := manager.Config()
+	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
 	if err != nil {
 		return nil, err
 	}

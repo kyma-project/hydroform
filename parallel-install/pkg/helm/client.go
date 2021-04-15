@@ -80,12 +80,7 @@ func NewClient(cfg Config) *Client {
 }
 
 func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) error {
-	manager, err := config.NewKubeConfigManager(c.cfg.KubeconfigSource)
-	if err != nil {
-		return err
-	}
-
-	path, cleanupFunc, err := manager.Path()
+	path, cleanupFunc, err := config.Path(c.cfg.KubeconfigSource)
 	if err != nil {
 		return err
 	}
@@ -214,12 +209,7 @@ func (c *Client) installRelease(namespace, name string, overrides map[string]int
 }
 
 func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overridesValues map[string]interface{}, profile string) error {
-	manager, err := config.NewKubeConfigManager(c.cfg.KubeconfigSource)
-	if err != nil {
-		return err
-	}
-
-	path, cleanupFunc, err := manager.Path()
+	path, cleanupFunc, err := config.Path(c.cfg.KubeconfigSource)
 	if err != nil {
 		return err
 	}
