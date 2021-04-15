@@ -38,12 +38,21 @@ type Config struct {
 	ResourcePath string
 	// Path to Kyma installation resources
 	InstallationResourcePath string
-	// Path to Kubeconfig
-	KubeconfigPath string
+	// Kubeconfig source
+	KubeconfigSource KubeconfigSource
 	//Kyma version
 	Version string
 	//Atomic deployment
 	Atomic bool
+}
+
+// KubeconfigSource aggregates kubeconfig in a form of either a path or a raw content.
+// If both Path and Content are being provided, then path takes precedence.
+type KubeconfigSource struct {
+	// Path to the Kubeconfig file
+	Path string
+	// Kubeconfig content in YAML format
+	Content string
 }
 
 // validate verifies that mandatory options are provided
@@ -62,9 +71,6 @@ func (c *Config) ValidateDeletion() error {
 	if err := c.validate(); err != nil { //deployment requires all core options
 		return err
 	}
-	if err := c.pathExists(c.KubeconfigPath, "Kubeconfig path"); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -77,9 +83,6 @@ func (c *Config) ValidateDeployment() error {
 		return err
 	}
 	if err := c.pathExists(c.InstallationResourcePath, "Installation resource path"); err != nil {
-		return err
-	}
-	if err := c.pathExists(c.KubeconfigPath, "Kubeconfig path"); err != nil {
 		return err
 	}
 	if c.Version == "" {

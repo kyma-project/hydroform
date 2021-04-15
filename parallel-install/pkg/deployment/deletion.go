@@ -7,16 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
+	"github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 //TODO: has to be taken from component list! See https://github.com/kyma-incubator/hydroform/issues/181
@@ -33,7 +31,7 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates chan<-
 		return nil, err
 	}
 
-	restConfig, err := clientcmd.BuildConfigFromFlags("", cfg.KubeconfigPath)
+	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
 	if err != nil {
 		return nil, err
 	}

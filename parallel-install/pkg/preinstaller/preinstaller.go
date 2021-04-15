@@ -24,20 +24,20 @@ package preinstaller
 
 import (
 	"fmt"
-	"github.com/avast/retry-go"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"io/ioutil"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/tools/clientcmd"
-
 	"os"
+
+	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"k8s.io/client-go/dynamic"
 )
 
 // Config defines configuration values for the PreInstaller.
 type Config struct {
-	InstallationResourcePath string           //Path to the installation resources.
-	Log                      logger.Interface //Logger to be used
-	KubeconfigPath           string
+	InstallationResourcePath string                  //Path to the installation resources.
+	Log                      logger.Interface        //Logger to be used
+	KubeconfigSource         config.KubeconfigSource //KubeconfigSource to be used
 }
 
 // PreInstaller prepares k8s cluster for Kyma installation.
@@ -79,7 +79,7 @@ type resourceInfoResult struct {
 
 // NewPreInstaller creates a new instance of PreInstaller.
 func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, retryOptions []retry.Option) (*PreInstaller, error) {
-	restConfig, err := clientcmd.BuildConfigFromFlags("", cfg.KubeconfigPath)
+	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
 	if err != nil {
 		return nil, err
 	}

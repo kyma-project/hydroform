@@ -15,13 +15,12 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 //main provides an example of how to integrate the parallel-install library with your code.
 func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
+	kubeconfigContent := flag.String("kubeconfigcontent", "", "Raw content of the Kubeconfig file")
 	profile := flag.String("profile", "", "Deployment profile")
 	version := flag.String("version", "latest", "Kyma version")
 	verbose := flag.Bool("verbose", false, "Verbose mode")
@@ -30,8 +29,9 @@ func main() {
 
 	log := logger.NewLogger(*verbose)
 
-	if kubeconfigPath == nil || *kubeconfigPath == "" {
-		log.Fatal("kubeconfig is required")
+	if (kubeconfigPath == nil || *kubeconfigPath == "") &&
+		(kubeconfigContent == nil || *kubeconfigContent == "") {
+		log.Fatal("either kubeconfig or kubeconfigcontent property has to be set")
 	}
 
 	if version == nil || *version == "" {
@@ -73,8 +73,11 @@ func main() {
 		ComponentList:                 compList,
 		ResourcePath:                  fmt.Sprintf("%s/src/github.com/kyma-project/kyma/resources", goPath),
 		InstallationResourcePath:      fmt.Sprintf("%s/src/github.com/kyma-project/kyma/installation/resources", goPath),
-		KubeconfigPath:                *kubeconfigPath,
-		Version:                       *version,
+		KubeconfigSource: config.KubeconfigSource{
+			Path:    *kubeconfigPath,
+			Content: *kubeconfigContent,
+		},
+		Version: *version,
 	}
 
 	// used to receive progress updates of the install/uninstall process
@@ -98,11 +101,11 @@ func main() {
 	preInstallerCfg := preinstaller.Config{
 		InstallationResourcePath: installationCfg.InstallationResourcePath,
 		Log:                      installationCfg.Log,
-		KubeconfigPath:           *kubeconfigPath,
+		KubeconfigSource:         installationCfg.KubeconfigSource,
 	}
 
 	resourceParser := &preinstaller.GenericResourceParser{}
-	resourceManager, err := preinstaller.NewDefaultResourceManager(*kubeconfigPath, preInstallerCfg.Log, commonRetryOpts)
+	resourceManager, err := preinstaller.NewDefaultResourceManager(installationCfg.KubeconfigSource, preInstallerCfg.Log, commonRetryOpts)
 	if err != nil {
 		log.Fatalf("Failed to create Kyma default resource manager: %v", err)
 	}
@@ -136,7 +139,7 @@ func main() {
 		log.Info("Kyma deployed!")
 	}
 
-	metadataProvider, err := helm.NewKymaMetadataProvider(*kubeconfigPath)
+	metadataProvider, err := helm.NewKymaMetadataProvider(installationCfg.KubeconfigSource)
 	if err != nil {
 		log.Fatalf("Failed to create Kyma metadata provider: %v", err)
 	}
@@ -158,13 +161,6 @@ func main() {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}
 	log.Info("Kyma uninstalled!")
-}
-
-func getClientConfig(kubeconfig string) (*rest.Config, error) {
-	if kubeconfig != "" {
-		return clientcmd.BuildConfigFromFlags("", kubeconfig)
-	}
-	return rest.InClusterConfig()
 }
 
 func renderProgress(progressCh chan deployment.ProcessUpdate, log logger.Interface) context.Context {
