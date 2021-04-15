@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"errors"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -92,6 +94,87 @@ func Test_KubeConfigManager_New(t *testing.T) {
 			assert.Equal(t, getPath(t, manager), kubeconfigSource.Path)
 		})
 
+	})
+
+	t.Run("should properly handle a temporary kubeconfig file", func(t *testing.T) {
+
+		t.Run("when Path().cleanup is invoked multiple times", func(t *testing.T) {
+			// given
+			kubeconfigSource := KubeconfigSource{
+				Content: "abcd",
+			}
+			manager, err := NewKubeConfigManager(kubeconfigSource)
+			assert.Nil(t, err)
+
+			// when
+			path, cleanup, err := manager.Path()
+			assert.Nil(t, err)
+
+			// then the file should exist
+			_, err = os.Stat(path)
+			assert.Nil(t, err) //File exists
+
+			// then first cleanup invocation removes the file
+			err = cleanup()
+			assert.Nil(t, err)
+			_, err = os.Stat(path)
+			assert.True(t, errors.Is(err, os.ErrNotExist))
+
+			// then subsequent cleanup invocation does nothing
+			err = cleanup()
+			assert.Nil(t, err)
+			_, err = os.Stat(path)
+			assert.True(t, errors.Is(err, os.ErrNotExist))
+
+			err = cleanup()
+			assert.Nil(t, err)
+			_, err = os.Stat(path)
+			assert.True(t, errors.Is(err, os.ErrNotExist))
+		})
+
+		t.Run("when Path() is invoked multiple times", func(t *testing.T) {
+			// given
+			kubeconfigSource := KubeconfigSource{
+				Content: "abcd",
+			}
+			manager, err := NewKubeConfigManager(kubeconfigSource)
+			assert.Nil(t, err)
+
+			// when invoked multiple times
+			path1, cleanup1, err1 := manager.Path()
+			assert.Nil(t, err1)
+
+			path2, cleanup2, err2 := manager.Path()
+			assert.Nil(t, err2)
+
+			path3, cleanup3, err3 := manager.Path()
+			assert.Nil(t, err3)
+
+			// then paths should be the same
+			assert.Equal(t, path1, path2)
+			assert.Equal(t, path1, path3)
+
+			// then the file should exist
+			_, err = os.Stat(path1)
+			assert.Nil(t, err) //File exists
+
+			// then first cleanup invocation removes the file
+			err = cleanup1()
+			assert.Nil(t, err)
+			_, err = os.Stat(path1)
+			assert.True(t, errors.Is(err, os.ErrNotExist))
+
+			// then subsequent cleanup invocation does nothing
+			err = cleanup2()
+			assert.Nil(t, err)
+			_, err = os.Stat(path1)
+			assert.True(t, errors.Is(err, os.ErrNotExist))
+
+			err = cleanup3()
+			assert.Nil(t, err)
+			_, err = os.Stat(path1)
+			assert.True(t, errors.Is(err, os.ErrNotExist))
+		})
 	})
 
 }

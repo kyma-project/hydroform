@@ -64,7 +64,11 @@ func (k *kubeConfigManager) Path() (string, CleanupFunc, error) {
 
 		resPath = k.temporaryPath
 		cleanupFunc = func() error {
-			return os.Remove(k.temporaryPath)
+			if _, err := os.Stat(k.temporaryPath); err == nil {
+				return os.Remove(k.temporaryPath)
+			}
+
+			return nil
 		}
 	}
 
