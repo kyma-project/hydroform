@@ -62,13 +62,13 @@ func (i *DomainNameOverrideInterceptor) String(value interface{}, key string) st
 }
 
 func (i *DomainNameOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	//on gardener domain provided by user should be ignored
 	domainName, err := i.getDomainName()
 	if err != nil {
 		return nil, err
 	}
 
-	if domainName != "" {
+	//on gardener domain provided by user should be ignored
+	if domainName != "" && domainName != localKymaDevDomain {
 		return domainName, nil
 	}
 
