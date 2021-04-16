@@ -2,19 +2,21 @@ package preinstaller
 
 import (
 	"fmt"
+	"path"
+	"regexp"
+	"testing"
+
 	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/test"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
-	"os"
-	"path"
-	"regexp"
-	"testing"
 )
 
 func TestPreInstaller_InstallCRDs(t *testing.T) {
@@ -430,6 +432,10 @@ func getTestingConfig() Config {
 	return Config{
 		Log:                      logger.NewLogger(true),
 		InstallationResourcePath: "installationResourcePath",
+		KubeconfigSource: config.KubeconfigSource{
+			Path:    "path",
+			Content: "",
+		},
 	}
 }
 
@@ -442,12 +448,7 @@ func getTestingRetryOptions() []retry.Option {
 }
 
 func getTestingResourcesDirectory() string {
-	currentDir, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
-
-	return path.Join(currentDir, "/../test/data/resources")
+	return path.Join(test.GetTestDataDirectory(), "resources")
 }
 
 func containsFileWithDetails(files []File, component string, path string) bool {

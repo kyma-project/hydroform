@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
@@ -36,7 +38,7 @@ type Config struct {
 	Log                           logger.Interface //Used for logging
 	Atomic                        bool
 	KymaComponentMetadataTemplate *KymaComponentMetadataTemplate
-	KubeconfigPath                string
+	KubeconfigSource              config.KubeconfigSource
 }
 
 //Client implements the ClientInterface.
@@ -78,8 +80,19 @@ func NewClient(cfg Config) *Client {
 }
 
 func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) error {
+	path, cleanupFunc, err := config.Path(c.cfg.KubeconfigSource)
+	if err != nil {
+		return err
+	}
 
-	cfg, err := c.newActionConfig(namespace, c.cfg.KubeconfigPath)
+	defer func() {
+		cleanupErr := cleanupFunc()
+		if cleanupErr != nil {
+			c.cfg.Log.Error(cleanupErr)
+		}
+	}()
+
+	cfg, err := c.newActionConfig(namespace, path)
 	if err != nil {
 		return err
 	}
@@ -210,8 +223,20 @@ func (c *Client) rollbackRelease(name string, cfg *action.Configuration) error {
 }
 
 func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name string, overridesValues map[string]interface{}, profile string) error {
+	path, cleanupFunc, err := config.Path(c.cfg.KubeconfigSource)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		cleanupErr := cleanupFunc()
+		if cleanupErr != nil {
+			c.cfg.Log.Error(cleanupErr)
+		}
+	}()
+
 	operation := func() error {
-		cfg, err := c.newActionConfig(namespace, c.cfg.KubeconfigPath)
+		cfg, err := c.newActionConfig(namespace, path)
 		if err != nil {
 			return err
 		}
@@ -243,7 +268,7 @@ func (c *Client) DeployRelease(ctx context.Context, chartDir, namespace, name st
 
 	initialInterval := time.Duration(c.cfg.BackoffInitialIntervalSeconds) * time.Second
 	maxElapsedTime := time.Duration(c.cfg.BackoffMaxElapsedTimeSeconds) * time.Second
-	err := c.retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
+	err = c.retryWithBackoff(ctx, operation, initialInterval, maxElapsedTime)
 	if err != nil {
 		return fmt.Errorf("Error: Failed to deploy %s within the configured time. Error: %v", name, err)
 	}

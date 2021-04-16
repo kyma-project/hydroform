@@ -6,17 +6,15 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
+	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 //Deployment deploys Kyma on a cluster
@@ -30,7 +28,7 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func
 		return nil, err
 	}
 
-	restConfig, err := clientcmd.BuildConfigFromFlags("", cfg.KubeconfigPath)
+	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
 	if err != nil {
 		return nil, err
 	}

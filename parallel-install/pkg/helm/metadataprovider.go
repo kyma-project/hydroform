@@ -8,15 +8,14 @@ import (
 	"strings"
 	"unicode"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-
 	"github.com/fatih/structs"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -67,8 +66,8 @@ type KymaMetadataProvider struct {
 }
 
 //NewKymaMetadataProvider creates a new KymaMetadataProvider
-func NewKymaMetadataProvider(kubeconfigPath string) (*KymaMetadataProvider, error) {
-	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+func NewKymaMetadataProvider(kubeconfigSource config.KubeconfigSource) (*KymaMetadataProvider, error) {
+	restConfig, err := config.RestConfig(kubeconfigSource)
 	if err != nil {
 		return nil, err
 	}
