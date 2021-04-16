@@ -24,7 +24,6 @@ import (
 const (
 	OnConflictLabel   string = "conflict-strategy"
 	ReplaceOnConflict string = "Replace"
-	MergeOnConflict   string = "Merge"
 )
 
 //go:generate mockery -name=RESTMapper
@@ -50,7 +49,7 @@ type GenericClient struct {
 
 func (c GenericClient) WaitForPodByLabel(namespace, labelSelector string, desiredPhase corev1.PodPhase, timeout, checkInterval time.Duration) error {
 	return util.WaitFor(checkInterval, timeout, func() (bool, error) {
-		pods, err := c.coreClient.Pods(namespace).List(context.Background(), v1.ListOptions{LabelSelector: labelSelector})
+		pods, err := c.getPods(namespace, labelSelector)
 		if err != nil {
 			return false, err
 		}
@@ -77,7 +76,7 @@ func (c GenericClient) ApplyConfigMaps(configMaps []*corev1.ConfigMap, namespace
 	client := c.coreClient.ConfigMaps(namespace)
 
 	for _, cm := range configMaps {
-		_, err := client.Create(context.Background(), cm, v1.CreateOptions{})
+		err := c.createCm(client, cm)
 		if err != nil {
 			if k8serrors.IsAlreadyExists(err) {
 				err = c.updateConfigMap(client, cm)
@@ -93,7 +92,7 @@ func (c GenericClient) ApplyConfigMaps(configMaps []*corev1.ConfigMap, namespace
 }
 
 func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) error {
-	oldCM, err := client.Get(context.Background(), cm.Name, v1.GetOptions{})
+	oldCM, err := c.getCm(client, cm)
 	if err != nil {
 		return err
 	}
@@ -102,7 +101,7 @@ func (c GenericClient) updateConfigMap(client corev1Client.ConfigMapInterface, c
 		cm.Data = util.MergeStringMaps(oldCM.Data, cm.Data)
 	}
 
-	_, err = client.Update(context.Background(), cm, v1.UpdateOptions{})
+	err = c.updateCm(client, cm)
 	if err != nil {
 		return err
 	}
@@ -114,7 +113,7 @@ func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) 
 	client := c.coreClient.Secrets(namespace)
 
 	for _, sec := range secrets {
-		_, err := client.Create(context.Background(), sec, v1.CreateOptions{})
+		err := c.createSec(client, sec)
 		if err != nil {
 			if k8serrors.IsAlreadyExists(err) {
 				err = c.updateSecret(client, sec)
@@ -130,17 +129,17 @@ func (c GenericClient) ApplySecrets(secrets []*corev1.Secret, namespace string) 
 	return nil
 }
 
-func (c GenericClient) updateSecret(client corev1Client.SecretInterface, cm *corev1.Secret) error {
-	oldCM, err := client.Get(context.Background(), cm.Name, v1.GetOptions{})
+func (c GenericClient) updateSecret(client corev1Client.SecretInterface, sec *corev1.Secret) error {
+	oldSec, err := c.getSec(client, sec)
 	if err != nil {
 		return err
 	}
 
-	if isMerge(cm.Labels) {
-		cm.Data = util.MergeByteMaps(oldCM.Data, cm.Data)
+	if isMerge(sec.Labels) {
+		sec.Data = util.MergeByteMaps(oldSec.Data, sec.Data)
 	}
 
-	_, err = client.Update(context.Background(), cm, v1.UpdateOptions{})
+	err = c.updateSec(client, sec)
 	if err != nil {
 		return err
 	}
@@ -191,7 +190,7 @@ func (c GenericClient) createResources(resources []K8sObject,
 }
 
 func (c GenericClient) createObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	created, err := client.Create(context.Background(), unstructuredObject, v1.CreateOptions{})
+	created, err := c.createUnstructured(client, unstructuredObject)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create object %s of kind %s: %s", unstructuredObject.GetName(), unstructuredObject.GetKind(), err.Error())
 	}
@@ -200,7 +199,7 @@ func (c GenericClient) createObject(client dynamic.ResourceInterface, unstructur
 }
 
 func (c GenericClient) applyObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	created, err := client.Create(context.Background(), unstructuredObject, v1.CreateOptions{})
+	created, err := c.createUnstructured(client, unstructuredObject)
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
 			updated, err := c.updateObject(client, unstructuredObject)
@@ -216,7 +215,7 @@ func (c GenericClient) applyObject(client dynamic.ResourceInterface, unstructure
 }
 
 func (c GenericClient) updateObject(client dynamic.ResourceInterface, unstructuredObject *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	get, err := client.Get(context.Background(), unstructuredObject.GetName(), v1.GetOptions{})
+	get, err := c.getUnstructured(client, unstructuredObject)
 
 	if err != nil {
 		return nil, err
@@ -226,7 +225,7 @@ func (c GenericClient) updateObject(client dynamic.ResourceInterface, unstructur
 
 	newObject := &unstructured.Unstructured{Object: merged}
 
-	return client.Update(context.Background(), newObject, v1.UpdateOptions{})
+	return c.updateUnstructured(client, newObject)
 }
 
 func (c GenericClient) clientForResource(unstructuredObject *unstructured.Unstructured, gvk *schema.GroupVersionKind) (dynamic.ResourceInterface, error) {
@@ -245,4 +244,74 @@ func (c GenericClient) clientForResource(unstructuredObject *unstructured.Unstru
 	}
 
 	return c.dynamicClient.Resource(versionResource).Namespace(namespace), nil
+}
+
+func (c GenericClient) getPods(namespace, labelSelector string) (*corev1.PodList, error) {
+	retry, err := util.WithDefaultRetry(func() (interface{}, error) {
+		return c.coreClient.Pods(namespace).List(context.Background(), v1.ListOptions{LabelSelector: labelSelector})
+	})
+	return retry.(*corev1.PodList), err
+}
+
+func (c GenericClient) getUnstructured(client dynamic.ResourceInterface, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	created, err := util.WithDefaultRetry(func() (interface{}, error) {
+		return client.Get(context.Background(), obj.GetName(), v1.GetOptions{})
+	})
+	return created.(*unstructured.Unstructured), err
+}
+
+func (c GenericClient) getCm(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	retry, err := util.WithDefaultRetry(func() (interface{}, error) {
+		return client.Get(context.Background(), cm.Name, v1.GetOptions{})
+	})
+	return retry.(*corev1.ConfigMap), err
+}
+
+func (c GenericClient) getSec(client corev1Client.SecretInterface, sec *corev1.Secret) (*corev1.Secret, error) {
+	retry, err := util.WithDefaultRetry(func() (interface{}, error) {
+		return client.Get(context.Background(), sec.Name, v1.GetOptions{})
+	})
+	return retry.(*corev1.Secret), err
+}
+
+func (c GenericClient) createCm(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) error {
+	_, err := util.WithDefaultRetry(func() (interface{}, error) {
+		return client.Create(context.Background(), cm, v1.CreateOptions{})
+	})
+	return err
+}
+
+func (c GenericClient) createSec(client corev1Client.SecretInterface, sec *corev1.Secret) error {
+	_, err := util.WithDefaultRetry(func() (interface{}, error) {
+		return client.Create(context.Background(), sec, v1.CreateOptions{})
+	})
+	return err
+}
+
+func (c GenericClient) createUnstructured(client dynamic.ResourceInterface, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	created, err := util.WithDefaultRetry(func() (interface{}, error) {
+		return client.Create(context.Background(), obj, v1.CreateOptions{})
+	})
+	return created.(*unstructured.Unstructured), err
+}
+
+func (c GenericClient) updateUnstructured(client dynamic.ResourceInterface, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	created, err := util.WithDefaultRetry(func() (interface{}, error) {
+		return client.Update(context.Background(), obj, v1.UpdateOptions{})
+	})
+	return created.(*unstructured.Unstructured), err
+}
+
+func (c GenericClient) updateCm(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) error {
+	_, err := util.WithDefaultRetry(func() (interface{}, error) {
+		return client.Update(context.Background(), cm, v1.UpdateOptions{})
+	})
+	return err
+}
+
+func (c GenericClient) updateSec(client corev1Client.SecretInterface, sec *corev1.Secret) error {
+	_, err := util.WithDefaultRetry(func() (interface{}, error) {
+		return client.Update(context.Background(), sec, v1.UpdateOptions{})
+	})
+	return err
 }
