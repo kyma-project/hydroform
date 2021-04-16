@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -84,32 +85,21 @@ func (i *DomainNameOverrideInterceptor) Undefined(overrides map[string]interface
 }
 
 func (i *DomainNameOverrideInterceptor) getDomainName() (string, error) {
-	clusterType, err := i.clusterType()
-	if err != nil {
-		return "", err
+	var domainName string
+
+	domainName = os.Getenv("CUSTOMDOMAIN")
+	if domainName != "" {
+		return domainName, nil
 	}
 
-	switch clusterType {
-	case "gardener":
-		return i.getGardenerDomain()
-	default:
-		return i.discoverDomain()
-	}
-}
-
-func (i *DomainNameOverrideInterceptor) clusterType() (string, error) {
-	return "gardener", nil
-}
-
-func (i *DomainNameOverrideInterceptor) discoverDomain() (string, error) {
 	domainName, err := i.getGardenerDomain()
 	if err != nil {
 		return "", err
 	}
-
 	if domainName != "" {
 		return domainName, nil
 	}
+
 	return localKymaDevDomain, nil
 }
 
@@ -137,54 +127,6 @@ func (i *DomainNameOverrideInterceptor) getGardenerDomain() (domainName string, 
 	}
 
 	return domainName, nil
-}
-
-// TODO: Might be deleted later
-func NewRemoteClusterDomainNameOverrideInterceptor(kubeClient kubernetes.Interface, log logger.Interface) *RemoteClusterDomainNameOverrideInterceptor {
-	retryOptions := []retry.Option{
-		retry.Delay(2 * time.Second),
-		retry.Attempts(3),
-		retry.DelayType(retry.FixedDelay),
-	}
-
-	return &RemoteClusterDomainNameOverrideInterceptor{
-		kubeClient:   kubeClient,
-		retryOptions: retryOptions,
-		log:          log,
-	}
-}
-
-//RemoteClusterDomainNameOverrideInterceptor resolves the domain name for the cluster
-type RemoteClusterDomainNameOverrideInterceptor struct {
-	kubeClient   kubernetes.Interface
-	retryOptions []retry.Option
-	log          logger.Interface
-}
-
-func (i *RemoteClusterDomainNameOverrideInterceptor) String(value interface{}, key string) string {
-	return fmt.Sprintf("%v", value)
-}
-
-func (i *RemoteClusterDomainNameOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	//on gardener domain provided by user should be ignored
-	isRemote, err := i.isRemoteCluster()
-	if err != nil {
-		return nil, err
-	}
-
-	if isRemote {
-		return externalKymaDevDomain, nil
-	}
-
-	return value, nil
-}
-
-func (i *RemoteClusterDomainNameOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	return NewFallbackOverrideInterceptor(externalKymaDevDomain).Undefined(overrides, key)
-}
-
-func (i *RemoteClusterDomainNameOverrideInterceptor) isRemoteCluster() (isRemoteCluster bool, err error) {
-	return true, nil
 }
 
 //CertificateOverrideInterceptor handles certificates
