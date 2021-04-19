@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
 	"time"
@@ -17,6 +16,8 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 )
 
+var log *logger.Logger
+
 //main provides an example of how to integrate the parallel-install library with your code.
 func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
@@ -27,7 +28,7 @@ func main() {
 
 	flag.Parse()
 
-	log := logger.NewLogger(*verbose)
+	log = logger.NewLogger(*verbose)
 
 	if (kubeconfigPath == nil || *kubeconfigPath == "") &&
 		(kubeconfigContent == nil || *kubeconfigContent == "") {
