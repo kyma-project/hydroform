@@ -3,7 +3,7 @@ package deployment
 
 import (
 	"context"
-	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 	"time"
 
@@ -70,7 +70,7 @@ func (i *core) getConfig() (overrides.Provider, *engine.Engine, *engine.Engine, 
 	overridesProvider, err := overrides.New(i.kubeClient, i.overrides.Map(), i.cfg.Log)
 
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("Failed to create overrides provider: exiting")
+		return nil, nil, nil, errors.Wrap(err, "Failed to create overrides provider: exiting")
 	}
 
 	//create KymaComponentMetadataTemplate and set prerequisites flag
@@ -154,4 +154,6 @@ func registerOverridesInterceptors(kubeClient kubernetes.Interface, o *Overrides
 	//hide certificate data
 	o.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
 	o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+	// make sure we don't install legacy CRDs
+	o.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
 }
