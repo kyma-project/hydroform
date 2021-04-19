@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/aws-sdk-go-base v0.6.0 // indirect
 	github.com/hashicorp/go-azure-helpers v0.12.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.6.0 // indirect
-	github.com/hashicorp/terraform v0.12.29
+	github.com/hashicorp/terraform v0.12.30
 	github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
