@@ -3,9 +3,10 @@ package deployment
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -156,4 +157,6 @@ func registerOverridesInterceptors(kubeClient kubernetes.Interface, o *Overrides
 	o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
 	// make sure we don't install legacy CRDs
 	o.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
+	// disable kcproxy
+	o.AddInterceptor([]string{"kcproxy.enabled"}, NewIDisableKCProxyInterceptor())
 }
