@@ -86,13 +86,22 @@ func (i *DomainNameOverrideInterceptor) Undefined(overrides map[string]interface
 
 func (i *DomainNameOverrideInterceptor) getDomainName() (string, error) {
 	var domainName string
+	var err error
 
 	domainName = os.Getenv("CUSTOMDOMAIN")
 	if domainName != "" {
 		return domainName, nil
 	}
 
-	domainName, err := i.getGardenerDomain()
+	domainName, err = i.getGardenerDomain()
+	if err != nil {
+		return "", err
+	}
+	if domainName != "" {
+		return domainName, nil
+	}
+
+	domainName, err = i.getNonLocalDomain()
 	if err != nil {
 		return "", err
 	}
@@ -119,6 +128,25 @@ func (i *DomainNameOverrideInterceptor) getGardenerDomain() (domainName string, 
 			return fmt.Errorf("domain is empty in %s configmap", "shoot-info")
 		}
 
+		return nil
+	}, i.retryOptions...)
+
+	if err != nil {
+		return "", err
+	}
+
+	return domainName, nil
+}
+
+func (i *DomainNameOverrideInterceptor) getNonLocalDomain() (domainName string, err error) {
+	err = retry.Do(func() error {
+		isLocalCluster := strings.Contains(i.kubeClient.Discovery().RESTClient().Get().URL().Host, localKymaDevDomain)
+
+		if isLocalCluster {
+			return nil
+		}
+
+		domainName = externalKymaDevDomain
 		return nil
 	}, i.retryOptions...)
 
