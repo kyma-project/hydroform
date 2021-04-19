@@ -23,7 +23,7 @@ type Deployment struct {
 }
 
 //NewDeployment creates a new Deployment instance for deploying Kyma on a cluster.
-func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
+func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func(ProcessUpdate)) (*Deployment, error) {
 	if err := cfg.ValidateDeployment(); err != nil {
 		return nil, err
 	}
@@ -196,4 +196,29 @@ func (i *Deployment) updateKymaNamespace(namespace string) error {
 	}, metav1.UpdateOptions{})
 
 	return err
+}
+
+func (i *Deployment) DefaultUpdater() func(update ProcessUpdate) {
+
+	return func(update ProcessUpdate) {
+
+		showCompStatus := func(comp components.KymaComponent) {
+			if comp.Name != "" {
+				i.cfg.Log.Infof("Status of component '%s': %s", comp.Name, comp.Status)
+			}
+		}
+
+		switch update.Event {
+		case ProcessStart:
+			i.cfg.Log.Infof("Starting installation phase '%s'", update.Phase)
+		case ProcessRunning:
+			showCompStatus(update.Component)
+		case ProcessFinished:
+			i.cfg.Log.Infof("Finished installation phase '%s' successfully", update.Phase)
+		default:
+			//any failure case
+			i.cfg.Log.Infof("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
+			showCompStatus(update.Component)
+		}
+	}
 }

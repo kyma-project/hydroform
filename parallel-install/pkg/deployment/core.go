@@ -25,7 +25,7 @@ type core struct {
 	cfg       *config.Config
 	overrides *Overrides
 	// Used to send progress events of a running install/uninstall process
-	processUpdates chan<- ProcessUpdate
+	processUpdates func(ProcessUpdate)
 	kubeClient     kubernetes.Interface
 }
 
@@ -38,7 +38,7 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*core, error) {
+func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*core, error) {
 	if isK3dCluster(kubeClient) {
 		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
 		removeFromComponentList(cfg.ComponentList, incompatibleLocalComponents)
@@ -104,13 +104,13 @@ func (i *core) processUpdate(phase InstallationPhase, event ProcessEvent, err er
 	if i.processUpdates == nil {
 		return
 	}
-	// fire event
-	i.processUpdates <- ProcessUpdate{
+	//fire callback
+	i.processUpdates(ProcessUpdate{
 		Event:     event,
 		Phase:     phase,
 		Component: components.KymaComponent{},
 		Error:     err,
-	}
+	})
 }
 
 // Send process update event related to a component
@@ -123,12 +123,12 @@ func (i *core) processUpdateComponent(phase InstallationPhase, comp components.K
 	if comp.Status == components.StatusError {
 		event = ProcessExecutionFailure
 	}
-	// fire event
-	i.processUpdates <- ProcessUpdate{
+	//// fire callback
+	i.processUpdates(ProcessUpdate{
 		Event:     event,
 		Phase:     phase,
 		Component: comp,
-	}
+	})
 }
 
 func isK3dCluster(kubeClient kubernetes.Interface) bool {
