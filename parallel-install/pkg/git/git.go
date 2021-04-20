@@ -96,7 +96,6 @@ func (c *client) CloneRevision(repoURL, dstPath, rev string) error {
 		err = w.Checkout(&git.CheckoutOptions{
 			Hash: plumbing.NewHash(rev),
 		})
-
 		if err != nil {
 			return errors.Wrap(err, "Error checking out revision")
 		}
