@@ -17,9 +17,45 @@ import (
 const prPrefix = "PR-"
 
 type client struct {
+	lister lister
+	cloner cloner
 }
 
-var defaultClient = client{}
+type lister interface {
+	List(repoURL string) ([]*plumbing.Reference, error)
+}
+
+type remoteLister struct {
+}
+
+func (rl *remoteLister) List(repoURL string) ([]*plumbing.Reference, error) {
+	remote := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{repoURL},
+	})
+
+	return remote.List(&git.ListOptions{})
+}
+
+type cloner interface {
+	Clone(repoURL, dstPath string, noCheckout bool) (*git.Repository, error)
+}
+
+type remoteCloner struct {
+}
+
+func (rc *remoteCloner) Clone(repoURL, dstPath string, noCheckout bool) (*git.Repository, error) {
+	return git.PlainCloneContext(context.Background(), dstPath, false, &git.CloneOptions{
+		Depth:      0,
+		URL:        repoURL,
+		NoCheckout: noCheckout,
+	})
+}
+
+var defaultClient = client{
+	lister: &remoteLister{},
+	cloner: &remoteCloner{},
+}
 
 // CloneRepo clones the repository in the given URL to the given dstPath and checks out the given revision.
 // revision can be 'main', a release version (e.g. 1.4.1), a commit hash (e.g. 34edf09a) or a PR (e.g. PR-9486).
@@ -43,21 +79,18 @@ func (c *client) CloneRepo(url, dstPath, rev string) error {
 // CloneRevision clones the repository in the given URL to the given dstPath and checks out the given revision.
 // The clone downloads the bare minimum to only get the given revision.
 // If the revision is empty, HEAD will be used.
-func (c *client) CloneRevision(url, dstPath, rev string) error {
-	r, err := git.PlainCloneContext(context.Background(), dstPath, false, &git.CloneOptions{
-		Depth:      0,
-		URL:        url,
-		NoCheckout: rev != "", // only checkout HEAD if the revision is empty
-	})
+func (c *client) CloneRevision(repoURL, dstPath, rev string) error {
+	// only checkout HEAD if the revision is empty
+	noCheckout := rev != ""
+	r, err := c.cloner.Clone(repoURL, dstPath, noCheckout)
 	if err != nil {
-		return errors.Wrapf(err, "Error downloading repository (%s)", url)
+		return errors.Wrapf(err, "Error downloading repository (%s)", repoURL)
 	}
 
 	if rev != "" {
 		w, err := r.Worktree()
 		if err != nil {
 			return errors.Wrap(err, "Error getting the worktree")
-
 		}
 
 		err = w.Checkout(&git.CheckoutOptions{
@@ -66,7 +99,6 @@ func (c *client) CloneRevision(url, dstPath, rev string) error {
 
 		if err != nil {
 			return errors.Wrap(err, "Error checking out revision")
-
 		}
 	}
 	return nil
@@ -100,59 +132,38 @@ func (c *client) ResolveRevision(repo, rev string) (string, error) {
 }
 
 // BranchHead finds the HEAD commit hash of the given branch in the given repository.
-func (c *client) BranchHead(repo, branch string) (string, error) {
-	// Create the remote with repository URL
-	rem := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
-		Name: "origin",
-		URLs: []string{repo},
-	})
-
-	// We can then use every Remote functions to retrieve wanted information
-	refs, err := rem.List(&git.ListOptions{})
+func (c *client) BranchHead(repoURL, branch string) (string, error) {
+	refs, err := c.lister.List(repoURL)
 	if err != nil {
 		return "", errors.Wrap(err, "could not list commits")
 	}
-	// Find branch and its HEAD
+
 	for _, ref := range refs {
 		if ref.Name().IsBranch() && ref.Name().Short() == branch {
 			return ref.Hash().String(), nil
 		}
 	}
-	return "", errors.Errorf("could not find HEAD of branch %s in %s", branch, repo)
+	return "", errors.Errorf("could not find HEAD of branch %s in %s", branch, repoURL)
 }
 
 // Tag finds the commit hash of the given tag in the given repository.
-func (c *client) Tag(repo, tag string) (string, error) {
-	// Create the remote with repository URL
-	rem := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
-		Name: "origin",
-		URLs: []string{repo},
-	})
-
-	// We can then use every Remote functions to retrieve wanted information
-	refs, err := rem.List(&git.ListOptions{})
+func (c *client) Tag(repoURL, tag string) (string, error) {
+	refs, err := c.lister.List(repoURL)
 	if err != nil {
 		return "", errors.Wrap(err, "could not list commits")
 	}
-	// Find branch and its HEAD
+
 	for _, ref := range refs {
 		if ref.Name().IsTag() && ref.Name().Short() == tag {
 			return ref.Hash().String(), nil
 		}
 	}
-	return "", errors.Errorf("could not find tag %s in %s", tag, repo)
+	return "", errors.Errorf("could not find tag %s in %s", tag, repoURL)
 }
 
 // PR finds the commit hash of the HEAD of the given PR in the given repository.
-func (c *client) PRHead(repo, pr string) (string, error) {
-	// Create the remote with repository URL
-	rem := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
-		Name: "origin",
-		URLs: []string{repo},
-	})
-
-	// We can then use every Remote functions to retrieve wanted information
-	refs, err := rem.List(&git.ListOptions{})
+func (c *client) PRHead(repoURL, pr string) (string, error) {
+	refs, err := c.lister.List(repoURL)
 	if err != nil {
 		return "", errors.Wrap(err, "could not list commits")
 	}
@@ -161,13 +172,12 @@ func (c *client) PRHead(repo, pr string) (string, error) {
 		pr = strings.TrimLeft(pr, prPrefix)
 	}
 
-	// Find branch and its HEAD
 	for _, ref := range refs {
 		if strings.HasPrefix(ref.Name().String(), "refs/pull") && strings.HasSuffix(ref.Name().String(), "head") && strings.Contains(ref.Name().String(), pr) {
 			return ref.Hash().String(), nil
 		}
 	}
-	return "", errors.Errorf("could not find HEAD of pull request %s in %s", pr, repo)
+	return "", errors.Errorf("could not find HEAD of pull request %s in %s", pr, repoURL)
 }
 
 func isSemVer(s string) bool {
