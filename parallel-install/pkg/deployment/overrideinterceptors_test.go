@@ -10,6 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -190,9 +191,18 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		Data: domainData,
 	}
 
+	mockNewDomainNameOverrideInterceptor := func(kubeClient kubernetes.Interface, log logger.Interface) *DomainNameOverrideInterceptor {
+		newDomainNameOverrideInterceptor := NewDomainNameOverrideInterceptor(kubeClient, log)
+		newDomainNameOverrideInterceptor.findClusterHost = func() string {
+			return localKymaDevDomain
+		}
+
+		return newDomainNameOverrideInterceptor
+	}
+
 	t.Run("DomainNameOverrideInterceptor using fallbacks", func(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset()
-		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
+		ob.AddInterceptor([]string{"global.domainName"}, mockNewDomainNameOverrideInterceptor(kubeClient, log))
 
 		// verify global overrides
 		overrides, err := ob.Build()
@@ -240,12 +250,28 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		err := ob.AddOverrides("global", domainNameOverrides)
 		require.NoError(t, err)
 
-		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
+		ob.AddInterceptor([]string{"global.domainName"}, mockNewDomainNameOverrideInterceptor(kubeClient, log))
 
 		overrides, err := ob.Build()
 		require.NotEmpty(t, overrides)
 		require.NoError(t, err)
 		require.Contains(t, overrides.String(), "user.domain")
+	})
+
+	t.Run("DomainNameOverrideInterceptor overriding external domain", func(t *testing.T) {
+		kubeClient := fake.NewSimpleClientset()
+		newDomainNameOverrideInterceptor := mockNewDomainNameOverrideInterceptor(kubeClient, log)
+		newDomainNameOverrideInterceptor.findClusterHost = func() string {
+			return externalKymaDevDomain
+		}
+
+		ob.AddInterceptor([]string{"global.domainName"}, newDomainNameOverrideInterceptor)
+
+		// verify global overrides
+		overrides, err := ob.Build()
+		require.NotEmpty(t, overrides)
+		require.NoError(t, err)
+		require.Contains(t, overrides.String(), externalKymaDevDomain)
 	})
 }
 
