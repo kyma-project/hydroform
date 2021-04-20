@@ -163,9 +163,14 @@ func Test_GlobalOverridesInterception(t *testing.T) {
 		return localKymaDevDomain
 	}
 
+	newCertificateOverrideInterceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
+	newCertificateOverrideInterceptor.isLocalCluster = func() bool {
+		return true
+	}
+
 	ob.AddInterceptor([]string{"global.isLocalEnv", "global.environment.gardener"}, NewFallbackOverrideInterceptor(false))
 	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, newDomainNameOverrideInterceptor)
-	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, newCertificateOverrideInterceptor)
 
 	// read expected result
 	data, err := ioutil.ReadFile("../test/data/deployment-global-overrides.yaml")
@@ -281,10 +286,16 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 }
 
 func Test_CertificateOverridesInterception(t *testing.T) {
+	kubeClient := fake.NewSimpleClientset()
+	newCertificateOverrideInterceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
+	newCertificateOverrideInterceptor.isLocalCluster = func() bool {
+		return true
+	}
 
 	t.Run("CertificateInterceptor using fallbacks", func(t *testing.T) {
 		ob := OverridesBuilder{}
-		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+
+		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, newCertificateOverrideInterceptor)
 		// verify cert overrides
 		overrides, err := ob.Build()
 		require.NotEmpty(t, overrides.Map())
@@ -300,7 +311,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		err := ob.AddOverrides("global", tlsOverrides)
 		require.NoError(t, err)
 
-		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, newCertificateOverrideInterceptor)
 		// verify cert overrides
 		overrides, err := ob.Build()
 		require.NotEmpty(t, overrides.Map())
@@ -316,10 +327,29 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		err := ob.AddOverrides("global", tlsOverrides)
 		require.NoError(t, err)
 
-		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, newCertificateOverrideInterceptor)
 		// verify cert overrides
 		overrides, err := ob.Build()
 		require.Empty(t, overrides.Map())
 		require.Error(t, err)
+	})
+
+	t.Run("CertificateInterceptor using existing certs for external domain", func(t *testing.T) {
+		ob := OverridesBuilder{}
+		newCertificateOverrideInterceptor.isLocalCluster = func() bool {
+			return false
+		}
+
+		tlsOverrides := make(map[string]interface{})
+		tlsOverrides["tlsCrt"] = externalTLSCrtEnc
+		tlsOverrides["tlsKey"] = externalTLSKeyEnc
+		err := ob.AddOverrides("global", tlsOverrides)
+		require.NoError(t, err)
+
+		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, newCertificateOverrideInterceptor)
+		// verify cert overrides
+		overrides, err := ob.Build()
+		require.NotEmpty(t, overrides.Map())
+		require.NoError(t, err)
 	})
 }

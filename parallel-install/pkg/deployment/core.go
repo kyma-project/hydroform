@@ -147,7 +147,7 @@ func removeFromComponentList(cl *config.ComponentList, componentNames []string) 
 func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.Interface, log logger.Interface) (Overrides, error) {
 	//hide certificate data
 	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
-	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient))
 	// make sure we don't install legacy CRDs
 	ob.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
 
