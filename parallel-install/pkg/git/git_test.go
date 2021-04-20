@@ -16,7 +16,7 @@ func TestCloneRevision(t *testing.T) {
 	t.Parallel()
 
 	os.RemoveAll("./clone") //ensure clone folder does not exist
-	err := CloneRevision(repo, "./clone", kyma117Rev)
+	err := defaultClient.CloneRevision(repo, "./clone", kyma117Rev)
 	defer os.RemoveAll("./clone")
 
 	require.NoError(t, err, "Cloning Kyma 1.17 should not error")
@@ -31,20 +31,20 @@ func TestResolveRevision(t *testing.T) {
 	t.Parallel()
 
 	// main branch head
-	r, err := ResolveRevision(repo, "main")
+	r, err := defaultClient.ResolveRevision(repo, "main")
 	require.NoError(t, err, "Resolving Kyma's main revision should not error")
 	require.True(t, isHex(r), "The resolved main revision should be a hex string")
 	// version tag
-	r, err = ResolveRevision(repo, "1.15.0")
+	r, err = defaultClient.ResolveRevision(repo, "1.15.0")
 	require.NoError(t, err, "Resolving Kyma's 1.15.0 version tag should not error")
 	require.True(t, isHex(r), "The resolved 1.15.0 version tag revision should be a hex string")
 
 	// Pull Request
-	r, err = ResolveRevision(repo, "PR-9999")
+	r, err = defaultClient.ResolveRevision(repo, "PR-9999")
 	require.NoError(t, err, "Resolving Kyma's Pull request head should not error")
 	require.True(t, isHex(r), "The resolved Pull request head should be a hex string")
 
 	// Bad ref
-	_, err = ResolveRevision(repo, "not-a-git-ref")
+	_, err = defaultClient.ResolveRevision(repo, "not-a-git-ref")
 	require.Error(t, err)
 }

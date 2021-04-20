@@ -16,15 +16,24 @@ import (
 
 const prPrefix = "PR-"
 
+type client struct {
+}
+
+var defaultClient = client{}
+
 // CloneRepo clones the repository in the given URL to the given dstPath and checks out the given revision.
 // revision can be 'main', a release version (e.g. 1.4.1), a commit hash (e.g. 34edf09a) or a PR (e.g. PR-9486).
 func CloneRepo(url, dstPath, rev string) error {
-	rev, err := ResolveRevision(url, rev)
+	return defaultClient.CloneRepo(url, dstPath, rev)
+}
+
+func (c *client) CloneRepo(url, dstPath, rev string) error {
+	rev, err := c.ResolveRevision(url, rev)
 	if err != nil {
 		return err
 	}
 
-	if err := CloneRevision(url, dstPath, rev); err != nil {
+	if err := c.CloneRevision(url, dstPath, rev); err != nil {
 		return err
 	}
 
@@ -34,7 +43,7 @@ func CloneRepo(url, dstPath, rev string) error {
 // CloneRevision clones the repository in the given URL to the given dstPath and checks out the given revision.
 // The clone downloads the bare minimum to only get the given revision.
 // If the revision is empty, HEAD will be used.
-func CloneRevision(url, dstPath, rev string) error {
+func (c *client) CloneRevision(url, dstPath, rev string) error {
 	r, err := git.PlainCloneContext(context.Background(), dstPath, false, &git.CloneOptions{
 		Depth:      0,
 		URL:        url,
@@ -42,7 +51,6 @@ func CloneRevision(url, dstPath, rev string) error {
 	})
 	if err != nil {
 		return errors.Wrapf(err, "Error downloading repository (%s)", url)
-
 	}
 
 	if rev != "" {
@@ -65,7 +73,7 @@ func CloneRevision(url, dstPath, rev string) error {
 }
 
 // ResolveRevision tries to convert a pseudo-revision reference (e.g. semVer, tag, PR, main, etc...) into a revision that can be checked out.
-func ResolveRevision(repo, rev string) (string, error) {
+func (c *client) ResolveRevision(repo, rev string) (string, error) {
 	switch {
 	//Install the specific commit hash (e.g. 34edf09a)
 	case isHex(rev):
@@ -75,15 +83,15 @@ func ResolveRevision(repo, rev string) (string, error) {
 	//Install the specific version from release (ex: 1.15.1)
 	case isSemVer(rev):
 		// get tag commit ID
-		return Tag(repo, rev)
+		return c.Tag(repo, rev)
 
 	//Install the specific pull request (e.g. PR-9486)
 	case strings.HasPrefix(rev, "PR-"):
 		// get PR HEAD commit ID
-		return PRHead(repo, rev)
+		return c.PRHead(repo, rev)
 	//Install the specific branch (e.g. main) or return error message
 	default:
-		if ref, err := BranchHead(repo, rev); err == nil {
+		if ref, err := c.BranchHead(repo, rev); err == nil {
 			return ref, nil
 		} else {
 			return "", errors.Wrap(err, fmt.Sprintf("Could not find a branch with name '%s'\nfailed to parse the rev parameter. It can take one of the following: branch name (e.g. main), commit hash (e.g. 34edf09a), release version (e.g. 1.4.1), PR (e.g. PR-9486)", rev))
@@ -92,7 +100,7 @@ func ResolveRevision(repo, rev string) (string, error) {
 }
 
 // BranchHead finds the HEAD commit hash of the given branch in the given repository.
-func BranchHead(repo, branch string) (string, error) {
+func (c *client) BranchHead(repo, branch string) (string, error) {
 	// Create the remote with repository URL
 	rem := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
 		Name: "origin",
@@ -114,7 +122,7 @@ func BranchHead(repo, branch string) (string, error) {
 }
 
 // Tag finds the commit hash of the given tag in the given repository.
-func Tag(repo, tag string) (string, error) {
+func (c *client) Tag(repo, tag string) (string, error) {
 	// Create the remote with repository URL
 	rem := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
 		Name: "origin",
@@ -136,7 +144,7 @@ func Tag(repo, tag string) (string, error) {
 }
 
 // PR finds the commit hash of the HEAD of the given PR in the given repository.
-func PRHead(repo, pr string) (string, error) {
+func (c *client) PRHead(repo, pr string) (string, error) {
 	// Create the remote with repository URL
 	rem := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
 		Name: "origin",
