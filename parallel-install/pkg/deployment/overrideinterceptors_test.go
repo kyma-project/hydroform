@@ -158,8 +158,13 @@ func Test_GlobalOverridesInterception(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
 	log := logger.NewLogger(true)
 
+	newDomainNameOverrideInterceptor := NewDomainNameOverrideInterceptor(kubeClient, log)
+	newDomainNameOverrideInterceptor.findClusterHost = func() string {
+		return localKymaDevDomain
+	}
+
 	ob.AddInterceptor([]string{"global.isLocalEnv", "global.environment.gardener"}, NewFallbackOverrideInterceptor(false))
-	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
+	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, newDomainNameOverrideInterceptor)
 	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
 
 	// read expected result
