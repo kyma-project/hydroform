@@ -3,9 +3,10 @@ package deployment
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -38,17 +39,10 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*core, error) {
+func newCore(cfg *config.Config, overrides Overrides, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) *core {
 	if isK3dCluster(kubeClient) {
 		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
 		removeFromComponentList(cfg.ComponentList, incompatibleLocalComponents)
-	}
-
-	registerOverridesInterceptors(kubeClient, ob, cfg.Log)
-
-	overrides, err := ob.Build()
-	if err != nil {
-		return nil, err
 	}
 
 	return &core{
@@ -56,7 +50,7 @@ func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Int
 		overrides:      &overrides,
 		processUpdates: processUpdates,
 		kubeClient:     kubeClient,
-	}, nil
+	}
 }
 
 func (i *core) logStatuses(statusMap map[string]string) {
@@ -150,10 +144,12 @@ func removeFromComponentList(cl *config.ComponentList, componentNames []string) 
 	}
 }
 
-func registerOverridesInterceptors(kubeClient kubernetes.Interface, o *OverridesBuilder, log logger.Interface) {
+func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.Interface, log logger.Interface) (Overrides, error) {
 	//hide certificate data
-	o.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
-	o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
+	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
 	// make sure we don't install legacy CRDs
-	o.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
+	ob.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
+
+	return ob.Build()
 }

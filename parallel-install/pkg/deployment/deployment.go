@@ -38,11 +38,12 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func
 		return nil, err
 	}
 
-	core, err := newCore(cfg, ob, kubeClient, processUpdates)
+	overrides, err := registerOverridesInterceptors(ob, kubeClient, cfg.Log)
 	if err != nil {
 		return nil, err
 	}
 
+	core := newCore(cfg, overrides, kubeClient, processUpdates)
 	return &Deployment{core}, nil
 }
 
