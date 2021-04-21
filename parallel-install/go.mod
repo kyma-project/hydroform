@@ -10,6 +10,7 @@ replace (
 )
 
 require (
+	github.com/alcortesm/tgz v0.0.0-20161220082320-9c5fe88206d7
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.1.0
