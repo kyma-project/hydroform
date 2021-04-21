@@ -11,7 +11,7 @@ replace (
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
-	github.com/blang/semver v3.5.1+incompatible
+	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.1.0
 	github.com/fatih/structs v1.1.0
 	github.com/ghodss/yaml v1.0.0
