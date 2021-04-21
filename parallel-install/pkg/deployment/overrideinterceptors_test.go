@@ -269,7 +269,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		require.Contains(t, overrides.String(), "gardener.domain")
 	})
 
-	t.Run("test user-provided domain is overriden on gardener cluster", func(t *testing.T) {
+	t.Run("test user-provided domain is overridden on gardener cluster", func(t *testing.T) {
 		// given
 		kubeClient := fake.NewSimpleClientset(gardenerCM)
 
@@ -291,7 +291,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		require.NotContains(t, overrides.String(), "user.domain")
 	})
 
-	t.Run("test user-provided domain is not overriden on local cluster", func(t *testing.T) {
+	t.Run("test user-provided domain is not overridden on local cluster", func(t *testing.T) {
 		// given
 		kubeClient := fake.NewSimpleClientset()
 
@@ -312,7 +312,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		require.Contains(t, overrides.String(), "user.domain")
 	})
 
-	t.Run("test user-provided domain is not overriden on remote cluster", func(t *testing.T) {
+	t.Run("test user-provided domain is not overridden on remote cluster", func(t *testing.T) {
 		// given
 		kubeClient := fake.NewSimpleClientset()
 

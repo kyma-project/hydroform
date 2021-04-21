@@ -38,11 +38,11 @@ type OverrideInterceptor interface {
 	Undefined(overrides map[string]interface{}, key string) error
 }
 
-//DomainNameOverrideInterceptor resolves the domain name for the cluster
+// DomainNameOverrideInterceptor resolves the domain name for the cluster
 type DomainNameOverrideInterceptor struct {
 	kubeClient     kubernetes.Interface
 	log            logger.Interface
-	isLocalCluster func() (bool, error) //Returns true if we're on a local cluster like k3s
+	isLocalCluster func() (bool, error) // Returns true if we're on a local cluster like k3s
 }
 
 func NewDomainNameOverrideInterceptor(kubeClient kubernetes.Interface, log logger.Interface) *DomainNameOverrideInterceptor {
@@ -60,7 +60,7 @@ func (i *DomainNameOverrideInterceptor) String(value interface{}, key string) st
 }
 
 func (i *DomainNameOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	// on gardener domain provided by user should be ignored
+	// On gardener, domain provided by user should be ignored
 	domainName, err := findGardenerDomain(i.kubeClient)
 	if err != nil {
 		return nil, err
@@ -121,7 +121,7 @@ func (i *DomainNameOverrideInterceptor) findLocalDomain() (domainName string, er
 	return "", nil
 }
 
-//CertificateOverrideInterceptor handles certificates
+// CertificateOverrideInterceptor handles certificates
 type CertificateOverrideInterceptor struct {
 	tlsCrtOverrideKey string
 	tlsKeyOverrideKey string
@@ -223,7 +223,7 @@ func (i *CertificateOverrideInterceptor) Undefined(overrides map[string]interfac
 
 func (i *CertificateOverrideInterceptor) validate() error {
 	if i.tlsCrtEnc != "" && i.tlsKeyEnc != "" {
-		//decode tls crt and key
+		// Decode tls crt and key
 		crt, err := base64.StdEncoding.DecodeString(i.tlsCrtEnc)
 		if err != nil {
 			return err
@@ -232,7 +232,7 @@ func (i *CertificateOverrideInterceptor) validate() error {
 		if err != nil {
 			return err
 		}
-		//ensure that crt and key are fitting together
+		// Ensure that crt and key are fitting together
 		_, err = tls.X509KeyPair(crt, key)
 		if err != nil {
 			return errors.Wrap(err,
@@ -242,7 +242,7 @@ func (i *CertificateOverrideInterceptor) validate() error {
 	return nil
 }
 
-//FallbackOverrideInterceptor sets a default value for an undefined overwrite
+// FallbackOverrideInterceptor sets a default value for an undefined overwrite
 type FallbackOverrideInterceptor struct {
 	fallback interface{}
 }
@@ -262,19 +262,19 @@ func (i *FallbackOverrideInterceptor) Undefined(overrides map[string]interface{}
 
 	for depth, subKey := range subKeys {
 		if _, ok := lastProcessedEntry[subKey]; !ok {
-			//sub-element does not exist - add map
+			// Subelement does not exist - add map
 			lastProcessedEntry[subKey] = make(map[string]interface{})
 		}
 		if _, ok := lastProcessedEntry[subKey].(map[string]interface{}); !ok {
-			//ensure existing sub-element is map otherwise fail
+			// Ensure existing sub-element is map otherwise fail
 			return fmt.Errorf("override '%s' cannot be set with default value as sub-key '%s' is not a map", key, strings.Join(subKeys[:depth+1], "."))
 		}
 
 		if depth == (maxDepth - 1) {
-			//we are in the last loop, set default value
+			// We are in the last loop, set default value
 			lastProcessedEntry[subKey] = i.fallback
 		} else {
-			//continue processing the next sub-entry
+			// Continue processing the next sub-entry
 			lastProcessedEntry = lastProcessedEntry[subKey].(map[string]interface{})
 		}
 	}
