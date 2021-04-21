@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -37,6 +36,14 @@ type OverrideInterceptor interface {
 	Undefined(overrides map[string]interface{}, key string) error
 }
 
+//DomainNameOverrideInterceptor resolves the domain name for the cluster
+type DomainNameOverrideInterceptor struct {
+	kubeClient     kubernetes.Interface
+	retryOptions   []retry.Option
+	log            logger.Interface
+	isLocalCluster func() (bool, error) //Returns true if we're on a local cluster like k3s
+}
+
 func NewDomainNameOverrideInterceptor(kubeClient kubernetes.Interface, log logger.Interface) *DomainNameOverrideInterceptor {
 	retryOptions := []retry.Option{
 		retry.Delay(2 * time.Second),
@@ -48,25 +55,10 @@ func NewDomainNameOverrideInterceptor(kubeClient kubernetes.Interface, log logge
 		kubeClient:   kubeClient,
 		retryOptions: retryOptions,
 		log:          log,
-		findClusterHost: func() string {
-
-			//TODO: For testing, remove before merging
-			testDomain := os.Getenv("CUSTOMDOMAIN")
-			if testDomain != "" {
-				return testDomain
-			}
-
-			return kubeClient.Discovery().RESTClient().Get().URL().Host
+		isLocalCluster: func() (bool, error) {
+			return isK3dCluster(kubeClient)
 		},
 	}
-}
-
-//DomainNameOverrideInterceptor resolves the domain name for the cluster
-type DomainNameOverrideInterceptor struct {
-	kubeClient      kubernetes.Interface
-	retryOptions    []retry.Option
-	log             logger.Interface
-	findClusterHost func() string
 }
 
 func (i *DomainNameOverrideInterceptor) String(value interface{}, key string) string {
@@ -96,9 +88,7 @@ func (i *DomainNameOverrideInterceptor) Undefined(overrides map[string]interface
 	return NewFallbackOverrideInterceptor(domain).Undefined(overrides, key)
 }
 
-func (i *DomainNameOverrideInterceptor) getDomainName() (string, error) {
-	var domainName string
-	var err error
+func (i *DomainNameOverrideInterceptor) getDomainName() (domainName string, err error) {
 
 	//If on gardener, always return gardener domain
 	domainName, err = i.findGardenerDomain()
@@ -149,23 +139,17 @@ func (i *DomainNameOverrideInterceptor) findGardenerDomain() (domainName string,
 }
 
 func (i *DomainNameOverrideInterceptor) findLocalDomain() (domainName string, err error) {
-	err = retry.Do(func() error {
-		clusterHost := i.findClusterHost()
 
-		isLocalCluster := strings.Contains(clusterHost, localKymaDevDomain)
-		if isLocalCluster {
-			domainName = localKymaDevDomain
-			return nil
-		}
-
-		return nil
-	}, i.retryOptions...)
-
+	isLocalCluster, err := i.isLocalCluster()
 	if err != nil {
 		return "", err
 	}
 
-	return domainName, nil
+	if isLocalCluster {
+		return localKymaDevDomain, nil
+	}
+
+	return "", nil
 }
 
 //CertificateOverrideInterceptor handles certificates
@@ -174,7 +158,20 @@ type CertificateOverrideInterceptor struct {
 	tlsKeyOverrideKey string
 	tlsCrtEnc         string
 	tlsKeyEnc         string
-	isLocalCluster    func() bool
+	isLocalCluster    func() (bool, error)
+}
+
+func NewCertificateOverrideInterceptor(tlsCrtOverrideKey, tlsKeyOverrideKey string, kubeClient kubernetes.Interface) *CertificateOverrideInterceptor {
+	res := &CertificateOverrideInterceptor{
+		tlsCrtOverrideKey: tlsCrtOverrideKey,
+		tlsKeyOverrideKey: tlsKeyOverrideKey,
+	}
+
+	res.isLocalCluster = func() (bool, error) {
+		return isK3dCluster(kubeClient)
+	}
+
+	return res
 }
 
 func (i *CertificateOverrideInterceptor) String(value interface{}, key string) string {
@@ -195,10 +192,15 @@ func (i *CertificateOverrideInterceptor) Intercept(value interface{}, key string
 }
 
 func (i *CertificateOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
+	isLocalCluster, err := i.isLocalCluster()
+	if err != nil {
+		return err
+	}
+
 	var fbInterc *FallbackOverrideInterceptor
 	switch key {
 	case i.tlsCrtOverrideKey:
-		if i.isLocalCluster() {
+		if isLocalCluster {
 			fbInterc = NewFallbackOverrideInterceptor(defaultTLSCrtEnc)
 			i.tlsCrtEnc = defaultTLSCrtEnc
 		} else {
@@ -206,7 +208,7 @@ func (i *CertificateOverrideInterceptor) Undefined(overrides map[string]interfac
 			i.tlsCrtEnc = externalTLSCrtEnc
 		}
 	case i.tlsKeyOverrideKey:
-		if i.isLocalCluster() {
+		if isLocalCluster {
 			fbInterc = NewFallbackOverrideInterceptor(defaultTLSKeyEnc)
 			i.tlsKeyEnc = defaultTLSKeyEnc
 		} else {
@@ -241,19 +243,6 @@ func (i *CertificateOverrideInterceptor) validate() error {
 		}
 	}
 	return nil
-}
-
-func NewCertificateOverrideInterceptor(tlsCrtOverrideKey, tlsKeyOverrideKey string, kubeClient kubernetes.Interface) *CertificateOverrideInterceptor {
-	certificateOverrideInterceptor := &CertificateOverrideInterceptor{
-		tlsCrtOverrideKey: tlsCrtOverrideKey,
-		tlsKeyOverrideKey: tlsKeyOverrideKey,
-	}
-
-	certificateOverrideInterceptor.isLocalCluster = func() bool {
-		return strings.Contains(kubeClient.Discovery().RESTClient().Get().URL().Host, localKymaDevDomain)
-	}
-
-	return certificateOverrideInterceptor
 }
 
 //FallbackOverrideInterceptor sets a default value for an undefined overwrite

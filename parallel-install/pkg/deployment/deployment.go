@@ -43,7 +43,11 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func
 		return nil, err
 	}
 
-	core := newCore(cfg, overrides, kubeClient, processUpdates)
+	core, err := newCore(cfg, overrides, kubeClient, processUpdates)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Deployment{core}, nil
 }
 

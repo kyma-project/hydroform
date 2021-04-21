@@ -159,13 +159,13 @@ func Test_GlobalOverridesInterception(t *testing.T) {
 	log := logger.NewLogger(true)
 
 	newDomainNameOverrideInterceptor := NewDomainNameOverrideInterceptor(kubeClient, log)
-	newDomainNameOverrideInterceptor.findClusterHost = func() string {
-		return localKymaDevDomain
+	newDomainNameOverrideInterceptor.isLocalCluster = func() (bool, error) {
+		return true, nil
 	}
 
 	newCertificateOverrideInterceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
-	newCertificateOverrideInterceptor.isLocalCluster = func() bool {
-		return true
+	newCertificateOverrideInterceptor.isLocalCluster = func() (bool, error) {
+		return true, nil
 	}
 
 	ob.AddInterceptor([]string{"global.isLocalEnv", "global.environment.gardener"}, NewFallbackOverrideInterceptor(false))
@@ -203,8 +203,8 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 
 	mockNewDomainNameOverrideInterceptor := func(kubeClient kubernetes.Interface, log logger.Interface) *DomainNameOverrideInterceptor {
 		newDomainNameOverrideInterceptor := NewDomainNameOverrideInterceptor(kubeClient, log)
-		newDomainNameOverrideInterceptor.findClusterHost = func() string {
-			return localKymaDevDomain
+		newDomainNameOverrideInterceptor.isLocalCluster = func() (bool, error) {
+			return true, nil
 		}
 
 		return newDomainNameOverrideInterceptor
@@ -271,8 +271,8 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 	t.Run("DomainNameOverrideInterceptor overriding external domain", func(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset()
 		newDomainNameOverrideInterceptor := mockNewDomainNameOverrideInterceptor(kubeClient, log)
-		newDomainNameOverrideInterceptor.findClusterHost = func() string {
-			return externalKymaDevDomain
+		newDomainNameOverrideInterceptor.isLocalCluster = func() (bool, error) {
+			return false, nil
 		}
 
 		ob.AddInterceptor([]string{"global.domainName"}, newDomainNameOverrideInterceptor)
@@ -288,8 +288,8 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 func Test_CertificateOverridesInterception(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
 	newCertificateOverrideInterceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
-	newCertificateOverrideInterceptor.isLocalCluster = func() bool {
-		return true
+	newCertificateOverrideInterceptor.isLocalCluster = func() (bool, error) {
+		return true, nil
 	}
 
 	t.Run("CertificateInterceptor using fallbacks", func(t *testing.T) {
@@ -336,8 +336,8 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 
 	t.Run("CertificateInterceptor using existing certs for external domain", func(t *testing.T) {
 		ob := OverridesBuilder{}
-		newCertificateOverrideInterceptor.isLocalCluster = func() bool {
-			return false
+		newCertificateOverrideInterceptor.isLocalCluster = func() (bool, error) {
+			return false, nil
 		}
 
 		tlsOverrides := make(map[string]interface{})

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/pkg/errors"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -39,8 +40,13 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func newCore(cfg *config.Config, overrides Overrides, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) *core {
-	if isK3dCluster(kubeClient) {
+func newCore(cfg *config.Config, overrides Overrides, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*core, error) {
+	isK3d, err := isK3dCluster(kubeClient)
+	if err != nil {
+		return nil, err
+	}
+
+	if isK3d {
 		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
 		removeFromComponentList(cfg.ComponentList, incompatibleLocalComponents)
 	}
@@ -50,7 +56,7 @@ func newCore(cfg *config.Config, overrides Overrides, kubeClient kubernetes.Inte
 		overrides:      &overrides,
 		processUpdates: processUpdates,
 		kubeClient:     kubeClient,
-	}
+	}, nil
 }
 
 func (i *core) logStatuses(statusMap map[string]string) {
@@ -125,17 +131,31 @@ func (i *core) processUpdateComponent(phase InstallationPhase, comp components.K
 	})
 }
 
-func isK3dCluster(kubeClient kubernetes.Interface) bool {
-	nodeList, err := kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return false
+func isK3dCluster(kubeClient kubernetes.Interface) (isK3d bool, err error) {
+
+	retryOptions := []retry.Option{
+		retry.Delay(2 * time.Second),
+		retry.Attempts(3),
+		retry.DelayType(retry.FixedDelay),
 	}
-	for _, node := range nodeList.Items {
-		if strings.HasPrefix(node.GetName(), "k3d-") {
-			return true
+
+	err = retry.Do(func() error {
+		nodeList, err := kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			return err
 		}
-	}
-	return false
+
+		for _, node := range nodeList.Items {
+			if strings.HasPrefix(node.GetName(), "k3d-") {
+				isK3d = true
+				return nil
+			}
+		}
+
+		return nil
+	}, retryOptions...)
+
+	return isK3d, nil
 }
 
 func removeFromComponentList(cl *config.ComponentList, componentNames []string) {
