@@ -232,43 +232,52 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		return newDomainNameOverrideInterceptor
 	}
 
-	t.Run("DomainNameOverrideInterceptor for local cluster", func(t *testing.T) {
+	t.Run("test default domain for local cluster", func(t *testing.T) {
+		// given
 		kubeClient := fake.NewSimpleClientset()
 		ob.AddInterceptor([]string{"global.domainName"}, mockNewDomainNameOverrideInterceptor(kubeClient, log, true))
 
-		// verify global overrides
+		// when
 		overrides, err := ob.Build()
-		require.NotEmpty(t, overrides)
+
+		// then
 		require.NoError(t, err)
+		require.NotEmpty(t, overrides)
 		require.Contains(t, overrides.String(), localKymaDevDomain)
 	})
 
-	t.Run("DomainNameOverrideInterceptor for remote non-gardener cluster", func(t *testing.T) {
+	t.Run("test default domain for remote non-gardener cluster", func(t *testing.T) {
+		// given
 		kubeClient := fake.NewSimpleClientset()
 		ob.AddInterceptor([]string{"global.domainName"}, mockNewDomainNameOverrideInterceptor(kubeClient, log, false))
 
-		// verify global overrides
+		// when
 		overrides, err := ob.Build()
-		require.NotEmpty(t, overrides)
+
+		// then
 		require.NoError(t, err)
+		require.NotEmpty(t, overrides)
 		require.Contains(t, overrides.String(), defaultRemoteKymaDomain)
 	})
 
-	t.Run("DomainNameOverrideInterceptor for gardener cluster", func(t *testing.T) {
+	t.Run("test valid domain for a gardener cluster", func(t *testing.T) {
+		//given
 		kubeClient := fake.NewSimpleClientset(gardenerCM)
 		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
 
-		// verify global overrides
+		// when
 		overrides, err := ob.Build()
-		require.NotEmpty(t, overrides)
+
+		// then
 		require.NoError(t, err)
+		require.NotEmpty(t, overrides)
 		require.Contains(t, overrides.String(), "gardener.domain")
 	})
 
-	t.Run("DomainNameOverrideInterceptor overriding domain on gardener", func(t *testing.T) {
+	t.Run("test user-provided domain is overriden on gardener cluster", func(t *testing.T) {
+		// given
 		kubeClient := fake.NewSimpleClientset(gardenerCM)
 
-		// verify global overrides
 		ob := OverridesBuilder{}
 		domainNameOverrides := make(map[string]interface{})
 		domainNameOverrides["domainName"] = "user.domain"
@@ -277,16 +286,20 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 
 		ob.AddInterceptor([]string{"global.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
 
+		// when
 		overrides, err := ob.Build()
-		require.NotEmpty(t, overrides)
+
+		// then
 		require.NoError(t, err)
+		require.NotEmpty(t, overrides)
 		require.Contains(t, overrides.String(), "gardener.domain")
+		require.NotContains(t, overrides.String(), "user.domain")
 	})
 
-	t.Run("DomainNameOverrideInterceptor not overriding domain", func(t *testing.T) {
+	t.Run("test user-provided domain is not overriden on local cluster", func(t *testing.T) {
+		// given
 		kubeClient := fake.NewSimpleClientset()
 
-		// verify global overrides
 		ob := OverridesBuilder{}
 		domainNameOverrides := make(map[string]interface{})
 		domainNameOverrides["domainName"] = "user.domain"
@@ -295,23 +308,34 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 
 		ob.AddInterceptor([]string{"global.domainName"}, mockNewDomainNameOverrideInterceptor(kubeClient, log, true))
 
+		// when
 		overrides, err := ob.Build()
-		require.NotEmpty(t, overrides)
+
+		// then
 		require.NoError(t, err)
+		require.NotEmpty(t, overrides)
 		require.Contains(t, overrides.String(), "user.domain")
 	})
 
-	t.Run("DomainNameOverrideInterceptor overriding external domain", func(t *testing.T) {
+	t.Run("test user-provided domain is not overriden on remote cluster", func(t *testing.T) {
+		// given
 		kubeClient := fake.NewSimpleClientset()
-		newDomainNameOverrideInterceptor := mockNewDomainNameOverrideInterceptor(kubeClient, log, false)
 
-		ob.AddInterceptor([]string{"global.domainName"}, newDomainNameOverrideInterceptor)
-
-		// verify global overrides
-		overrides, err := ob.Build()
-		require.NotEmpty(t, overrides)
+		ob := OverridesBuilder{}
+		domainNameOverrides := make(map[string]interface{})
+		domainNameOverrides["domainName"] = "user.domain"
+		err := ob.AddOverrides("global", domainNameOverrides)
 		require.NoError(t, err)
-		require.Contains(t, overrides.String(), defaultRemoteKymaDomain)
+
+		ob.AddInterceptor([]string{"global.domainName"}, mockNewDomainNameOverrideInterceptor(kubeClient, log, false))
+
+		// when
+		overrides, err := ob.Build()
+
+		// then
+		require.NoError(t, err)
+		require.NotEmpty(t, overrides)
+		require.Contains(t, overrides.String(), "user.domain")
 	})
 }
 
