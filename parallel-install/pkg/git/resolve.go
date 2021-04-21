@@ -15,10 +15,6 @@ import (
 
 const prPrefix = "PR-"
 
-type revisionResolver struct {
-	lister refLister
-}
-
 type refLister interface {
 	List(repoURL string) ([]*plumbing.Reference, error)
 }
@@ -35,12 +31,10 @@ func (rl *remoteRefLister) List(repoURL string) ([]*plumbing.Reference, error) {
 	return remote.List(&git.ListOptions{})
 }
 
-var defaultResolver = revisionResolver{
-	lister: &remoteRefLister{},
-}
+var defaultLister refLister = &remoteRefLister{}
 
 // resolveRevision tries to convert a pseudo-revision reference (e.g. semVer, tag, PR, main, etc...) into a revision that can be checked out.
-func (c *revisionResolver) resolveRevision(repo, rev string) (string, error) {
+func ResolveRevision(repo, rev string) (string, error) {
 	switch {
 	// Install the specific commit hash (e.g. 34edf09a)
 	case isHex(rev):
@@ -50,15 +44,15 @@ func (c *revisionResolver) resolveRevision(repo, rev string) (string, error) {
 	// Install the specific version from release (ex: 1.15.1)
 	case isSemVer(rev):
 		// get tag commit ID
-		return c.tag(repo, rev)
+		return Tag(repo, rev)
 
 	// Install the specific pull request (e.g. PR-9486)
 	case strings.HasPrefix(rev, "PR-"):
 		// get PR HEAD commit ID
-		return c.prHead(repo, rev)
+		return PRHead(repo, rev)
 	// Install the specific branch (e.g. main) or return error message
 	default:
-		if ref, err := c.branchHead(repo, rev); err == nil {
+		if ref, err := BranchHead(repo, rev); err == nil {
 			return ref, nil
 		} else {
 			return "", errors.Wrap(err, fmt.Sprintf("Could not find a branch with name '%s'\nfailed to parse the rev parameter. It can take one of the following: branch name (e.g. main), commit hash (e.g. 34edf09a), release version (e.g. 1.4.1), PR (e.g. PR-9486)", rev))
@@ -67,8 +61,8 @@ func (c *revisionResolver) resolveRevision(repo, rev string) (string, error) {
 }
 
 // branchHead finds the HEAD commit hash of the given branch in the given repository.
-func (c *revisionResolver) branchHead(repoURL, branch string) (string, error) {
-	refs, err := c.lister.List(repoURL)
+func BranchHead(repoURL, branch string) (string, error) {
+	refs, err := defaultLister.List(repoURL)
 	if err != nil {
 		return "", errors.Wrap(err, "could not list commits")
 	}
@@ -82,8 +76,8 @@ func (c *revisionResolver) branchHead(repoURL, branch string) (string, error) {
 }
 
 // tag finds the commit hash of the given tag in the given repository.
-func (c *revisionResolver) tag(repoURL, tag string) (string, error) {
-	refs, err := c.lister.List(repoURL)
+func Tag(repoURL, tag string) (string, error) {
+	refs, err := defaultLister.List(repoURL)
 	if err != nil {
 		return "", errors.Wrap(err, "could not list commits")
 	}
@@ -97,8 +91,8 @@ func (c *revisionResolver) tag(repoURL, tag string) (string, error) {
 }
 
 // PR finds the commit hash of the HEAD of the given PR in the given repository.
-func (c *revisionResolver) prHead(repoURL, pr string) (string, error) {
-	refs, err := c.lister.List(repoURL)
+func PRHead(repoURL, pr string) (string, error) {
+	refs, err := defaultLister.List(repoURL)
 	if err != nil {
 		return "", errors.Wrap(err, "could not list commits")
 	}

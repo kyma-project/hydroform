@@ -17,8 +17,6 @@ func (fl *fakeRefLister) List(repoURL string) ([]*plumbing.Reference, error) {
 
 // TestResolveRevision tests implicitly also the commit ID resolution functions for: Branch, PR and Tag
 func TestResolveRevision(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		summary       string
 		givenRefs     []*plumbing.Reference
@@ -65,12 +63,10 @@ func TestResolveRevision(t *testing.T) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.summary, func(t *testing.T) {
-			resolver := revisionResolver{
-				lister: &fakeRefLister{
-					refs: tc.givenRefs,
-				},
+			defaultLister = &fakeRefLister{
+				refs: tc.givenRefs,
 			}
-			r, err := resolver.resolveRevision("github.com/fake-repo", tc.givenRevision)
+			r, err := ResolveRevision("github.com/fake-repo", tc.givenRevision)
 			if tc.expectErr {
 				require.Error(t, err)
 			} else {

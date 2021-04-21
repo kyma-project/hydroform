@@ -28,7 +28,7 @@ var defaultCloner repoCloner = &remoteRepoCloner{}
 // CloneRepo clones the repository in the given URL to the given dstPath and checks out the given revision.
 // revision can be 'main', a release version (e.g. 1.4.1), a commit hash (e.g. 34edf09a) or a PR (e.g. PR-9486).
 func CloneRepo(url, dstPath, rev string) error {
-	rev, err := defaultResolver.resolveRevision(url, rev)
+	rev, err := ResolveRevision(url, rev)
 	if err != nil {
 		return err
 	}

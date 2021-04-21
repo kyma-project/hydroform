@@ -19,7 +19,11 @@ func (fc *fakeCloner) Clone(url, path string, noCheckout bool) (*git.Repository,
 	return fc.repo, nil
 }
 
-func TestCloneRevision(t *testing.T) {
+// TestCloneRepo tests CloneRepo function that is provided with a dummy git repository (no actual cloning is performed)
+// The repo has following commits
+// 1. Add README (tagged with 1.0.0)
+// 2. Update README (tagged with 2.0.0 - HEAD)
+func TestCloneRepo(t *testing.T) {
 	untarred, err := tgz.Extract("testdata/repo.tgz")
 	defer func() {
 		require.NoError(t, os.RemoveAll(untarred))
@@ -32,19 +36,14 @@ func TestCloneRevision(t *testing.T) {
 
 	var refs []*plumbing.Reference
 	iter, err := repo.References()
-	err = iter.ForEach(func(r *plumbing.Reference) error {
+	require.NoError(t, err)
+	iter.ForEach(func(r *plumbing.Reference) error {
 		refs = append(refs, r)
 		return nil
 	})
 
-	defaultCloner = &fakeCloner{
-		repo: repo,
-	}
-	defaultResolver = revisionResolver{
-		lister: &fakeRefLister{
-			refs: refs,
-		},
-	}
+	defaultCloner = &fakeCloner{repo: repo}
+	defaultLister = &fakeRefLister{refs: refs}
 
 	headRef, err := repo.Head()
 	require.NoError(t, err)
