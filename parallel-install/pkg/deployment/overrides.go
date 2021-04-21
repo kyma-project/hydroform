@@ -67,7 +67,6 @@ func (ob *OverridesBuilder) AddInterceptor(overrideKeys []string, interceptor Ov
 
 // Build an overrides object merging all provided sources
 func (ob *OverridesBuilder) Build() (Overrides, error) {
-	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Build()")
 	merged, err := ob.mergeSources()
 	if err != nil {
 		return Overrides{}, err
