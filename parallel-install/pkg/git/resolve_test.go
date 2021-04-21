@@ -70,7 +70,7 @@ func TestResolveRevision(t *testing.T) {
 					refs: tc.givenRefs,
 				},
 			}
-			r, err := resolver.resolveRevision(repo, tc.givenRevision)
+			r, err := resolver.resolveRevision("github.com/fake-repo", tc.givenRevision)
 			if tc.expectErr {
 				require.Error(t, err)
 			} else {
