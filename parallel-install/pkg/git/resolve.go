@@ -42,21 +42,21 @@ var defaultResolver = revisionResolver{
 // resolveRevision tries to convert a pseudo-revision reference (e.g. semVer, tag, PR, main, etc...) into a revision that can be checked out.
 func (c *revisionResolver) resolveRevision(repo, rev string) (string, error) {
 	switch {
-	//Install the specific commit hash (e.g. 34edf09a)
+	// Install the specific commit hash (e.g. 34edf09a)
 	case isHex(rev):
 		// no need for conversion
 		return rev, nil
 
-	//Install the specific version from release (ex: 1.15.1)
+	// Install the specific version from release (ex: 1.15.1)
 	case isSemVer(rev):
 		// get tag commit ID
 		return c.tag(repo, rev)
 
-	//Install the specific pull request (e.g. PR-9486)
+	// Install the specific pull request (e.g. PR-9486)
 	case strings.HasPrefix(rev, "PR-"):
 		// get PR HEAD commit ID
 		return c.prHead(repo, rev)
-	//Install the specific branch (e.g. main) or return error message
+	// Install the specific branch (e.g. main) or return error message
 	default:
 		if ref, err := c.branchHead(repo, rev); err == nil {
 			return ref, nil
