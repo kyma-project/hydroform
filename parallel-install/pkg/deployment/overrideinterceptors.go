@@ -41,22 +41,14 @@ type OverrideInterceptor interface {
 //DomainNameOverrideInterceptor resolves the domain name for the cluster
 type DomainNameOverrideInterceptor struct {
 	kubeClient     kubernetes.Interface
-	retryOptions   []retry.Option
 	log            logger.Interface
 	isLocalCluster func() (bool, error) //Returns true if we're on a local cluster like k3s
 }
 
 func NewDomainNameOverrideInterceptor(kubeClient kubernetes.Interface, log logger.Interface) *DomainNameOverrideInterceptor {
-	retryOptions := []retry.Option{
-		retry.Delay(2 * time.Second),
-		retry.Attempts(3),
-		retry.DelayType(retry.FixedDelay),
-	}
-
 	return &DomainNameOverrideInterceptor{
-		kubeClient:   kubeClient,
-		retryOptions: retryOptions,
-		log:          log,
+		kubeClient: kubeClient,
+		log:        log,
 		isLocalCluster: func() (bool, error) {
 			return isK3dCluster(kubeClient)
 		},
@@ -69,7 +61,7 @@ func (i *DomainNameOverrideInterceptor) String(value interface{}, key string) st
 
 func (i *DomainNameOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
 	//on gardener domain provided by user should be ignored
-	domainName, err := i.findGardenerDomain()
+	domainName, err := findGardenerDomain(i.kubeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +85,7 @@ func (i *DomainNameOverrideInterceptor) Undefined(overrides map[string]interface
 func (i *DomainNameOverrideInterceptor) getDomainName() (domainName string, err error) {
 
 	//If on gardener, always return gardener domain
-	domainName, err = i.findGardenerDomain()
+	domainName, err = findGardenerDomain(i.kubeClient)
 	if err != nil {
 		return "", err
 	}
@@ -112,32 +104,6 @@ func (i *DomainNameOverrideInterceptor) getDomainName() (domainName string, err 
 
 	//Fallback to a generic remote cluster domain
 	return defaultRemoteKymaDomain, nil
-}
-
-func (i *DomainNameOverrideInterceptor) findGardenerDomain() (domainName string, err error) {
-	err = retry.Do(func() error {
-		configMap, err := i.kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), "shoot-info", metav1.GetOptions{})
-
-		if err != nil {
-			if apierr.IsNotFound(err) {
-				return nil
-			}
-			return err
-		}
-
-		domainName = configMap.Data["domain"]
-		if domainName == "" {
-			return fmt.Errorf("domain is empty in %s configmap", "shoot-info")
-		}
-
-		return nil
-	}, i.retryOptions...)
-
-	if err != nil {
-		return "", err
-	}
-
-	return domainName, nil
 }
 
 func (i *DomainNameOverrideInterceptor) findLocalDomain() (domainName string, err error) {
@@ -161,6 +127,7 @@ type CertificateOverrideInterceptor struct {
 	tlsCrtEnc         string
 	tlsKeyEnc         string
 	isLocalCluster    func() (bool, error)
+	isGardenerCluster func() (bool, error)
 }
 
 func NewCertificateOverrideInterceptor(tlsCrtOverrideKey, tlsKeyOverrideKey string, kubeClient kubernetes.Interface) *CertificateOverrideInterceptor {
@@ -171,6 +138,14 @@ func NewCertificateOverrideInterceptor(tlsCrtOverrideKey, tlsKeyOverrideKey stri
 
 	res.isLocalCluster = func() (bool, error) {
 		return isK3dCluster(kubeClient)
+	}
+
+	res.isGardenerCluster = func() (bool, error) {
+		gardenerDomain, err := findGardenerDomain(kubeClient)
+		if err != nil {
+			return false, err
+		}
+		return gardenerDomain != "", nil
 	}
 
 	return res
@@ -194,6 +169,14 @@ func (i *CertificateOverrideInterceptor) Intercept(value interface{}, key string
 }
 
 func (i *CertificateOverrideInterceptor) Undefined(overrides map[string]interface{}, key string) error {
+	isGardener, err := i.isGardenerCluster()
+	if err != nil {
+		return err
+	}
+	if isGardener {
+		return nil
+	}
+
 	isLocalCluster, err := i.isLocalCluster()
 	if err != nil {
 		return err
@@ -320,4 +303,36 @@ func (i *InstallLegacyCRDsInterceptor) Undefined(overrides map[string]interface{
 
 func NewInstallLegacyCRDsInterceptor() *InstallLegacyCRDsInterceptor {
 	return &InstallLegacyCRDsInterceptor{}
+}
+
+func findGardenerDomain(kubeClient kubernetes.Interface) (domainName string, err error) {
+	retryOptions := []retry.Option{
+		retry.Delay(2 * time.Second),
+		retry.Attempts(3),
+		retry.DelayType(retry.FixedDelay),
+	}
+
+	err = retry.Do(func() error {
+		configMap, err := kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), "shoot-info", metav1.GetOptions{})
+
+		if err != nil {
+			if apierr.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+
+		domainName = configMap.Data["domain"]
+		if domainName == "" {
+			return fmt.Errorf("domain is empty in %s configmap", "shoot-info")
+		}
+
+		return nil
+	}, retryOptions...)
+
+	if err != nil {
+		return "", err
+	}
+
+	return domainName, nil
 }
