@@ -12,7 +12,6 @@ replace (
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.1.0
 	github.com/fatih/structs v1.1.0
 	github.com/ghodss/yaml v1.0.0
@@ -25,7 +24,6 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	gopkg.in/src-d/go-git-fixtures.v3 v3.5.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 	helm.sh/helm/v3 v3.5.3 //Before upgrading: please see TODO comment in replace() section on top!
