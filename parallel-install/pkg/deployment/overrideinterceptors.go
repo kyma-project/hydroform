@@ -60,7 +60,7 @@ func (i *DomainNameOverrideInterceptor) String(value interface{}, key string) st
 }
 
 func (i *DomainNameOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	//on gardener domain provided by user should be ignored
+	// on gardener domain provided by user should be ignored
 	domainName, err := findGardenerDomain(i.kubeClient)
 	if err != nil {
 		return nil, err
@@ -70,6 +70,7 @@ func (i *DomainNameOverrideInterceptor) Intercept(value interface{}, key string)
 		return domainName, nil
 	}
 
+	// In every other environment, proceed with what was provided by the user.
 	return value, nil
 }
 
@@ -84,7 +85,7 @@ func (i *DomainNameOverrideInterceptor) Undefined(overrides map[string]interface
 
 func (i *DomainNameOverrideInterceptor) getDomainName() (domainName string, err error) {
 
-	//If on gardener, always return gardener domain
+	// On gardener always return gardener domain
 	domainName, err = findGardenerDomain(i.kubeClient)
 	if err != nil {
 		return "", err
@@ -93,7 +94,7 @@ func (i *DomainNameOverrideInterceptor) getDomainName() (domainName string, err 
 		return domainName, nil
 	}
 
-	//If on local k3s cluster, return local development domain
+	// On local k3s cluster return local development domain
 	domainName, err = i.findLocalDomain()
 	if err != nil {
 		return "", err
@@ -102,7 +103,7 @@ func (i *DomainNameOverrideInterceptor) getDomainName() (domainName string, err 
 		return domainName, nil
 	}
 
-	//Fallback to a generic remote cluster domain
+	// In any other environment fallback to a generic remote cluster domain
 	return defaultRemoteKymaDomain, nil
 }
 
@@ -156,6 +157,14 @@ func (i *CertificateOverrideInterceptor) String(value interface{}, key string) s
 }
 
 func (i *CertificateOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
+	isGardener, err := i.isGardenerCluster()
+	if err != nil {
+		return "", err
+	}
+	if isGardener {
+		return "", nil
+	}
+
 	switch key {
 	case i.tlsCrtOverrideKey:
 		i.tlsCrtEnc = value.(string)

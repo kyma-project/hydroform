@@ -336,6 +336,9 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 
 func Test_CertificateOverridesInterception(t *testing.T) {
 
+	testFakeCrt := "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUUrakNDQXVJQ0NRQ09EVk1VNHBqUFBUQU5CZ2txaGtpRzl3MEJBUXNGQURBL01Rc3dDUVlEVlFRR0V3SlEKVERFTk1Bc0dBMVVFQ2d3RVMzbHRZVEVOTUFzR0ExVUVDd3dFUzNsdFlURVNNQkFHQTFVRUF3d0phM2x0WVM1MApaWE4wTUI0WERUSXhNRFF5TVRFMU1UZ3hNRm9YRFRNeE1EUXhPVEUxTVRneE1Gb3dQekVMTUFrR0ExVUVCaE1DClVFd3hEVEFMQmdOVkJBb01CRXQ1YldFeERUQUxCZ05WQkFzTUJFdDViV0V4RWpBUUJnTlZCQU1NQ1d0NWJXRXUKZEdWemREQ0NBaUl3RFFZSktvWklodmNOQVFFQkJRQURnZ0lQQURDQ0Fnb0NnZ0lCQU40SUl4QnovN3dnd01SQQoxbVRlbWxhZzllaitSdDZvSUo5UTlUTWtDU1dDTk1tRFMzUW5UZDcyVVQxY09YandRVTcvMWEvbGVjY1BNdHpnCmlmckVmUVNMSjd0M3F2U01iN0ZJMmlYdFhqRjliV1oycGxXMGNlMFkxalIydmNRTEMvTDltcW5SSFZGaHRvRWMKYUhrU3Zmb2xkemxkbmdGNlN4UnFLZGQ3eVYvbHVXTkF3SWZ3KzRwMGNuZXQ0emExQUY4VkxXTGRXZThUM1c1eQprVmFHOXo1QUkwMURjSTlYUVJINHZIUktzcnJXUk5iNnUrcTVKRFFra1pENG5YN3NVNTdtcmQzWE1rZ2tpMjR5CmNPdUk5U2NxMHpIU2duWmFKUDVVbjFmaHg0MytweXgvSnB3SFgvREU0THN0cWc0SWxENTFoU1RsZGRnekZVYnUKL0tMdUZReTV5SnA5TUtFakx0L1RMWVhxK1BZQmVsdDFSZXB1V21ES2Y1aWJ4S0ZFWG9yc0V3QnN2aGR4VDVjcgpDelZvUmE2Z0dkbjZDaThDUVlUbmhYREVhemlvdWtaU2gxKytpT2NaVHB0eC95TTU5S1dYSHZEQzFwR2VWQk80Cm9pdFRRYkRUTjJTS3c0K1BhYTluQzBjVXJGa2hTUzJXYUNvSmNvWmdoZWJJQkNQb3FzNWpTeUVwNUsxM1dwbXIKVlZQVVhNQi8weDBjWUJ5R1cwNnpiNlJOUzdxR3g4YTBlQjU3MXI0YUljaThFVnlKa1BUbk16MG9JcVVQZHcxWApmcTdDMm1acm5yN1lQSEhnMEVCY0lFbHllL1Z0ZlcyU3M0cDZheUJrcTFpbDJNTE5ISVEzUThuU3lWL290MnpOCjFxUURENUtRbFJpcmxYcjBBV3psUklPZG5rV3JBZ01CQUFFd0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dJQkFCL2cKNWhiOENqZVlrZkdlek9BMjFpYVpuZTVTV3c3eXNacHFiUGk5NHB2eFJIcklTbFFyM3lGWTBTS1JYcFR6Sk54RApEbWpNMjlJaDBnUXA2UkhLYUtFc094VE5NMWVBNW5MckV3THNPZDhDNDJibmFiSlFtbFlubnAwOXorMWJTTnJBCmZuNWNDek52MVJ5aVNDNHZ4SUpBdUIzOVpFODgvMHhMQXRDd01GS1hwNkJ2b2FxTTJPblRqcE5XZCt1Z2E5eGcKUkQvVVY4UXNTNTJSL083azlWaGI1YXZjUkorOG8vdTU3NVBHdzNHRDVHckwwQWplVXljaEFMVlB6MHVURXl4aQpQK0oyR0ZYRDJGZFl4aVVwR3V5eld5ajlWTEtyV0ljbEIzYytMTDZNMW9UN0gvNUdsQXI2d0htVEhobXBCekJLCnEwMC9EV2NzSHNvUzVKNG8wTUtJbEkxUnV2REhqK1Y2YU5NUWVXR08vQm43V1hiZEhld1BJTFBUVHFqOEJUU2YKUGhXcEdXRmRSRWNsUldmVU93R05MYkY1U01ycVNLOG1lNFdyZmMvTW85WVpHbFg2cDlmMXZMTWlhc3lDOGFXNgpUSHZyVkttcEtjTUpBUVJlUTQrb3hGc3pMSStQZTRVcHdrcEdnMmRPSm9zb09CcUphTkRJV0ttazZVV29sLzJoCnF4QXh6cy8zTW9OUzVOSWNMZkloQXhoeXlzbXNGZ1E1MkQvaWtFeGN6UzBzVC9aQWtuMTZjTzlTYzhKWVRKY2oKVEdLWlRyVWFmby9RS0Y3MjZyOWtsNmN4NmxramJiaVFCQzFxczgyb1FVREpNQnJWdFlha0huL1FXNGtDOWdBSQpkWGtEeTNMeWlhR2VBMm9BeFFPZytHTnhNV2pCWEU1aytGRndsSUhVCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
+	testFakeKey := "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUpSQUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQ1M0d2dna3FBZ0VBQW9JQ0FRRGVDQ01RYy8rOElNREUKUU5aazNwcFdvUFhvL2tiZXFDQ2ZVUFV6SkFrbGdqVEpnMHQwSjAzZTlsRTlYRGw0OEVGTy85V3Y1WG5IRHpMYwo0SW42eEgwRWl5ZTdkNnIwakcreFNOb2w3VjR4ZlcxbWRxWlZ0SEh0R05ZMGRyM0VDd3Z5L1pxcDBSMVJZYmFCCkhHaDVFcjM2SlhjNVhaNEJla3NVYWluWGU4bGY1YmxqUU1DSDhQdUtkSEozcmVNMnRRQmZGUzFpM1ZudkU5MXUKY3BGV2h2YytRQ05OUTNDUFYwRVIrTHgwU3JLNjFrVFcrcnZxdVNRMEpKR1ErSjErN0ZPZTVxM2QxekpJSkl0dQpNbkRyaVBVbkt0TXgwb0oyV2lUK1ZKOVg0Y2VOL3Fjc2Z5YWNCMS93eE9DN0xhb09DSlErZFlVazVYWFlNeFZHCjd2eWk3aFVNdWNpYWZUQ2hJeTdmMHkyRjZ2ajJBWHBiZFVYcWJscGd5bitZbThTaFJGNks3Qk1BYkw0WGNVK1gKS3dzMWFFV3VvQm5aK2dvdkFrR0U1NFZ3eEdzNHFMcEdVb2Rmdm9qbkdVNmJjZjhqT2ZTbGx4N3d3dGFSbmxRVAp1S0lyVTBHdzB6ZGtpc09QajJtdlp3dEhGS3haSVVrdGxtZ3FDWEtHWUlYbXlBUWo2S3JPWTBzaEtlU3RkMXFaCnExVlQxRnpBZjlNZEhHQWNobHRPczIra1RVdTZoc2ZHdEhnZWU5YStHaUhJdkJGY2laRDA1ek05S0NLbEQzY04KVjM2dXd0cG1hNTYrMkR4eDROQkFYQ0JKY252MWJYMXRrck9LZW1zZ1pLdFlwZGpDelJ5RU4wUEowc2xmNkxkcwp6ZGFrQXcrU2tKVVlxNVY2OUFGczVVU0RuWjVGcXdJREFRQUJBb0lDQVFDWWZmZ3ZMYXcvdGpNTzF3VW9wQ1pXClJ4aDkzRjRxUUVpZmd3ZlZCdlB0T2Y4dFE2cUg3Ukt6aG5NSGRKYllkQkkyd3NrdGxLck54NmVFUWdjaUh0OUsKUnBTVVViMHRWbUxEM1NoT2tqZDJRQkhxSktWYkNhS1JWOVNPbGRzQmtTQzAwKzdzb1AzRXpocDlsRmhBaDFuSgpPd0FtZXlDeEhTQUJ0bVJrWmRWSnNzcGYyN0lmNjZlblVSRHBGNW1ORWtWZUNIcHlnMXBvTkRtSnlNLy9JSlVnCndRWTk0NHFrT0NZdHhLc1NKOWVYTU9CNDBoNU1PTG9md2Rua09veFpCdERydXIxQk5yS0hEK3BmVmU5dUpWTlMKZ2p3bzVNN0xvRi8xK1lLeTVoT2JkNEd6c3VSK2x5WVNnL1ZoT1J5cHBNVEVIUXpENllERmExZzZycHIvQUF1ZAp1Um5xVEx0eEdzaXpTeE1MNVdYaGY5YVFZeFduR0tWVDlZeUE4d3lGWnpzTUtvMkJpRlhKT2lXdGNXSVl4NEY0CjJRcmhmK1F5cmRpRmgxUFA5SzkrUi9xTzhSVWgxSlgvYkYzMEhuRklhSnplOEdWdzRqdEdxTWxaK2NjV21kaGwKUnM5akpodEdtQTkzWDlSc2dpRnllMWVPMmh2T3haT1lxUzNBVW1MS2dqb0JXSGtNV0ZWNjZnLzVBQ3lFd0xVYwpUeGFneVQ1dmtSMm5MeU5JdGVncldFdXpVZDBNbU5rQ3pwYWZGc0lxYVFNOU0xRmpXZmlScVFjOENlcmhrMnRCCmluMUpYdHpObDRSZndUYVloclhMQmdwWjhkbjlkOXpxTGR3MFhEV09jbmxkVWRmL3JWUVhnbU80Y09iVUF5N1oKQ2d2c09ObjMzY1RXa2JQd1E2ZE9ZUUtDQVFFQStJbFBkTjVveGFOVHYvam1rL2QxWnB1N0xuN24rQitqL1pDcgpsTE9IaE1JZHl2cXg5UU5ZTFhsa3ZGd3NrZTdnL3dlSng5ckU4MGFlU0dCd1Rod2gxYzlXMUk1bGlDS05UcEI2Ck55cnlOTXUxdi9PSnFDR3A3MDRXNlZBdEdDYXNSSDRleEp6QlNibElCZ2ZsdXUxRm9LKzdyeWQwR0FwME9ocTEKTmJma1NReDh0YWZqSk1ydmx6MXAwbUQ1eG92NlY2eEt6cU13ZndtQ1ZRYXlvSzdJTTJRL2drbVNrUDRERkM3RAppYW1SYWMyaVpEbmV3REhjQzFKbE9jY05URVQ2TkNqa2xTa1BzMm1IZGlCeXJxVXBZNEFEZGo3T2ZwV3k4N1QxCmplRFFtR0xIc3k0MjlvL3BMazY2bmNCUzIvSWF1NFJhYWp0RGltWFJpaGx5SzV3QU93S0NBUUVBNUxNUXh3ZTQKZHJKQzg3NytaZS9UZ2UzNXNRODNrZXRoMEFmRmtJbGlCdERpc1RDSTV1YTFVdGk0Q1h1bHBOUDExN0lnL3l6KwpiWlJBTWVjZXhnL3JGWmZhWFhUcmU4VnR1WDJJdS8xYnd5WXlzNE13RFJ0Z2xwS2hIWUdHN0xLY21EVHB6MS9SCnBoQTY0a3dBaEl1SnpENHVwb3JYbmRJcUJaT20wdnlmeUMzQ25MbjdYeVB0Tlp2d0tlbkFMV3FCemFpQXUvbzkKYjdIN3pFdWhyRDU3UXRDdDJGV1ZPbmZYSGJjRTN0dytlS0hUMGNWakRQZ3Z6d0xjZC9rQmRmYjJxenI1OVNVRwpCdFF1cS93aDFTSUc3eHZRYzJzUVVaeEJxK3E0aEhzVnNLbXk1YStGR2E5VkdkYVVXUUhYcmR2Q1dFVkJHOTF5CkduTnZJM0J4eHQ1cFVRS0NBUUVBaTh1NFhMVkpXM205L3VwQzBCSE9BSFF5T2puNXdyQVJidXYwQndWZ2djVXEKT3VUK09pR3lkSW1tcHVoMXpYUC9MSlFSNU05aUhyQ25FWERsV3BvcVVmaDVEOEEwemZrWllJcVZvL2hOR25ORwovUHhBZnNqSXJDbFJhOVRFT0tSd0cycVJaZWdDTkxTNkZXSlZ6dW50VXkvbHN1VFBRVUtJRTdLNElNb1o1eGpXCkFOdTVRUlhBNUdJUDV0elRRZUcwWTZJdXhjSTI0ZzM0T0ZrM0duaVZkWXE2eWs4VjJPWjMxdDlpNzBqbzJRbG8KZ1ZXbnZKV08vdk5PcXN3UzU4YVlzY1FhcHVmY3cvN2t5Z1lBVzhuYzJQSEZnTHBkTGdpSUN0ckxrQTFYWjQrUQpZbkhwU3BDeUNYRVJPUEJYNncxb0NmZXRYN21NQ1FteWJpcFg5TDJmeHdLQ0FRQjIwbHBMTGtXMjFkTlhWTXBVCktCQ2FGd3g5NDh3WmNsUTFnM1F3TGxEUi9jRnFFaTl1MkRzcE9oUVVTVHU4c2F1dlQ0czVTU1UveGFDOHpMbisKYWRMWU96ZG5DeEkyRWxONTVqRWVpdm9jSUVLRFpndVhJN3hCUHhtYWZPdWZHd1dsUndpYmg4c2pIcGVaYjZkdApOaHA0Rlc2amRNdWw0Y1dYZENsZXdZWTZ1UnU5MWhzMlNUSTdnak43YzBrM3ozaDFZN0RPK2FybDEzRmRxWVhzCk9lSk15cU1vSFA4Vmk2SW1mQ3A1cDdDRmVIN1hKRmpjS2k2Y3ZYM1NqM3NrMFJWRHpiYUVtYUhSOW5meFAyUk0KbWd0RVBBMUhpajdHU0FzT3lUcnBDaEl3NFZwalg1Z2x5aVRLOGVQTmd0bU9LUG1HWnlUMjEwMHJWUUpQUldLMwowbUtoQW9JQkFRREFDbGlVTTlhUlNWS2FkMnQweHExT2d4VXd4YmcyK1UyZWVYcnc3Nm5sbmc3V3lKbm9QVTNKClhJMjhIN1pHTmQzM1FJTXNjMWJRcGdseFRHbU1sTjNuV1RBSDE0bE44Y0lSTXhCaFh1WU16ejM0RkFqNmRSdzgKRWtjV1daM3pGZUYrK09zbngxc3dxeldMbHJZV1A1bVg3TEx5VzBNOEptN2hyUTZHMzJIRGg5cnlzay96Yk5IZApadHFtYXdySVpBU1FVaGREUUFPS1hIL2hLdDBGY2tFR0NabStac2FNdHY3QVlCelJ6QWZjL0FDdXp4VVhRV2J2CkdDT0xZYkR6N3RxQ3JqdGFwVWVlNTFSd3pjSTNaeEhORVlRTjNsQ3NUQWdMQ1FUOU5iWFpUUFBRVy9SYkIrY2MKZlFtRFV6MHNjVXI2Z0FVWVdoSHJXQWVlZ0xYRFlhSmEKLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQo="
+
 	gardenerCM := fakeGardenerCM()
 
 	t.Run("test default cert for local cluster", func(t *testing.T) {
@@ -379,13 +382,11 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 	})
 
 	t.Run("test default cert is not set for a gardener cluster", func(t *testing.T) {
-		t.Skip("Fails for now")
-
 		kubeClient := fake.NewSimpleClientset(gardenerCM)
 
 		// given
 		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
-		interceptor.isLocalCluster = isLocalClusterFunc(true)
+		interceptor.isLocalCluster = isLocalClusterFunc(true) //Try to trick the code into local domain. Should be handled properly
 
 		ob := OverridesBuilder{}
 
@@ -396,33 +397,12 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		require.Empty(t, overrides.Map())
+		require.Empty(t, overrides.Map()) //No override injected
 	})
 
 	t.Run("test user-provided cert is reset to an empty string for a gardener cluster", func(t *testing.T) {
-		t.Skip("TODO: Implement")
-
 		// given
 		kubeClient := fake.NewSimpleClientset(gardenerCM)
-		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
-		interceptor.isLocalCluster = isLocalClusterFunc(true)
-
-		ob := OverridesBuilder{}
-
-		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
-
-		// when
-		overrides, err := ob.Build()
-
-		// then
-		require.NoError(t, err)
-		require.Empty(t, overrides.Map())
-	})
-
-	t.Run("test user-provided cert is preserved for a local cluster", func(t *testing.T) {
-		t.Skip("TODO: Implement")
-		// given
-		kubeClient := fake.NewSimpleClientset()
 		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
 		interceptor.isLocalCluster = isLocalClusterFunc(true)
 
@@ -435,51 +415,123 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		require.NoError(t, err)
 
 		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
-		// verify cert overrides
+
+		// when
 		overrides, err := ob.Build()
+
+		// then
 		require.NoError(t, err)
 		require.NotEmpty(t, overrides.Map())
+		// then user-provided overrides are replaced by empty strings
+		require.Equal(t, getOverride(overrides.Map(), "global.tlsCrt"), "")
+		require.Equal(t, getOverride(overrides.Map(), "global.tlsKey"), "")
 	})
 
-	/*
-		t.Run("CertificateInterceptor using invalid certs", func(t *testing.T) {
-			// given
-			interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
-			interceptor.isLocalCluster = isLocalClusterFunc(true)
+	t.Run("test user-provided cert is preserved for a local cluster", func(t *testing.T) {
 
-			ob := OverridesBuilder{}
+		// given
+		kubeClient := fake.NewSimpleClientset()
+		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
+		interceptor.isLocalCluster = isLocalClusterFunc(true)
 
-			tlsOverrides := make(map[string]interface{})
-			tlsOverrides["tlsCrt"] = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZSRENDQXl3Q0NRQ2pOdWF5a2xVZGRqQU5CZ2txaGtpRzl3MEJBUXNGQURCa01Rc3dDUVlEVlFRR0V3SkUKUlRFUU1BNEdBMVVFQ0F3SFFtRjJZWEpwWVRFUE1BMEdBMVVFQnd3R1RYVnVhV05vTVE4d0RRWURWUVFLREFaVApRVkFnVTBVeERUQUxCZ05WQkFzTUJFdDViV0V4RWpBUUJnTlZCQU1NQ1hSbGMzUXVZMkZ6WlRBZUZ3MHlNVEF5Ck1UZ3hNVEl3TkRaYUZ3MHlNakF5TVRneE1USXdORFphTUdReEN6QUpCZ05WQkFZVEFrUkZNUkF3RGdZRFZRUUkKREFkQ1lYWmhjbWxoTVE4d0RRWURWUVFIREFaTmRXNXBZMmd4RHpBTkJnTlZCQW9NQmxOQlVDQlRSVEVOTUFzRwpBMVVFQ3d3RVMzbHRZVEVTTUJBR0ExVUVBd3dKZEdWemRDNWpZWE5sTUlJQ0lqQU5CZ2txaGtpRzl3MEJBUUVGCkFBT0NBZzhBTUlJQ0NnS0NBZ0VBMFFBM1BPOFlWY2NFbVVvYkppQzZQZjN0eHBNWFJlRmNObUZiVDgvY1ArcDcKT2hIVVZzMUE4YWxRS2VXVy8yMTU2bm83clpsMUtVUXlBYVVNL054cTdhNWJaRUF1WmdtcjhWSVJNUDlnME14aQoxb3NGcXJiaE05cVMrL29adjFURlg1M2pZVHFvZkxselVnbWZPeHFyby9Wb1RWZS9mMTR2TG5EQkF5UG0vRXdOCkZxOWtqblhnaERxNnJpSTJ4T1c2YVpaR3lGVHN3ZHpzbm5CK3B4L3dqc21nTGlTSVRXbDA3ekRTa0RaRjlIY3kKbFhGWGIxeGJNZUpySWtYTCtqRVE2T3hTbWw0QjZMeGszc3o3L0JFb0JVaG1zMDR2T2paNjgzQi9zd1FZeEdzRgpGcU4vcnRXTHBGQmUxckdDM2NKYXFuVUIwTVRBK0dGL2dTcGdPV0g5Q3JScnc0RXhQMFNTWkwvUWZRaGc2Nmw1CmZxNUdGNzVEYWx2ckNlOVpWYzN5TDFJWUJHY2cxMUlPQk9ZaGFYUElEWEx1K3pFbERCaTlLZzdnYTkxYmJoQ3cKUXpXZE5wZzVJby9wRnEvT2pPMitxU1pDdVdITFZrNCtVeTVySS9IVWtmWmFWSXplVDkwTzRMT2VkZEFaamd0WQoveFppMWxXQVcrZjZhQWZLRUdpWXg3MlE5NkJ1cUtGc0Y0MlpoWmp5czY3OWRrbE5pMy9Ta2dlR1Qzb2lHZUNPCjFHZmx3R2tBWUxkZ3hxZTBMOURXRUxWcy8vTjFkMUF3VFZ0RUtncHd0cDJzSkg5b1laZEZ3eVJiemczRW44NmwKc05DNlNLTENHcDdYc0ZMZ3VHcDdRNFhmVWZsT0ZwSVVycFZhQ00xUThEbTBlTnZyaTAzWVlCUzJuSkVNY0JNQwpBd0VBQVRBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQWdFQWZzN0dQRFVqN1BXTE4rTkVYY0NvbExwbFoxTjE0emZJCnJhWTJ0c1VQcTNGeGxjMUpsa0R3QUlLcGxoTVVIY0Iya2Q1YTVHOUlNSFpyZ29nVWVWTjlLUklIL1pTMDAydloKRktPeDd5M1owYWZ0Q2Z1aEZKTk1pV09DV2UxVFBuUUJod082eElOWjZWZktoa3dZRGNtRXIxQnJTdi85c2RJUwovT0czbU91Mi9VcnNLdkZmN1d0NFVQUjhONnphUjFDUFIxUytOWFhKeXNjZ2RoNC80UVRwZm1hRUFKWnRxQ1NNCmpUUk5DVlVTZnZGK21Kem4yVnJ3YjFKSUkwWVhQVi9VSng1WTdLeFFFV2JGdkp2b1ZYaG15RVZ5dllxNWVPTWQKbDc1VHZhbTJ0ek0vQnIvMUpkNkdxNFhhU1pZL08wbmg2MlVVZlVJMXdPNG5OVlBwTEs4d1Z4SElnWng2ZUIyYwpncW83NDJZQ3JyVXZ5Y080VTlJaWNQTEcyVmduNzlnTVRJZDdRL0o5WjFFakFvbmIwL0tuTFFaZVlReks2T09MCndyQlVBaEtrbnI4MXU0R3BabGU2eVVPd0Q0ZDRhTGJQM08zTG5LUVF3Y1M0andCVDFGRlpyeEFoUEVBRGZveXEKemNKeS9SU2t3WU9NaWpoZ3RXR3cxdU5FSnFXekw5MExKOXVLRWJrODN6c2h3MFFHQ0ROb3hmNStMVmtPWVBURwppaTdxdE8xYUczSFJnQWdRKytzOXdreGdaRjNYeGxISUlaRmEvRHZuaUJxaGxEOXJLQzl0eFVUN01SU3dvcWN6CldJZEdqeW9RZ2hKbTJSS3F5REQxQjE4SEJ2MXdCbStMdzRSbHJDOVREeWM5OTFqMEgxZEViWDRpMCtRZUZnYXQKWThxd2hqeStjME09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
-			tlsOverrides["tlsKey"] = defaultLocalTLSKeyEnc
-			err := ob.AddOverrides("global", tlsOverrides)
-			require.NoError(t, err)
+		ob := OverridesBuilder{}
 
-			ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
-			// verify cert overrides
-			overrides, err := ob.Build()
-			require.Error(t, err)
-			require.Empty(t, overrides.Map())
-		})
+		tlsOverrides := make(map[string]interface{})
+		tlsOverrides["tlsCrt"] = testFakeCrt
+		tlsOverrides["tlsKey"] = testFakeKey
+		err := ob.AddOverrides("global", tlsOverrides)
+		require.NoError(t, err)
 
-		t.Run("CertificateInterceptor using existing certs for external domain", func(t *testing.T) {
-			ob := OverridesBuilder{}
-			interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
-			interceptor.isLocalCluster = isLocalClusterFunc(false)
+		// Ensure user provides values different than defaults for local domain
+		require.NotEqual(t, tlsOverrides["tlsCrt"], defaultLocalTLSCrtEnc)
+		require.NotEqual(t, tlsOverrides["tlsKey"], defaultLocalTLSKeyEnc)
 
-			tlsOverrides := make(map[string]interface{})
-			tlsOverrides["tlsCrt"] = defaultRemoteTLSCrtEnc
-			tlsOverrides["tlsKey"] = defaultRemoteTLSKeyEnc
-			err := ob.AddOverrides("global", tlsOverrides)
-			require.NoError(t, err)
+		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
 
-			ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
-			// verify cert overrides
-			overrides, err := ob.Build()
-			require.NoError(t, err)
-			require.NotEmpty(t, overrides.Map())
-		})
-	*/
+		// when
+		overrides, err := ob.Build()
+
+		// then
+		require.NoError(t, err)
+		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, getOverride(overrides.Map(), "global.tlsCrt"), testFakeCrt)
+		require.Equal(t, getOverride(overrides.Map(), "global.tlsKey"), testFakeKey)
+	})
+
+	t.Run("test user-provided cert is preserved for a remote non-gardener cluster", func(t *testing.T) {
+		// given
+		kubeClient := fake.NewSimpleClientset()
+		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
+		interceptor.isLocalCluster = isLocalClusterFunc(false)
+
+		tlsOverrides := make(map[string]interface{})
+		tlsOverrides["tlsCrt"] = testFakeCrt
+		tlsOverrides["tlsKey"] = testFakeKey
+		ob := OverridesBuilder{}
+		err := ob.AddOverrides("global", tlsOverrides)
+		require.NoError(t, err)
+
+		// Ensure user provides values different than defaults for remote domain
+		require.NotEqual(t, tlsOverrides["tlsCrt"], defaultRemoteTLSCrtEnc)
+		require.NotEqual(t, tlsOverrides["tlsKey"], defaultRemoteTLSKeyEnc)
+
+		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
+
+		// when
+		overrides, err := ob.Build()
+
+		// then
+		require.NoError(t, err)
+		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, getOverride(overrides.Map(), "global.tlsCrt"), testFakeCrt)
+		require.Equal(t, getOverride(overrides.Map(), "global.tlsKey"), testFakeKey)
+	})
+
+	t.Run("test invalid crt key pair", func(t *testing.T) {
+		// given
+		kubeClient := fake.NewSimpleClientset()
+		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
+		interceptor.isLocalCluster = isLocalClusterFunc(true)
+
+		tlsOverrides := make(map[string]interface{})
+		tlsOverrides["tlsCrt"] = testFakeCrt
+		tlsOverrides["tlsKey"] = defaultLocalTLSKeyEnc
+		ob := OverridesBuilder{}
+		err := ob.AddOverrides("global", tlsOverrides)
+		require.NoError(t, err)
+
+		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
+		// when
+		overrides, err := ob.Build()
+
+		// then
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "private key does not match public key")
+		require.Empty(t, overrides.Map())
+	})
+
+	t.Run("test invalid key format", func(t *testing.T) {
+		// given
+		kubeClient := fake.NewSimpleClientset()
+		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
+		interceptor.isLocalCluster = isLocalClusterFunc(true)
+
+		tlsOverrides := make(map[string]interface{})
+		tlsOverrides["tlsCrt"] = testFakeCrt
+		tlsOverrides["tlsKey"] = "V2VkIEFwciAyMSAxNzoyNTowOCBDRVNUIDIwMjEK"
+		ob := OverridesBuilder{}
+		err := ob.AddOverrides("global", tlsOverrides)
+		require.NoError(t, err)
+
+		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
+		// when
+		overrides, err := ob.Build()
+
+		// then
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to find any PEM data in key")
+		require.Empty(t, overrides.Map())
+	})
 }
 
 func fakeGardenerCM() *v1.ConfigMap {
