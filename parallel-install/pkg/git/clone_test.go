@@ -24,14 +24,14 @@ func (fc *fakeCloner) Clone(url, path string, noCheckout bool) (*git.Repository,
 // 1. Add README (tagged with 1.0.0)
 // 2. Update README (tagged with 2.0.0 - HEAD)
 func TestCloneRepo(t *testing.T) {
-	untarred, err := tgz.Extract("testdata/repo.tgz")
+	localRepoRootPath, err := tgz.Extract("testdata/repo.tgz")
 	defer func() {
-		require.NoError(t, os.RemoveAll(untarred))
+		require.NoError(t, os.RemoveAll(localRepoRootPath))
 	}()
 	require.NoError(t, err)
-	require.NotEmpty(t, untarred)
+	require.NotEmpty(t, localRepoRootPath)
 
-	repo, err := git.PlainOpen(path.Join(untarred, "repo"))
+	repo, err := git.PlainOpen(path.Join(localRepoRootPath, "repo"))
 	require.NoError(t, err)
 
 	var refs []*plumbing.Reference
