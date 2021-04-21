@@ -202,24 +202,27 @@ func (i *CertificateOverrideInterceptor) Undefined(overrides map[string]interfac
 	var fbInterc *FallbackOverrideInterceptor
 	switch key {
 	case i.tlsCrtOverrideKey:
+		var val string
 		if isLocalCluster {
-			fbInterc = NewFallbackOverrideInterceptor(defaultLocalTLSCrtEnc)
-			i.tlsCrtEnc = defaultLocalTLSCrtEnc
+			val = defaultLocalTLSCrtEnc
 		} else {
-			fbInterc = NewFallbackOverrideInterceptor(defaultRemoteTLSCrtEnc)
-			i.tlsCrtEnc = defaultRemoteTLSCrtEnc
+			val = defaultRemoteTLSCrtEnc
 		}
+		fbInterc = NewFallbackOverrideInterceptor(val)
+		i.tlsCrtEnc = val
 	case i.tlsKeyOverrideKey:
+		var val string
 		if isLocalCluster {
-			fbInterc = NewFallbackOverrideInterceptor(defaultLocalTLSKeyEnc)
-			i.tlsKeyEnc = defaultLocalTLSKeyEnc
+			val = defaultLocalTLSKeyEnc
 		} else {
-			fbInterc = NewFallbackOverrideInterceptor(defaultRemoteTLSKeyEnc)
-			i.tlsCrtEnc = defaultRemoteTLSKeyEnc
+			val = defaultRemoteTLSKeyEnc
 		}
+		fbInterc = NewFallbackOverrideInterceptor(val)
+		i.tlsKeyEnc = val
 	default:
 		return fmt.Errorf("certificate interceptor can not handle overrides-key '%s'", key)
 	}
+
 	if err := fbInterc.Undefined(overrides, key); err != nil {
 		return err
 	}
