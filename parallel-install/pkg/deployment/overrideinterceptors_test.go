@@ -205,6 +205,15 @@ func Test_GlobalOverridesInterceptionForNonGardenerCluster(t *testing.T) {
 	err = yaml.Unmarshal(data, &expected)
 	require.NoError(t, err)
 
+	expectedKeys := extractKeys(expected)
+	require.Equal(t, 6, len(expectedKeys))
+	require.Contains(t, expectedKeys, "global.isLocalEnv")
+	require.Contains(t, expectedKeys, "global.domainName")
+	require.Contains(t, expectedKeys, "global.tlsCrt")
+	require.Contains(t, expectedKeys, "global.tlsKey")
+	require.Contains(t, expectedKeys, "global.environment.gardener")
+	require.Contains(t, expectedKeys, "global.ingress.domainName")
+
 	// verify global overrides
 	overrides, err := ob.Build()
 	require.NotEmpty(t, overrides)
@@ -215,9 +224,6 @@ func Test_GlobalOverridesInterceptionForNonGardenerCluster(t *testing.T) {
 func Test_DomainNameOverrideInterceptor(t *testing.T) {
 	ob := OverridesBuilder{}
 	log := logger.NewLogger(true)
-
-	//domainData := make(map[string]string)
-	//domainData["domain"] = "gardener.domain"
 
 	gardenerCM := fakeGardenerCM()
 
@@ -238,7 +244,8 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		require.NotEmpty(t, overrides)
-		require.Contains(t, overrides.String(), localKymaDevDomain)
+		require.Equal(t, 1, len(extractKeys(overrides.Map())))
+		require.Equal(t, localKymaDevDomain, getOverride(overrides.Map(), "global.domainName"))
 	})
 
 	t.Run("test default domain for remote non-gardener cluster", func(t *testing.T) {
@@ -252,7 +259,8 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		require.NotEmpty(t, overrides)
-		require.Contains(t, overrides.String(), defaultRemoteKymaDomain)
+		require.Equal(t, 1, len(extractKeys(overrides.Map())))
+		require.Equal(t, defaultRemoteKymaDomain, getOverride(overrides.Map(), "global.domainName"))
 	})
 
 	t.Run("test valid domain for a gardener cluster", func(t *testing.T) {
@@ -266,7 +274,8 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		require.NotEmpty(t, overrides)
-		require.Contains(t, overrides.String(), "gardener.domain")
+		require.Equal(t, 1, len(extractKeys(overrides.Map())))
+		require.Equal(t, "gardener.domain", getOverride(overrides.Map(), "global.domainName"))
 	})
 
 	t.Run("test user-provided domain is overridden on gardener cluster", func(t *testing.T) {
@@ -287,8 +296,8 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		require.NotEmpty(t, overrides)
-		require.Contains(t, overrides.String(), "gardener.domain")
-		require.NotContains(t, overrides.String(), "user.domain")
+		require.Equal(t, 1, len(extractKeys(overrides.Map())))
+		require.Equal(t, "gardener.domain", getOverride(overrides.Map(), "global.domainName"))
 	})
 
 	t.Run("test user-provided domain is not overridden on local cluster", func(t *testing.T) {
@@ -309,7 +318,8 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		require.NotEmpty(t, overrides)
-		require.Contains(t, overrides.String(), "user.domain")
+		require.Equal(t, 1, len(extractKeys(overrides.Map())))
+		require.Equal(t, "user.domain", getOverride(overrides.Map(), "global.domainName"))
 	})
 
 	t.Run("test user-provided domain is not overridden on remote cluster", func(t *testing.T) {
@@ -330,7 +340,8 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		require.NotEmpty(t, overrides)
-		require.Contains(t, overrides.String(), "user.domain")
+		require.Equal(t, 1, len(extractKeys(overrides.Map())))
+		require.Equal(t, "user.domain", getOverride(overrides.Map(), "global.domainName"))
 	})
 }
 
@@ -357,6 +368,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, 2, len(extractKeys(overrides.Map())))
 		require.Equal(t, getOverride(overrides.Map(), "global.tlsCrt"), defaultLocalTLSCrtEnc)
 		require.Equal(t, getOverride(overrides.Map(), "global.tlsKey"), defaultLocalTLSKeyEnc)
 	})
@@ -377,16 +389,17 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, 2, len(extractKeys(overrides.Map())))
 		require.Equal(t, getOverride(overrides.Map(), "global.tlsCrt"), defaultRemoteTLSCrtEnc)
 		require.Equal(t, getOverride(overrides.Map(), "global.tlsKey"), defaultRemoteTLSKeyEnc)
 	})
 
-	t.Run("test default cert is not set for a gardener cluster", func(t *testing.T) {
+	t.Run("test default cert is not set for a gardener cluster even if isLocalCluster returns true", func(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset(gardenerCM)
 
 		// given
 		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
-		interceptor.isLocalCluster = isLocalClusterFunc(true) //Try to trick the code into local domain. Should be handled properly
+		interceptor.isLocalCluster = isLocalClusterFunc(true)
 
 		ob := OverridesBuilder{}
 
@@ -397,7 +410,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		require.Empty(t, overrides.Map()) //No override injected
+		require.Empty(t, overrides.Map())
 	})
 
 	t.Run("test user-provided cert is reset to an empty string for a gardener cluster", func(t *testing.T) {
@@ -421,8 +434,8 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		require.NotEmpty(t, overrides.Map())
 		// then user-provided overrides are replaced by empty strings
+		require.Equal(t, 2, len(extractKeys(overrides.Map())))
 		require.Equal(t, getOverride(overrides.Map(), "global.tlsCrt"), "")
 		require.Equal(t, getOverride(overrides.Map(), "global.tlsKey"), "")
 	})
@@ -453,7 +466,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, 2, len(extractKeys(overrides.Map())))
 		require.Equal(t, getOverride(overrides.Map(), "global.tlsCrt"), testFakeCrt)
 		require.Equal(t, getOverride(overrides.Map(), "global.tlsKey"), testFakeKey)
 	})
@@ -482,7 +495,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, 2, len(extractKeys(overrides.Map())))
 		require.Equal(t, getOverride(overrides.Map(), "global.tlsCrt"), testFakeCrt)
 		require.Equal(t, getOverride(overrides.Map(), "global.tlsKey"), testFakeKey)
 	})
@@ -576,4 +589,21 @@ func getOverride(overrides map[string]interface{}, key string) string {
 	}
 
 	return res
+}
+
+func extractKeys(overrides map[string]interface{}) []string {
+	keys := []string{}
+
+	for k := range overrides {
+		if subMap, isMap := overrides[k].(map[string]interface{}); isMap {
+			subKeys := extractKeys(subMap)
+			for si := 0; si < len(subKeys); si++ {
+				keys = append(keys, k+"."+subKeys[si])
+			}
+		} else {
+			keys = append(keys, k)
+		}
+	}
+
+	return keys
 }
