@@ -74,6 +74,7 @@ func ResolveRevision(repo, rev string) (string, error) {
 
 	//Install the specific version from release (ex: 1.15.1)
 	case isSemVer(rev):
+		rev = SetToLatestPatchVersion(rev)
 		// get tag commit ID
 		return Tag(repo, rev)
 
