@@ -85,13 +85,13 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 func ContainerImage(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:4bed80da"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:PR-11121"
 	case types.Nodejs14:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11091"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11121"
 	case types.Python38:
-		return "eu.gcr.io/kyma-project/function-runtime-python38:4bed80da"
+		return "eu.gcr.io/kyma-project/function-runtime-python38:PR-11121"
 	default:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11091"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11121"
 	}
 }
 

@@ -356,28 +356,28 @@ func TestContainerImage(t *testing.T) {
 			args: args{
 				runtime: "",
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11091",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11121",
 		},
 		{
 			name: "should return image for Nodejs12",
 			args: args{
 				runtime: types.Nodejs12,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:4bed80da",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:PR-11121",
 		},
 		{
 			name: "should return image for Nodejs14",
 			args: args{
 				runtime: types.Nodejs14,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11091",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11121",
 		},
 		{
 			name: "should return image for Python38",
 			args: args{
 				runtime: types.Python38,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-python38:4bed80da",
+			want: "eu.gcr.io/kyma-project/function-runtime-python38:PR-11121",
 		},
 	}
 	for _, tt := range tests {
