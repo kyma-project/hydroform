@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -17,6 +16,8 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 )
 
+var log *logger.Logger
+
 //main provides an example of how to integrate the parallel-install library with your code.
 func main() {
 	kubeconfigPath := flag.String("kubeconfig", "", "Path to the Kubeconfig file")
@@ -27,7 +28,7 @@ func main() {
 
 	flag.Parse()
 
-	log := logger.NewLogger(*verbose)
+	log = logger.NewLogger(*verbose)
 
 	if (kubeconfigPath == nil || *kubeconfigPath == "") &&
 		(kubeconfigContent == nil || *kubeconfigContent == "") {
@@ -80,17 +81,6 @@ func main() {
 		Version: *version,
 	}
 
-	// used to receive progress updates of the install/uninstall process
-	var progressCh chan deployment.ProcessUpdate
-	if !(*verbose) {
-		progressCh = make(chan deployment.ProcessUpdate)
-		ctx := renderProgress(progressCh, log)
-		defer func() {
-			close(progressCh)
-			<-ctx.Done()
-		}()
-	}
-
 	commonRetryOpts := []retry.Option{
 		retry.Delay(time.Duration(installationCfg.BackoffInitialIntervalSeconds) * time.Second),
 		retry.Attempts(uint(installationCfg.BackoffMaxElapsedTimeSeconds / installationCfg.BackoffInitialIntervalSeconds)),
@@ -127,7 +117,7 @@ func main() {
 	}
 
 	//Deploy Kyma
-	deployer, err := deployment.NewDeployment(installationCfg, builder, progressCh)
+	deployer, err := deployment.NewDeployment(installationCfg, builder, callbackUpdate)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
@@ -152,7 +142,7 @@ func main() {
 	}
 
 	//Delete Kyma
-	deleter, err := deployment.NewDeletion(installationCfg, builder, progressCh)
+	deleter, err := deployment.NewDeletion(installationCfg, builder, callbackUpdate)
 	if err != nil {
 		log.Fatalf("Failed to create deleter: %v", err)
 	}
@@ -163,32 +153,24 @@ func main() {
 	log.Info("Kyma uninstalled!")
 }
 
-func renderProgress(progressCh chan deployment.ProcessUpdate, log logger.Interface) context.Context {
-	context, cancel := context.WithCancel(context.Background())
+func callbackUpdate(update deployment.ProcessUpdate) {
 
 	showCompStatus := func(comp components.KymaComponent) {
 		if comp.Name != "" {
 			log.Infof("Status of component '%s': %s", comp.Name, comp.Status)
 		}
 	}
-	go func() {
-		defer cancel()
 
-		for update := range progressCh {
-			switch update.Event {
-			case deployment.ProcessStart:
-				log.Infof("Starting installation phase '%s'", update.Phase)
-			case deployment.ProcessRunning:
-				showCompStatus(update.Component)
-			case deployment.ProcessFinished:
-				log.Infof("Finished installation phase '%s' successfully", update.Phase)
-			default:
-				//any failure case
-				log.Infof("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
-				showCompStatus(update.Component)
-			}
-		}
-	}()
-
-	return context
+	switch update.Event {
+	case deployment.ProcessStart:
+		log.Infof("Starting installation phase '%s'", update.Phase)
+	case deployment.ProcessRunning:
+		showCompStatus(update.Component)
+	case deployment.ProcessFinished:
+		log.Infof("Finished installation phase '%s' successfully", update.Phase)
+	default:
+		//any failure case
+		log.Infof("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
+		showCompStatus(update.Component)
+	}
 }
