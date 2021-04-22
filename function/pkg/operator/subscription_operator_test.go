@@ -291,7 +291,7 @@ func Test_applySubscriptions(t *testing.T) {
 						Times(1)
 
 					fakeWatcher := watch.NewRaceFreeFake()
-					testObject := fixUnstructured("test", "test")
+					testObject := fixUnstructured()
 					fakeWatcher.Add(&testObject)
 
 					result.EXPECT().

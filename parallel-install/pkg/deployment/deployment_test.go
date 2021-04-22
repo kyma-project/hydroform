@@ -2,9 +2,10 @@ package deployment
 
 import (
 	"fmt"
-	"sync"
-
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	log "github.com/sirupsen/logrus"
+	"sync"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
@@ -16,44 +17,46 @@ import (
 	"time"
 )
 
-func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
-	procUpdChan := make(chan ProcessUpdate)
+func callbackUpdate(update ProcessUpdate) {
 
-	// verify we received all expected events
+	showCompStatus := func(comp components.KymaComponent) {
+		if comp.Name != "" {
+			log.Infof("Status of component '%s': %s", comp.Name, comp.Status)
+		}
+	}
+
+	switch update.Event {
+	case ProcessStart:
+		log.Infof("Starting installation phase '%s'", update.Phase)
+	case ProcessRunning:
+		showCompStatus(update.Component)
+	case ProcessFinished:
+		log.Infof("Finished installation phase '%s' successfully", update.Phase)
+	default:
+		//any failure case
+		log.Infof("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
+		showCompStatus(update.Component)
+	}
+}
+
+func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
+
+	//verify we received all expected events
 	receivedEvents := make(map[string]int)
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go func() {
-		for procUpd := range procUpdChan {
-			receivedEvents[processUpdateString(procUpd)]++
-		}
-		expectedEvents := []string{
-			"InstallPreRequisites-ProcessStart",
-			"InstallPreRequisites-ProcessRunning-test1-Installed",
-			"InstallPreRequisites-ProcessRunning-test2-Installed",
-			"InstallPreRequisites-ProcessRunning-test3-Installed",
-			"InstallPreRequisites-ProcessFinished",
-			"InstallComponents-ProcessStart",
-			"InstallComponents-ProcessRunning-test1-Installed",
-			"InstallComponents-ProcessRunning-test2-Installed",
-			"InstallComponents-ProcessRunning-test3-Installed",
-			"InstallComponents-ProcessFinished",
-		}
 
-		assert.Equal(t, len(expectedEvents), len(receivedEvents),
-			fmt.Sprintf("Amount of expected and received events differ (got %v)", receivedEvents))
+	mutex := &sync.Mutex{}
 
-		for _, expectedEvent := range expectedEvents {
-			count, ok := receivedEvents[expectedEvent]
-			assert.True(t, ok, fmt.Sprintf("Expected event '%s' missing", expectedEvent))
-			assert.Equal(t, 1, count, fmt.Sprintf("Expected event '%s' missing, got %v", expectedEvent, receivedEvents))
-		}
-		wg.Done()
-	}()
+	procUpd := func(procUpd ProcessUpdate) {
+		mutex.Lock()
+		receivedEvents[processUpdateString(procUpd)]++
+		mutex.Unlock()
+	}
 
 	kubeClient := fake.NewSimpleClientset()
 
-	inst := newDeployment(t, procUpdChan, kubeClient)
+	inst := newDeployment(t, procUpd, kubeClient)
 
 	hc := &mockHelmClient{}
 	provider := &mockProvider{
@@ -68,13 +71,32 @@ func TestDeployment_RetrieveProgressUpdates(t *testing.T) {
 		WorkersCount: 2,
 		Log:          logger.NewLogger(true),
 	})
+
+	// blocking function call here. Exits when done.
 	err := inst.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
 	assert.NoError(t, err)
 
-	close(procUpdChan)
+	expectedEvents := []string{
+		"InstallPreRequisites-ProcessStart",
+		"InstallPreRequisites-ProcessRunning-test1-Installed",
+		"InstallPreRequisites-ProcessRunning-test2-Installed",
+		"InstallPreRequisites-ProcessRunning-test3-Installed",
+		"InstallPreRequisites-ProcessFinished",
+		"InstallComponents-ProcessStart",
+		"InstallComponents-ProcessRunning-test1-Installed",
+		"InstallComponents-ProcessRunning-test2-Installed",
+		"InstallComponents-ProcessRunning-test3-Installed",
+		"InstallComponents-ProcessFinished",
+	}
 
-	// wait until the test threat is ready
-	wg.Wait()
+	assert.Equal(t, len(expectedEvents), len(receivedEvents),
+		fmt.Sprintf("Amount of expected and received events differ (got %v)", receivedEvents))
+
+	for _, expectedEvent := range expectedEvents {
+		count, ok := receivedEvents[expectedEvent]
+		assert.True(t, ok, fmt.Sprintf("Expected event '%s' missing", expectedEvent))
+		assert.Equal(t, 1, count, fmt.Sprintf("Expected event '%s' missing, got %v", expectedEvent, receivedEvents))
+	}
 }
 
 func processUpdateString(procUpd ProcessUpdate) string {
@@ -260,7 +282,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 }
 
 // Pass optionally an receiver-channel to get progress updates
-func newDeployment(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) *Deployment {
+func newDeployment(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kubernetes.Interface) *Deployment {
 	compList, err := config.NewComponentList("../test/data/componentlist.yaml")
 	assert.NoError(t, err)
 	config := &config.Config{

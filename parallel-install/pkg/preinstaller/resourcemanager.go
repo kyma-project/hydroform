@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,12 +38,22 @@ type DefaultResourceManager struct {
 }
 
 // NewResourceManager creates a new instance of ResourceManager.
-func NewDefaultResourceManager(dynamicClient dynamic.Interface, log logger.Interface, retryOptions []retry.Option) *DefaultResourceManager {
+func NewDefaultResourceManager(kubeconfigSource config.KubeconfigSource, log logger.Interface, retryOptions []retry.Option) (*DefaultResourceManager, error) {
+	restConfig, err := config.RestConfig(kubeconfigSource)
+	if err != nil {
+		return nil, err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &DefaultResourceManager{
 		dynamicClient: dynamicClient,
 		log:           log,
 		retryOptions:  retryOptions,
-	}
+	}, nil
 }
 
 func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {

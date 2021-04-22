@@ -75,7 +75,7 @@ spec:
     requests:
       cpu: 50m
       memory: 64Mi
-  runtime: nodejs12
+  runtime: nodejs14
   source: |-
     module.exports = {
         main: function (event, context) {

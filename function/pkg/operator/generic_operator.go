@@ -9,8 +9,7 @@ import (
 )
 
 var (
-	//FIXME rename to GVR...
-	GVKFunction = schema.GroupVersionResource{
+	GVRFunction = schema.GroupVersionResource{
 		Group:    "serverless.kyma-project.io",
 		Version:  "v1alpha1",
 		Resource: "functions",
@@ -24,6 +23,11 @@ var (
 		Group:    "eventing.kyma-project.io",
 		Version:  "v1alpha1",
 		Resource: "subscriptions",
+	}
+	GVRApiRule = schema.GroupVersionResource{
+		Group:    "gateway.kyma-project.io",
+		Version:  "v1alpha1",
+		Resource: "apirules",
 	}
 )
 
@@ -40,20 +44,20 @@ func NewGenericOperator(c client.Client, u ...unstructured.Unstructured) Operato
 }
 
 func (p genericOperator) Apply(ctx context.Context, opts ApplyOptions) error {
-	for _, u := range p.items {
-		u.SetOwnerReferences(opts.OwnerReferences)
+	for i := range p.items {
+		p.items[i].SetOwnerReferences(opts.OwnerReferences)
 		// fire pre callbacks
-		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
+		if err := fireCallbacks(&p.items[i], nil, opts.Pre...); err != nil {
 			return err
 		}
 
-		applied, statusEntry, err := p.apply(ctx, u, opts)
+		applied, statusEntry, err := p.apply(ctx, p.items[i], opts)
 
 		// fire post callbacks
 		if err := fireCallbacks(statusEntry, err, opts.Callbacks.Post...); err != nil {
 			return err
 		}
-		u.SetUnstructuredContent(applied.Object)
+		p.items[i].SetUnstructuredContent(applied.Object)
 	}
 	return nil
 }
@@ -70,12 +74,12 @@ func (p genericOperator) apply(ctx context.Context, item unstructured.Unstructur
 }
 
 func (p genericOperator) Delete(ctx context.Context, opts DeleteOptions) error {
-	for _, u := range p.items {
+	for i := range p.items {
 		// fire pre callbacks
-		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
+		if err := fireCallbacks(&p.items[i], nil, opts.Pre...); err != nil {
 			return err
 		}
-		status, err := deleteObject(ctx, p.Client, u, opts)
+		status, err := deleteObject(ctx, p.Client, p.items[i], opts)
 		// fire post callbacks
 		if err := fireCallbacks(status, err, opts.Post...); err != nil {
 			return err

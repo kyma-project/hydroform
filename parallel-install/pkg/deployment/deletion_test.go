@@ -196,7 +196,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 }
 
 // Pass optionally an receiver-channel to get progress updates
-func newDeletion(t *testing.T, procUpdates chan<- ProcessUpdate, kubeClient kubernetes.Interface) *Deletion {
+func newDeletion(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kubernetes.Interface) *Deletion {
 	compList, err := config.NewComponentList("../test/data/componentlist.yaml")
 	assert.NoError(t, err)
 	config := &config.Config{

@@ -7,15 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
+	"github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 //TODO: has to be taken from component list! See https://github.com/kyma-incubator/hydroform/issues/181
@@ -27,8 +26,18 @@ type Deletion struct {
 }
 
 //NewDeletion creates a new Deployment instance for deleting Kyma on a cluster.
-func NewDeletion(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deletion, error) {
+func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(ProcessUpdate)) (*Deletion, error) {
 	if err := cfg.ValidateDeletion(); err != nil {
+		return nil, err
+	}
+
+	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
 		return nil, err
 	}
 

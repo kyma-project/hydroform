@@ -26,6 +26,20 @@ func Test_ValidateDeletion(t *testing.T) {
 		_, err := NewComponentList("/a/file/which/doesnot/exist.json")
 		require.Error(t, err)
 	})
+
+	t.Run("Happy path", func(t *testing.T) {
+		fpath := filePath(t)
+		config = Config{
+			WorkersCount:  1,
+			ComponentList: newComponentList(t),
+			KubeconfigSource: KubeconfigSource{
+				Path:    filepath.Dir(fpath),
+				Content: "",
+			},
+		}
+		err = config.ValidateDeletion()
+		assert.NoError(t, err)
+	})
 }
 
 func Test_ValidateDeployment(t *testing.T) {
@@ -41,7 +55,7 @@ func Test_ValidateDeployment(t *testing.T) {
 		assert.Contains(t, err.Error(), "not found")
 	})
 
-	t.Run("Resource path not found", func(t *testing.T) {
+	t.Run("InstallationResourcePath path not found", func(t *testing.T) {
 		fpath := filePath(t)
 		config = Config{
 			WorkersCount:             1,
@@ -61,6 +75,10 @@ func Test_ValidateDeployment(t *testing.T) {
 			ComponentList:            newComponentList(t),
 			ResourcePath:             filepath.Dir(fpath),
 			InstallationResourcePath: filepath.Dir(fpath),
+			KubeconfigSource: KubeconfigSource{
+				Path:    filepath.Dir(fpath),
+				Content: "",
+			},
 		}
 		err := config.ValidateDeployment()
 		assert.Error(t, err)
@@ -74,7 +92,11 @@ func Test_ValidateDeployment(t *testing.T) {
 			ComponentList:            newComponentList(t),
 			ResourcePath:             filepath.Dir(fpath),
 			InstallationResourcePath: filepath.Dir(fpath),
-			Version:                  "abc",
+			KubeconfigSource: KubeconfigSource{
+				Path:    filepath.Dir(fpath),
+				Content: "",
+			},
+			Version: "abc",
 		}
 		err := config.ValidateDeployment()
 		assert.NoError(t, err)

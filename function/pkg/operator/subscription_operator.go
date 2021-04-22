@@ -2,7 +2,6 @@ package operator
 
 import (
 	"context"
-	"errors"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
@@ -43,15 +42,13 @@ type functionReference struct {
 
 type predicate func(map[string]interface{}) (bool, error)
 
-var errNotFound = errors.New("not found")
-
 func deleteSubscriptions(ctx context.Context, c client.Client, items []unstructured.Unstructured, opts DeleteOptions) error {
-	for _, u := range items {
+	for i := range items {
 		// fire pre callbacks
-		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
+		if err := fireCallbacks(&items[i], nil, opts.Pre...); err != nil {
 			return err
 		}
-		state, err := deleteObject(ctx, c, u, opts)
+		state, err := deleteObject(ctx, c, items[i], opts)
 		// fire post callbacks
 		if err := fireCallbacks(state, err, opts.Post...); err != nil {
 			return err
@@ -102,13 +99,13 @@ func applySubscriptions(ctx context.Context, c client.Client, p predicate, items
 		return err
 	}
 	// apply all subscriptions
-	for _, u := range items {
-		u.SetOwnerReferences(opts.OwnerReferences)
+	for i := range items {
+		items[i].SetOwnerReferences(opts.OwnerReferences)
 		// fire pre callbacks
-		if err := fireCallbacks(&u, nil, opts.Pre...); err != nil {
+		if err := fireCallbacks(&items[i], nil, opts.Pre...); err != nil {
 			return err
 		}
-		applied, statusEntry, err := applyObject(ctx, c, u, opts.DryRun)
+		applied, statusEntry, err := applyObject(ctx, c, items[i], opts.DryRun)
 		if opts.WaitForApply && applied != nil {
 			err = waitForObject(ctx, c, *applied)
 		}
@@ -116,7 +113,7 @@ func applySubscriptions(ctx context.Context, c client.Client, p predicate, items
 		if err := fireCallbacks(statusEntry, err, opts.Post...); err != nil {
 			return err
 		}
-		u.SetUnstructuredContent(applied.Object)
+		items[i].SetUnstructuredContent(applied.Object)
 	}
 	return nil
 }

@@ -24,17 +24,20 @@ package preinstaller
 
 import (
 	"fmt"
-	"github.com/avast/retry-go"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"io/ioutil"
-	"k8s.io/client-go/dynamic"
 	"os"
+
+	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"k8s.io/client-go/dynamic"
 )
 
 // Config defines configuration values for the PreInstaller.
 type Config struct {
-	InstallationResourcePath string           //Path to the installation resources.
-	Log                      logger.Interface //Logger to be used
+	InstallationResourcePath string                  //Path to the installation resources.
+	Log                      logger.Interface        //Logger to be used
+	KubeconfigSource         config.KubeconfigSource //KubeconfigSource to be used
 }
 
 // PreInstaller prepares k8s cluster for Kyma installation.
@@ -75,14 +78,24 @@ type resourceInfoResult struct {
 }
 
 // NewPreInstaller creates a new instance of PreInstaller.
-func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
+func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, retryOptions []retry.Option) (*PreInstaller, error) {
+	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
+	if err != nil {
+		return nil, err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &PreInstaller{
 		applier:       applier,
 		parser:        parser,
 		cfg:           cfg,
 		dynamicClient: dynamicClient,
 		retryOptions:  retryOptions,
-	}
+	}, nil
 }
 
 // InstallCRDs on a k8s cluster.

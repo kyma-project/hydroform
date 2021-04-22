@@ -3,6 +3,9 @@ package manager
 import (
 	"context"
 	"errors"
+	"reflect"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	"github.com/kyma-incubator/hydroform/function/pkg/operator"
@@ -10,8 +13,6 @@ import (
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"reflect"
-	"testing"
 )
 
 func TestNewManager(t *testing.T) {
@@ -688,18 +689,13 @@ func Test_manager_useOperator(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	type fields struct {
-		operators []parent
-	}
 	type args struct {
-		ctx        context.Context
 		opr        operator.Operator
 		options    Options
 		references []metav1.OwnerReference
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		want    []metav1.OwnerReference
 		wantErr bool
@@ -781,7 +777,7 @@ func fixOperatorMock(ctrl *gomock.Controller, applyTimes, deleteTimes int) opera
 func fixOperatorMockWithError(ctrl *gomock.Controller, applyTimes, deleteTimes int, err error) operator.Operator {
 	opr := fixMockOperatorWithoutActions(ctrl)
 	//FIXME investigate
-	opr.EXPECT().Apply(gomock.Any(), gomock.Any()).Return(err).AnyTimes()
+	opr.EXPECT().Apply(gomock.Any(), gomock.Any()).Return(err).Times(applyTimes)
 	opr.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(err).Times(deleteTimes)
 	return opr
 }

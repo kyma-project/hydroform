@@ -4,8 +4,9 @@ import (
 	"context"
 	errs "errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/watch"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/watch"
 
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
@@ -131,7 +132,7 @@ func Test_genericOperator_Apply(t *testing.T) {
 						Times(1)
 
 					fakeWatcher := watch.NewRaceFreeFake()
-					testObject := fixUnstructured("test", "test")
+					testObject := fixUnstructured()
 					fakeWatcher.Add(&testObject)
 
 					result.EXPECT().
@@ -175,7 +176,6 @@ func Test_genericOperator_Delete(t *testing.T) {
 	type args struct {
 		ctx  context.Context
 		opts DeleteOptions
-		c    []Callback
 	}
 	tests := []struct {
 		name    string

@@ -3,9 +3,9 @@ package types
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 type GitRepository struct {
-	ApiVersion        string
-	Kind              string
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+	APIVersion        string `json:"apiVersion"`
+	Kind              string
 	Spec              GitRepositorySpec `json:"spec,omitempty"`
 }
 

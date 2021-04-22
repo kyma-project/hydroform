@@ -42,7 +42,7 @@ A sample configuration file looks as follows:
 ```yaml
 name: function-crazy-karol9
 namespace: testme
-runtime: nodejs12
+runtime: nodejs14
 source:
   sourceType: inline
   sourcePath: /tmp/cli-test

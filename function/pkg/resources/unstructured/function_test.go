@@ -87,7 +87,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -197,11 +197,31 @@ func Test_newFunction(t *testing.T) {
 							},
 						},
 					},
+					APIRules: []workspace.APIRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -257,7 +277,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -307,7 +327,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -363,7 +383,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -421,7 +441,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -506,7 +526,7 @@ func Test_newFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -627,6 +647,26 @@ func Test_newGitFunction(t *testing.T) {
 							},
 						},
 					},
+					APIRules: []workspace.APIRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
+					},
 					Env: []workspace.EnvVar{
 						{
 							Name:  "TEST_ENV",
@@ -655,7 +695,7 @@ func Test_newGitFunction(t *testing.T) {
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",
@@ -761,11 +801,31 @@ func Test_newGitFunction(t *testing.T) {
 							},
 						},
 					},
+					APIRules: []workspace.APIRule{
+						{
+							Name: "test-name",
+							Service: workspace.Service{
+								Host: "test-host",
+								Port: 80,
+							},
+							Rules: []workspace.Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"POST"},
+									AccessStrategies: []workspace.AccessStrategie{
+										{
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 			wantOut: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": functionApiVersion,
+					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
 						"name":              "test-name",

@@ -66,16 +66,45 @@ type SecretKeySelector struct {
 	Key  string `yaml:"key"`
 }
 
+type APIRule struct {
+	Name    string  `yaml:"name,omitempty"`
+	Gateway string  `yaml:"gateway,omitempty"`
+	Service Service `yaml:"service"`
+	Rules   []Rule  `yaml:"rules"`
+}
+
+type Service struct {
+	Host string `yaml:"host"`
+	Port int64  `yaml:"port,omitempty"`
+}
+
+type Rule struct {
+	Path             string            `yaml:"path,omitempty"`
+	Methods          []string          `yaml:"methods"`
+	AccessStrategies []AccessStrategie `yaml:"accessStrategies"`
+}
+
+type AccessStrategie struct {
+	Config  AccessStrategieConfig `yaml:"config,omitempty"`
+	Handler string                `yaml:"handler"`
+}
+
+type AccessStrategieConfig struct {
+	JwksUrls       []string `yaml:"jwksUrls,omitempty"`
+	TrustedIssuers []string `yaml:"trustedIssuers,omitempty"`
+	RequiredScope  []string `yaml:"requiredScope,omitempty"`
+}
+
 type Cfg struct {
-	WorkspaceVersion string            `yaml:"workspaceVersion"`
-	Name             string            `yaml:"name"`
-	Namespace        string            `yaml:"namespace"`
-	Labels           map[string]string `yaml:"labels,omitempty"`
-	Runtime          types.Runtime     `yaml:"runtime"`
-	Source           Source            `yaml:"source"`
-	Resources        Resources         `yaml:"resource,omitempty"`
-	Subscriptions    []Subscription    `yaml:"subscriptions,omitempty"`
-	Env              []EnvVar          `yaml:"env,omitempty"`
+	Name          string            `yaml:"name"`
+	Namespace     string            `yaml:"namespace"`
+	Labels        map[string]string `yaml:"labels,omitempty"`
+	Runtime       types.Runtime     `yaml:"runtime"`
+	Source        Source            `yaml:"source"`
+	Resources     Resources         `yaml:"resource,omitempty"`
+	Subscriptions []Subscription    `yaml:"subscriptions,omitempty"`
+	Env           []EnvVar          `yaml:"env,omitempty"`
+	APIRules      []APIRule         `yaml:"apiRules,omitempty"`
 }
 
 type Source struct {

@@ -6,16 +6,15 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
+	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 //Deployment deploys Kyma on a cluster
@@ -24,8 +23,18 @@ type Deployment struct {
 }
 
 //NewDeployment creates a new Deployment instance for deploying Kyma on a cluster.
-func NewDeployment(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates chan<- ProcessUpdate) (*Deployment, error) {
+func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func(ProcessUpdate)) (*Deployment, error) {
 	if err := cfg.ValidateDeployment(); err != nil {
+		return nil, err
+	}
+
+	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
 		return nil, err
 	}
 
@@ -187,4 +196,29 @@ func (i *Deployment) updateKymaNamespace(namespace string) error {
 	}, metav1.UpdateOptions{})
 
 	return err
+}
+
+func (i *Deployment) DefaultUpdater() func(update ProcessUpdate) {
+
+	return func(update ProcessUpdate) {
+
+		showCompStatus := func(comp components.KymaComponent) {
+			if comp.Name != "" {
+				i.cfg.Log.Infof("Status of component '%s': %s", comp.Name, comp.Status)
+			}
+		}
+
+		switch update.Event {
+		case ProcessStart:
+			i.cfg.Log.Infof("Starting installation phase '%s'", update.Phase)
+		case ProcessRunning:
+			showCompStatus(update.Component)
+		case ProcessFinished:
+			i.cfg.Log.Infof("Finished installation phase '%s' successfully", update.Phase)
+		default:
+			//any failure case
+			i.cfg.Log.Infof("Process failed in phase '%s' with error state '%s':", update.Phase, update.Event)
+			showCompStatus(update.Component)
+		}
+	}
 }
