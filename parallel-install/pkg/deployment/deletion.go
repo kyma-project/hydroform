@@ -46,10 +46,7 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(P
 		return nil, err
 	}
 
-	core, err := newCore(cfg, overrides, kubeClient, processUpdates)
-	if err != nil {
-		return nil, err
-	}
+	core := newCore(cfg, overrides, kubeClient, processUpdates)
 
 	return &Deletion{core}, nil
 }

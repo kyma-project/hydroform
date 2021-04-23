@@ -19,9 +19,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-//these components will be removed from component list if running on a local cluster
-var incompatibleLocalComponents = []string{"apiserver-proxy", "iam-kubeconfig-service"}
-
 type core struct {
 	// Contains list of components to install (inclusive pre-requisites)
 	cfg       *config.Config
@@ -40,23 +37,13 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func newCore(cfg *config.Config, overrides Overrides, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*core, error) {
-	isK3d, err := isK3dCluster(kubeClient)
-	if err != nil {
-		return nil, err
-	}
-
-	if isK3d {
-		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
-		removeFromComponentList(cfg.ComponentList, incompatibleLocalComponents)
-	}
-
+func newCore(cfg *config.Config, overrides Overrides, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) *core {
 	return &core{
 		cfg:            cfg,
 		overrides:      &overrides,
 		processUpdates: processUpdates,
 		kubeClient:     kubeClient,
-	}, nil
+	}
 }
 
 func (i *core) logStatuses(statusMap map[string]string) {
@@ -154,14 +141,11 @@ func isK3dCluster(kubeClient kubernetes.Interface) (isK3d bool, err error) {
 
 		return nil
 	}, retryOptions...)
+	if err != nil {
+		return isK3d, err
+	}
 
 	return isK3d, nil
-}
-
-func removeFromComponentList(cl *config.ComponentList, componentNames []string) {
-	for _, compName := range componentNames {
-		cl.Remove(compName)
-	}
 }
 
 func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.Interface, log logger.Interface) (Overrides, error) {

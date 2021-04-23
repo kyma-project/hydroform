@@ -294,7 +294,6 @@ func newDeployment(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kub
 		Log:                           logger.NewLogger(true),
 		ComponentList:                 compList,
 	}
-	core, err := newCore(config, Overrides{}, kubeClient, procUpdates)
-	assert.NoError(t, err)
+	core := newCore(config, Overrides{}, kubeClient, procUpdates)
 	return &Deployment{core}
 }
