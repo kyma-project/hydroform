@@ -260,3 +260,25 @@ func (i *InstallLegacyCRDsInterceptor) Undefined(overrides map[string]interface{
 func NewInstallLegacyCRDsInterceptor() *InstallLegacyCRDsInterceptor {
 	return &InstallLegacyCRDsInterceptor{}
 }
+
+// This struct is introduced to ensure kcproxy gets disabled on kiali and tracing component
+// It can be removed when kcproxy si removed
+type DisableKCProxyInterceptor struct{}
+
+func (i *DisableKCProxyInterceptor) String(value interface{}, key string) string {
+	return "false"
+}
+
+func (i *DisableKCProxyInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
+	// We should not enable kcproxy and tracing with alpha deploy
+	return false, nil
+}
+
+func (i *DisableKCProxyInterceptor) Undefined(overrides map[string]interface{}, key string) error {
+	// We should not enable kcproxy with alpha deploy
+	return NewFallbackOverrideInterceptor(false).Undefined(overrides, key)
+}
+
+func NewDisableKCProxyInterceptor() *DisableKCProxyInterceptor {
+	return &DisableKCProxyInterceptor{}
+}
