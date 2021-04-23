@@ -266,7 +266,7 @@ func NewInstallLegacyCRDsInterceptor() *InstallLegacyCRDsInterceptor {
 type DisableKCProxyInterceptor struct{}
 
 func (i *DisableKCProxyInterceptor) String(value interface{}, key string) string {
-	return fmt.Sprintf("%v", value)
+	return "false"
 }
 
 func (i *DisableKCProxyInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
