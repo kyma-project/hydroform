@@ -155,5 +155,9 @@ func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.I
 	// make sure we don't install legacy CRDs
 	ob.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
 
+	ob.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
+	// make sure we don't install kcproxy for kiali and tracing
+	ob.AddInterceptor([]string{"tracing.kcproxy.enabled", "kiali.kcproxy.enabled"}, NewDisableKCProxyInterceptor())
+
 	return ob.Build()
 }
