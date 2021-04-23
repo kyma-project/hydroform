@@ -2,10 +2,11 @@ package deployment
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	log "github.com/sirupsen/logrus"
-	"sync"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
@@ -293,7 +294,6 @@ func newDeployment(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kub
 		Log:                           logger.NewLogger(true),
 		ComponentList:                 compList,
 	}
-	core, err := newCore(config, &OverridesBuilder{}, kubeClient, procUpdates)
-	assert.NoError(t, err)
+	core := newCore(config, Overrides{}, kubeClient, procUpdates)
 	return &Deployment{core}
 }

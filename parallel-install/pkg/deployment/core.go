@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/pkg/errors"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -17,9 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-//these components will be removed from component list if running on a local cluster
-var incompatibleLocalComponents = []string{"apiserver-proxy", "iam-kubeconfig-service"}
 
 type core struct {
 	// Contains list of components to install (inclusive pre-requisites)
@@ -39,25 +37,13 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func newCore(cfg *config.Config, ob *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) (*core, error) {
-	if isK3dCluster(kubeClient) {
-		cfg.Log.Infof("Running in K3d cluster: removing incompatible components '%s'", strings.Join(incompatibleLocalComponents, "', '"))
-		removeFromComponentList(cfg.ComponentList, incompatibleLocalComponents)
-	}
-
-	registerOverridesInterceptors(kubeClient, ob, cfg.Log)
-
-	overrides, err := ob.Build()
-	if err != nil {
-		return nil, err
-	}
-
+func newCore(cfg *config.Config, overrides Overrides, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) *core {
 	return &core{
 		cfg:            cfg,
 		overrides:      &overrides,
 		processUpdates: processUpdates,
 		kubeClient:     kubeClient,
-	}, nil
+	}
 }
 
 func (i *core) logStatuses(statusMap map[string]string) {
@@ -132,31 +118,45 @@ func (i *core) processUpdateComponent(phase InstallationPhase, comp components.K
 	})
 }
 
-func isK3dCluster(kubeClient kubernetes.Interface) bool {
-	nodeList, err := kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return false
+func isK3dCluster(kubeClient kubernetes.Interface) (isK3d bool, err error) {
+
+	retryOptions := []retry.Option{
+		retry.Delay(2 * time.Second),
+		retry.Attempts(3),
+		retry.DelayType(retry.FixedDelay),
 	}
-	for _, node := range nodeList.Items {
-		if strings.HasPrefix(node.GetName(), "k3d-") {
-			return true
+
+	err = retry.Do(func() error {
+		nodeList, err := kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			return err
 		}
+
+		for _, node := range nodeList.Items {
+			if strings.HasPrefix(node.GetName(), "k3d-") {
+				isK3d = true
+				return nil
+			}
+		}
+
+		return nil
+	}, retryOptions...)
+	if err != nil {
+		return isK3d, err
 	}
-	return false
+
+	return isK3d, nil
 }
 
-func removeFromComponentList(cl *config.ComponentList, componentNames []string) {
-	for _, compName := range componentNames {
-		cl.Remove(compName)
-	}
-}
-
-func registerOverridesInterceptors(kubeClient kubernetes.Interface, o *OverridesBuilder, log logger.Interface) {
+func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.Interface, log logger.Interface) (Overrides, error) {
 	//hide certificate data
-	o.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
-	o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
+	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
+	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient))
 	// make sure we don't install legacy CRDs
-	o.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
+	ob.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
+
 	// make sure we don't install kcproxy for kiali and tracing
-	o.AddInterceptor([]string{"tracing.kcproxy.enabled", "kiali.kcproxy.enabled"}, NewDisableKCProxyInterceptor())
+	ob.AddInterceptor([]string{"tracing.kcproxy.enabled", "kiali.kcproxy.enabled"}, NewDisableKCProxyInterceptor())
+
+	return ob.Build()
 }
