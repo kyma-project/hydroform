@@ -270,7 +270,7 @@ func (i *DisableKCProxyInterceptor) String(value interface{}, key string) string
 }
 
 func (i *DisableKCProxyInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	// We should not enable kcproxy with alpha deploy
+	// We should not enable kcproxy and tracing with alpha deploy
 	return false, nil
 }
 
@@ -279,6 +279,6 @@ func (i *DisableKCProxyInterceptor) Undefined(overrides map[string]interface{}, 
 	return NewFallbackOverrideInterceptor(false).Undefined(overrides, key)
 }
 
-func NewIDisableKCProxyInterceptor() *DisableKCProxyInterceptor {
+func NewDisableKCProxyInterceptor() *DisableKCProxyInterceptor {
 	return &DisableKCProxyInterceptor{}
 }

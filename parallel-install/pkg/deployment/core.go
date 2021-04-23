@@ -157,6 +157,6 @@ func registerOverridesInterceptors(kubeClient kubernetes.Interface, o *Overrides
 	o.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey"))
 	// make sure we don't install legacy CRDs
 	o.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
-	// disable kcproxy
-	o.AddInterceptor([]string{"kcproxy.enabled"}, NewIDisableKCProxyInterceptor())
+	// make sure we don't install kcproxy for kiali and tracing
+	o.AddInterceptor([]string{"tracing.kcproxy.enabled", "kiali.kcproxy.enabled"}, NewDisableKCProxyInterceptor())
 }

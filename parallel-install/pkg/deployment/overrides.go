@@ -55,7 +55,7 @@ func (ob *OverridesBuilder) AddOverrides(chart string, overrides map[string]inte
 	return nil
 }
 
-// AddInterceptor registers an interceptor for a particular override keys
+// AddInterceptor registers an interceptor for particular override keys
 func (ob *OverridesBuilder) AddInterceptor(overrideKeys []string, interceptor OverrideInterceptor) {
 	if ob.interceptors == nil {
 		ob.interceptors = make(map[string]OverrideInterceptor)
