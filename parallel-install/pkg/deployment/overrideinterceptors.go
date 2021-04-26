@@ -58,6 +58,7 @@ var coreDNSPatchTemplate = `
     loop
     reload
     loadbalance
+}
 `
 
 // CoreDNSPatch contains values to fill template with
@@ -170,10 +171,15 @@ func patchCoreDNS(kubeClient kubernetes.Interface, domainName string) (err error
 
 	log.Println("PB: ", patchBuffer)
 	err = retry.Do(func() error {
-		configMap, err := kubeClient.CoreV1().ConfigMaps("kube-system").
-			Patch(context.TODO(), "coredns", types.MergePatchType, patchBuffer.Bytes(), metav1.PatchOptions{})
+		configMaps := kubeClient.CoreV1().ConfigMaps("kube-system")
+		coreDNSConfigMap, err := configMaps.Get(context.TODO(), "coredns", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
 
-		log.Println("CFG MAP: ", configMap.String())
+		log.Println("coreDNSConfigMap: ", coreDNSConfigMap)
+		patchedConfigMap, err := configMaps.Patch(context.TODO(), "coredns", types.ApplyPatchType, patchBuffer.Bytes(), metav1.PatchOptions{})
+		log.Println("patchedConfigMap: ", patchedConfigMap)
 		if err != nil {
 			return err
 		}
