@@ -174,7 +174,9 @@ func patchCoreDNS(kubeClient kubernetes.Interface, domainName string, log logger
 	coreDNSPatch := CoreDNSPatch{DomainName: domainName}
 	patchTemplate := template.Must(template.New("").Parse(coreDNSPatchTemplate))
 	patchBuffer := new(bytes.Buffer)
-	patchTemplate.Execute(patchBuffer, coreDNSPatch)
+	if err = patchTemplate.Execute(patchBuffer, coreDNSPatch); err != nil {
+		return err
+	}
 
 	// TODO: Refactor
 	err = retry.Do(func() error {
