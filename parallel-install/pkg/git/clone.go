@@ -15,11 +15,11 @@ type repoCloner interface {
 type remoteRepoCloner struct {
 }
 
-func (rc *remoteRepoCloner) Clone(url, path string, noCheckout bool) (*git.Repository, error) {
+func (rc *remoteRepoCloner) Clone(url, path string, autoCheckout bool) (*git.Repository, error) {
 	return git.PlainCloneContext(context.Background(), path, false, &git.CloneOptions{
 		Depth:      0,
 		URL:        url,
-		NoCheckout: noCheckout,
+		NoCheckout: !autoCheckout,
 	})
 }
 
@@ -44,14 +44,14 @@ func CloneRepo(url, dstPath, rev string) error {
 // The clone downloads the bare minimum to only get the given revision.
 // If the revision is empty, HEAD will be used.
 func CloneRevision(repoURL, dstPath, rev string) error {
-	// only checkout HEAD if the revision is empty
-	noCheckoutWhenClone := rev != ""
-	r, err := defaultCloner.Clone(repoURL, dstPath, noCheckoutWhenClone)
+	// automatically checkout HEAD when cloning if the revision is empty
+	autoCheckout := rev == ""
+	r, err := defaultCloner.Clone(repoURL, dstPath, autoCheckout)
 	if err != nil {
 		return errors.Wrapf(err, "Error downloading repository (%s)", repoURL)
 	}
 
-	if noCheckoutWhenClone {
+	if !autoCheckout {
 		w, err := r.Worktree()
 		if err != nil {
 			return errors.Wrap(err, "Error getting the worktree")
