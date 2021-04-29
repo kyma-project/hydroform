@@ -5,15 +5,16 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"html/template"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -138,12 +139,18 @@ func (i *DomainNameOverrideInterceptor) getDomainName() (domainName string, err 
 		return "", err
 	}
 	if domainName != "" {
-		patchCoreDNS(i.kubeClient, `(.*)\.local\.kyma\.dev`)
+		err = patchCoreDNS(i.kubeClient, `(.*)\.local\.kyma\.devaaaa`, i.log)
+		if err != nil {
+			return "", err
+		}
 		return domainName, nil
 	}
 
 	// In any other environment fallback to a generic remote cluster domain
-	patchCoreDNS(i.kubeClient, `(.*)\.kyma\.example\.com`)
+	err = patchCoreDNS(i.kubeClient, `(.*)\.kyma\.example\.comeee`, i.log)
+	if err != nil {
+		return "", err
+	}
 	return defaultRemoteKymaDomain, nil
 }
 
@@ -163,23 +170,50 @@ func (i *DomainNameOverrideInterceptor) findLocalDomain() (domainName string, er
 
 // patchCoreDNS takes kubeclient and cluster domain as a parameter to patch coredns config
 // e.g. domainName: `(.*)\.local\.kyma\.dev`
-func patchCoreDNS(kubeClient kubernetes.Interface, domainName string) (err error) {
+func patchCoreDNS(kubeClient kubernetes.Interface, domainName string, log logger.Interface) (err error) {
 	coreDNSPatch := CoreDNSPatch{DomainName: domainName}
 	patchTemplate := template.Must(template.New("").Parse(coreDNSPatchTemplate))
 	patchBuffer := new(bytes.Buffer)
 	patchTemplate.Execute(patchBuffer, coreDNSPatch)
 
-	log.Println("PB: ", patchBuffer)
+	// TODO: Refactor
 	err = retry.Do(func() error {
+		_, err := kubeClient.AppsV1().Deployments("kube-system").Get(context.TODO(), "coredns", metav1.GetOptions{})
+		if err != nil {
+			if apierr.IsNotFound(err) {
+				log.Info("CoreDNS not found, skipping CoreDNS config patch")
+				return nil
+			}
+			return err
+		}
+
 		configMaps := kubeClient.CoreV1().ConfigMaps("kube-system")
 		coreDNSConfigMap, err := configMaps.Get(context.TODO(), "coredns", metav1.GetOptions{})
+		if err != nil {
+			if apierr.IsNotFound(err) {
+				log.Info("Corefile not found, creating new CoreDNS config")
+				_, err := configMaps.Create(context.TODO(), getNewCoreDNSConfigMap(patchBuffer.String()), metav1.CreateOptions{})
+				if err != nil {
+					log.Warn("Could not create new CoreDNS Corefile config")
+				}
+				return nil
+			}
+			return err
+		}
+
+		if strings.Contains(coreDNSConfigMap.Data["Corefile"], domainName) {
+			log.Info("CoreDNS config already contains proper domain rule")
+			return nil
+		}
+
+		coreDNSConfigMap.Data["Corefile"] = patchBuffer.String()
+		jsontext, err := json.Marshal(coreDNSConfigMap)
 		if err != nil {
 			return err
 		}
 
-		log.Println("coreDNSConfigMap: ", coreDNSConfigMap)
-		patchedConfigMap, err := configMaps.Patch(context.TODO(), "coredns", types.ApplyPatchType, patchBuffer.Bytes(), metav1.PatchOptions{})
-		log.Println("patchedConfigMap: ", patchedConfigMap)
+		log.Info("Patching CoreDNS config")
+		_, err = configMaps.Patch(context.TODO(), "coredns", types.StrategicMergePatchType, jsontext, metav1.PatchOptions{DryRun: []string{""}})
 		if err != nil {
 			return err
 		}
@@ -192,6 +226,13 @@ func patchCoreDNS(kubeClient kubernetes.Interface, domainName string) (err error
 	}
 
 	return nil
+}
+
+func getNewCoreDNSConfigMap(data string) *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "coredns"},
+		Data:       map[string]string{"Corefile": data},
+	}
 }
 
 // CertificateOverrideInterceptor handles certificates
