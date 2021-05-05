@@ -238,7 +238,7 @@ func TestDeployment_StartKymaDeployment(t *testing.T) {
 			// Blocking process (component deployment) ends in the meantime (it's a multiple of 41[ms])
 			// Check if program quits as expected after cancel timeout and before quit timeout
 			assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(150))
-			assert.Less(t, elapsed.Milliseconds(), int64(190))
+			assert.Less(t, elapsed.Milliseconds(), int64(200))
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
 			inst := newDeployment(t, nil, kubeClient)
