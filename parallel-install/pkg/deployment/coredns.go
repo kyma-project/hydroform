@@ -40,15 +40,14 @@ var coreDNSPatchTemplate = `
 }
 `
 
-// CoreDNSPatch contains values to fill template with
-type CoreDNSPatch struct {
+// coreDNSPatch contains values to fill template with
+type coreDNSPatch struct {
 	DomainName string
 }
 
-// patchCoreDNS takes kubeclient and cluster domain as a parameter to patch coredns config
+// patchCoreDNS takes kubeclient, cluster domain and logger as a parameter to patch coredns config
 // e.g. domainName: `(.*)\.local\.kyma\.dev`
 func patchCoreDNS(kubeClient kubernetes.Interface, domainName string, log logger.Interface) (cm v1.ConfigMap, err error) {
-	// TODO: Refactor
 	err = retry.Do(func() error {
 		_, err := kubeClient.AppsV1().Deployments("kube-system").Get(context.TODO(), "coredns", metav1.GetOptions{})
 		if err != nil {
@@ -60,7 +59,7 @@ func patchCoreDNS(kubeClient kubernetes.Interface, domainName string, log logger
 		}
 
 		configMaps := kubeClient.CoreV1().ConfigMaps("kube-system")
-		coreDNSConfigMap, exists, err := findCoreDNSConfigMap(configMaps, log)
+		coreDNSConfigMap, exists, err := findCoreDNSConfigMap(configMaps)
 		if err != nil {
 			return err
 		}
@@ -89,7 +88,7 @@ func patchCoreDNS(kubeClient kubernetes.Interface, domainName string, log logger
 		}
 
 		return nil
-	}, retryOptions...)
+	}, defaultRetryOptions()...)
 
 	if err != nil {
 		return cm, err
@@ -98,7 +97,7 @@ func patchCoreDNS(kubeClient kubernetes.Interface, domainName string, log logger
 	return cm, nil
 }
 
-func findCoreDNSConfigMap(configMaps corev1.ConfigMapInterface, log logger.Interface) (cm *v1.ConfigMap, exists bool, err error) {
+func findCoreDNSConfigMap(configMaps corev1.ConfigMapInterface) (cm *v1.ConfigMap, exists bool, err error) {
 	cm, err = configMaps.Get(context.TODO(), "coredns", metav1.GetOptions{})
 	if err != nil {
 		if apierr.IsNotFound(err) {
@@ -118,6 +117,7 @@ func patchCoreDNSConfigMap(configMaps corev1.ConfigMapInterface, coreDNSConfigMa
 
 	newCM, err := configMaps.Patch(context.TODO(), "coredns", types.StrategicMergePatchType, jsontext, metav1.PatchOptions{})
 	if err != nil {
+		log.Error("Could not patch CoreDNS Corefile config")
 		return cm, err
 	}
 	return *newCM, nil
@@ -140,10 +140,10 @@ func getNewCoreDNSConfigMap(data string) *v1.ConfigMap {
 }
 
 func generateCorefile(domainName string) (coreFile string, err error) {
-	coreDNSPatch := CoreDNSPatch{DomainName: domainName}
+	coreDNSPatchData := coreDNSPatch{DomainName: domainName}
 	patchTemplate := template.Must(template.New("").Parse(coreDNSPatchTemplate))
 	patchBuffer := new(bytes.Buffer)
-	if err = patchTemplate.Execute(patchBuffer, coreDNSPatch); err != nil {
+	if err = patchTemplate.Execute(patchBuffer, coreDNSPatchData); err != nil {
 		return
 	}
 
