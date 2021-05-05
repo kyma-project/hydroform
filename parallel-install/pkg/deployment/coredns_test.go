@@ -15,13 +15,14 @@ func Test_patchCoreDNS(t *testing.T) {
 	log := logger.NewLogger(true)
 	coreDNSConfigMap := fakeCoreDNSConfigMap()
 	coreDNSDeployment := fakeCoreDNSDeployment()
+	domain := `(.*)\.local\.kyma\.dev`
 
 	t.Run("test skipping coreDNS patch when coreDNS deployment doesn't exist", func(t *testing.T) {
 		// given
 		kubeClient := fake.NewSimpleClientset(coreDNSConfigMap)
 
 		// when
-		cm, err := patchCoreDNS(kubeClient, `(.*)\.local\.kyma\.dev`, log)
+		cm, err := patchCoreDNS(kubeClient, domain, log)
 
 		// then
 		require.NoError(t, err)
@@ -33,7 +34,7 @@ func Test_patchCoreDNS(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset(coreDNSConfigMap, coreDNSDeployment)
 
 		// when
-		cm, err := patchCoreDNS(kubeClient, `(.*)\.local\.kyma\.dev`, log)
+		cm, err := patchCoreDNS(kubeClient, domain, log)
 
 		// then
 		require.NoError(t, err)
@@ -50,7 +51,6 @@ func Test_patchCoreDNS(t *testing.T) {
 			Data: make(map[string]string),
 		}
 		kubeClient := fake.NewSimpleClientset(coreDNSDeployment, emptyConfigMap)
-		domain := `(.*)\.local\.kyma\.dev`
 
 		// when
 		cm, err := patchCoreDNS(kubeClient, domain, log)
@@ -60,10 +60,9 @@ func Test_patchCoreDNS(t *testing.T) {
 		require.Contains(t, cm.Data["Corefile"], domain)
 	})
 
-	t.Run("test patching coreDNS configMap when coreDNS configMap is wrong", func(t *testing.T) {
+	t.Run("test patching coreDNS configMap when coreDNS configMap does not contain proper domain", func(t *testing.T) {
 		// given
 		kubeClient := fake.NewSimpleClientset(coreDNSDeployment, fakeWrongCoreDNSConfigMap())
-		domain := `(.*)\.local\.kyma\.dev`
 
 		// when
 		cm, err := patchCoreDNS(kubeClient, domain, log)

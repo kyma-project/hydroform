@@ -14,7 +14,6 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
-	"k8s.io/client-go/kubernetes"
 )
 
 var log *logger.Logger
@@ -106,27 +105,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create Kyma pre-installer: %v", err)
 	}
-
-	// TODO: REMOVE, JUST FOR TESTING!
-	restConfig, err := config.RestConfig(installationCfg.KubeconfigSource)
-	if err != nil {
-		log.Fatal("aaa")
-	}
-	kubeClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		log.Fatal(("bbb"))
-	}
-
-	builder.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, deployment.NewDomainNameOverrideInterceptor(kubeClient, log))
-	builder.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, deployment.NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient))
-	overrides, err := builder.Build()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Info(overrides)
-
-	return
 
 	result, err := preInstaller.InstallCRDs()
 	if err != nil || len(result.NotInstalled) > 0 {
