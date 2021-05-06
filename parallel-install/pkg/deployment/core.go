@@ -5,6 +5,7 @@ import (
 	"context"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/avast/retry-go"
 	"github.com/pkg/errors"
@@ -148,6 +149,41 @@ func isK3dCluster(kubeClient kubernetes.Interface) (isK3d bool, err error) {
 	return isK3d, nil
 }
 
+func getK3dClusterName(kubeClient kubernetes.Interface) (k3dName string, err error) {
+	retryOptions := []retry.Option{
+		retry.Delay(2 * time.Second),
+		retry.Attempts(3),
+		retry.DelayType(retry.FixedDelay),
+	}
+
+	err = retry.Do(func() error {
+		nodeList, err := kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+
+		for _, node := range nodeList.Items {
+			nodeName := node.GetName()
+			if !strings.HasPrefix(nodeName, "k3d-") {
+				k3dName = ""
+				return errors.New("Cluster is not a k3d cluster")
+			}
+			// K3d cluster name can be derived from node name, which has the form k3d-<cluster-name>-server-<id>.
+			// E.g., with the Kyma CLI default flags k3d-kyma-server-0
+			k3dName = strings.TrimSuffix(strings.TrimRightFunc(strings.TrimPrefix(nodeName, "k3d-"), func(r rune) bool {
+				return unicode.IsNumber(r) || r == '-'
+			}), "-server")
+		}
+
+		return nil
+	}, retryOptions...)
+	if err != nil {
+		return k3dName, err
+	}
+
+	return k3dName, nil
+}
+
 func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.Interface, log logger.Interface) (Overrides, error) {
 	//hide certificate data
 	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
@@ -157,6 +193,12 @@ func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.I
 
 	// make sure we don't install kcproxy for kiali and tracing
 	ob.AddInterceptor([]string{"tracing.kcproxy.enabled", "kiali.kcproxy.enabled"}, NewDisableKCProxyInterceptor())
+
+	// make sure k3d clusters use k3d container registry
+	ob.AddInterceptor([]string{"serverless.dockerRegistry.internalServerAddress", "serverless.dockerRegistry.serverAddress", "serverless.dockerRegistry.registryAddress"}, NewRegistryInterceptor(kubeClient))
+
+	// make sure k3d clusters disable internal container registry
+	ob.AddInterceptor([]string{"serverless.dockerRegistry.enableInternal"}, NewRegistryDisableInterceptor(kubeClient))
 
 	return ob.Build()
 }

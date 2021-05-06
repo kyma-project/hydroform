@@ -381,3 +381,90 @@ func defaultRetryOptions() []retry.Option {
 		retry.DelayType(retry.FixedDelay),
 	}
 }
+
+type RegistryDisableInterceptor struct {
+	kubeClient kubernetes.Interface
+}
+
+func NewRegistryDisableInterceptor(kubeClient kubernetes.Interface) *RegistryDisableInterceptor {
+	return &RegistryDisableInterceptor{
+		kubeClient: kubeClient,
+	}
+}
+func (i *RegistryDisableInterceptor) String(value interface{}, key string) string {
+	newVal, err := i.Intercept(value, key)
+	if err != nil {
+		return fmt.Sprintf("error during interception: %s", err.Error())
+	}
+	return fmt.Sprintf("%v", newVal)
+}
+
+func (i *RegistryDisableInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
+	k3dCluster, err := isK3dCluster(i.kubeClient)
+	if err != nil {
+		return nil, err
+	}
+	if k3dCluster {
+		return "false", nil
+	}
+	return value, nil
+}
+
+func (i *RegistryDisableInterceptor) Undefined(overrides map[string]interface{}, key string) error {
+	k3dCluster, err := isK3dCluster(i.kubeClient)
+	if err != nil {
+		return err
+	}
+	if k3dCluster {
+		return NewFallbackOverrideInterceptor(false).Undefined(overrides, key)
+	}
+	return nil
+}
+
+type RegistryInterceptor struct {
+	kubeClient kubernetes.Interface
+}
+
+func NewRegistryInterceptor(kubeClient kubernetes.Interface) *RegistryInterceptor {
+	return &RegistryInterceptor{
+		kubeClient: kubeClient,
+	}
+}
+
+func (i *RegistryInterceptor) String(value interface{}, key string) string {
+	newVal, err := i.Intercept(value, key)
+	if err != nil {
+		return fmt.Sprintf("error during interception: %s", err.Error())
+	}
+	return fmt.Sprintf("%v", newVal)
+}
+
+func (i *RegistryInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
+	k3dCluster, err := isK3dCluster(i.kubeClient)
+	if err != nil {
+		return nil, err
+	}
+	if k3dCluster {
+		k3dClusterName, err := getK3dClusterName(i.kubeClient)
+		if err != nil {
+			return nil, err
+		}
+		return fmt.Sprintf("k3d-%s-registry:5000", k3dClusterName), nil
+	}
+	return value, nil
+}
+
+func (i *RegistryInterceptor) Undefined(overrides map[string]interface{}, key string) error {
+	k3dCluster, err := isK3dCluster(i.kubeClient)
+	if err != nil {
+		return err
+	}
+	if k3dCluster {
+		k3dClusterName, err := getK3dClusterName(i.kubeClient)
+		if err != nil {
+			return err
+		}
+		return NewFallbackOverrideInterceptor(fmt.Sprintf("k3d-%s-registry:5000", k3dClusterName)).Undefined(overrides, key)
+	}
+	return nil
+}

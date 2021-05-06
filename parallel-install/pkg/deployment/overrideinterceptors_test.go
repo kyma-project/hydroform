@@ -547,6 +547,143 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 	})
 }
 
+func Test_RegistryEnableOverrideInterception(t *testing.T) {
+	k3dNode := fakeK3dNode()
+	generalNode := fakeNode()
+
+	t.Run("test disable internal registry for k3d cluster", func(t *testing.T) {
+		// given
+		dockerRegistryOverrides := make(map[string]interface{})
+		dockerRegistryOverrides["enableInternal"] = "true"
+		serverlessOverrides := make(map[string]interface{})
+		serverlessOverrides["dockerRegistry"] = dockerRegistryOverrides
+		ob := OverridesBuilder{}
+		err := ob.AddOverrides("serverless", serverlessOverrides)
+		require.NoError(t, err)
+
+		kubeClient := fake.NewSimpleClientset(k3dNode)
+		ob.AddInterceptor([]string{"serverless.dockerRegistry.enableInternal"}, NewRegistryDisableInterceptor(kubeClient))
+		// when
+		overrides, err := ob.Build()
+
+		// then
+		require.NoError(t, err)
+		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, "false", getOverride(overrides.Map(), "serverless.dockerRegistry.enableInternal"))
+	})
+
+	t.Run("test preserve internal registry for non k3d cluster", func(t *testing.T) {
+		// given
+		dockerRegistryOverrides := make(map[string]interface{})
+		dockerRegistryOverrides["enableInternal"] = "true"
+		serverlessOverrides := make(map[string]interface{})
+		serverlessOverrides["dockerRegistry"] = dockerRegistryOverrides
+		ob := OverridesBuilder{}
+		err := ob.AddOverrides("serverless", serverlessOverrides)
+		require.NoError(t, err)
+
+		kubeClient := fake.NewSimpleClientset(generalNode)
+		ob.AddInterceptor([]string{"serverless.dockerRegistry.enableInternal"}, NewRegistryDisableInterceptor(kubeClient))
+		// when
+		overrides, err := ob.Build()
+
+		// then
+		require.NoError(t, err)
+		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, "true", getOverride(overrides.Map(), "serverless.dockerRegistry.enableInternal"))
+	})
+
+}
+
+func Test_RegistryOverridesInterception(t *testing.T) {
+	k3dNode := fakeK3dNode()
+	generalNode := fakeNode()
+
+	t.Run("test getting k3d cluster name", func(t *testing.T) {
+		// given
+		kubeClient := fake.NewSimpleClientset(k3dNode)
+
+		// when
+		clusterName, err := getK3dClusterName(kubeClient)
+
+		// then
+		require.NoError(t, err)
+		require.Equal(t, "kyma", clusterName)
+	})
+
+	t.Run("test registry address for k3d cluster", func(t *testing.T) {
+		// given
+		dockerRegistryOverrides := make(map[string]interface{})
+		dockerRegistryOverrides["enableInternal"] = "true"
+		dockerRegistryOverrides["serverAddress"] = "serverAddress"
+		dockerRegistryOverrides["internalServerAddress"] = "internalServerAddress"
+		dockerRegistryOverrides["registryAddress"] = "registryAddress"
+		serverlessOverrides := make(map[string]interface{})
+		serverlessOverrides["dockerRegistry"] = dockerRegistryOverrides
+		ob := OverridesBuilder{}
+		err := ob.AddOverrides("serverless", serverlessOverrides)
+		require.NoError(t, err)
+
+		kubeClient := fake.NewSimpleClientset(k3dNode)
+		ob.AddInterceptor([]string{"serverless.dockerRegistry.internalServerAddress", "serverless.dockerRegistry.serverAddress", "serverless.dockerRegistry.registryAddress"}, NewRegistryInterceptor(kubeClient))
+		// when
+		overrides, err := ob.Build()
+
+		// then
+		require.NoError(t, err)
+		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, "k3d-kyma-registry:5000", getOverride(overrides.Map(), "serverless.dockerRegistry.serverAddress"))
+		require.Equal(t, "k3d-kyma-registry:5000", getOverride(overrides.Map(), "serverless.dockerRegistry.internalServerAddress"))
+		require.Equal(t, "k3d-kyma-registry:5000", getOverride(overrides.Map(), "serverless.dockerRegistry.registryAddress"))
+	})
+
+	t.Run("test preserve registry address for non k3d cluster", func(t *testing.T) {
+		// given
+		dockerRegistryOverrides := make(map[string]interface{})
+		dockerRegistryOverrides["enableInternal"] = "false"
+		dockerRegistryOverrides["serverAddress"] = "serverAddress"
+		dockerRegistryOverrides["internalServerAddress"] = "internalServerAddress"
+		dockerRegistryOverrides["registryAddress"] = "registryAddress"
+		serverlessOverrides := make(map[string]interface{})
+		serverlessOverrides["dockerRegistry"] = dockerRegistryOverrides
+		ob := OverridesBuilder{}
+		err := ob.AddOverrides("serverless", serverlessOverrides)
+		require.NoError(t, err)
+
+		kubeClient := fake.NewSimpleClientset(generalNode)
+		ob.AddInterceptor([]string{"serverless.dockerRegistry.internalServerAddress", "serverless.dockerRegistry.serverAddress", "serverless.dockerRegistry.registryAddress"}, NewRegistryInterceptor(kubeClient))
+		// when
+		overrides, err := ob.Build()
+
+		// then
+		require.NoError(t, err)
+		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, getOverride(overrides.Map(), "serverless.dockerRegistry.serverAddress"), "serverAddress")
+		require.Equal(t, getOverride(overrides.Map(), "serverless.dockerRegistry.internalServerAddress"), "internalServerAddress")
+		require.Equal(t, getOverride(overrides.Map(), "serverless.dockerRegistry.registryAddress"), "registryAddress")
+	})
+}
+
+func fakeNode() *v1.Node {
+	node := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-node-0",
+		},
+	}
+
+	return node
+}
+
+func fakeK3dNode() *v1.Node {
+	k3dNode := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "k3d-kyma-server-0",
+		},
+	}
+
+	return k3dNode
+}
+
 func fakeGardenerCM() *v1.ConfigMap {
 	domainData := make(map[string]string)
 	domainData["domain"] = "gardener.domain"
