@@ -28,6 +28,9 @@ type Options struct {
 
 	// Timeouts specifies the timeouts of the operations
 	Timeouts types.Timeouts
+
+	// Print terraform log for debugging
+	Verbose bool
 }
 
 // Option is a function that allows to extensibly configure the terraform operator.
@@ -61,6 +64,12 @@ func WithTimeouts(timeouts types.Timeouts) Option {
 	}
 }
 
+func Verbose(verbose bool) Option {
+	return func(ops *Options) {
+		ops.Verbose = verbose
+	}
+}
+
 // ToTerraformOptions turns Hydroform options into terraform operator specific options
 func ToTerraformOptions(ops *types.Options) (tfOps []Option) {
 
@@ -74,6 +83,10 @@ func ToTerraformOptions(ops *types.Options) (tfOps []Option) {
 
 	if ops.Timeouts != nil {
 		tfOps = append(tfOps, WithTimeouts(*ops.Timeouts))
+	}
+
+	if ops.Verbose {
+		tfOps = append(tfOps, Verbose(ops.Verbose))
 	}
 
 	return tfOps
