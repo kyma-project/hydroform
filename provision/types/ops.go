@@ -8,6 +8,7 @@ type Options struct {
 	DataDir    string
 	Persistent bool
 	Timeouts   *Timeouts
+	Verbose    bool // Print terraform log for debugging
 }
 
 // Timeouts specifies timeouts on various operation
@@ -38,5 +39,11 @@ func WithDataDir(dir string) Option {
 func WithTimeouts(timeouts *Timeouts) Option {
 	return func(ops *Options) {
 		ops.Timeouts = timeouts
+	}
+}
+
+func Verbose(verbose bool) Option {
+	return func(ops *Options) {
+		ops.Verbose = verbose
 	}
 }

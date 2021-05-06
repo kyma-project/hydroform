@@ -19,10 +19,13 @@ type Terraform struct {
 // New creates a new Terraform operator with the given options
 func New(ops ...Option) *Terraform {
 	// silence the logs since terraform prints a lot of stuff
-	log.SetOutput(ioutil.Discard)
+	tfOps := options(ops...)
+	if !tfOps.Verbose {
+		log.SetOutput(ioutil.Discard)
+	}
 
 	return &Terraform{
-		ops: options(ops...),
+		ops: tfOps,
 	}
 }
 
@@ -31,9 +34,11 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 	applyTimeouts(cfg, t.ops.Timeouts)
 
 	// silence stdErr during terraform execution, plugins send debug and trace entries there
-	stderr := os.Stderr
-	os.Stderr, _ = os.Open(os.DevNull)
-	defer func() { os.Stderr = stderr }()
+	if !t.ops.Verbose {
+		stderr := os.Stderr
+		os.Stderr, _ = os.Open(os.DevNull)
+		defer func() { os.Stderr = stderr }()
+	}
 
 	// init cluster files
 	if !t.ops.Persistent {
