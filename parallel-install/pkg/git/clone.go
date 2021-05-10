@@ -53,10 +53,10 @@ func resolveRevision(repo *git.Repository, url, rev string) (*plumbing.Hash, err
 
 func checkout(repo *git.Repository, url, rev string) error {
 	w, err := repo.Worktree()
-	if err != nil {
+  if err != nil {
 		return errors.Wrap(err, "Error getting the worktree")
 	}
-	hash, err := resolveRevision(repo, url, rev)
+  hash, err := resolveRevision(repo, url, rev)
 	if err != nil {
 		return err
 	}
@@ -65,6 +65,6 @@ func checkout(repo *git.Repository, url, rev string) error {
 	})
 	if err != nil {
 		return errors.Wrap(err, "Error checking out revision")
-	}
-	return nil
+  }
+  return nil
 }
