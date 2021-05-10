@@ -2,11 +2,27 @@ package git
 
 import (
 	"context"
+	"strings"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/pkg/errors"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
 )
+
+var defaultCloner repoCloner = &remoteRepoCloner{}
+
+// CloneRepo clones the repository in the given URL to the given dstPath and checks out the given revision.
+// revision can be 'main', a release version (e.g. 1.4.1), a commit hash (e.g. 34edf09a) or a PR (e.g. PR-9486).
+func CloneRepo(url, dstPath, rev string) error {
+	repo, err := defaultCloner.Clone(url, dstPath, true)
+	if err != nil {
+		return errors.Wrapf(err, "Error downloading repository (%s)", url)
+	}
+	if rev != "" {
+		return checkout(repo, url, rev)
+	}
+	return nil
+}
 
 type repoCloner interface {
 	Clone(url, path string, noCheckout bool) (*git.Repository, error)
@@ -15,54 +31,40 @@ type repoCloner interface {
 type remoteRepoCloner struct {
 }
 
-func (rc *remoteRepoCloner) Clone(url, path string, noCheckout bool) (*git.Repository, error) {
+func (rc *remoteRepoCloner) Clone(url, path string, autoCheckout bool) (*git.Repository, error) {
 	return git.PlainCloneContext(context.Background(), path, false, &git.CloneOptions{
 		Depth:      0,
 		URL:        url,
-		NoCheckout: noCheckout,
+		NoCheckout: !autoCheckout,
 	})
 }
 
-var defaultCloner repoCloner = &remoteRepoCloner{}
-
-// CloneRepo clones the repository in the given URL to the given dstPath and checks out the given revision.
 // revision can be 'main', a release version (e.g. 1.4.1), a commit hash (e.g. 34edf09a) or a PR (e.g. PR-9486).
-func CloneRepo(url, dstPath, rev string) error {
-	rev, err := ResolveRevision(url, rev)
-	if err != nil {
-		return err
+func resolveRevision(repo *git.Repository, url, rev string) (*plumbing.Hash, error) {
+	if strings.HasPrefix(rev, "PR-") {
+		err := error(nil)
+		rev, err = resolvePRrevision(url, rev)
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	if err := CloneRevision(url, dstPath, rev); err != nil {
-		return err
-	}
-
-	return nil
+	return repo.ResolveRevision(plumbing.Revision(rev))
 }
 
-// CloneRevision clones the repository in the given URL to the given dstPath and checks out the given revision.
-// The clone downloads the bare minimum to only get the given revision.
-// If the revision is empty, HEAD will be used.
-func CloneRevision(repoURL, dstPath, rev string) error {
-	// only checkout HEAD if the revision is empty
-	noCheckoutWhenClone := rev != ""
-	r, err := defaultCloner.Clone(repoURL, dstPath, noCheckoutWhenClone)
+func checkout(repo *git.Repository, url, rev string) error {
+	w, err := repo.Worktree()
 	if err != nil {
-		return errors.Wrapf(err, "Error downloading repository (%s)", repoURL)
+		return errors.Wrap(err, "Error getting the worktree")
 	}
-
-	if noCheckoutWhenClone {
-		w, err := r.Worktree()
-		if err != nil {
-			return errors.Wrap(err, "Error getting the worktree")
-		}
-
-		err = w.Checkout(&git.CheckoutOptions{
-			Hash: plumbing.NewHash(rev),
-		})
-		if err != nil {
-			return errors.Wrap(err, "Error checking out revision")
-		}
+	hash, err := resolveRevision(repo, url, rev)
+	if err != nil {
+		return err
+	}
+	err = w.Checkout(&git.CheckoutOptions{
+		Hash: *hash,
+	})
+	if err != nil {
+		return errors.Wrap(err, "Error checking out revision")
 	}
 	return nil
 }
