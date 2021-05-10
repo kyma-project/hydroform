@@ -2,9 +2,12 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
+	// "github.com/go-git/go-git/config"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/pkg/errors"
 )
@@ -41,7 +44,8 @@ func (rc *remoteRepoCloner) Clone(url, path string, autoCheckout bool) (*git.Rep
 
 // revision can be 'main', a release version (e.g. 1.4.1), a commit hash (e.g. 34edf09a) or a PR (e.g. PR-9486).
 func resolveRevision(repo *git.Repository, url, rev string) (*plumbing.Hash, error) {
-	if strings.HasPrefix(rev, "PR-") {
+	if strings.HasPrefix(rev, prPrefix) {
+		fetchPR(repo, strings.TrimPrefix(rev, prPrefix)) // to ensure that the rev hash can be checked out
 		err := error(nil)
 		rev, err = resolvePRrevision(url, rev)
 		if err != nil {
@@ -51,12 +55,17 @@ func resolveRevision(repo *git.Repository, url, rev string) (*plumbing.Hash, err
 	return repo.ResolveRevision(plumbing.Revision(rev))
 }
 
+func fetchPR(repo *git.Repository, prNmbr string) error {
+	refs := []config.RefSpec{config.RefSpec(fmt.Sprintf("+refs/pull/%s/head:refs/remotes/origin/pr/%s", prNmbr, prNmbr))}
+	return repo.Fetch(&git.FetchOptions{RefSpecs: refs})
+}
+
 func checkout(repo *git.Repository, url, rev string) error {
 	w, err := repo.Worktree()
-  if err != nil {
+	if err != nil {
 		return errors.Wrap(err, "Error getting the worktree")
 	}
-  hash, err := resolveRevision(repo, url, rev)
+	hash, err := resolveRevision(repo, url, rev)
 	if err != nil {
 		return err
 	}
@@ -65,6 +74,6 @@ func checkout(repo *git.Repository, url, rev string) error {
 	})
 	if err != nil {
 		return errors.Wrap(err, "Error checking out revision")
-  }
-  return nil
+	}
+	return nil
 }
