@@ -85,7 +85,7 @@ func doPatch(kubeClient kubernetes.Interface, patches map[string]string, log log
 	exists := true
 	if err != nil {
 		if apierr.IsNotFound(err) {
-			exists = true
+			exists = false
 		} else {
 			return cm, err
 		}
