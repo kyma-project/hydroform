@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"html/template"
-	"strings"
 
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
@@ -15,9 +16,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	dockerTypes "github.com/docker/docker/api/types"
+	docker "github.com/docker/docker/client"
 )
 
-var coreDNSPatchTemplate = `
+const (
+	coreDNSPatchTemplate = `
 .:53 {
     errors
     health
@@ -39,15 +44,16 @@ var coreDNSPatchTemplate = `
     loadbalance
 }
 `
+	hostsTemplate = `
+    {{ .K3sRegistryIP}} {{ .K3sRegistryHost}}
+`
+	// Default domain names for coreDNS patch
+	coreDNSLocalDomainName  = `(.*)\.local\.kyma\.dev`
+	coreDNSRemoteDomainName = `(.*)\.kyma\.example\.com`
+)
 
-// coreDNSPatch contains values to fill template with
-type coreDNSPatch struct {
-	DomainName string
-}
-
-// patchCoreDNS takes kubeclient, cluster domain and logger as a parameter to patch coredns config
-// e.g. domainName: `(.*)\.local\.kyma\.dev`
-func patchCoreDNS(kubeClient kubernetes.Interface, domainName string, log logger.Interface) (cm v1.ConfigMap, err error) {
+// patchCoreDNS patches the CoreDNS cnfiguration based on the overrides and the cloud provider.
+func patchCoreDNS(kubeClient kubernetes.Interface, overrides *OverridesBuilder, isK3s bool, log logger.Interface) (cm *v1.ConfigMap, err error) {
 	err = retry.Do(func() error {
 		_, err := kubeClient.AppsV1().Deployments("kube-system").Get(context.TODO(), "coredns", metav1.GetOptions{})
 		if err != nil {
@@ -58,30 +64,54 @@ func patchCoreDNS(kubeClient kubernetes.Interface, domainName string, log logger
 			return err
 		}
 
+		// patches contains each key and value that needs to be patched in the coredns configmap data field.
+		patches := map[string]string{}
+
+		// patch the CoreFile only if not on gardener and no custom domain is provided
+		gardenerDomain, err := findGardenerDomain(kubeClient)
+		if err != nil {
+			return err
+		}
+		o, err := overrides.Raw()
+		if err != nil {
+			return err
+		}
+		_, hasCustomDomain := o.Find("global.domainName")
+		if gardenerDomain == "" && !hasCustomDomain {
+			var domainName string
+			if isK3s {
+				domainName = coreDNSLocalDomainName
+			} else {
+				domainName = coreDNSRemoteDomainName
+			}
+			patches["Corefile"], err = generateCorefile(domainName)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Patch NodeHosts only on K3s
+		if isK3s {
+			patches["NodeHosts"], err = generateHosts(kubeClient)
+			if err != nil {
+				return err
+			}
+		}
+
 		configMaps := kubeClient.CoreV1().ConfigMaps("kube-system")
 		coreDNSConfigMap, exists, err := findCoreDNSConfigMap(configMaps)
 		if err != nil {
 			return err
 		}
-
-		if strings.Contains(coreDNSConfigMap.Data["Corefile"], domainName) {
-			log.Info("CoreDNS config already contains proper domain rule")
-			return nil
-		}
-
-		coreFile, err := generateCorefile(domainName)
-		if err != nil {
-			return err
-		}
 		if exists {
 			log.Info("Patching CoreDNS config")
-			cm, err = patchCoreDNSConfigMap(configMaps, coreDNSConfigMap, coreFile, log)
+			cm, err = patchCoreDNSConfigMap(configMaps, coreDNSConfigMap, patches, log)
 			if err != nil {
 				return err
 			}
 		} else {
 			log.Info("Corefile not found, creating new CoreDNS config")
-			cm, err = createCoreDNSConfigMap(configMaps, coreFile, log)
+			cm, err = createCoreDNSConfigMap(configMaps, patches, log)
 			if err != nil {
 				return err
 			}
@@ -90,11 +120,7 @@ func patchCoreDNS(kubeClient kubernetes.Interface, domainName string, log logger
 		return nil
 	}, defaultRetryOptions()...)
 
-	if err != nil {
-		return cm, err
-	}
-
-	return cm, nil
+	return
 }
 
 func findCoreDNSConfigMap(configMaps corev1.ConfigMapInterface) (cm *v1.ConfigMap, exists bool, err error) {
@@ -108,45 +134,108 @@ func findCoreDNSConfigMap(configMaps corev1.ConfigMapInterface) (cm *v1.ConfigMa
 	return cm, true, nil
 }
 
-func patchCoreDNSConfigMap(configMaps corev1.ConfigMapInterface, coreDNSConfigMap *v1.ConfigMap, coreFile string, log logger.Interface) (cm v1.ConfigMap, err error) {
-	coreDNSConfigMap.Data["Corefile"] = coreFile
+func patchCoreDNSConfigMap(configMaps corev1.ConfigMapInterface, coreDNSConfigMap *v1.ConfigMap, patch map[string]string, log logger.Interface) (cm *v1.ConfigMap, err error) {
+	for k, v := range patch {
+		coreDNSConfigMap.Data[k] = v
+	}
 	jsontext, err := json.Marshal(coreDNSConfigMap)
 	if err != nil {
-		return cm, err
+		return
 	}
 
-	newCM, err := configMaps.Patch(context.TODO(), "coredns", types.StrategicMergePatchType, jsontext, metav1.PatchOptions{})
+	cm, err = configMaps.Patch(context.TODO(), "coredns", types.StrategicMergePatchType, jsontext, metav1.PatchOptions{})
 	if err != nil {
 		log.Error("Could not patch CoreDNS Corefile config")
-		return cm, err
 	}
-	return *newCM, nil
+	return
 }
 
-func createCoreDNSConfigMap(configMaps corev1.ConfigMapInterface, coreFile string, log logger.Interface) (cm v1.ConfigMap, err error) {
-	newCM, err := configMaps.Create(context.TODO(), getNewCoreDNSConfigMap(coreFile), metav1.CreateOptions{})
+func createCoreDNSConfigMap(configMaps corev1.ConfigMapInterface, patch map[string]string, log logger.Interface) (cm *v1.ConfigMap, err error) {
+	cm, err = configMaps.Create(context.TODO(), newCoreDNSConfigMap(patch), metav1.CreateOptions{})
 	if err != nil {
 		log.Error("Could not create new CoreDNS Corefile config")
-		return cm, err
 	}
-	return *newCM, nil
+	return
 }
 
-func getNewCoreDNSConfigMap(data string) *v1.ConfigMap {
+func newCoreDNSConfigMap(data map[string]string) *v1.ConfigMap {
 	return &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "coredns"},
-		Data:       map[string]string{"Corefile": data},
+		Data:       data,
 	}
 }
 
 func generateCorefile(domainName string) (coreFile string, err error) {
-	coreDNSPatchData := coreDNSPatch{DomainName: domainName}
+	patchvars := struct {
+		DomainName string
+	}{
+		DomainName: domainName,
+	}
 	patchTemplate := template.Must(template.New("").Parse(coreDNSPatchTemplate))
 	patchBuffer := new(bytes.Buffer)
-	if err = patchTemplate.Execute(patchBuffer, coreDNSPatchData); err != nil {
+	if err = patchTemplate.Execute(patchBuffer, patchvars); err != nil {
 		return
 	}
 
 	coreFile = patchBuffer.String()
 	return
+}
+
+func generateHosts(kubeClient kubernetes.Interface) (string, error) {
+	clusterName, err := getK3dClusterName(kubeClient)
+	if err != nil {
+		return "", err
+	}
+	registryIP, err := k3sRegistryIP(clusterName)
+	if err != nil {
+		return "", err
+	}
+
+	patchVars := struct {
+		K3sRegistryHost string
+		K3sRegistryIP   string
+	}{
+		K3sRegistryHost: fmt.Sprintf("k3d-%s-registry", clusterName),
+		K3sRegistryIP:   registryIP,
+	}
+	t := template.Must(template.New("").Parse(hostsTemplate))
+	b := new(bytes.Buffer)
+	if err := t.Execute(b, patchVars); err != nil {
+		return "", err
+	}
+
+	return b.String(), nil
+
+}
+
+// Abstract the docker container inspect to be able to test the k3s coreDNS patching
+type containerInspector func(ctx context.Context, containerID string) (dockerTypes.ContainerJSON, error)
+
+// the defaultInspector uses the standard docker client to get container information from the daemon in the local ENV
+var defaultInspector = func(ctx context.Context, containerID string) (dockerTypes.ContainerJSON, error) {
+	client, err := docker.NewClientWithOpts(docker.FromEnv)
+	if err != nil {
+		return dockerTypes.ContainerJSON{}, err
+	}
+
+	return client.ContainerInspect(context.Background(), containerID)
+}
+
+// registryIP uses docker inspect to find out the registry IP address in k3s
+func k3sRegistryIP(cluster string) (string, error) {
+	c, err := defaultInspector(context.Background(), fmt.Sprintf("k3d-%s-registry", cluster))
+	if err != nil {
+		return "", err
+	}
+
+	net, exists := c.NetworkSettings.Networks[fmt.Sprintf("k3d-%s", cluster)]
+	if !exists {
+		return "", errors.New("Could not find network settings in k3s registry.")
+	}
+
+	if net.IPAddress == "" {
+		return "", errors.New("K3s registry IP is empty")
+	}
+
+	return net.IPAddress, nil
 }

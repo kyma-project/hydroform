@@ -3,10 +3,11 @@ package deployment
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/labels"
 	"strings"
 	"time"
 	"unicode"
+
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/avast/retry-go"
 	"github.com/pkg/errors"
@@ -24,7 +25,7 @@ import (
 type core struct {
 	// Contains list of components to install (inclusive pre-requisites)
 	cfg       *config.Config
-	overrides *Overrides
+	overrides *OverridesBuilder
 	// Used to send progress events of a running install/uninstall process
 	processUpdates func(ProcessUpdate)
 	kubeClient     kubernetes.Interface
@@ -39,10 +40,10 @@ type core struct {
 //kubeClient is the kubernetes client
 //
 //processUpdates can be an optional feedback channel provided by the caller
-func newCore(cfg *config.Config, overrides Overrides, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) *core {
+func newCore(cfg *config.Config, overrides *OverridesBuilder, kubeClient kubernetes.Interface, processUpdates func(ProcessUpdate)) *core {
 	return &core{
 		cfg:            cfg,
-		overrides:      &overrides,
+		overrides:      overrides,
 		processUpdates: processUpdates,
 		kubeClient:     kubeClient,
 	}
@@ -56,7 +57,12 @@ func (i *core) logStatuses(statusMap map[string]string) {
 }
 
 func (i *core) getConfig() (overrides.Provider, *engine.Engine, *engine.Engine, error) {
-	overridesProvider, err := overrides.New(i.kubeClient, i.overrides.Map(), i.cfg.Log)
+	o, err := i.overrides.Build()
+	if err != nil {
+		return nil, nil, nil, errors.Wrap(err, "Failed to create overrides provider: exiting")
+	}
+
+	overridesProvider, err := overrides.New(i.kubeClient, o.Map(), i.cfg.Log)
 
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "Failed to create overrides provider: exiting")
@@ -191,7 +197,7 @@ func getK3dClusterName(kubeClient kubernetes.Interface) (k3dName string, err err
 	return k3dName, nil
 }
 
-func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.Interface, log logger.Interface) (Overrides, error) {
+func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.Interface, log logger.Interface) {
 	//hide certificate data
 	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
 	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient))
@@ -206,6 +212,4 @@ func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.I
 
 	// make sure k3d clusters disable internal container registry
 	ob.AddInterceptor([]string{"serverless.dockerRegistry.enableInternal"}, NewRegistryDisableInterceptor(kubeClient))
-
-	return ob.Build()
 }

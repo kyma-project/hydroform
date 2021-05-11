@@ -294,6 +294,6 @@ func newDeployment(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kub
 		Log:                           logger.NewLogger(true),
 		ComponentList:                 compList,
 	}
-	core := newCore(config, Overrides{}, kubeClient, procUpdates)
+	core := newCore(config, &OverridesBuilder{}, kubeClient, procUpdates)
 	return &Deployment{core}
 }

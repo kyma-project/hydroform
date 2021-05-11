@@ -56,13 +56,9 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(P
 	if err != nil {
 		return nil, err
 	}
+	registerOverridesInterceptors(ob, kubeClient, cfg.Log)
 
-	overrides, err := registerOverridesInterceptors(ob, kubeClient, cfg.Log)
-	if err != nil {
-		return nil, err
-	}
-
-	core := newCore(cfg, overrides, kubeClient, processUpdates)
+	core := newCore(cfg, ob, kubeClient, processUpdates)
 
 	mp, err := helm.NewKymaMetadataProvider(cfg.KubeconfigSource)
 	if err != nil {

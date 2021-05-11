@@ -35,61 +35,64 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func
 		return nil, err
 	}
 
-	overrides, err := registerOverridesInterceptors(ob, kubeClient, cfg.Log)
-	if err != nil {
-		return nil, err
-	}
+	registerOverridesInterceptors(ob, kubeClient, cfg.Log)
 
-	core := newCore(cfg, overrides, kubeClient, processUpdates)
+	core := newCore(cfg, ob, kubeClient, processUpdates)
 
 	return &Deployment{core}, nil
 }
 
 //StartKymaDeployment deploys Kyma to a cluster
-func (i *Deployment) StartKymaDeployment() error {
-	overridesProvider, prerequisitesEng, componentsEng, err := i.getConfig()
+func (d *Deployment) StartKymaDeployment() error {
+	overridesProvider, prerequisitesEng, componentsEng, err := d.getConfig()
 	if err != nil {
 		return err
 	}
 
-	return i.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
+	return d.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
 }
 
-func (i *Deployment) startKymaDeployment(overridesProvider overrides.Provider, prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
+func (d *Deployment) startKymaDeployment(overridesProvider overrides.Provider, prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	i.cfg.Log.Info("Kyma prerequisites deployment")
+	d.cfg.Log.Info("Kyma prerequisites deployment")
 
 	err := overridesProvider.ReadOverridesFromCluster()
 	if err != nil {
 		return fmt.Errorf("error while reading overrides: %v", err)
 	}
 
-	cancelTimeout := i.cfg.CancelTimeout
-	quitTimeout := i.cfg.QuitTimeout
+	isK3s, err := isK3dCluster(d.kubeClient)
+	if err != nil {
+		return err
+	}
+	patchCoreDNS(d.kubeClient, d.overrides, isK3s, d.cfg.Log)
+
+	cancelTimeout := d.cfg.CancelTimeout
+	quitTimeout := d.cfg.QuitTimeout
 
 	startTime := time.Now()
 	ns := namespace.Namespace{
-		KubeClient: i.kubeClient,
-		Log:        i.cfg.Log,
+		KubeClient: d.kubeClient,
+		Log:        d.cfg.Log,
 	}
 	err = ns.DeployInstallerNamespace()
 	if err != nil {
 		return err
 	}
-	err = i.deployComponents(cancelCtx, cancel, InstallPreRequisites, prerequisitesEng, cancelTimeout, quitTimeout)
+	err = d.deployComponents(cancelCtx, cancel, InstallPreRequisites, prerequisitesEng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
 	endTime := time.Now()
 
-	i.cfg.Log.Info("Kyma deployment")
+	d.cfg.Log.Info("Kyma deployment")
 
-	cancelTimeout = calculateDuration(startTime, endTime, i.cfg.CancelTimeout)
-	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
+	cancelTimeout = calculateDuration(startTime, endTime, d.cfg.CancelTimeout)
+	quitTimeout = calculateDuration(startTime, endTime, d.cfg.QuitTimeout)
 
-	return i.deployComponents(cancelCtx, cancel, InstallComponents, componentsEng, cancelTimeout, quitTimeout)
+	return d.deployComponents(cancelCtx, cancel, InstallComponents, componentsEng, cancelTimeout, quitTimeout)
 }
 
 func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.CancelFunc, phase InstallationPhase, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {

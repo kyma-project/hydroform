@@ -6,7 +6,7 @@ replace (
 	//TODO: remove this part as Helm 3.5.4 got released
 	//see https://github.com/helm/helm/issues/9354 + https://github.com/helm/helm/pull/9492
 	github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
-	github.com/docker/docker => github.com/moby/moby v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
+	github.com/docker/docker => github.com/moby/moby v20.10.6+incompatible
 )
 
 require (
@@ -14,6 +14,7 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.1.0
+	github.com/docker/docker v20.10.6+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-git/v5 v5.3.0
