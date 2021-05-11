@@ -11,9 +11,6 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
-	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -50,11 +47,6 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func
 
 //StartKymaDeployment deploys Kyma to a cluster
 func (i *Deployment) StartKymaDeployment() error {
-	err := i.deployKymaNamespaces(kymaNamespaces)
-	if err != nil {
-		return err
-	}
-
 	overridesProvider, prerequisitesEng, componentsEng, err := i.getConfig()
 	if err != nil {
 		return err
@@ -155,49 +147,6 @@ InstallLoop:
 	}
 	i.processUpdate(phase, ProcessFinished, nil)
 	return nil
-}
-
-func (i *Deployment) deployKymaNamespaces(namespaces []string) error {
-	for _, namespace := range namespaces {
-		_, err := i.kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
-
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				nsErr := i.createKymaNamespace(namespace)
-				if nsErr != nil {
-					return nsErr
-				}
-			} else {
-				return err
-			}
-		} else {
-			nsErr := i.updateKymaNamespace(namespace)
-			if nsErr != nil {
-				return nsErr
-			}
-		}
-	}
-	return nil
-}
-
-func (i *Deployment) createKymaNamespace(namespace string) error {
-	_, err := i.kubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-		},
-	}, metav1.CreateOptions{})
-
-	return err
-}
-
-func (i *Deployment) updateKymaNamespace(namespace string) error {
-	_, err := i.kubeClient.CoreV1().Namespaces().Update(context.Background(), &v1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-		},
-	}, metav1.UpdateOptions{})
-
-	return err
 }
 
 func (i *Deployment) DefaultUpdater() func(update ProcessUpdate) {

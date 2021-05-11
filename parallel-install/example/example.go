@@ -142,7 +142,7 @@ func main() {
 	}
 
 	//Delete Kyma
-	deleter, err := deployment.NewDeletion(installationCfg, builder, callbackUpdate)
+	deleter, err := deployment.NewDeletion(installationCfg, builder, callbackUpdate, commonRetryOpts)
 	if err != nil {
 		log.Fatalf("Failed to create deleter: %v", err)
 	}

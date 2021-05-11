@@ -167,7 +167,7 @@ func (i *PreInstaller) findResourcesIn(input resourceInfoInput) (results []resou
 		}
 
 		if len(resources) == 0 {
-			i.cfg.Log.Warnf("There were no resources detected for component: ", componentName)
+			i.cfg.Log.Warnf("There were no resources detected for component: %s", componentName)
 			break
 		}
 
