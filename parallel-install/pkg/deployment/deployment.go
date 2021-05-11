@@ -67,7 +67,9 @@ func (d *Deployment) startKymaDeployment(overridesProvider overrides.Provider, p
 	if err != nil {
 		return err
 	}
-	patchCoreDNS(d.kubeClient, d.overrides, isK3s, d.cfg.Log)
+	if _, err := patchCoreDNS(d.kubeClient, d.overrides, isK3s, d.cfg.Log); err != nil {
+		return err
+	}
 
 	cancelTimeout := d.cfg.CancelTimeout
 	quitTimeout := d.cfg.QuitTimeout
