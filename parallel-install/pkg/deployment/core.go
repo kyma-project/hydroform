@@ -3,6 +3,7 @@ package deployment
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/labels"
 	"strings"
 	"time"
 	"unicode"
@@ -157,7 +158,13 @@ func getK3dClusterName(kubeClient kubernetes.Interface) (k3dName string, err err
 	}
 
 	err = retry.Do(func() error {
-		nodeList, err := kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		labelSelector := metav1.LabelSelector{
+			MatchLabels: map[string]string{"node-role.kubernetes.io/master": "true"},
+		}
+		listOptions := metav1.ListOptions{
+			LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+		}
+		nodeList, err := kubeClient.CoreV1().Nodes().List(context.Background(), listOptions)
 		if err != nil {
 			return err
 		}
@@ -168,7 +175,7 @@ func getK3dClusterName(kubeClient kubernetes.Interface) (k3dName string, err err
 				k3dName = ""
 				return errors.New("Cluster is not a k3d cluster")
 			}
-			// K3d cluster name can be derived from node name, which has the form k3d-<cluster-name>-server-<id>.
+			// K3d cluster name can be derived from master node names, which has the form k3d-<cluster-name>-server-<id>.
 			// E.g., with the Kyma CLI default flags k3d-kyma-server-0
 			k3dName = strings.TrimSuffix(strings.TrimRightFunc(strings.TrimPrefix(nodeName, "k3d-"), func(r rune) bool {
 				return unicode.IsNumber(r) || r == '-'

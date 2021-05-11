@@ -677,7 +677,8 @@ func fakeNode() *v1.Node {
 func fakeK3dNode() *v1.Node {
 	k3dNode := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "k3d-kyma-server-0",
+			Name:   "k3d-kyma-server-0",
+			Labels: map[string]string{"node-role.kubernetes.io/master": "true"},
 		},
 	}
 
