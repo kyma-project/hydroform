@@ -2,15 +2,14 @@ package git
 
 import (
 	"encoding/hex"
-	"fmt"
 	"strings"
 
 	"github.com/blang/semver/v4"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/pkg/errors"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/config"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
 const prPrefix = "PR-"
@@ -32,33 +31,6 @@ func (rl *remoteRefLister) List(repoURL string) ([]*plumbing.Reference, error) {
 }
 
 var defaultLister refLister = &remoteRefLister{}
-
-// resolveRevision tries to convert a pseudo-revision reference (e.g. semVer, tag, PR, main, etc...) into a revision that can be checked out.
-func ResolveRevision(repo, rev string) (string, error) {
-	switch {
-	// Install the specific commit hash (e.g. 34edf09a)
-	case isHex(rev):
-		// no need for conversion
-		return rev, nil
-
-	// Install the specific version from release (ex: 1.15.1)
-	case isSemVer(rev):
-		// get tag commit ID
-		return Tag(repo, rev)
-
-	// Install the specific pull request (e.g. PR-9486)
-	case strings.HasPrefix(rev, "PR-"):
-		// get PR HEAD commit ID
-		return PRHead(repo, rev)
-	// Install the specific branch (e.g. main) or return error message
-	default:
-		if ref, err := BranchHead(repo, rev); err == nil {
-			return ref, nil
-		} else {
-			return "", errors.Wrap(err, fmt.Sprintf("Could not find a branch with name '%s'\nfailed to parse the rev parameter. It can take one of the following: branch name (e.g. main), commit hash (e.g. 34edf09a), release version (e.g. 1.4.1), PR (e.g. PR-9486)", rev))
-		}
-	}
-}
 
 // branchHead finds the HEAD commit hash of the given branch in the given repository.
 func BranchHead(repoURL, branch string) (string, error) {
@@ -90,8 +62,8 @@ func Tag(repoURL, tag string) (string, error) {
 	return "", errors.Errorf("could not find tag %s in %s", tag, repoURL)
 }
 
-// PR finds the commit hash of the HEAD of the given PR in the given repository.
-func PRHead(repoURL, pr string) (string, error) {
+// resolvePRrevision tries to convert a PR into a revision that can be checked out.
+func resolvePRrevision(repoURL, pr string) (string, error) {
 	refs, err := defaultLister.List(repoURL)
 	if err != nil {
 		return "", errors.Wrap(err, "could not list commits")
