@@ -74,13 +74,3 @@ func (ns *Namespace) updateNamespace() error {
 
 	return nil
 }
-
-func (ns *Namespace) DeleteInstallerNamespace() error {
-	// TODO: Delete namespace deletion once xip-patch is gone.
-	ns.Log.Info("Deleting kyma-installer namespace")
-	err := ns.KubeClient.CoreV1().Namespaces().Delete(context.Background(), "kyma-installer", metav1.DeleteOptions{})
-	if err != nil {
-		return fmt.Errorf("Unable to delete kyma-installer namespace. Error: %v", err)
-	}
-	return nil
-}

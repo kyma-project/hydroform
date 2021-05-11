@@ -7,26 +7,32 @@ import (
 	"sync"
 	"time"
 
+	"github.com/avast/retry-go"
+	"github.com/kubernetes-sigs/service-catalog/pkg/client/clientset_generated/clientset"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
+	apierr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
-
-//TODO: has to be taken from component list! See https://github.com/kyma-incubator/hydroform/issues/181
-var kymaNamespaces = []string{"kyma-system", "kyma-integration", "istio-system", "knative-eventing", "natss"}
 
 //Deletion removes Kyma from a cluster
 type Deletion struct {
 	*core
+	mp           *helm.KymaMetadataProvider
+	scclient     *clientset.Clientset
+	dClient      dynamic.Interface
+	retryOptions []retry.Option
 }
 
 //NewDeletion creates a new Deployment instance for deleting Kyma on a cluster.
-func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(ProcessUpdate)) (*Deletion, error) {
+func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(ProcessUpdate), retryOptions []retry.Option) (*Deletion, error) {
 	if err := cfg.ValidateDeletion(); err != nil {
 		return nil, err
 	}
@@ -41,6 +47,16 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(P
 		return nil, err
 	}
 
+	scclient, err := clientset.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	dClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	overrides, err := registerOverridesInterceptors(ob, kubeClient, cfg.Log)
 	if err != nil {
 		return nil, err
@@ -48,7 +64,12 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(P
 
 	core := newCore(cfg, overrides, kubeClient, processUpdates)
 
-	return &Deletion{core}, nil
+	mp, err := helm.NewKymaMetadataProvider(cfg.KubeconfigSource)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Deletion{core, mp, scclient, dClient, retryOptions}, nil
 }
 
 //StartKymaUninstallation removes Kyma from a cluster
@@ -58,13 +79,7 @@ func (i *Deletion) StartKymaUninstallation() error {
 		return err
 	}
 
-	err = i.startKymaUninstallation(prerequisitesEng, componentsEng)
-	if err != nil {
-		return err
-	}
-
-	err = i.deleteKymaNamespaces(kymaNamespaces)
-	return err
+	return i.startKymaUninstallation(prerequisitesEng, componentsEng)
 }
 
 func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
@@ -76,8 +91,15 @@ func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, comp
 	cancelTimeout := i.cfg.CancelTimeout
 	quitTimeout := i.cfg.QuitTimeout
 
+	namespaces, err := i.mp.Namespaces()
+	if err != nil {
+		return err
+	}
+	//TODO: Delete this when kyma-installer is not used any more.
+	namespaces = append(namespaces, "kyma-installer")
+
 	startTime := time.Now()
-	err := i.uninstallComponents(cancelCtx, cancel, UninstallComponents, componentsEng, cancelTimeout, quitTimeout)
+	err = i.uninstallComponents(cancelCtx, cancel, UninstallComponents, componentsEng, cancelTimeout, quitTimeout)
 	if err != nil {
 		return err
 	}
@@ -92,16 +114,8 @@ func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, comp
 	if err != nil {
 		return err
 	}
-	ns := namespace.Namespace{
-		KubeClient: i.kubeClient,
-		Log:        i.cfg.Log,
-	}
-	err = ns.DeleteInstallerNamespace()
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return i.deleteKymaNamespaces(namespaces)
 }
 
 func (i *Deletion) uninstallComponents(ctx context.Context, cancelFunc context.CancelFunc, phase InstallationPhase, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
@@ -168,24 +182,98 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 
 	// start deletion in goroutines
 	for _, namespace := range namespaces {
+		err := retry.Do(func() error {
+			// Check if there are any running Pods left on the namespace
+			pods, err := i.kubeClient.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				errorCh <- err
+			}
+
+			if len(pods.Items) > 0 {
+				for _, pod := range pods.Items {
+					if pod.Status.Phase == v1.PodRunning {
+						return errors.New(fmt.Sprintf("Namespace %s could not be deleted because of the running Pod: %s. Trying again..", namespace, pod.Name))
+					}
+				}
+			}
+			return nil
+		}, i.retryOptions...)
+
+		if err != nil {
+			i.cfg.Log.Infof("Namespace %s could not be deleted because of running Pod(s)", namespace)
+			wg.Done()
+			continue
+		}
+
 		go func(ns string) {
 			defer wg.Done()
-			//HACK: drop kyma-system finalizers -> TBD: remove this hack after issue is fixed (https://github.com/kyma-project/kyma/issues/10470)
 			if ns == "kyma-system" {
-				_, err := i.kubeClient.CoreV1().Namespaces().Finalize(context.Background(), &v1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:       ns,
-						Finalizers: []string{},
-					},
-				}, metav1.UpdateOptions{})
+				//HACK: Delete finalizers of leftover Cluster Service Brokers
+				csbList, err := i.scclient.ServicecatalogV1beta1().ClusterServiceBrokers().List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					errorCh <- err
 				}
+				for _, csb := range csbList.Items {
+					csb.Finalizers = []string{}
+					_, err := i.scclient.ServicecatalogV1beta1().ClusterServiceBrokers().Update(context.Background(), &csb, metav1.UpdateOptions{})
+					if err != nil {
+						errorCh <- err
+					}
+					i.cfg.Log.Infof("Deleted finalizer from CSB: %s", csb.Name)
+				}
+
+				//HACK: Delete finalizers of leftover Service Brokers
+				sbList, err := i.scclient.ServicecatalogV1beta1().ServiceBrokers(ns).List(context.Background(), metav1.ListOptions{})
+				if err != nil {
+					errorCh <- err
+				}
+				for _, sb := range sbList.Items {
+					sb.Finalizers = []string{}
+					_, err := i.scclient.ServicecatalogV1beta1().ServiceBrokers(ns).Update(context.Background(), &sb, metav1.UpdateOptions{})
+					if err != nil {
+						errorCh <- err
+					}
+					i.cfg.Log.Infof("Deleted finalizer from SB: %s", sb.Name)
+				}
+
+				//HACK: Delete finalizers of leftover Secret
+				secret, err := i.kubeClient.CoreV1().Secrets(ns).Get(context.Background(), "serverless-registry-config-default", metav1.GetOptions{})
+				if err != nil && !apierr.IsNotFound(err) {
+					errorCh <- err
+				}
+				if secret != nil {
+					secret.Finalizers = []string{}
+					if _, err := i.kubeClient.CoreV1().Secrets(ns).Update(context.Background(), secret, metav1.UpdateOptions{}); err != nil {
+						errorCh <- err
+					}
+					i.cfg.Log.Infof("Deleted finalizer from Secret: %s", secret.Name)
+				}
+
+				//HACK: Delete finalizers of leftover ORY Rules
+				ruleResource := schema.GroupVersionResource{
+					Group:    "oathkeeper.ory.sh",
+					Version:  "v1alpha1",
+					Resource: "rules",
+				}
+
+				rules, err := i.dClient.Resource(ruleResource).Namespace(ns).List(context.Background(), metav1.ListOptions{})
+				if err != nil {
+					errorCh <- err
+				}
+				for _, rule := range rules.Items {
+					rule.SetFinalizers(nil)
+					_, err := i.dClient.Resource(ruleResource).Namespace(ns).Update(context.Background(), &rule, metav1.UpdateOptions{})
+					if err != nil {
+						errorCh <- err
+					}
+					i.cfg.Log.Infof("Deleted finalizer from Rule: %s", rule.GetName())
+				}
 			}
 			//remove namespace
-			if err := i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{}); err != nil {
+			if err := i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{}); err != nil && !apierr.IsNotFound(err) {
 				errorCh <- err
 			}
+			i.cfg.Log.Infof("Namespace '%s' is removed", ns)
 		}(namespace)
 	}
 

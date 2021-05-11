@@ -82,6 +82,47 @@ func NewKymaMetadataProvider(kubeconfigSource config.KubeconfigSource) (*KymaMet
 	}, nil
 }
 
+//GetKymaMetadataProvider creates a new KymaMetadataProvider
+func GetKymaMetadataProvider(kubeClient kubernetes.Interface) *KymaMetadataProvider {
+	return &KymaMetadataProvider{
+		kubeClient: kubeClient,
+	}
+}
+
+//Namespaces returns the set of installed Kyma namespaces
+func (mp *KymaMetadataProvider) Namespaces() ([]string, error) {
+	//get all secrets which are labeled as Kyma component
+	compField, err := mp.structField("Component")
+	if err != nil {
+		return nil, err
+	}
+	options := metaV1.ListOptions{
+		LabelSelector: fmt.Sprintf("%s=true", mp.labelName(compField)),
+	}
+	secrets, err := mp.kubeClient.CoreV1().Secrets("").List(context.Background(), options)
+	if err != nil {
+		return nil, err
+	}
+
+	namespaces := make(map[string]bool)
+
+	nsField, err := mp.structField("Namespace")
+	if err != nil {
+		return nil, err
+	}
+	for _, secret := range secrets.Items {
+		if ns, ok := secret.Labels[mp.labelName(nsField)]; ok {
+			namespaces[ns] = true
+		}
+	}
+
+	nsSet := make([]string, 0)
+	for k := range namespaces {
+		nsSet = append(nsSet, k)
+	}
+	return nsSet, nil
+}
+
 //Versions returns the set of installed Kyma versions
 func (mp *KymaMetadataProvider) Versions() (*KymaVersionSet, error) {
 	//get all secrets which are labeled as Kyma component
