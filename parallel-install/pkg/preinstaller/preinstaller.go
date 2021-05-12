@@ -195,9 +195,6 @@ func (i *PreInstaller) findResourcesIn(input resourceInfoInput) (results []resou
 }
 
 func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err error) {
-
-	//parsedResources := i.parseResources(resources, o)
-
 	for _, resource := range resources {
 		file := File{
 			component: resource.component,
@@ -217,7 +214,7 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 			continue
 		}
 
-		updateLabelIfNecessaryOf(parsedResource, resource.label)
+		addLabel(parsedResource, resource.label, "true")
 
 		i.cfg.Log.Infof("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component)
 		err = i.applier.Apply(parsedResource)
@@ -243,20 +240,20 @@ func findOnlyDirectoriesAmong(input []os.FileInfo) (o []os.FileInfo) {
 	return o
 }
 
-func updateLabelIfNecessaryOf(obj *unstructured.Unstructured, label string) {
-	if len(label) > 1 {
-		labels := obj.GetLabels()
-		if labels == nil {
-			newLabels := map[string]string{
-				label: "true",
-			}
-
-			obj.SetLabels(newLabels)
-		} else {
-			labels[label] = "true"
-			obj.SetLabels(labels)
-		}
+func addLabel(obj *unstructured.Unstructured, label string, value string) {
+	if len(label) < 1 {
+		return
 	}
 
-	return
+	labels := obj.GetLabels()
+	if labels == nil {
+		newLabels := map[string]string{
+			label: value,
+		}
+
+		obj.SetLabels(newLabels)
+	} else {
+		labels[label] = value
+		obj.SetLabels(labels)
+	}
 }
