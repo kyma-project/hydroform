@@ -65,21 +65,30 @@ func (ob *OverridesBuilder) AddInterceptor(overrideKeys []string, interceptor Ov
 	}
 }
 
-// Build an overrides object merging all provided sources
+// Build an overrides object merging all provided sources and applying interceptors
+// WARNING: call this function sparingly, it runs all interceptors, potentially incurring heavy computations.
 func (ob *OverridesBuilder) Build() (Overrides, error) {
-	merged, err := ob.mergeSources()
+	o, err := ob.Raw()
 	if err != nil {
 		return Overrides{}, err
-	}
-
-	o := Overrides{
-		overrides:    merged,
-		interceptors: ob.interceptors,
 	}
 
 	// assign intercepted overrides back to the original object to not loose the values
 	o.overrides, err = o.intercept(interceptorOpsIntercept)
 	return o, err
+}
+
+// Raw builds an overrides object contining only the raw values in the sources, without applying interceptors.
+func (ob *OverridesBuilder) Raw() (Overrides, error) {
+	merged, err := ob.mergeSources()
+	if err != nil {
+		return Overrides{}, err
+	}
+
+	return Overrides{
+		overrides:    merged,
+		interceptors: ob.interceptors,
+	}, nil
 }
 
 // mergeSources merges together all overrides sources int a single map
