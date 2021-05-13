@@ -25,7 +25,6 @@ package preinstaller
 import (
 	"fmt"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 
 	"github.com/avast/retry-go"
@@ -69,7 +68,6 @@ type resourceInfoInput struct {
 	dirSuffix                string
 	resourceType             string
 	installationResourcePath string
-	label                    string
 }
 
 type resourceInfoResult struct {
@@ -77,7 +75,6 @@ type resourceInfoResult struct {
 	fileName     string
 	path         string
 	resourceType string
-	label        string
 }
 
 // NewPreInstaller creates a new instance of PreInstaller.
@@ -108,7 +105,6 @@ func (i *PreInstaller) InstallCRDs() (Output, error) {
 		resourceType:             "CustomResourceDefinition",
 		dirSuffix:                "crds",
 		installationResourcePath: i.cfg.InstallationResourcePath,
-		label:                    "kyma-crd",
 	}
 
 	i.cfg.Log.Info("Kyma CRDs installation")
@@ -127,7 +123,6 @@ func (i *PreInstaller) CreateNamespaces() (Output, error) {
 		resourceType:             "Namespace",
 		dirSuffix:                "namespaces",
 		installationResourcePath: i.cfg.InstallationResourcePath,
-		label:                    "kyma-ns",
 	}
 
 	i.cfg.Log.Info("Kyma Namespaces creation")
@@ -184,7 +179,6 @@ func (i *PreInstaller) findResourcesIn(input resourceInfoInput) (results []resou
 				fileName:     resourceName,
 				path:         pathToResource,
 				resourceType: input.resourceType,
-				label:        input.label,
 			}
 
 			results = append(results, resourceInfoResult)
@@ -214,8 +208,6 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 			continue
 		}
 
-		addLabel(parsedResource, resource.label, "true")
-
 		i.cfg.Log.Infof("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component)
 		err = i.applier.Apply(parsedResource)
 		if err != nil {
@@ -238,22 +230,4 @@ func findOnlyDirectoriesAmong(input []os.FileInfo) (o []os.FileInfo) {
 	}
 
 	return o
-}
-
-func addLabel(obj *unstructured.Unstructured, label string, value string) {
-	if len(label) < 1 {
-		return
-	}
-
-	labels := obj.GetLabels()
-	if labels == nil {
-		newLabels := map[string]string{
-			label: value,
-		}
-
-		obj.SetLabels(newLabels)
-	} else {
-		labels[label] = value
-		obj.SetLabels(labels)
-	}
 }
