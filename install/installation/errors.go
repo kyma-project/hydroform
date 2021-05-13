@@ -4,6 +4,7 @@ import "fmt"
 
 type InstallationError struct {
 	ShortMessage string
+	Recoverable  bool
 	ErrorEntries []ErrorEntry
 }
 
