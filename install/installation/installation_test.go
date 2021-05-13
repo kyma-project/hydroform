@@ -832,6 +832,69 @@ func TestCheckInstallationState(t *testing.T) {
 		//then
 		require.Error(t, err)
 	})
+
+	t.Run("should return recoverable error when the action install label is still present", func(t *testing.T) {
+		//given
+		ctx := context.Background()
+		installationClient := installationFake.NewSimpleClientset().InstallerV1alpha1().Installations(defaultInstallationResourceNamespace)
+
+		installation := &v1alpha1.Installation{
+			ObjectMeta: v1.ObjectMeta{
+				Name: kymaInstallationName,
+				Labels: map[string]string{
+					installationActionLabel: "install",
+				},
+			},
+			Status: v1alpha1.InstallationStatus{
+				State: v1alpha1.StateError,
+			},
+		}
+
+		_, err := installationClient.Create(ctx, installation, v1.CreateOptions{})
+		require.NoError(t, err)
+
+		kymaInstaller := KymaInstaller{
+			installationClient: installationClient,
+		}
+
+		//when
+		_, err = kymaInstaller.CheckInstallationState(nil)
+
+		//then
+		require.Error(t, err)
+		installationError := InstallationError{}
+		require.True(t, errors.As(err, &installationError))
+		assert.True(t, installationError.Recoverable)
+	})
+
+	t.Run("should return non-recoverable error when the action install label is absent", func(t *testing.T) {
+		//given
+		ctx := context.Background()
+		installationClient := installationFake.NewSimpleClientset().InstallerV1alpha1().Installations(defaultInstallationResourceNamespace)
+
+		installation := &v1alpha1.Installation{
+			ObjectMeta: v1.ObjectMeta{Name: kymaInstallationName},
+			Status: v1alpha1.InstallationStatus{
+				State: v1alpha1.StateError,
+			},
+		}
+
+		_, err := installationClient.Create(ctx, installation, v1.CreateOptions{})
+		require.NoError(t, err)
+
+		kymaInstaller := KymaInstaller{
+			installationClient: installationClient,
+		}
+
+		//when
+		_, err = kymaInstaller.CheckInstallationState(nil)
+
+		//then
+		require.Error(t, err)
+		installationError := InstallationError{}
+		require.True(t, errors.As(err, &installationError))
+		assert.False(t, installationError.Recoverable)
+	})
 }
 
 func TestTriggerUninstall(t *testing.T) {
