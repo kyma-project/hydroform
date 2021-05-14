@@ -623,6 +623,9 @@ func newInstallationError(installation v1alpha1.Installation) InstallationError 
 	installationError := InstallationError{
 		ShortMessage: fmt.Sprintf("installation error occurred: %s", installation.Status.Description),
 		ErrorEntries: make([]ErrorEntry, 0, len(installation.Status.ErrorLog)),
+		// Treat error as recoverable if the kyma-installer still retries to install/upgrade the component in error state,
+		// and hence the action: install label is still present on the installation resource.
+		Recoverable: installation.Labels[installationActionLabel] == "install",
 	}
 
 	for _, errLog := range installation.Status.ErrorLog {
