@@ -1,8 +1,12 @@
 package git
 
 import (
+	"os"
+	"path"
 	"testing"
 
+	"github.com/alcortesm/tgz"
+	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/stretchr/testify/require"
 )
@@ -49,4 +53,25 @@ func TestResolvePRrevision(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCheckoutShortHash(t *testing.T) {
+	localRepoRootPath, err := tgz.Extract("testdata/repo.tgz")
+	defer func() {
+		require.NoError(t, os.RemoveAll(localRepoRootPath))
+	}()
+	require.NoError(t, err)
+	require.NotEmpty(t, localRepoRootPath)
+
+	repo, err := git.PlainOpen(path.Join(localRepoRootPath, "repo"))
+	require.NoError(t, err)
+	rev := "976560" // first commit
+	hash, err := resolveRevision(repo, "pseudo", rev)
+	require.NoError(t, err)
+
+	w, err := repo.Worktree()
+	err = w.Checkout(&git.CheckoutOptions{
+		Hash: *hash,
+	})
+	require.NoError(t, err)
 }
