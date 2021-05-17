@@ -428,6 +428,82 @@ func TestPreInstaller_install(t *testing.T) {
 	})
 }
 
+func Test_addLabel(t *testing.T) {
+	t.Run("should not add label when label is empty", func(t *testing.T) {
+		// given
+		obj := &unstructured.Unstructured{}
+		label := ""
+		value := "value"
+
+		// when
+		addLabel(obj, label, value)
+
+		// then
+		labels := obj.GetLabels()
+		assert.Nil(t, labels)
+	})
+
+	t.Run("should add label when label is not empty and object had no labels", func(t *testing.T) {
+		// given
+		obj := &unstructured.Unstructured{}
+		label := "label"
+		value := "value"
+
+		// when
+		addLabel(obj, label, value)
+
+		// then
+		labels := obj.GetLabels()
+		assert.NotNil(t, labels)
+		assert.Equal(t, 1, len(labels))
+
+		// and then
+		value, ok := labels[label]
+		assert.True(t, ok)
+		assert.Equal(t, value, "value")
+	})
+
+	t.Run("should add label when label is not empty and object had any label", func(t *testing.T) {
+		// given
+		obj := fixResourceWithLabel("label1")
+		label := "label"
+		value := "value"
+
+		// when
+		addLabel(obj, label, value)
+
+		// then
+		labels := obj.GetLabels()
+		assert.NotNil(t, labels)
+		assert.Equal(t, 2, len(labels))
+
+		// and then
+		value, ok := labels[label]
+		assert.True(t, ok)
+		assert.Equal(t, value, "value")
+	})
+
+	t.Run("should override label when label is not empty and object had given label", func(t *testing.T) {
+		// given
+		obj := fixResourceWithLabel("label")
+		label := "label"
+		value := "newValue"
+
+		// when
+		addLabel(obj, label, value)
+
+		// then
+		labels := obj.GetLabels()
+		assert.NotNil(t, labels)
+		assert.Equal(t, 1, len(labels))
+
+		// and then
+		value, ok := labels[label]
+		assert.True(t, ok)
+		assert.Equal(t, value, "newValue")
+	})
+}
+
 func getTestingConfig() Config {
 	return Config{
 		Log:                      logger.NewLogger(true),
@@ -483,6 +559,20 @@ func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
 			"kind":       "Namespace",
 			"metadata": map[string]interface{}{
 				"name": name,
+			},
+		},
+	}
+}
+
+func fixResourceWithLabel(label string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Namespace",
+			"metadata": map[string]interface{}{
+				"labels": map[string]interface{}{
+					label: "value",
+				},
 			},
 		},
 	}
