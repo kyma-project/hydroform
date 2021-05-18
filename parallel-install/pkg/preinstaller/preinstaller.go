@@ -34,6 +34,12 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+const (
+	KYMA_CRD_LABEL_KEY = "kyma-crd"
+	KYMA_NS_LABEL_KEY  = "kyma-ns"
+	KYMA_LABEL_VALUE   = "true"
+)
+
 // Config defines configuration values for the PreInstaller.
 type Config struct {
 	InstallationResourcePath string                  //Path to the installation resources.
@@ -108,7 +114,7 @@ func (i *PreInstaller) InstallCRDs() (Output, error) {
 		resourceType:             "CustomResourceDefinition",
 		dirSuffix:                "crds",
 		installationResourcePath: i.cfg.InstallationResourcePath,
-		label:                    "kyma-crd",
+		label:                    KYMA_CRD_LABEL_KEY,
 	}
 
 	i.cfg.Log.Info("Kyma CRDs installation")
@@ -127,7 +133,7 @@ func (i *PreInstaller) CreateNamespaces() (Output, error) {
 		resourceType:             "Namespace",
 		dirSuffix:                "namespaces",
 		installationResourcePath: i.cfg.InstallationResourcePath,
-		label:                    "kyma-ns",
+		label:                    KYMA_NS_LABEL_KEY,
 	}
 
 	i.cfg.Log.Info("Kyma Namespaces creation")
@@ -214,7 +220,7 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 			continue
 		}
 
-		addLabel(parsedResource, resource.label, "true")
+		addLabel(parsedResource, resource.label, KYMA_LABEL_VALUE)
 
 		i.cfg.Log.Infof("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component)
 		err = i.applier.Apply(parsedResource)

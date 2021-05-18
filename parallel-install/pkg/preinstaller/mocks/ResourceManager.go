@@ -15,13 +15,13 @@ type ResourceManager struct {
 	mock.Mock
 }
 
-// CreateResource provides a mock function with given fields: resource, resourceSchema
-func (_m *ResourceManager) CreateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) error {
-	ret := _m.Called(resource, resourceSchema)
+// CreateResource provides a mock function with given fields: resource, gvk
+func (_m *ResourceManager) CreateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind) error {
+	ret := _m.Called(resource, gvk)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*unstructured.Unstructured, schema.GroupVersionResource) error); ok {
-		r0 = rf(resource, resourceSchema)
+	if rf, ok := ret.Get(0).(func(*unstructured.Unstructured, schema.GroupVersionKind) error); ok {
+		r0 = rf(resource, gvk)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -29,13 +29,27 @@ func (_m *ResourceManager) CreateResource(resource *unstructured.Unstructured, r
 	return r0
 }
 
-// GetResource provides a mock function with given fields: resourceName, resourceSchema
-func (_m *ResourceManager) GetResource(resourceName string, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
-	ret := _m.Called(resourceName, resourceSchema)
+// DeleteResource provides a mock function with given fields: resourceName, gvk
+func (_m *ResourceManager) DeleteResource(resourceName string, gvk schema.GroupVersionKind) error {
+	ret := _m.Called(resourceName, gvk)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, schema.GroupVersionKind) error); ok {
+		r0 = rf(resourceName, gvk)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// GetResource provides a mock function with given fields: resourceName, gvk
+func (_m *ResourceManager) GetResource(resourceName string, gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {
+	ret := _m.Called(resourceName, gvk)
 
 	var r0 *unstructured.Unstructured
-	if rf, ok := ret.Get(0).(func(string, schema.GroupVersionResource) *unstructured.Unstructured); ok {
-		r0 = rf(resourceName, resourceSchema)
+	if rf, ok := ret.Get(0).(func(string, schema.GroupVersionKind) *unstructured.Unstructured); ok {
+		r0 = rf(resourceName, gvk)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*unstructured.Unstructured)
@@ -43,8 +57,8 @@ func (_m *ResourceManager) GetResource(resourceName string, resourceSchema schem
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, schema.GroupVersionResource) error); ok {
-		r1 = rf(resourceName, resourceSchema)
+	if rf, ok := ret.Get(1).(func(string, schema.GroupVersionKind) error); ok {
+		r1 = rf(resourceName, gvk)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -52,13 +66,13 @@ func (_m *ResourceManager) GetResource(resourceName string, resourceSchema schem
 	return r0, r1
 }
 
-// UpdateResource provides a mock function with given fields: resource, resourceSchema
-func (_m *ResourceManager) UpdateResource(resource *unstructured.Unstructured, resourceSchema schema.GroupVersionResource) (*unstructured.Unstructured, error) {
-	ret := _m.Called(resource, resourceSchema)
+// UpdateResource provides a mock function with given fields: resource, gvk
+func (_m *ResourceManager) UpdateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {
+	ret := _m.Called(resource, gvk)
 
 	var r0 *unstructured.Unstructured
-	if rf, ok := ret.Get(0).(func(*unstructured.Unstructured, schema.GroupVersionResource) *unstructured.Unstructured); ok {
-		r0 = rf(resource, resourceSchema)
+	if rf, ok := ret.Get(0).(func(*unstructured.Unstructured, schema.GroupVersionKind) *unstructured.Unstructured); ok {
+		r0 = rf(resource, gvk)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*unstructured.Unstructured)
@@ -66,8 +80,8 @@ func (_m *ResourceManager) UpdateResource(resource *unstructured.Unstructured, r
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*unstructured.Unstructured, schema.GroupVersionResource) error); ok {
-		r1 = rf(resource, resourceSchema)
+	if rf, ok := ret.Get(1).(func(*unstructured.Unstructured, schema.GroupVersionKind) error); ok {
+		r1 = rf(resource, gvk)
 	} else {
 		r1 = ret.Error(1)
 	}

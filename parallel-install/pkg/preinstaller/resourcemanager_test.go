@@ -48,7 +48,7 @@ func TestResourceManager_GetResource(t *testing.T) {
 		// given
 		manager := getDefaultResourceManager(dynamicClient, log, retryOptions)
 		resourceName := "resourceName"
-		resourceSchema := schema.GroupVersionResource{}
+		resourceSchema := schema.GroupVersionKind{}
 
 		// when
 		obj, err := manager.GetResource(resourceName, resourceSchema)
@@ -106,11 +106,51 @@ func TestResourceManager_UpdateResource(t *testing.T) {
 	})
 }
 
+func TestResourceManager_DeleteResource(t *testing.T) {
+
+	scheme := runtime.NewScheme()
+	dynamicClient := fake.NewSimpleDynamicClient(scheme)
+	retryOptions := getTestingRetryOptions()
+	log := logger.NewLogger(true)
+
+	t.Run("should return an error when deleting a not existing resource", func(t *testing.T) {
+		// given
+		manager := getDefaultResourceManager(dynamicClient, log, retryOptions)
+		resourceName := "resourceName"
+		resourceSchema := schema.GroupVersionKind{}
+
+		// when
+		err := manager.DeleteResource(resourceName, resourceSchema)
+
+		// then
+		assert.Error(t, err)
+		expectedError := "not found"
+		receivedError := err.Error()
+		matched, err := regexp.MatchString(expectedError, receivedError)
+		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
+	})
+
+	t.Run("should delete a pre-created resource", func(t *testing.T) {
+		// given
+		resourceName := "namespace"
+		resource := fixResourceWith(resourceName)
+		customDynamicClient := fake.NewSimpleDynamicClient(scheme, resource)
+		manager := getDefaultResourceManager(customDynamicClient, log, retryOptions)
+		resourceSchema := fixResourceGvkSchema()
+
+		// when
+		err := manager.DeleteResource(resourceName, resourceSchema)
+
+		// then
+		assert.NoError(t, err)
+	})
+}
+
 func fixResourceWith(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "group/v1",
-			"kind":       "Kind",
+			"kind":       "kind",
 			"metadata": map[string]interface{}{
 				"name": name,
 			},
@@ -118,11 +158,11 @@ func fixResourceWith(name string) *unstructured.Unstructured {
 	}
 }
 
-func fixResourceGvkSchema() schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    "group",
-		Version:  "v1",
-		Resource: "kinds",
+func fixResourceGvkSchema() schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   "group",
+		Version: "v1",
+		Kind:    "kind",
 	}
 }
 
