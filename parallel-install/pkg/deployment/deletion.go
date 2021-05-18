@@ -204,6 +204,7 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 		go func(ns string) {
 			defer wg.Done()
 			if ns == "kyma-system" {
+				// All the hacks below should be deleted after this issue is done: https://github.com/kyma-project/kyma/issues/11298
 				//HACK: Delete finalizers of leftover Cluster Service Brokers
 				csbList, err := i.scclient.ServicecatalogV1beta1().ClusterServiceBrokers().List(context.Background(), metav1.ListOptions{})
 				if err != nil {
@@ -263,6 +264,70 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 						errorCh <- err
 					}
 					i.cfg.Log.Infof("Deleted finalizer from Rule: %s", rule.GetName())
+				}
+
+				//HACK: Delete finalizers of leftover Usage Kinds
+				ukResource := schema.GroupVersionResource{
+					Group:    "servicecatalog.kyma-project.io",
+					Version:  "v1alpha1",
+					Resource: "usagekinds",
+				}
+
+				kinds, err := i.dClient.Resource(ukResource).List(context.Background(), metav1.ListOptions{})
+				if err != nil {
+					errorCh <- err
+				}
+				for _, kind := range kinds.Items {
+					kind.SetFinalizers(nil)
+					_, err := i.dClient.Resource(ukResource).Update(context.Background(), &kind, metav1.UpdateOptions{})
+					if err != nil {
+						errorCh <- err
+					}
+					i.cfg.Log.Infof("Deleted finalizer from Usage Kind: %s", kind.GetName())
+				}
+
+				//HACK: Delete finalizers of leftover Cluster Assets
+				caResource := schema.GroupVersionResource{
+					Group:    "rafter.kyma-project.io",
+					Version:  "v1beta1",
+					Resource: "clusterassets",
+				}
+
+				assets, err := i.dClient.Resource(caResource).List(context.Background(), metav1.ListOptions{})
+				if err != nil {
+					errorCh <- err
+				}
+				for _, asset := range assets.Items {
+					asset.SetFinalizers(nil)
+					_, err := i.dClient.Resource(caResource).Update(context.Background(), &asset, metav1.UpdateOptions{})
+					if err != nil {
+						errorCh <- err
+					}
+					i.cfg.Log.Infof("Deleted finalizer from Cluster Asset: %s", asset.GetName())
+				}
+
+				//HACK: Delete finalizers of leftover Cluster Buckets
+				cbResource := schema.GroupVersionResource{
+					Group:    "rafter.kyma-project.io",
+					Version:  "v1beta1",
+					Resource: "clusterbuckets",
+				}
+
+				buckets, err := i.dClient.Resource(cbResource).List(context.Background(), metav1.ListOptions{})
+				if err != nil {
+					errorCh <- err
+				}
+				for _, bucket := range buckets.Items {
+					bucket.SetFinalizers(nil)
+					_, err := i.dClient.Resource(cbResource).Update(context.Background(), &bucket, metav1.UpdateOptions{})
+					if err != nil {
+						errorCh <- err
+					}
+					i.cfg.Log.Infof("Deleted finalizer from Cluster Bucket: %s", bucket.GetName())
+					err = i.dClient.Resource(cbResource).Delete(context.Background(), bucket.GetName(), metav1.DeleteOptions{})
+					if err != nil {
+						errorCh <- err
+					}
 				}
 			}
 			//remove namespace
