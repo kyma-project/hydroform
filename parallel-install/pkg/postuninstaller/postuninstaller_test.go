@@ -259,7 +259,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 		resourceManager.On("DeleteResource", crd1.GetName(), crd1.GroupVersionKind()).Once().Return(
 			func(name string, gvk schema.GroupVersionKind) error {
 				return client.Resource(fixCrdGvrV1Beta1()).Delete(context.TODO(), name, metav1.DeleteOptions{})
-		})
+			})
 		resourceManager.On("DeleteResource", crd2.GetName(), crd2.GroupVersionKind()).Once().Return(
 			func(name string, gvk schema.GroupVersionKind) error {
 				return client.Resource(fixCrdGvrV1Beta1()).Delete(context.TODO(), name, metav1.DeleteOptions{})
