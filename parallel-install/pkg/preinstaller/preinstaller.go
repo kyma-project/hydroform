@@ -19,6 +19,8 @@
 // Installing CRDs resources requires a folder named `crds`.
 // Installing Namespace resources requires a folder named `namespaces`.
 // For now only these two resources types are supported.
+// CRDS are labeled with: origin=kyma in order to distinguish them among other resources.
+// This label is used in CRDs uninstallation for filtering purposes.
 
 package preinstaller
 
@@ -35,9 +37,8 @@ import (
 )
 
 const (
-	KYMA_CRD_LABEL_KEY = "kyma-crd"
-	KYMA_NS_LABEL_KEY  = "kyma-ns"
-	KYMA_LABEL_VALUE   = "true"
+	LABEL_KEY_ORIGIN = "origin"
+	LABEL_VALUE_KYMA = "kyma"
 )
 
 // Config defines configuration values for the PreInstaller.
@@ -114,7 +115,7 @@ func (i *PreInstaller) InstallCRDs() (Output, error) {
 		resourceType:             "CustomResourceDefinition",
 		dirSuffix:                "crds",
 		installationResourcePath: i.cfg.InstallationResourcePath,
-		label:                    KYMA_CRD_LABEL_KEY,
+		label:                    LABEL_KEY_ORIGIN,
 	}
 
 	i.cfg.Log.Info("Kyma CRDs installation")
@@ -133,7 +134,7 @@ func (i *PreInstaller) CreateNamespaces() (Output, error) {
 		resourceType:             "Namespace",
 		dirSuffix:                "namespaces",
 		installationResourcePath: i.cfg.InstallationResourcePath,
-		label:                    KYMA_NS_LABEL_KEY,
+		label:                    "",
 	}
 
 	i.cfg.Log.Info("Kyma Namespaces creation")
@@ -220,7 +221,7 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 			continue
 		}
 
-		addLabel(parsedResource, resource.label, KYMA_LABEL_VALUE)
+		addLabel(parsedResource, resource.label, LABEL_VALUE_KYMA)
 
 		i.cfg.Log.Infof("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component)
 		err = i.applier.Apply(parsedResource)

@@ -43,9 +43,9 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 		t.Run("when CRDs not labeled by Kyma are present on a cluster", func(t *testing.T) {
 			// given
-			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "not-kyma-label", "true")
-			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "not-kyma-label", "true")
-			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "not-kyma-label", "true")
+			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "origin", "unknown")
+			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "origin", "unknown")
+			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "origin", "unknown")
 			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
 			applyMockObj(t, client, crd1, fixCrdGvrV1Beta1())
 			applyMockObj(t, client, crd2, fixCrdGvrV1Beta1())
@@ -66,9 +66,9 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 		t.Run("when CRDs labeled by Kyma but with incorrect value are present on a cluster", func(t *testing.T) {
 			// given
-			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "not-kyma-label", "value")
-			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "not-kyma-label", "value")
-			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "not-kyma-label", "value")
+			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "origin", "unknown")
+			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "origin", "unknown")
+			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "origin", "unknown")
 			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
 			applyMockObj(t, client, crd1, fixCrdGvrV1Beta1())
 			applyMockObj(t, client, crd2, fixCrdGvrV1Beta1())
@@ -89,9 +89,9 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 		t.Run("when CRDs labeled by Kyma are present on a cluster but CRD api does not match", func(t *testing.T) {
 			// given
-			crd1 := fixCrdResourceWith("crd1", "otherapi", "v1beta1", "kyma-crd", "true")
-			crd2 := fixCrdResourceWith("crd2", "otherapi", "v1beta1", "kyma-crd", "true")
-			crd3 := fixCrdResourceWith("crd3", "otherapi", "v1beta1", "kyma-crd", "true")
+			crd1 := fixCrdResourceWith("crd1", "otherapi", "v1beta1", "origin", "kyma")
+			crd2 := fixCrdResourceWith("crd2", "otherapi", "v1beta1", "origin", "kyma")
+			crd3 := fixCrdResourceWith("crd3", "otherapi", "v1beta1", "origin", "kyma")
 			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
 			resourceManager := &mocks.ResourceManager{}
 			uninstaller := getPostUninstaller(cfg, resourceManager, client, retryOptions)
@@ -112,9 +112,9 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 		t.Run("when CRDs labeled by Kyma are present on a cluster but CRD version does not match", func(t *testing.T) {
 			// given
-			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "otherversion", "kyma-crd", "true")
-			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "otherversion", "kyma-crd", "true")
-			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "otherversion", "kyma-crd", "true")
+			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "otherversion", "origin", "kyma")
+			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "otherversion", "origin", "kyma")
+			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "otherversion", "origin", "kyma")
 			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
 			applyMockObj(t, client, crd1, fixCrdGvrOtherVersion())
 			applyMockObj(t, client, crd2, fixCrdGvrOtherVersion())
@@ -135,9 +135,9 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 		t.Run("when objects of type different than CRD labeled by Kyma are present on a cluster", func(t *testing.T) {
 			// given
-			obj1 := fixResourceWith("obj1", "kyma-crd", "true")
-			obj2 := fixResourceWith("obj2", "kyma-crd", "true")
-			obj3 := fixResourceWith("obj3", "kyma-crd", "true")
+			obj1 := fixResourceWith("obj1", "origin", "kyma")
+			obj2 := fixResourceWith("obj2", "origin", "kyma")
+			obj3 := fixResourceWith("obj3", "origin", "kyma")
 			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
 			applyMockObj(t, client, obj1, fixNamespaceGvr())
 			applyMockObj(t, client, obj2, fixNamespaceGvr())
@@ -158,9 +158,9 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 		t.Run("when all of them were correct but errors occurred when deleting them", func(t *testing.T) {
 			// given
-			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
-			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
-			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
+			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
+			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
+			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
 			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
 			applyMockObj(t, client, crd1, fixCrdGvrV1Beta1())
 			applyMockObj(t, client, crd2, fixCrdGvrV1Beta1())
@@ -178,7 +178,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 			// then
 			require.NoError(t, err, "should not return any error")
 			require.Empty(t, output.Deleted, "should delete crd1, crd2")
-			require.Equal(t,3, len(output.NotDeleted), "should not delete crd3")
+			require.Equal(t, 3, len(output.NotDeleted), "should not delete crd3")
 			requireObjExistsAndUnchanged(t, client, crd1, fixCrdGvrV1Beta1())
 			requireObjExistsAndUnchanged(t, client, crd2, fixCrdGvrV1Beta1())
 			requireObjExistsAndUnchanged(t, client, crd3, fixCrdGvrV1Beta1())
@@ -189,9 +189,9 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 	t.Run("should uninstall CRDs", func(t *testing.T) {
 		t.Run("when only CRDs labeled by Kyma are present on a cluster", func(t *testing.T) {
 			// given
-			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
-			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
-			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
+			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
+			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
+			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
 			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
 			applyMockObj(t, client, crd1, fixCrdGvrV1Beta1())
 			applyMockObj(t, client, crd2, fixCrdGvrV1Beta1())
@@ -208,7 +208,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 			// then
 			require.NoError(t, err, "should not return any error")
-			require.Equal(t,3, len(output.Deleted), "should delete crd1, crd2 and crd3")
+			require.Equal(t, 3, len(output.Deleted), "should delete crd1, crd2 and crd3")
 			require.Empty(t, output.NotDeleted, "should leave all other resources")
 			requireObjNotExists(t, client, crd1, fixCrdGvrV1Beta1())
 			requireObjNotExists(t, client, crd2, fixCrdGvrV1Beta1())
@@ -218,9 +218,9 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 		t.Run("labeled by Kyma and leave other", func(t *testing.T) {
 			// given
-			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
-			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
-			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "not-kyma-label", "true")
+			crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
+			crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
+			crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "origin", "unknown")
 			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
 			applyMockObj(t, client, crd1, fixCrdGvrV1Beta1())
 			applyMockObj(t, client, crd2, fixCrdGvrV1Beta1())
@@ -237,7 +237,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 			// then
 			require.NoError(t, err, "should not return any error")
-			require.Equal(t,2, len(output.Deleted), "should delete crd1, crd2 and crd3")
+			require.Equal(t, 2, len(output.Deleted), "should delete crd1, crd2 and crd3")
 			require.Empty(t, output.NotDeleted, "should leave all other resources")
 			requireObjNotExists(t, client, crd1, fixCrdGvrV1Beta1())
 			requireObjNotExists(t, client, crd2, fixCrdGvrV1Beta1())
@@ -248,19 +248,23 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 	t.Run("but only partially when error occurred for first CRD and no error occurred for the rest", func(t *testing.T) {
 		// given
-		crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
-		crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
-		crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "kyma-crd", "true")
+		crd1 := fixCrdResourceWith("crd1", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
+		crd2 := fixCrdResourceWith("crd2", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
+		crd3 := fixCrdResourceWith("crd3", "apiextensions.k8s.io", "v1beta1", "origin", "kyma")
 		client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
 		applyMockObj(t, client, crd1, fixCrdGvrV1Beta1())
 		applyMockObj(t, client, crd2, fixCrdGvrV1Beta1())
 		applyMockObj(t, client, crd3, fixCrdGvrV1Beta1())
 		resourceManager := &mocks.ResourceManager{}
-		resourceManager.On("DeleteResource", mock.AnythingOfType("string"), mock.AnythingOfType("schema.GroupVersionKind")).Twice().Return(
+		resourceManager.On("DeleteResource", crd1.GetName(), crd1.GroupVersionKind()).Once().Return(
+			func(name string, gvk schema.GroupVersionKind) error {
+				return client.Resource(fixCrdGvrV1Beta1()).Delete(context.TODO(), name, metav1.DeleteOptions{})
+		})
+		resourceManager.On("DeleteResource", crd2.GetName(), crd2.GroupVersionKind()).Once().Return(
 			func(name string, gvk schema.GroupVersionKind) error {
 				return client.Resource(fixCrdGvrV1Beta1()).Delete(context.TODO(), name, metav1.DeleteOptions{})
 			})
-		resourceManager.On("DeleteResource", mock.AnythingOfType("string"), mock.AnythingOfType("schema.GroupVersionKind")).Once().Return(
+		resourceManager.On("DeleteResource", crd3.GetName(), crd3.GroupVersionKind()).Once().Return(
 			func(name string, gvk schema.GroupVersionKind) error {
 				return errors.New("Could not delete " + name)
 			})
@@ -271,8 +275,8 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 
 		// then
 		require.NoError(t, err, "should not return any error")
-		require.Equal(t,2, len(output.Deleted), "should delete crd1, crd2")
-		require.Equal(t,1, len(output.NotDeleted), "should not delete crd3")
+		require.Equal(t, 2, len(output.Deleted), "should delete crd1, crd2")
+		require.Equal(t, 1, len(output.NotDeleted), "should not delete crd3")
 		requireObjNotExists(t, client, crd1, fixCrdGvrV1Beta1())
 		requireObjNotExists(t, client, crd2, fixCrdGvrV1Beta1())
 		requireObjExistsAndUnchanged(t, client, crd3, fixCrdGvrV1Beta1())
@@ -287,7 +291,7 @@ func applyMockObj(t *testing.T, client *fake.FakeDynamicClient, obj *unstructure
 	require.Equal(t, obj, resultObj, "object returned by fake client should be equal to the created one")
 }
 
-func requireNoErrorAndNoOutput(t *testing.T,  err error, output Output) {
+func requireNoErrorAndNoOutput(t *testing.T, err error, output Output) {
 	require.NoError(t, err, "should not return any error")
 	require.Empty(t, output.Deleted, "should not delete any resource")
 	require.Empty(t, output.NotDeleted, "should leave all other resources")

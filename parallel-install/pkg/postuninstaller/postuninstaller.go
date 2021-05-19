@@ -67,7 +67,7 @@ func NewPostUninstaller(cfg Config, retryOptions []retry.Option) (*PostUninstall
 
 // UninstallCRDs that belong to Kyma from a k8s cluster.
 func (c *PostUninstaller) UninstallCRDs() (Output, error) {
-	c.cfg.Log.Infof("Uninstalling CRDs labeled with: %s=%s", preinstaller.KYMA_CRD_LABEL_KEY, preinstaller.KYMA_LABEL_VALUE)
+	c.cfg.Log.Infof("Uninstalling CRDs labeled with: %s=%s", preinstaller.LABEL_KEY_ORIGIN, preinstaller.LABEL_VALUE_KYMA)
 
 	selector, err := c.prepareKymaCrdLabelSelector()
 	if err != nil {
@@ -83,7 +83,7 @@ func (c *PostUninstaller) UninstallCRDs() (Output, error) {
 }
 
 func (c *PostUninstaller) prepareKymaCrdLabelSelector() (selector labels.Selector, err error) {
-	kymaCrdReq, err := labels.NewRequirement(preinstaller.KYMA_CRD_LABEL_KEY, selection.Equals, []string{preinstaller.KYMA_LABEL_VALUE})
+	kymaCrdReq, err := labels.NewRequirement(preinstaller.LABEL_KEY_ORIGIN, selection.Equals, []string{preinstaller.LABEL_VALUE_KYMA})
 	if err != nil {
 		return nil, errors.Wrap(err, "Error occurred when preparing Kyma CRD label selector")
 	}
