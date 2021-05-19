@@ -93,10 +93,10 @@ func (c *PostUninstaller) prepareKymaCrdLabelSelector() (selector labels.Selecto
 	return selector, nil
 }
 
-func (c *PostUninstaller) fetchCrdsLabeledWith(selector labels.Selector) (crds []*unstructured.Unstructured, err error) {
-	crdsMap := make(map[*unstructured.Unstructured]bool)
-	crdGvrV1Beta1 := c.crdGvkWith("v1beta1")
-	crdGvrV1 := c.crdGvkWith("v1")
+func (c *PostUninstaller) fetchCrdsLabeledWith(selector labels.Selector) (crds []unstructured.Unstructured, err error) {
+	crdsMap := make(map[string]unstructured.Unstructured)
+	crdGvrV1Beta1 := c.crdGrkWith("v1beta1")
+	crdGvrV1 := c.crdGrkWith("v1")
 	gvrs := [2]schema.GroupVersionResource{crdGvrV1Beta1, crdGvrV1}
 
 	for _, gvr := range gvrs {
@@ -106,18 +106,18 @@ func (c *PostUninstaller) fetchCrdsLabeledWith(selector labels.Selector) (crds [
 		}
 
 		for _, obj := range list.Items {
-			crdsMap[&obj] = true
+			crdsMap[obj.GetName()] = obj
 		}
 	}
 
-	for obj, _ := range crdsMap {
+	for _, obj := range crdsMap {
 		crds = append(crds, obj)
 	}
 
 	return
 }
 
-func (c *PostUninstaller) crdGvkWith(version string) schema.GroupVersionResource {
+func (c *PostUninstaller) crdGrkWith(version string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    "apiextensions.k8s.io",
 		Version:  version,
@@ -143,7 +143,7 @@ func (c *PostUninstaller) listResourcesUsing(gvr schema.GroupVersionResource, se
 	return
 }
 
-func (c *PostUninstaller) deleteCrdsFrom(crdsList []*unstructured.Unstructured) (o Output, err error) {
+func (c *PostUninstaller) deleteCrdsFrom(crdsList []unstructured.Unstructured) (o Output, err error) {
 	for _, crd := range crdsList {
 		crdName := crd.GetName()
 		c.cfg.Log.Infof("Deleting resource: %s", crdName)
@@ -154,7 +154,7 @@ func (c *PostUninstaller) deleteCrdsFrom(crdsList []*unstructured.Unstructured) 
 			continue
 		}
 
-		o.Deleted = append(o.NotDeleted, crdName)
+		o.Deleted = append(o.Deleted, crdName)
 	}
 
 	return o, nil
