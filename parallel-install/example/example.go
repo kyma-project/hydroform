@@ -93,16 +93,10 @@ func main() {
 		InstallationResourcePath: installationCfg.InstallationResourcePath,
 		Log:                      installationCfg.Log,
 		KubeconfigSource:         installationCfg.KubeconfigSource,
+		RetryOptions:             commonRetryOpts,
 	}
 
-	resourceParser := &preinstaller.GenericResourceParser{}
-	resourceManager, err := preinstaller.NewDefaultResourceManager(installationCfg.KubeconfigSource, preInstallerCfg.Log, commonRetryOpts)
-	if err != nil {
-		log.Fatalf("Failed to create Kyma default resource manager: %v", err)
-	}
-
-	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, resourceManager)
-	preInstaller, err := preinstaller.NewPreInstaller(resourceApplier, resourceParser, preInstallerCfg, commonRetryOpts)
+	preInstaller, err := preinstaller.NewPreInstaller(preInstallerCfg)
 	if err != nil {
 		log.Fatalf("Failed to create Kyma pre-installer: %v", err)
 	}

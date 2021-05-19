@@ -23,7 +23,6 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions()
 	resourceName := "name"
 	crdResource := fixCrdResourceWith(resourceName)
 
@@ -33,7 +32,7 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 		resourceApplier := &mocks.ResourceApplier{}
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		cfg.InstallationResourcePath = resourcePath
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		cfg.InstallationResourcePath = resourcePath
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -64,7 +63,6 @@ func TestPreInstaller_CreateNamespaces(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions()
 	resourceName := "name"
 	namespaceResource := fixNamespaceResourceWith(resourceName)
 
@@ -74,7 +72,7 @@ func TestPreInstaller_CreateNamespaces(t *testing.T) {
 		resourceApplier := &mocks.ResourceApplier{}
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		cfg.InstallationResourcePath = resourcePath
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
 		resourceParser.On("ParseFile", pathToFirstResource).Return(namespaceResource, nil)
@@ -104,7 +102,6 @@ func TestPreInstaller_install(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions()
 	resourceName := "name"
 	crdResource := fixCrdResourceWith(resourceName)
 	namespaceResource := fixNamespaceResourceWith(resourceName)
@@ -113,7 +110,7 @@ func TestPreInstaller_install(t *testing.T) {
 		// given
 		resourceParser := &mocks.ResourceParser{}
 		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -148,7 +145,7 @@ func TestPreInstaller_install(t *testing.T) {
 		// given
 		resourceParser := &mocks.ResourceParser{}
 		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -183,7 +180,7 @@ func TestPreInstaller_install(t *testing.T) {
 		// given
 		resourceParser := &mocks.ResourceParser{}
 		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
@@ -218,7 +215,7 @@ func TestPreInstaller_install(t *testing.T) {
 		// given
 		resourceParser := &mocks.ResourceParser{}
 		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
@@ -253,7 +250,7 @@ func TestPreInstaller_install(t *testing.T) {
 		// given
 		resourceParser := &mocks.ResourceParser{}
 		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/partiallycorrect")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -306,7 +303,7 @@ func TestPreInstaller_install(t *testing.T) {
 			// given
 			resourceParser := &mocks.ResourceParser{}
 			resourceApplier := &mocks.ResourceApplier{}
-			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 			pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -338,7 +335,7 @@ func TestPreInstaller_install(t *testing.T) {
 			// given
 			resourceParser := &mocks.ResourceParser{}
 			resourceApplier := &mocks.ResourceApplier{}
-			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/nocomponents")
 
 			input := resourceInfoInput{
@@ -360,7 +357,7 @@ func TestPreInstaller_install(t *testing.T) {
 			// given
 			resourceParser := &mocks.ResourceParser{}
 			resourceApplier := &mocks.ResourceApplier{}
-			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
 			pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -393,7 +390,7 @@ func TestPreInstaller_install(t *testing.T) {
 			// given
 			resourceParser := &mocks.ResourceParser{}
 			resourceApplier := &mocks.ResourceApplier{}
-			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
 			pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -578,12 +575,11 @@ func fixResourceWithLabel(label string) *unstructured.Unstructured {
 	}
 }
 
-func getPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
+func getPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface) *PreInstaller {
 	return &PreInstaller{
 		applier:       applier,
 		parser:        parser,
 		cfg:           cfg,
 		dynamicClient: dynamicClient,
-		retryOptions:  retryOptions,
 	}
 }

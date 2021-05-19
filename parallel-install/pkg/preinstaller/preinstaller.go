@@ -44,8 +44,9 @@ const (
 // Config defines configuration values for the PreInstaller.
 type Config struct {
 	InstallationResourcePath string                  //Path to the installation resources.
-	Log                      logger.Interface        //Logger to be used
-	KubeconfigSource         config.KubeconfigSource //KubeconfigSource to be used
+	Log                      logger.Interface        //Logger to be used.
+	KubeconfigSource         config.KubeconfigSource //KubeconfigSource to be used.
+	RetryOptions             []retry.Option          //RetryOptions for networking operations.
 }
 
 // PreInstaller prepares k8s cluster for Kyma installation.
@@ -54,7 +55,6 @@ type PreInstaller struct {
 	parser        ResourceParser
 	cfg           Config
 	dynamicClient dynamic.Interface
-	retryOptions  []retry.Option
 }
 
 // File consists of a path to the file that was a part of PreInstaller installation
@@ -88,7 +88,7 @@ type resourceInfoResult struct {
 }
 
 // NewPreInstaller creates a new instance of PreInstaller.
-func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, retryOptions []retry.Option) (*PreInstaller, error) {
+func NewPreInstaller(cfg Config) (*PreInstaller, error) {
 	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
 	if err != nil {
 		return nil, err
@@ -99,12 +99,19 @@ func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config,
 		return nil, err
 	}
 
+	manager, err := NewDefaultResourceManager(cfg.KubeconfigSource, cfg.Log, cfg.RetryOptions)
+	if err != nil {
+		cfg.Log.Fatalf("Failed to create Kyma default resource manager: %v", err)
+	}
+
+	applier := NewGenericResourceApplier(cfg.Log, manager)
+	parser := &GenericResourceParser{}
+
 	return &PreInstaller{
 		applier:       applier,
 		parser:        parser,
 		cfg:           cfg,
 		dynamicClient: dynamicClient,
-		retryOptions:  retryOptions,
 	}, nil
 }
 
