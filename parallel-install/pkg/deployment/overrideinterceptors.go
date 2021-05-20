@@ -290,28 +290,6 @@ func NewFallbackOverrideInterceptor(fallback interface{}) *FallbackOverrideInter
 	}
 }
 
-// This struct is introduced to ensure backward compatibility of Kyma 2.0 with 1.x
-// It can be removed when Kyma 2.0 is released
-type InstallLegacyCRDsInterceptor struct{}
-
-func (i *InstallLegacyCRDsInterceptor) String(value interface{}, key string) string {
-	return fmt.Sprintf("%v", value)
-}
-
-func (i *InstallLegacyCRDsInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	// We should never install CRDs in the legacy way with Kyma 2.0
-	return false, nil
-}
-
-func (i *InstallLegacyCRDsInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	// We should never install CRDs in the legacy way with Kyma 2.0
-	return NewFallbackOverrideInterceptor(false).Undefined(overrides, key)
-}
-
-func NewInstallLegacyCRDsInterceptor() *InstallLegacyCRDsInterceptor {
-	return &InstallLegacyCRDsInterceptor{}
-}
-
 func findGardenerDomain(kubeClient kubernetes.Interface) (domainName string, err error) {
 	err = retry.Do(func() error {
 		configMap, err := kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), "shoot-info", metav1.GetOptions{})
@@ -336,28 +314,6 @@ func findGardenerDomain(kubeClient kubernetes.Interface) (domainName string, err
 	}
 
 	return domainName, nil
-}
-
-// This struct is introduced to ensure kcproxy gets disabled on kiali and tracing component
-// It can be removed when kcproxy si removed
-type DisableKCProxyInterceptor struct{}
-
-func (i *DisableKCProxyInterceptor) String(value interface{}, key string) string {
-	return "false"
-}
-
-func (i *DisableKCProxyInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	// We should not enable kcproxy and tracing with alpha deploy
-	return false, nil
-}
-
-func (i *DisableKCProxyInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	// We should not enable kcproxy with alpha deploy
-	return NewFallbackOverrideInterceptor(false).Undefined(overrides, key)
-}
-
-func NewDisableKCProxyInterceptor() *DisableKCProxyInterceptor {
-	return &DisableKCProxyInterceptor{}
 }
 
 func defaultRetryOptions() []retry.Option {
