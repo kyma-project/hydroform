@@ -185,7 +185,7 @@ UninstallLoop:
 }
 
 func (i *Deletion) deleteKymaCrds() error {
-	i.cfg.Log.Infof("Uninstalling CRDs labeled with: %s=%s", preinstaller.LABEL_KEY_ORIGIN, preinstaller.LABEL_VALUE_KYMA)
+	i.cfg.Log.Infof("Uninstalling CRDs labeled with: %s=%s", config.LABEL_KEY_ORIGIN, config.LABEL_VALUE_KYMA)
 
 	selector, err := i.prepareKymaCrdLabelSelector()
 	if err != nil {
@@ -207,7 +207,7 @@ func (i *Deletion) deleteKymaCrds() error {
 }
 
 func (i *Deletion) prepareKymaCrdLabelSelector() (selector labels.Selector, err error) {
-	kymaCrdReq, err := labels.NewRequirement(preinstaller.LABEL_KEY_ORIGIN, selection.Equals, []string{preinstaller.LABEL_VALUE_KYMA})
+	kymaCrdReq, err := labels.NewRequirement(config.LABEL_KEY_ORIGIN, selection.Equals, []string{config.LABEL_VALUE_KYMA})
 	if err != nil {
 		return nil, errors.Wrap(err, "Error occurred when preparing Kyma CRD label selector")
 	}

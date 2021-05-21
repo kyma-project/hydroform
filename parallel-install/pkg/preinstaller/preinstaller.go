@@ -19,8 +19,9 @@
 // Installing CRDs resources requires a folder named `crds`.
 // Installing Namespace resources requires a folder named `namespaces`.
 // For now only these two resources types are supported.
-// CRDS are labeled with: origin=kyma in order to distinguish them among other resources.
-// This label is used in CRDs uninstallation for filtering purposes.
+// CRDS are labeled with: LABEL_KEY_ORIGIN=LABEL_VALUE_KYMA, which come from constants,
+// in order to distinguish them among other resources not managed by Kyma.
+// As a result, on basis of the label they are marked for deletion during Kyma uninstallation.
 
 package preinstaller
 
@@ -34,11 +35,6 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"k8s.io/client-go/dynamic"
-)
-
-const (
-	LABEL_KEY_ORIGIN = "origin"
-	LABEL_VALUE_KYMA = "kyma"
 )
 
 // Config defines configuration values for the PreInstaller.
@@ -122,7 +118,7 @@ func (i *PreInstaller) InstallCRDs() (Output, error) {
 		resourceType:             "CustomResourceDefinition",
 		dirSuffix:                "crds",
 		installationResourcePath: i.cfg.InstallationResourcePath,
-		label:                    LABEL_KEY_ORIGIN,
+		label:                    config.LABEL_KEY_ORIGIN,
 	}
 
 	i.cfg.Log.Info("Kyma CRDs installation")
@@ -228,7 +224,7 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 			continue
 		}
 
-		addLabel(parsedResource, resource.label, LABEL_VALUE_KYMA)
+		addLabel(parsedResource, resource.label, config.LABEL_VALUE_KYMA)
 
 		i.cfg.Log.Infof("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component)
 		err = i.applier.Apply(parsedResource)
