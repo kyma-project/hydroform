@@ -1,16 +1,28 @@
 package deployment
 
 import (
+	"context"
+	"fmt"
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/fake"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 
 	"testing"
 	"time"
@@ -18,13 +30,16 @@ import (
 
 func TestDeployment_StartKymaUninstallation(t *testing.T) {
 
-	kubeClient := fake.NewSimpleClientset(&v1.Namespace{
+	kubeClient := k8sfake.NewSimpleClientset(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "kyma-installer",
 			Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
 		},
 	})
-	i := newDeletion(t, nil, kubeClient, nil)
+	dynamicClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), fixCrdGvrMap())
+	manager := &mocks.ResourceManager{}
+	manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
+	i := newDeletion(t, nil, kubeClient, dynamicClient, manager, nil)
 
 	t.Run("should uninstall Kyma", func(t *testing.T) {
 		hc := &mockHelmClient{}
@@ -153,9 +168,9 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			assert.Less(t, elapsed.Milliseconds(), int64(200))
 		})
 		t.Run("due to quit timeout", func(t *testing.T) {
-			kubeClient := fake.NewSimpleClientset()
+			kubeClient := k8sfake.NewSimpleClientset()
 
-			inst := newDeletion(t, nil, kubeClient, nil)
+			inst := newDeletion(t, nil, kubeClient, nil, nil, nil)
 
 			// Changing it to higher amounts to minimize difference between cancel and quit timeout
 			// and give program enough time to process
@@ -197,9 +212,236 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 	})
 }
 
+func TestPostUninstaller_UninstallCRDs(t *testing.T) {
+
+	scheme := runtime.NewScheme()
+
+	t.Run("should not delete CRDs", func(t *testing.T) {
+		t.Run("when no resources of any kind are present on a cluster", func(t *testing.T) {
+			// given
+			client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
+			requireNoCrdsOnTheCluster(t, client)
+			manager := &mocks.ResourceManager{}
+			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
+			deletion := newDeletion(t, nil, nil, client, manager, nil)
+
+			// when
+			err := deletion.deleteKymaCrds()
+
+			// then
+			require.NoError(t, err, "should not return any error")
+			manager.AssertNumberOfCalls(t, "DeleteCollectionOfResources", 2)
+			requireNoCrdsOnTheCluster(t, client)
+		})
+
+		t.Run("when CRDs not labeled by Kyma are present on a cluster", func(t *testing.T) {
+			// given
+			client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
+			crds := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrV1Beta1(),
+				"apiextensions.k8s.io", "v1beta1", "label", "unknown", "crd1", "crd2", "crd3")
+			requireNoKymaCrdsOnTheCluster(t, client)
+			manager := &mocks.ResourceManager{}
+			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
+			deletion := newDeletion(t, nil, nil, client, manager, nil)
+
+			// when
+			err := deletion.deleteKymaCrds()
+
+			// then
+			require.NoError(t, err, "should not return any error")
+			requireAllObjsExistAndUnchanged(t, client, crds, fixCrdGvrV1Beta1())
+			manager.AssertNumberOfCalls(t, "DeleteCollectionOfResources", 2)
+		})
+
+		t.Run("when CRDs labeled with incorrect value are present on a cluster", func(t *testing.T) {
+			// given
+			client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
+			crds := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrV1Beta1(),
+				"apiextensions.k8s.io", "v1beta1", "origin", "unknown", "crd1", "crd2", "crd3")
+			requireNoKymaCrdsOnTheCluster(t, client)
+			manager := &mocks.ResourceManager{}
+			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
+			deletion := newDeletion(t, nil, nil, client, manager, nil)
+
+			// when
+			err := deletion.deleteKymaCrds()
+
+			// then
+			require.NoError(t, err, "should not return any error")
+			requireAllObjsExistAndUnchanged(t, client, crds, fixCrdGvrV1Beta1())
+			manager.AssertNumberOfCalls(t, "DeleteCollectionOfResources", 2)
+		})
+
+		t.Run("when CRDs labeled by Kyma are present on a cluster but CRD api does not match", func(t *testing.T) {
+			// given
+			client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
+			crds := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrOtherGroup(),
+				"otherapi", "v1beta1", "origin", "kyma", "crd1", "crd2", "crd3")
+			requireNoGenericCrdsOnTheCluster(t, client)
+			manager := &mocks.ResourceManager{}
+			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
+			deletion := newDeletion(t, nil, nil, client, manager, nil)
+
+			// when
+			err := deletion.deleteKymaCrds()
+
+			// then
+			require.NoError(t, err, "should not return any error")
+			requireAllObjsExistAndUnchanged(t, client, crds, fixCrdGvrOtherGroup())
+			manager.AssertNumberOfCalls(t, "DeleteCollectionOfResources", 2)
+		})
+
+		t.Run("when CRDs labeled by Kyma are present on a cluster but CRD version does not match", func(t *testing.T) {
+			// given
+			client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
+			crds := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrOtherVersion(),
+				"apiextensions.k8s.io", "otherversion", "origin", "kyma", "crd1", "crd2", "crd3")
+			requireNoGenericCrdsOnTheCluster(t, client)
+			manager := &mocks.ResourceManager{}
+			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
+			deletion := newDeletion(t, nil, nil, client, manager, nil)
+
+			// when
+			err := deletion.deleteKymaCrds()
+
+			// then
+			require.NoError(t, err, "should not return any error")
+			requireAllObjsExistAndUnchanged(t, client, crds, fixCrdGvrOtherVersion())
+			manager.AssertNumberOfCalls(t, "DeleteCollectionOfResources", 2)
+		})
+
+		t.Run("when objects of type different than CRD labeled by Kyma are present on a cluster", func(t *testing.T) {
+			// given
+			client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
+			namespaces := createThreeNamespacesAndApply(t, client, fixNamespaceGvr(), "origin", "kyma")
+			requireNoCrdsOnTheCluster(t, client)
+			manager := &mocks.ResourceManager{}
+			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
+			deletion := newDeletion(t, nil, nil, client, manager, nil)
+
+			// when
+			err := deletion.deleteKymaCrds()
+
+			// then
+			require.NoError(t, err, "should not return any error")
+			requireAllObjsExistAndUnchanged(t, client, namespaces, fixNamespaceGvr())
+			manager.AssertNumberOfCalls(t, "DeleteCollectionOfResources", 2)
+		})
+
+		t.Run("when all of them were correct but errors occurred when deleting them", func(t *testing.T) {
+			// given
+			client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
+			crdsV1Beta1 := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrV1Beta1(),
+				"apiextensions.k8s.io", "v1beta1", "origin", "kyma", "crd1", "crd2", "crd3")
+			crdsV1 := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrV1(),
+				"apiextensions.k8s.io", "v1", "origin", "kyma", "crd4", "crd5", "crd6")
+			manager := &mocks.ResourceManager{}
+			manager.On("DeleteCollectionOfResources", fixCrdGvkV1Beta1(), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(
+				func(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOps metav1.ListOptions) error {
+					return deleteAllMockObjs(t, client, crdsV1Beta1, fixCrdGvrV1Beta1())
+				})
+			manager.On("DeleteCollectionOfResources", fixCrdGvkV1(), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(
+				func(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOps metav1.ListOptions) error {
+					return deleteAllMockObjs(t, client, crdsV1, fixCrdGvrV1())
+				})
+			deletion := newDeletion(t, nil, nil, client, manager, nil)
+
+			// when
+			err := deletion.deleteKymaCrds()
+
+			// then
+			require.NoError(t, err, "should not return any error")
+			requireAllObjsNotExist(t, client, crdsV1Beta1, fixCrdGvrV1Beta1())
+			requireAllObjsNotExist(t, client, crdsV1, fixCrdGvrV1Beta1())
+			manager.AssertNumberOfCalls(t, "DeleteCollectionOfResources", 2)
+		})
+	})
+
+	t.Run("should delete CRDs", func(t *testing.T) {
+		t.Run("when only CRDs labeled by Kyma are present on a cluster", func(t *testing.T) {
+			// given
+			client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
+			crdsV1Beta1 := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrV1Beta1(),
+				"apiextensions.k8s.io", "v1beta1", "origin", "kyma", "crd1", "crd2", "crd3")
+			crdsV1 := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrV1(),
+				"apiextensions.k8s.io", "v1", "origin", "kyma", "crd4", "crd5", "crd6")
+			manager := &mocks.ResourceManager{}
+			manager.On("DeleteCollectionOfResources", fixCrdGvkV1Beta1(), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(
+				func(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOps metav1.ListOptions) error {
+					return deleteAllMockObjs(t, client, crdsV1Beta1, fixCrdGvrV1Beta1())
+				})
+			manager.On("DeleteCollectionOfResources", fixCrdGvkV1(), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(
+				func(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOps metav1.ListOptions) error {
+					return deleteAllMockObjs(t, client, crdsV1, fixCrdGvrV1())
+				})
+			deletion := newDeletion(t, nil, nil, client, manager, nil)
+
+			// when
+			err := deletion.deleteKymaCrds()
+
+			// then
+			require.NoError(t, err, "should not return any error")
+			requireAllObjsNotExist(t, client, crdsV1Beta1, fixCrdGvrV1Beta1())
+			requireAllObjsNotExist(t, client, crdsV1, fixCrdGvrV1Beta1())
+			manager.AssertNumberOfCalls(t, "DeleteCollectionOfResources", 2)
+		})
+
+		t.Run("labeled by Kyma and leave other", func(t *testing.T) {
+			// given
+			client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
+			crdsLabeledByKyma := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrV1Beta1(),
+				"apiextensions.k8s.io", "v1beta1", "origin", "kyma", "crd1", "crd2", "crd3")
+			crdsNotLabeledByKyma := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrV1(),
+				"apiextensions.k8s.io", "v1", "origin", "unknown", "crd4", "crd5", "crd6")
+			manager := &mocks.ResourceManager{}
+			manager.On("DeleteCollectionOfResources", fixCrdGvkV1Beta1(), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(
+				func(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOps metav1.ListOptions) error {
+					return deleteAllMockObjs(t, client, crdsLabeledByKyma, fixCrdGvrV1Beta1())
+				})
+			manager.On("DeleteCollectionOfResources", fixCrdGvkV1(), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
+			deletion := newDeletion(t, nil, nil, client, manager, nil)
+
+			// when
+			err := deletion.deleteKymaCrds()
+
+			// then
+			require.NoError(t, err, "should not return any error")
+			requireAllObjsNotExist(t, client, crdsLabeledByKyma, fixCrdGvrV1Beta1())
+			requireAllObjsExistAndUnchanged(t, client, crdsNotLabeledByKyma, fixCrdGvrV1())
+			manager.AssertNumberOfCalls(t, "DeleteCollectionOfResources", 2)
+		})
+
+		t.Run("but only partially when error occurred for first CRD and no error occurred for the rest", func(t *testing.T) {
+			// given
+			client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, fixCrdGvrMap())
+			crdsV1Beta1 := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrV1Beta1(),
+				"apiextensions.k8s.io", "v1beta1", "origin", "kyma", "crd1", "crd2", "crd3")
+			crdsV1 := createThreeCrdsUsingGivenNamesAndApply(t, client, fixCrdGvrV1(),
+				"apiextensions.k8s.io", "v1", "origin", "kyma", "crd4", "crd5", "crd6")
+			manager := &mocks.ResourceManager{}
+			manager.On("DeleteCollectionOfResources", fixCrdGvkV1Beta1(), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(
+				func(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOps metav1.ListOptions) error {
+					return deleteAllMockObjs(t, client, crdsV1Beta1, fixCrdGvrV1Beta1())
+				})
+			manager.On("DeleteCollectionOfResources", fixCrdGvkV1(), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(errors.New("Error"))
+			deletion := newDeletion(t, nil, nil, client, manager, nil)
+
+			// when
+			err := deletion.deleteKymaCrds()
+
+			// then
+			require.NoError(t, err, "should not return any error")
+			requireAllObjsNotExist(t, client, crdsV1Beta1, fixCrdGvrV1Beta1())
+			requireAllObjsExistAndUnchanged(t, client, crdsV1, fixCrdGvrV1())
+			manager.AssertNumberOfCalls(t, "DeleteCollectionOfResources", 2)
+		})
+	})
+
+}
+
 func TestDeployment_DeleteNamespaces(t *testing.T) {
 	kymaLabelPrefix := "kyma-project.io/install."
-	kubeClient := fake.NewSimpleClientset(&v1.Namespace{
+	kubeClient := k8sfake.NewSimpleClientset(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "kyma-test",
 			Labels: map[string]string{"kyma-project.io/installation": ""},
@@ -215,7 +457,11 @@ func TestDeployment_DeleteNamespaces(t *testing.T) {
 				},
 			},
 		})
-	i := newDeletion(t, nil, kubeClient, nil)
+	dynamicClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), fixCrdGvrMap())
+	manager := &mocks.ResourceManager{}
+	manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
+	i := newDeletion(t, nil, kubeClient, dynamicClient, manager, nil)
+
 	t.Run("should uninstall components and Kyma namespaces", func(t *testing.T) {
 		t.Run("without errors", func(t *testing.T) {
 			hc := &mockHelmClient{}
@@ -241,7 +487,7 @@ func TestDeployment_DeleteNamespaces(t *testing.T) {
 		})
 	})
 
-	kubeClientWithPod := fake.NewSimpleClientset(&v1.Namespace{
+	kubeClientWithPod := k8sfake.NewSimpleClientset(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "kyma-test",
 			Labels: map[string]string{"kyma-project.io/installation": ""},
@@ -271,7 +517,8 @@ func TestDeployment_DeleteNamespaces(t *testing.T) {
 		retry.Attempts(1),
 		retry.DelayType(retry.FixedDelay),
 	}
-	i = newDeletion(t, nil, kubeClientWithPod, retryOpts)
+	i = newDeletion(t, nil, kubeClientWithPod, dynamicClient, manager, retryOpts)
+
 	t.Run("should uninstall components and fail to uninstall Kyma namespaces", func(t *testing.T) {
 		t.Run("due to running Pods", func(t *testing.T) {
 			hc := &mockHelmClient{}
@@ -299,10 +546,10 @@ func TestDeployment_DeleteNamespaces(t *testing.T) {
 }
 
 // Pass optionally an receiver-channel to get progress updates
-func newDeletion(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kubernetes.Interface, retryOptions []retry.Option) *Deletion {
+func newDeletion(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, manager preinstaller.ResourceManager, retryOptions []retry.Option) *Deletion {
 	compList, err := config.NewComponentList("../test/data/componentlist.yaml")
 	assert.NoError(t, err)
-	config := &config.Config{
+	cfg := &config.Config{
 		CancelTimeout:                 cancelTimeout,
 		QuitTimeout:                   quitTimeout,
 		BackoffInitialIntervalSeconds: 1,
@@ -310,8 +557,210 @@ func newDeletion(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kuber
 		Log:                           logger.NewLogger(true),
 		ComponentList:                 compList,
 	}
-	core := newCore(config, &OverridesBuilder{}, kubeClient, procUpdates)
+	core := newCore(cfg, &OverridesBuilder{}, kubeClient, procUpdates)
 	metaProv := helm.GetKymaMetadataProvider(kubeClient)
-	return &Deletion{core, metaProv, nil, nil, retryOptions}
+	return &Deletion{core, metaProv, nil, dynamicClient, manager, retryOptions}
+}
 
+func createThreeCrdsUsingGivenNamesAndApply(t *testing.T, client *dynamicfake.FakeDynamicClient, gvr schema.GroupVersionResource, api, version, label, value, name1, name2, name3 string) []unstructured.Unstructured {
+	crds := createThreeCrdsUsing(api, version, label, value, name1, name2, name3)
+	for _, crd := range crds {
+		applyMockObj(t, client, &crd, gvr)
+	}
+	return crds
+}
+
+func createThreeCrdsUsing(api, version, label, value, name1, name2, name3 string) []unstructured.Unstructured {
+	crd1 := fixCrdResourceWith(name1, api, version, label, value)
+	crd2 := fixCrdResourceWith(name2, api, version, label, value)
+	crd3 := fixCrdResourceWith(name3, api, version, label, value)
+	return []unstructured.Unstructured{*crd1, *crd2, *crd3}
+}
+
+func createThreeNamespacesUsing(label, value, name1, name2, name3 string) []unstructured.Unstructured {
+	ns1 := fixResourceWith(name1, label, value)
+	ns2 := fixResourceWith(name2, label, value)
+	ns3 := fixResourceWith(name3, label, value)
+	return []unstructured.Unstructured{*ns1, *ns2, *ns3}
+}
+
+func createThreeNamespacesAndApply(t *testing.T, client *dynamicfake.FakeDynamicClient, gvr schema.GroupVersionResource, label, value string) []unstructured.Unstructured {
+	namespaces := createThreeNamespacesUsing(label, value, "ns1", "ns2", "ns3")
+	for _, ns := range namespaces {
+		applyMockObj(t, client, &ns, gvr)
+	}
+	return namespaces
+}
+
+func applyMockObj(t *testing.T, client *dynamicfake.FakeDynamicClient, obj *unstructured.Unstructured, gvr schema.GroupVersionResource) {
+	resultObj, err := client.Resource(gvr).Create(context.TODO(), obj, metav1.CreateOptions{})
+	require.NoError(t, err, "object should be correctly created by fake client")
+	require.NotNil(t, resultObj, "object returned by fake client should exist")
+	require.Equal(t, obj, resultObj, "object returned by fake client should be equal to the created one")
+}
+
+func deleteMockObj(t *testing.T, client *dynamicfake.FakeDynamicClient, obj *unstructured.Unstructured, gvr schema.GroupVersionResource) error {
+	err := client.Resource(gvr).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
+	require.NoError(t, err, "object should be correctly deleted by fake client")
+	return err
+}
+
+func deleteAllMockObjs(t *testing.T, client *dynamicfake.FakeDynamicClient, objs []unstructured.Unstructured, gvr schema.GroupVersionResource) error {
+	for _, obj := range objs {
+		_ = deleteMockObj(t, client, &obj, gvr)
+	}
+	return nil
+}
+
+func requireNoCrdsOnTheCluster(t *testing.T, client *dynamicfake.FakeDynamicClient) {
+	requireNoGenericCrdsOnTheCluster(t, client)
+	requireNoKymaCrdsOnTheCluster(t, client)
+}
+
+func requireNoGenericCrdsOnTheCluster(t *testing.T, client *dynamicfake.FakeDynamicClient) {
+	requireNoGivenCrdsOnTheCluster(t, client, fixCrdGvrV1Beta1(), metav1.ListOptions{})
+	requireNoGivenCrdsOnTheCluster(t, client, fixCrdGvrV1(), metav1.ListOptions{})
+}
+
+func requireNoKymaCrdsOnTheCluster(t *testing.T, client *dynamicfake.FakeDynamicClient) {
+	requireNoGivenCrdsOnTheCluster(t, client, fixCrdGvrV1Beta1(), metav1.ListOptions{LabelSelector: "origin=kyma"})
+	requireNoGivenCrdsOnTheCluster(t, client, fixCrdGvrV1(), metav1.ListOptions{LabelSelector: "origin=kyma"})
+}
+
+func requireNoGivenCrdsOnTheCluster(t *testing.T, client *dynamicfake.FakeDynamicClient, gvr schema.GroupVersionResource, listOpts metav1.ListOptions) {
+	resourcesList, err := client.Resource(gvr).List(context.TODO(), listOpts)
+	require.NoError(t, err)
+	require.Empty(t, resourcesList.Items)
+}
+
+func requireObjExistsAndUnchanged(t *testing.T, client *dynamicfake.FakeDynamicClient, obj *unstructured.Unstructured, gvr schema.GroupVersionResource) {
+	resultObj, err := client.Resource(gvr).Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
+	require.NoError(t, err, "object should be correctly returned by fake client")
+	require.NotNil(t, resultObj, "object returned by fake client should exist")
+	require.Equal(t, obj, resultObj, "object returned by fake client should be equal to the created one")
+}
+
+func requireAllObjsExistAndUnchanged(t *testing.T, client *dynamicfake.FakeDynamicClient, objs []unstructured.Unstructured, gvr schema.GroupVersionResource) {
+	for _, obj := range objs {
+		requireObjExistsAndUnchanged(t, client, &obj, gvr)
+	}
+}
+
+func requireObjNotExists(t *testing.T, client *dynamicfake.FakeDynamicClient, obj *unstructured.Unstructured, gvr schema.GroupVersionResource) {
+	resultObj, err := client.Resource(gvr).Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
+	require.Error(t, err, "object should be not found")
+	require.Nil(t, resultObj, "object returned by fake client should not exist")
+}
+
+func requireAllObjsNotExist(t *testing.T, client *dynamicfake.FakeDynamicClient, objs []unstructured.Unstructured, gvr schema.GroupVersionResource) {
+	for _, obj := range objs {
+		requireObjNotExists(t, client, &obj, gvr)
+	}
+}
+
+func fixCrdGvrMap() map[schema.GroupVersionResource]string {
+	return map[schema.GroupVersionResource]string{
+		fixCrdGvrV1():            "CrdList",
+		fixCrdGvrV1Beta1():       "CrdList",
+		fixCrdGvrOtherGroup():    "CrdList",
+		fixCrdGvrOtherVersion():  "CrdList",
+		fixCrdGvrOtherResource(): "CrdList",
+	}
+}
+
+func fixCrdGvrV1() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "apiextensions.k8s.io",
+		Version:  "v1",
+		Resource: "customresourcedefinitions",
+	}
+}
+
+func fixCrdGvrV1Beta1() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "apiextensions.k8s.io",
+		Version:  "v1beta1",
+		Resource: "customresourcedefinitions",
+	}
+}
+
+func fixCrdGvkV1() schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   "apiextensions.k8s.io",
+		Version: "v1",
+		Kind:    "customresourcedefinition",
+	}
+}
+
+func fixCrdGvkV1Beta1() schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   "apiextensions.k8s.io",
+		Version: "v1beta1",
+		Kind:    "customresourcedefinition",
+	}
+}
+
+func fixCrdGvrOtherGroup() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "othergroup",
+		Version:  "v1beta1",
+		Resource: "customresourcedefinitions",
+	}
+}
+
+func fixCrdGvrOtherVersion() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "apiextensions.k8s.io",
+		Version:  "otherversion",
+		Resource: "customresourcedefinitions",
+	}
+}
+
+func fixCrdGvrOtherResource() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "apiextensions.k8s.io",
+		Version:  "v1beta1",
+		Resource: "otherresource",
+	}
+}
+
+func fixNamespaceGvr() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "",
+		Version:  "v1",
+		Resource: "Namespace",
+	}
+}
+
+func fixCrdResourceWith(name, api, version, label, value string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": fmt.Sprintf("%s/%s", api, version),
+			"kind":       "CustomResourceDefinition",
+			"metadata": map[string]interface{}{
+				"name": name,
+				"labels": map[string]interface{}{
+					label: value,
+				},
+			},
+			"spec": map[string]interface{}{
+				"group": "group",
+			},
+		},
+	}
+}
+
+func fixResourceWith(name, label, value string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Namespace",
+			"metadata": map[string]interface{}{
+				"name": name,
+				"labels": map[string]interface{}{
+					label: value,
+				},
+			},
+		},
+	}
 }

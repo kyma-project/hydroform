@@ -4,6 +4,9 @@ package deployment
 import (
 	"context"
 	"fmt"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"sync"
 	"time"
 
@@ -25,10 +28,11 @@ import (
 //Deletion removes Kyma from a cluster
 type Deletion struct {
 	*core
-	mp           *helm.KymaMetadataProvider
-	scclient     *clientset.Clientset
-	dClient      dynamic.Interface
-	retryOptions []retry.Option
+	mp              *helm.KymaMetadataProvider
+	scclient        *clientset.Clientset
+	dClient         dynamic.Interface
+	resourceManager preinstaller.ResourceManager
+	retryOptions    []retry.Option
 }
 
 //NewDeletion creates a new Deployment instance for deleting Kyma on a cluster.
@@ -56,6 +60,12 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(P
 	if err != nil {
 		return nil, err
 	}
+
+	resourceManager, err := preinstaller.NewDefaultResourceManager(cfg.KubeconfigSource, cfg.Log, retryOptions)
+	if err != nil {
+		return nil, err
+	}
+
 	registerOverridesInterceptors(ob, kubeClient, cfg.Log)
 
 	core := newCore(cfg, ob, kubeClient, processUpdates)
@@ -65,7 +75,7 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(P
 		return nil, err
 	}
 
-	return &Deletion{core, mp, scclient, dClient, retryOptions}, nil
+	return &Deletion{core, mp, scclient, dClient, resourceManager, retryOptions}, nil
 }
 
 //StartKymaUninstallation removes Kyma from a cluster
@@ -107,6 +117,11 @@ func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, comp
 	quitTimeout = calculateDuration(startTime, endTime, i.cfg.QuitTimeout)
 
 	err = i.uninstallComponents(cancelCtx, cancel, UninstallPreRequisites, prerequisitesEng, cancelTimeout, quitTimeout)
+	if err != nil {
+		return err
+	}
+
+	err = i.deleteKymaCrds()
 	if err != nil {
 		return err
 	}
@@ -167,6 +182,53 @@ UninstallLoop:
 	}
 	i.processUpdate(phase, ProcessFinished, nil)
 	return nil
+}
+
+func (i *Deletion) deleteKymaCrds() error {
+	i.cfg.Log.Infof("Uninstalling CRDs labeled with: %s=%s", preinstaller.LABEL_KEY_ORIGIN, preinstaller.LABEL_VALUE_KYMA)
+
+	selector, err := i.prepareKymaCrdLabelSelector()
+	if err != nil {
+		return err
+	}
+
+	gvks := i.retrieveKymaCrdGvks()
+	for _, gvk := range gvks {
+		i.cfg.Log.Infof("Uninstalling CRDs that belong to apiVersion: %s/%s", gvk.Group, gvk.Version)
+		err = i.resourceManager.DeleteCollectionOfResources(gvk, metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: selector.String()})
+		if err != nil {
+			i.cfg.Log.Error(err)
+		}
+	}
+
+	i.cfg.Log.Infof("Kyma CRDs successfully uninstalled")
+
+	return nil
+}
+
+func (i *Deletion) prepareKymaCrdLabelSelector() (selector labels.Selector, err error) {
+	kymaCrdReq, err := labels.NewRequirement(preinstaller.LABEL_KEY_ORIGIN, selection.Equals, []string{preinstaller.LABEL_VALUE_KYMA})
+	if err != nil {
+		return nil, errors.Wrap(err, "Error occurred when preparing Kyma CRD label selector")
+	}
+
+	selector = labels.NewSelector()
+	selector = selector.Add(*kymaCrdReq)
+	return selector, nil
+}
+
+func (i *Deletion) retrieveKymaCrdGvks() []schema.GroupVersionKind {
+	crdGvkV1Beta1 := i.crdGvkWith("v1beta1")
+	crdGvkV1 := i.crdGvkWith("v1")
+	return []schema.GroupVersionKind{crdGvkV1Beta1, crdGvkV1}
+}
+
+func (i *Deletion) crdGvkWith(version string) schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   "apiextensions.k8s.io",
+		Version: version,
+		Kind:    "customresourcedefinition",
+	}
 }
 
 func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {

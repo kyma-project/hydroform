@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/postuninstaller"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 	"os"
 	"strings"
@@ -144,21 +143,6 @@ func main() {
 	err = deleter.StartKymaUninstallation()
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
-	}
-
-	postUninstallerCfg := postuninstaller.Config{
-		Log:              installationCfg.Log,
-		KubeconfigSource: installationCfg.KubeconfigSource,
-	}
-
-	postUninstaller, err := postuninstaller.NewPostUninstaller(postUninstallerCfg, commonRetryOpts)
-	if err != nil {
-		log.Fatalf("Failed to create Kyma post-uninstaller: %v", err)
-	}
-
-	uninstallResult, err := postUninstaller.UninstallCRDs()
-	if err != nil || len(uninstallResult.NotDeleted) > 0 {
-		log.Fatalf("Failed to uninstall CRDs: %s", err)
 	}
 
 	log.Info("Kyma uninstalled!")
