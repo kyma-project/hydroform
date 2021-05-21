@@ -5,11 +5,13 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
+	//"k8s.io/client-go/testing"
 	"reflect"
 	"regexp"
 	"testing"
@@ -30,7 +32,7 @@ func TestResourceManager_CreateResource(t *testing.T) {
 		resourceSchema := fixResourceGvkSchema()
 
 		// when
-		err := manager.CreateResource(resource, resourceSchema)
+		err := manager.CreateResource(resource, resourceSchema, metav1.CreateOptions{})
 
 		// then
 		assert.NoError(t, err)
@@ -51,7 +53,7 @@ func TestResourceManager_GetResource(t *testing.T) {
 		resourceSchema := schema.GroupVersionKind{}
 
 		// when
-		obj, err := manager.GetResource(resourceName, resourceSchema)
+		obj, err := manager.GetResource(resourceName, resourceSchema, metav1.GetOptions{})
 
 		// then
 		assert.NoError(t, err)
@@ -67,7 +69,7 @@ func TestResourceManager_GetResource(t *testing.T) {
 		resourceSchema := fixResourceGvkSchema()
 
 		// when
-		retrievedResource, err := manager.GetResource(resourceName, resourceSchema)
+		retrievedResource, err := manager.GetResource(resourceName, resourceSchema, metav1.GetOptions{})
 
 		// then
 		assert.NoError(t, err)
@@ -97,7 +99,7 @@ func TestResourceManager_UpdateResource(t *testing.T) {
 		resource.SetLabels(labels)
 
 		// when
-		newResource, err := manager.UpdateResource(resource, resourceSchema)
+		newResource, err := manager.UpdateResource(resource, resourceSchema, metav1.UpdateOptions{})
 
 		// then
 		assert.NoError(t, err)
@@ -106,43 +108,30 @@ func TestResourceManager_UpdateResource(t *testing.T) {
 	})
 }
 
-func TestResourceManager_DeleteResource(t *testing.T) {
+func TestResourceManager_DeleteCollectionOfResources(t *testing.T) {
 
 	scheme := runtime.NewScheme()
-	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	retryOptions := getTestingRetryOptions()
 	log := logger.NewLogger(true)
 
-	t.Run("should return an error when deleting a not existing resource", func(t *testing.T) {
+	t.Run("should call delete-collection action when delecting collection of resources", func(t *testing.T) {
 		// given
-		manager := getDefaultResourceManager(dynamicClient, log, retryOptions)
-		resourceName := "resourceName"
-		resourceSchema := schema.GroupVersionKind{}
+		client := fake.NewSimpleDynamicClient(scheme)
+		manager := getDefaultResourceManager(client, log, retryOptions)
+		//gvk := fixResourceGvkSchema()
 
 		// when
-		err := manager.DeleteResource(resourceName, resourceSchema)
-
-		// then
-		assert.Error(t, err)
-		expectedError := "not found"
-		receivedError := err.Error()
-		matched, err := regexp.MatchString(expectedError, receivedError)
-		assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
-	})
-
-	t.Run("should delete a pre-created resource", func(t *testing.T) {
-		// given
-		resourceName := "namespace"
-		resource := fixResourceWith(resourceName)
-		customDynamicClient := fake.NewSimpleDynamicClient(scheme, resource)
-		manager := getDefaultResourceManager(customDynamicClient, log, retryOptions)
-		resourceSchema := fixResourceGvkSchema()
-
-		// when
-		err := manager.DeleteResource(resourceName, resourceSchema)
+		err := manager.DeleteCollectionOfResources(fixResourceGvkSchema(), metav1.DeleteOptions{}, metav1.ListOptions{})
 
 		// then
 		assert.NoError(t, err)
+
+		// and then
+		actions := client.Actions()
+		assert.NotNil(t, actions)
+		assert.Equal(t, 1, len(actions))
+		assert.Equal(t, "delete-collection", actions[0].GetVerb())
+		assert.Equal(t, fixResourceGvrSchema(), actions[0].GetResource())
 	})
 }
 
@@ -153,6 +142,9 @@ func fixResourceWith(name string) *unstructured.Unstructured {
 			"kind":       "kind",
 			"metadata": map[string]interface{}{
 				"name": name,
+				"labels": map[string]interface{}{
+					"key": "value",
+				},
 			},
 		},
 	}
@@ -163,6 +155,14 @@ func fixResourceGvkSchema() schema.GroupVersionKind {
 		Group:   "group",
 		Version: "v1",
 		Kind:    "kind",
+	}
+}
+
+func fixResourceGvrSchema() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "group",
+		Version:  "v1",
+		Resource: "kinds",
 	}
 }
 

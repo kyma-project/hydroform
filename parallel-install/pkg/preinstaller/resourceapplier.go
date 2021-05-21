@@ -3,6 +3,7 @@ package preinstaller
 import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -35,7 +36,7 @@ func (c *GenericResourceApplier) Apply(resource *unstructured.Unstructured) erro
 
 	gvk := resource.GroupVersionKind()
 	resourceName := resource.GetName()
-	obj, err := c.resourceManager.GetResource(resourceName, gvk)
+	obj, err := c.resourceManager.GetResource(resourceName, gvk, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -43,14 +44,14 @@ func (c *GenericResourceApplier) Apply(resource *unstructured.Unstructured) erro
 	if obj != nil {
 		c.log.Infof("Resource: %s already exists. Performing update.", resourceName)
 
-		_, err = c.resourceManager.UpdateResource(resource, gvk)
+		_, err = c.resourceManager.UpdateResource(resource, gvk, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
 	} else {
 		c.log.Infof("Creating resource: %s.", resourceName)
 
-		err = c.resourceManager.CreateResource(resource, gvk)
+		err = c.resourceManager.CreateResource(resource, gvk, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}

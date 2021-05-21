@@ -21,19 +21,19 @@ import (
 type ResourceManager interface {
 	// CreateResource from a given object and schema on k8s cluster.
 	// Performs retries on unsuccessful resource creation action.
-	CreateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind) error
+	CreateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind, opts metav1.CreateOptions) error
 
 	// GetResource of a given name from a k8s cluster, that matches the schema.
 	// Performs retries on unsuccessful resource retrieval action.
-	GetResource(resourceName string, gvk schema.GroupVersionKind) (*unstructured.Unstructured, error)
+	GetResource(resourceName string, gvk schema.GroupVersionKind, opts metav1.GetOptions) (*unstructured.Unstructured, error)
 
 	// UpdateResource on a k8s cluster, that matches the schema.
 	// Performs retries on unsuccessful resource update action.
-	UpdateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind) (*unstructured.Unstructured, error)
+	UpdateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind, opts metav1.UpdateOptions) (*unstructured.Unstructured, error)
 
-	// DeleteResource from a k8s cluster, that matches the schema.
-	// Performs retries on unsuccessful resource delete action.
-	DeleteResource(resourceName string, gvk schema.GroupVersionKind) error
+	// DeleteCollectionOfResources from a k8s cluster, that match the schema, using query options for filtering them.
+	// Performs retries on unsuccessful resources delete action.
+	DeleteCollectionOfResources(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOps metav1.ListOptions) error
 }
 
 // DefaultResourceManager provides a default implementation of ResourceManager.
@@ -62,10 +62,10 @@ func NewDefaultResourceManager(kubeconfigSource config.KubeconfigSource, log log
 	}, nil
 }
 
-func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind) error {
+func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind, opts metav1.CreateOptions) error {
 	var err error
 	err = retry.Do(func() error {
-		if _, err = c.createResource(resource, retrieveGvrFrom(gvk)); err != nil {
+		if _, err = c.createResource(resource, retrieveGvrFrom(gvk), opts); err != nil {
 			c.log.Errorf("Error occurred during resource create: %s", err.Error())
 			return err
 		}
@@ -80,9 +80,9 @@ func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructu
 	return nil
 }
 
-func (c *DefaultResourceManager) GetResource(resourceName string, gvk schema.GroupVersionKind) (obj *unstructured.Unstructured, err error) {
+func (c *DefaultResourceManager) GetResource(resourceName string, gvk schema.GroupVersionKind, opts metav1.GetOptions) (obj *unstructured.Unstructured, err error) {
 	err = retry.Do(func() error {
-		obj, err = c.getResource(resourceName, retrieveGvrFrom(gvk))
+		obj, err = c.getResource(resourceName, retrieveGvrFrom(gvk), opts)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				c.log.Infof("Resource %s was not found.", resourceName)
@@ -103,17 +103,17 @@ func (c *DefaultResourceManager) GetResource(resourceName string, gvk schema.Gro
 	return obj, nil
 }
 
-func (c *DefaultResourceManager) UpdateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind) (obj *unstructured.Unstructured, err error) {
+func (c *DefaultResourceManager) UpdateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind, opts metav1.UpdateOptions) (obj *unstructured.Unstructured, err error) {
 	gvr := retrieveGvrFrom(gvk)
 
 	err = retry.Do(func() error {
-		latestResource, err := c.getResource(resource.GetName(), gvr)
+		latestResource, err := c.getResource(resource.GetName(), gvr, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
 
 		resource.SetResourceVersion(latestResource.GetResourceVersion())
-		obj, err = c.updateResource(resource, gvr)
+		obj, err = c.updateResource(resource, gvr, opts)
 		if err != nil {
 			c.log.Errorf("Error occurred during resource update: %s", err.Error())
 			return err
@@ -129,11 +129,11 @@ func (c *DefaultResourceManager) UpdateResource(resource *unstructured.Unstructu
 	return obj, nil
 }
 
-func (c *DefaultResourceManager) DeleteResource(resourceName string, gvk schema.GroupVersionKind) error {
+func (c *DefaultResourceManager) DeleteCollectionOfResources(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var err error
 	err = retry.Do(func() error {
-		if err = c.deleteResource(resourceName, retrieveGvrFrom(gvk)); err != nil {
-			c.log.Errorf("Error occurred during resource delete: %s", err.Error())
+		if err = c.deleteCollectionOfResources(retrieveGvrFrom(gvk), opts, listOpts); err != nil {
+			c.log.Errorf("Error occurred during resources delete: %s", err.Error())
 			return err
 		}
 
@@ -147,20 +147,20 @@ func (c *DefaultResourceManager) DeleteResource(resourceName string, gvk schema.
 	return nil
 }
 
-func (c *DefaultResourceManager) getResource(resourceName string, gvr schema.GroupVersionResource) (*unstructured.Unstructured, error) {
-	return c.dynamicClient.Resource(gvr).Get(context.TODO(), resourceName, metav1.GetOptions{})
+func (c *DefaultResourceManager) getResource(resourceName string, gvr schema.GroupVersionResource, opts metav1.GetOptions) (*unstructured.Unstructured, error) {
+	return c.dynamicClient.Resource(gvr).Get(context.TODO(), resourceName, opts)
 }
 
-func (c *DefaultResourceManager) createResource(resource *unstructured.Unstructured, gvr schema.GroupVersionResource) (*unstructured.Unstructured, error) {
-	return c.dynamicClient.Resource(gvr).Create(context.TODO(), resource, metav1.CreateOptions{})
+func (c *DefaultResourceManager) createResource(resource *unstructured.Unstructured, gvr schema.GroupVersionResource, opts metav1.CreateOptions) (*unstructured.Unstructured, error) {
+	return c.dynamicClient.Resource(gvr).Create(context.TODO(), resource, opts)
 }
 
-func (c *DefaultResourceManager) updateResource(resource *unstructured.Unstructured, gvr schema.GroupVersionResource) (*unstructured.Unstructured, error) {
-	return c.dynamicClient.Resource(gvr).Update(context.TODO(), resource, metav1.UpdateOptions{})
+func (c *DefaultResourceManager) updateResource(resource *unstructured.Unstructured, gvr schema.GroupVersionResource, opts metav1.UpdateOptions) (*unstructured.Unstructured, error) {
+	return c.dynamicClient.Resource(gvr).Update(context.TODO(), resource, opts)
 }
 
-func (c *DefaultResourceManager) deleteResource(resourceName string, gvr schema.GroupVersionResource) error {
-	return c.dynamicClient.Resource(gvr).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
+func (c *DefaultResourceManager) deleteCollectionOfResources(gvr schema.GroupVersionResource, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+	return c.dynamicClient.Resource(gvr).DeleteCollection(context.TODO(), opts, listOpts)
 }
 
 func retrieveGvrFrom(gvk schema.GroupVersionKind) schema.GroupVersionResource {

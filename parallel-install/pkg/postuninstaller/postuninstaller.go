@@ -1,14 +1,12 @@
 package postuninstaller
 
 import (
-	"context"
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
@@ -74,12 +72,18 @@ func (c *PostUninstaller) UninstallCRDs() (Output, error) {
 		return Output{}, err
 	}
 
-	crdsList, err := c.fetchCrdsLabeledWith(selector)
-	if err != nil {
-		return Output{}, err
+	crdGvkV1Beta1 := c.crdGvkWith("v1beta1")
+	crdGvkV1 := c.crdGvkWith("v1")
+	gvks := [2]schema.GroupVersionKind{crdGvkV1Beta1, crdGvkV1}
+
+	for _, gvk := range gvks {
+		err = c.resourceManager.DeleteCollectionOfResources(gvk, metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: selector.String()})
+		if err != nil {
+			c.cfg.Log.Error(err)
+		}
 	}
 
-	return c.deleteCrdsFrom(crdsList)
+	return Output{}, nil
 }
 
 func (c *PostUninstaller) prepareKymaCrdLabelSelector() (selector labels.Selector, err error) {
@@ -93,69 +97,10 @@ func (c *PostUninstaller) prepareKymaCrdLabelSelector() (selector labels.Selecto
 	return selector, nil
 }
 
-func (c *PostUninstaller) fetchCrdsLabeledWith(selector labels.Selector) (crds []unstructured.Unstructured, err error) {
-	crdsMap := make(map[string]unstructured.Unstructured)
-	crdGvrV1Beta1 := c.crdGrkWith("v1beta1")
-	crdGvrV1 := c.crdGrkWith("v1")
-	gvrs := [2]schema.GroupVersionResource{crdGvrV1Beta1, crdGvrV1}
-
-	for _, gvr := range gvrs {
-		list, err := c.listResourcesUsing(gvr, selector)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, obj := range list.Items {
-			crdsMap[obj.GetName()] = obj
-		}
+func (c *PostUninstaller) crdGvkWith(version string) schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   "apiextensions.k8s.io",
+		Version: version,
+		Kind:    "customresourcedefinition",
 	}
-
-	for _, obj := range crdsMap {
-		crds = append(crds, obj)
-	}
-
-	return
-}
-
-func (c *PostUninstaller) crdGrkWith(version string) schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    "apiextensions.k8s.io",
-		Version:  version,
-		Resource: "customresourcedefinitions",
-	}
-}
-
-func (c *PostUninstaller) listResourcesUsing(gvr schema.GroupVersionResource, selector labels.Selector) (resourcesList *unstructured.UnstructuredList, err error) {
-	err = retry.Do(func() error {
-		resourcesList, err = c.dynamicClient.Resource(gvr).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
-		if err != nil {
-			c.cfg.Log.Warnf("Error occurred when retrieving resource: %s", err.Error())
-			return nil
-		}
-
-		return nil
-	}, c.retryOptions...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return
-}
-
-func (c *PostUninstaller) deleteCrdsFrom(crdsList []unstructured.Unstructured) (o Output, err error) {
-	for _, crd := range crdsList {
-		crdName := crd.GetName()
-		c.cfg.Log.Infof("Deleting resource: %s", crdName)
-		err := c.resourceManager.DeleteResource(crdName, crd.GroupVersionKind())
-		if err != nil {
-			c.cfg.Log.Warnf("Error occurred when deleting a CRD %s : %s", crdName, err.Error())
-			o.NotDeleted = append(o.NotDeleted, crdName)
-			continue
-		}
-
-		o.Deleted = append(o.Deleted, crdName)
-	}
-
-	return o, nil
 }
