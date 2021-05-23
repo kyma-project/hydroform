@@ -8,4 +8,3 @@ const (
 	//Used for marking CRDs, so they can be deleted during uninstallation.
 	LABEL_VALUE_KYMA = "kyma"
 )
-
