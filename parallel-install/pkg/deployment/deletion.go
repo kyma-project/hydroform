@@ -121,12 +121,12 @@ func (i *Deletion) startKymaUninstallation(prerequisitesEng *engine.Engine, comp
 		return err
 	}
 
-	err = i.deleteKymaCrds()
+	err = i.deleteKymaNamespaces(namespaces)
 	if err != nil {
 		return err
 	}
 
-	return i.deleteKymaNamespaces(namespaces)
+	return i.deleteKymaCrds()
 }
 
 func (i *Deletion) uninstallComponents(ctx context.Context, cancelFunc context.CancelFunc, phase InstallationPhase, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
