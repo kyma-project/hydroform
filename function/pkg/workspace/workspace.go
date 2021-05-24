@@ -304,14 +304,15 @@ func toWorkspaceRules(rules []types.Rule) []Rule {
 func toWorkspaceAccessStrategies(accessStrategies []types.AccessStrategie) []AccessStrategie {
 	var out []AccessStrategie
 	for _, as := range accessStrategies {
-		out = append(out, AccessStrategie{
+		strategie := AccessStrategie{
 			Handler: as.Handler,
-			Config: AccessStrategieConfig{
-				JwksUrls:       as.Config.JwksUrls,
-				TrustedIssuers: as.Config.TrustedIssuers,
-				RequiredScope:  as.Config.RequiredScope,
-			},
-		})
+		}
+		if as.Config != nil {
+			strategie.Config.JwksUrls = as.Config.JwksUrls
+			strategie.Config.TrustedIssuers = as.Config.TrustedIssuers
+			strategie.Config.RequiredScope = as.Config.RequiredScope
+		}
+		out = append(out, strategie)
 	}
 
 	return out
