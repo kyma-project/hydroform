@@ -28,9 +28,11 @@ func TestRetry(t *testing.T) {
 	})
 
 	t.Run("should retry on error", func(t *testing.T) {
-		// when
+		// given
 		count := 0
 		maxAttempts := 2
+
+		// when
 		obj, err := withRetry(maxAttempts, 0, func() (interface{}, error) {
 			count++
 			return nil, fmt.Errorf("error")
@@ -44,9 +46,11 @@ func TestRetry(t *testing.T) {
 	})
 
 	t.Run("should skip retry on unrecoverable error", func(t *testing.T) {
-		// when
+		// given
 		count := 0
 		maxAttempts := 2
+		
+		// when
 		obj, err := withRetry(maxAttempts, 0, func() (interface{}, error) {
 			count++
 			return nil, fmt.Errorf("error")
