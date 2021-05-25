@@ -2,10 +2,10 @@ package util
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRetry(t *testing.T) {
@@ -19,7 +19,7 @@ func TestRetry(t *testing.T) {
 		obj, err := withRetry(maxAttempts, 0, func() (interface{}, error) {
 			count++
 			return nil, nil
-		}, func (error) bool {return false})
+		}, func(error) bool { return false })
 
 		// then
 		require.NoError(t, err)
@@ -36,7 +36,7 @@ func TestRetry(t *testing.T) {
 		obj, err := withRetry(maxAttempts, 0, func() (interface{}, error) {
 			count++
 			return nil, fmt.Errorf("error")
-		}, func (error) bool {return true})
+		}, func(error) bool { return true })
 
 		// then
 		require.Error(t, err)
@@ -49,12 +49,12 @@ func TestRetry(t *testing.T) {
 		// given
 		count := 0
 		maxAttempts := 2
-		
+
 		// when
 		obj, err := withRetry(maxAttempts, 0, func() (interface{}, error) {
 			count++
 			return nil, fmt.Errorf("error")
-		}, func (error) bool {return false})
+		}, func(error) bool { return false })
 
 		// then
 		require.Error(t, err)
@@ -72,7 +72,7 @@ func TestRetry(t *testing.T) {
 		// when
 		_, err := withRetry(maxAttempts, sleep, func() (interface{}, error) {
 			return nil, nil
-		}, func (error) bool {return true})
+		}, func(error) bool { return true })
 
 		// then
 		require.False(t, time.Now().After(start.Add(sleep)))
@@ -80,10 +80,10 @@ func TestRetry(t *testing.T) {
 		// when
 		_, err = withRetry(maxAttempts, sleep, func() (interface{}, error) {
 			return nil, fmt.Errorf("")
-		}, func (error) bool {return true})
+		}, func(error) bool { return true })
 
 		// then
-		require.True(t, time.Now().After(start.Add(2 * sleep)))
+		require.True(t, time.Now().After(start.Add(2*sleep)))
 		require.Error(t, err)
 	})
 }

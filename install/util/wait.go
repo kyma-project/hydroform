@@ -24,4 +24,3 @@ func WaitFor(interval, timeout time.Duration, isReady func() (bool, error)) erro
 		}
 	}
 }
-
