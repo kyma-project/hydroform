@@ -249,69 +249,81 @@ func (c GenericClient) clientForResource(unstructuredObject *unstructured.Unstru
 func (c GenericClient) getPods(namespace, labelSelector string) (*corev1.PodList, error) {
 	retry, err := util.WithDefaultRetry(func() (interface{}, error) {
 		return c.coreClient.Pods(namespace).List(context.Background(), v1.ListOptions{LabelSelector: labelSelector})
-	})
+	}, shouldRetryGetOnError)
 	return retry.(*corev1.PodList), err
 }
 
 func (c GenericClient) getUnstructured(client dynamic.ResourceInterface, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	created, err := util.WithDefaultRetry(func() (interface{}, error) {
 		return client.Get(context.Background(), obj.GetName(), v1.GetOptions{})
-	})
+	}, shouldRetryGetOnError)
 	return created.(*unstructured.Unstructured), err
 }
 
 func (c GenericClient) getCm(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) (*corev1.ConfigMap, error) {
 	retry, err := util.WithDefaultRetry(func() (interface{}, error) {
 		return client.Get(context.Background(), cm.Name, v1.GetOptions{})
-	})
+	}, shouldRetryGetOnError)
 	return retry.(*corev1.ConfigMap), err
 }
 
 func (c GenericClient) getSec(client corev1Client.SecretInterface, sec *corev1.Secret) (*corev1.Secret, error) {
 	retry, err := util.WithDefaultRetry(func() (interface{}, error) {
 		return client.Get(context.Background(), sec.Name, v1.GetOptions{})
-	})
+	}, shouldRetryGetOnError)
 	return retry.(*corev1.Secret), err
 }
 
 func (c GenericClient) createCm(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) error {
 	_, err := util.WithDefaultRetry(func() (interface{}, error) {
 		return client.Create(context.Background(), cm, v1.CreateOptions{})
-	})
+	}, shouldRetryCreateOnError)
 	return err
 }
 
 func (c GenericClient) createSec(client corev1Client.SecretInterface, sec *corev1.Secret) error {
 	_, err := util.WithDefaultRetry(func() (interface{}, error) {
 		return client.Create(context.Background(), sec, v1.CreateOptions{})
-	})
+	}, shouldRetryCreateOnError)
 	return err
 }
 
 func (c GenericClient) createUnstructured(client dynamic.ResourceInterface, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	created, err := util.WithDefaultRetry(func() (interface{}, error) {
 		return client.Create(context.Background(), obj, v1.CreateOptions{})
-	})
+	}, shouldRetryCreateOnError)
 	return created.(*unstructured.Unstructured), err
 }
 
 func (c GenericClient) updateUnstructured(client dynamic.ResourceInterface, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	created, err := util.WithDefaultRetry(func() (interface{}, error) {
 		return client.Update(context.Background(), obj, v1.UpdateOptions{})
-	})
+	}, shouldRetryUpdateOnError)
 	return created.(*unstructured.Unstructured), err
 }
 
 func (c GenericClient) updateCm(client corev1Client.ConfigMapInterface, cm *corev1.ConfigMap) error {
 	_, err := util.WithDefaultRetry(func() (interface{}, error) {
 		return client.Update(context.Background(), cm, v1.UpdateOptions{})
-	})
+	}, shouldRetryUpdateOnError)
 	return err
 }
 
 func (c GenericClient) updateSec(client corev1Client.SecretInterface, sec *corev1.Secret) error {
 	_, err := util.WithDefaultRetry(func() (interface{}, error) {
 		return client.Update(context.Background(), sec, v1.UpdateOptions{})
-	})
+	}, shouldRetryUpdateOnError)
 	return err
+}
+
+func shouldRetryGetOnError(err error) bool {
+	return !k8serrors.IsNotFound(err)
+}
+
+func shouldRetryUpdateOnError(err error) bool {
+	return !k8serrors.IsNotFound(err)
+}
+
+func shouldRetryCreateOnError(err error) bool {
+	return !k8serrors.IsAlreadyExists(err)
 }
