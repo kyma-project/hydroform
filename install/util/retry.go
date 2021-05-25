@@ -8,17 +8,17 @@ const (
 )
 
 type operationFunc func() (interface{}, error)
-type isRecoverableFunc func (error) bool
+type isRecoverableFunc func(error) bool
 
-func WithDefaultRetry(invocation operationFunc, isRecoverable isRecoverableFunc) (interface{}, error) {
-	return withRetry(defaultMaxAttempts, defaultDelay, invocation, isRecoverable)
+func WithDefaultRetry(operation operationFunc, isRecoverable isRecoverableFunc) (interface{}, error) {
+	return withRetry(defaultMaxAttempts, defaultDelay, operation, isRecoverable)
 }
 
 func withRetry(maxAttempts int, delay time.Duration, operation operationFunc, isRecoverable isRecoverableFunc) (interface{}, error) {
 	var err error
 	var obj interface{}
 
-	for i := 0 ; i < maxAttempts; i++ {
+	for i := 0; i < maxAttempts; i++ {
 		obj, err = operation()
 
 		if err == nil || !isRecoverable(err) {
@@ -30,4 +30,3 @@ func withRetry(maxAttempts int, delay time.Duration, operation operationFunc, is
 
 	return obj, err
 }
-
