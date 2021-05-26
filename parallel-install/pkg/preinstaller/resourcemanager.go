@@ -65,7 +65,7 @@ func NewDefaultResourceManager(kubeconfigSource config.KubeconfigSource, log log
 func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructured, gvk schema.GroupVersionKind, opts metav1.CreateOptions) error {
 	var err error
 	err = retry.Do(func() error {
-		if _, err = c.createResource(resource, retrieveGvrFrom(gvk), opts); err != nil {
+		if _, err = c.dynamicClient.Resource(retrieveGvrFrom(gvk)).Create(context.TODO(), resource, opts); err != nil {
 			c.log.Errorf("Error occurred during resource create: %s", err.Error())
 			return err
 		}
@@ -82,7 +82,7 @@ func (c *DefaultResourceManager) CreateResource(resource *unstructured.Unstructu
 
 func (c *DefaultResourceManager) GetResource(resourceName string, gvk schema.GroupVersionKind, opts metav1.GetOptions) (obj *unstructured.Unstructured, err error) {
 	err = retry.Do(func() error {
-		obj, err = c.getResource(resourceName, retrieveGvrFrom(gvk), opts)
+		obj, err = c.dynamicClient.Resource(retrieveGvrFrom(gvk)).Get(context.TODO(), resourceName, opts)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				c.log.Infof("Resource %s was not found.", resourceName)
@@ -107,13 +107,13 @@ func (c *DefaultResourceManager) UpdateResource(resource *unstructured.Unstructu
 	gvr := retrieveGvrFrom(gvk)
 
 	err = retry.Do(func() error {
-		latestResource, err := c.getResource(resource.GetName(), gvr, metav1.GetOptions{})
+		latestResource, err := c.dynamicClient.Resource(gvr).Get(context.TODO(), resource.GetName(), metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
 
 		resource.SetResourceVersion(latestResource.GetResourceVersion())
-		obj, err = c.updateResource(resource, gvr, opts)
+		obj, err = c.dynamicClient.Resource(gvr).Update(context.TODO(), resource, opts)
 		if err != nil {
 			c.log.Errorf("Error occurred during resource update: %s", err.Error())
 			return err
@@ -132,7 +132,7 @@ func (c *DefaultResourceManager) UpdateResource(resource *unstructured.Unstructu
 func (c *DefaultResourceManager) DeleteCollectionOfResources(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var err error
 	err = retry.Do(func() error {
-		if err = c.deleteCollectionOfResources(retrieveGvrFrom(gvk), opts, listOpts); err != nil {
+		if err = c.dynamicClient.Resource(retrieveGvrFrom(gvk)).DeleteCollection(context.TODO(), opts, listOpts); err != nil {
 			c.log.Errorf("Error occurred during resources delete: %s", err.Error())
 			return err
 		}
@@ -145,22 +145,6 @@ func (c *DefaultResourceManager) DeleteCollectionOfResources(gvk schema.GroupVer
 	}
 
 	return nil
-}
-
-func (c *DefaultResourceManager) getResource(resourceName string, gvr schema.GroupVersionResource, opts metav1.GetOptions) (*unstructured.Unstructured, error) {
-	return c.dynamicClient.Resource(gvr).Get(context.TODO(), resourceName, opts)
-}
-
-func (c *DefaultResourceManager) createResource(resource *unstructured.Unstructured, gvr schema.GroupVersionResource, opts metav1.CreateOptions) (*unstructured.Unstructured, error) {
-	return c.dynamicClient.Resource(gvr).Create(context.TODO(), resource, opts)
-}
-
-func (c *DefaultResourceManager) updateResource(resource *unstructured.Unstructured, gvr schema.GroupVersionResource, opts metav1.UpdateOptions) (*unstructured.Unstructured, error) {
-	return c.dynamicClient.Resource(gvr).Update(context.TODO(), resource, opts)
-}
-
-func (c *DefaultResourceManager) deleteCollectionOfResources(gvr schema.GroupVersionResource, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	return c.dynamicClient.Resource(gvr).DeleteCollection(context.TODO(), opts, listOpts)
 }
 
 func retrieveGvrFrom(gvk schema.GroupVersionKind) schema.GroupVersionResource {
