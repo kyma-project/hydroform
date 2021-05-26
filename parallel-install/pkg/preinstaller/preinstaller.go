@@ -19,6 +19,9 @@
 // Installing CRDs resources requires a folder named `crds`.
 // Installing Namespace resources requires a folder named `namespaces`.
 // For now only these two resources types are supported.
+// CRDS are labeled with: LABEL_KEY_ORIGIN=LABEL_VALUE_KYMA, which come from constants,
+// in order to distinguish them among other resources not managed by Kyma.
+// As a result, on basis of the label they are marked for deletion during Kyma uninstallation.
 
 package preinstaller
 
@@ -37,8 +40,9 @@ import (
 // Config defines configuration values for the PreInstaller.
 type Config struct {
 	InstallationResourcePath string                  //Path to the installation resources.
-	Log                      logger.Interface        //Logger to be used
-	KubeconfigSource         config.KubeconfigSource //KubeconfigSource to be used
+	Log                      logger.Interface        //Logger to be used.
+	KubeconfigSource         config.KubeconfigSource //KubeconfigSource to be used.
+	RetryOptions             []retry.Option          //RetryOptions for networking operations.
 }
 
 // PreInstaller prepares k8s cluster for Kyma installation.
@@ -47,7 +51,6 @@ type PreInstaller struct {
 	parser        ResourceParser
 	cfg           Config
 	dynamicClient dynamic.Interface
-	retryOptions  []retry.Option
 }
 
 // File consists of a path to the file that was a part of PreInstaller installation
@@ -81,7 +84,7 @@ type resourceInfoResult struct {
 }
 
 // NewPreInstaller creates a new instance of PreInstaller.
-func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, retryOptions []retry.Option) (*PreInstaller, error) {
+func NewPreInstaller(cfg Config) (*PreInstaller, error) {
 	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
 	if err != nil {
 		return nil, err
@@ -92,12 +95,19 @@ func NewPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config,
 		return nil, err
 	}
 
+	manager, err := NewDefaultResourceManager(cfg.KubeconfigSource, cfg.Log, cfg.RetryOptions)
+	if err != nil {
+		cfg.Log.Fatalf("Failed to create Kyma default resource manager: %v", err)
+	}
+
+	applier := NewGenericResourceApplier(cfg.Log, manager)
+	parser := &GenericResourceParser{}
+
 	return &PreInstaller{
 		applier:       applier,
 		parser:        parser,
 		cfg:           cfg,
 		dynamicClient: dynamicClient,
-		retryOptions:  retryOptions,
 	}, nil
 }
 
@@ -108,7 +118,7 @@ func (i *PreInstaller) InstallCRDs() (Output, error) {
 		resourceType:             "CustomResourceDefinition",
 		dirSuffix:                "crds",
 		installationResourcePath: i.cfg.InstallationResourcePath,
-		label:                    "kyma-crd",
+		label:                    config.LABEL_KEY_ORIGIN,
 	}
 
 	i.cfg.Log.Info("Kyma CRDs installation")
@@ -127,7 +137,7 @@ func (i *PreInstaller) CreateNamespaces() (Output, error) {
 		resourceType:             "Namespace",
 		dirSuffix:                "namespaces",
 		installationResourcePath: i.cfg.InstallationResourcePath,
-		label:                    "kyma-ns",
+		label:                    "",
 	}
 
 	i.cfg.Log.Info("Kyma Namespaces creation")
@@ -214,7 +224,7 @@ func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err erro
 			continue
 		}
 
-		addLabel(parsedResource, resource.label, "true")
+		addLabel(parsedResource, resource.label, config.LABEL_VALUE_KYMA)
 
 		i.cfg.Log.Infof("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component)
 		err = i.applier.Apply(parsedResource)

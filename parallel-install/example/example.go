@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 	"os"
 	"strings"
 	"time"
@@ -11,9 +13,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 )
 
 var log *logger.Logger
@@ -92,16 +92,10 @@ func main() {
 		InstallationResourcePath: installationCfg.InstallationResourcePath,
 		Log:                      installationCfg.Log,
 		KubeconfigSource:         installationCfg.KubeconfigSource,
+		RetryOptions:             commonRetryOpts,
 	}
 
-	resourceParser := &preinstaller.GenericResourceParser{}
-	resourceManager, err := preinstaller.NewDefaultResourceManager(installationCfg.KubeconfigSource, preInstallerCfg.Log, commonRetryOpts)
-	if err != nil {
-		log.Fatalf("Failed to create Kyma default resource manager: %v", err)
-	}
-
-	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, resourceManager)
-	preInstaller, err := preinstaller.NewPreInstaller(resourceApplier, resourceParser, preInstallerCfg, commonRetryOpts)
+	preInstaller, err := preinstaller.NewPreInstaller(preInstallerCfg)
 	if err != nil {
 		log.Fatalf("Failed to create Kyma pre-installer: %v", err)
 	}
@@ -150,6 +144,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}
+
 	log.Info("Kyma uninstalled!")
 }
 

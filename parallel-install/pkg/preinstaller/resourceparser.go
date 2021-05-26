@@ -17,7 +17,7 @@ import (
 
 // ResourceParser parses a resource from a given input.
 type ResourceParser interface {
-	// ParseUnstructuredResourceFrom given path and return it.
+	// ParseFile from a given path and return it.
 	ParseFile(path string) (*unstructured.Unstructured, error)
 }
 
