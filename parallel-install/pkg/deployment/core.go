@@ -201,11 +201,6 @@ func registerOverridesInterceptors(ob *OverridesBuilder, kubeClient kubernetes.I
 	//hide certificate data
 	ob.AddInterceptor([]string{"global.domainName", "global.ingress.domainName"}, NewDomainNameOverrideInterceptor(kubeClient, log))
 	ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient))
-	// make sure we don't install legacy CRDs
-	ob.AddInterceptor([]string{"global.installCRDs"}, NewInstallLegacyCRDsInterceptor())
-
-	// make sure we don't install kcproxy for kiali and tracing
-	ob.AddInterceptor([]string{"tracing.kcproxy.enabled", "kiali.kcproxy.enabled"}, NewDisableKCProxyInterceptor())
 
 	// make sure k3d clusters use k3d container registry
 	ob.AddInterceptor([]string{"serverless.dockerRegistry.internalServerAddress", "serverless.dockerRegistry.serverAddress", "serverless.dockerRegistry.registryAddress"}, NewRegistryInterceptor(kubeClient))
