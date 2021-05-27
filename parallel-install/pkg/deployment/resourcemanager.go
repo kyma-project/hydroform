@@ -1,4 +1,4 @@
-package preinstaller
+package deployment
 
 import (
 	"context"

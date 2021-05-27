@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 	"os"
 	"strings"
 	"time"
@@ -85,29 +84,6 @@ func main() {
 		retry.Delay(time.Duration(installationCfg.BackoffInitialIntervalSeconds) * time.Second),
 		retry.Attempts(uint(installationCfg.BackoffMaxElapsedTimeSeconds / installationCfg.BackoffInitialIntervalSeconds)),
 		retry.DelayType(retry.FixedDelay),
-	}
-
-	//Prepare cluster before Kyma installation
-	preInstallerCfg := preinstaller.Config{
-		InstallationResourcePath: installationCfg.InstallationResourcePath,
-		Log:                      installationCfg.Log,
-		KubeconfigSource:         installationCfg.KubeconfigSource,
-		RetryOptions:             commonRetryOpts,
-	}
-
-	preInstaller, err := preinstaller.NewPreInstaller(preInstallerCfg)
-	if err != nil {
-		log.Fatalf("Failed to create Kyma pre-installer: %v", err)
-	}
-
-	result, err := preInstaller.InstallCRDs()
-	if err != nil || len(result.NotInstalled) > 0 {
-		log.Fatalf("Failed to install CRDs: %s", err)
-	}
-
-	result, err = preInstaller.CreateNamespaces()
-	if err != nil || len(result.NotInstalled) > 0 {
-		log.Fatalf("Failed to create namespaces: %s", err)
 	}
 
 	//Deploy Kyma

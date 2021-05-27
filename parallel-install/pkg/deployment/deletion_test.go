@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -546,7 +545,7 @@ func TestDeployment_DeleteNamespaces(t *testing.T) {
 }
 
 // Pass optionally an receiver-channel to get progress updates
-func newDeletion(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, manager preinstaller.ResourceManager, retryOptions []retry.Option) *Deletion {
+func newDeletion(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, manager ResourceManager, retryOptions []retry.Option) *Deletion {
 	compList, err := config.NewComponentList("../test/data/componentlist.yaml")
 	assert.NoError(t, err)
 	cfg := &config.Config{
@@ -578,9 +577,9 @@ func createThreeCrdsUsing(api, version, label, value, name1, name2, name3 string
 }
 
 func createThreeNamespacesUsing(label, value, name1, name2, name3 string) []unstructured.Unstructured {
-	ns1 := fixResourceWith(name1, label, value)
-	ns2 := fixResourceWith(name2, label, value)
-	ns3 := fixResourceWith(name3, label, value)
+	ns1 := fixResourceWithGiven(name1, label, value)
+	ns2 := fixResourceWithGiven(name2, label, value)
+	ns3 := fixResourceWithGiven(name3, label, value)
 	return []unstructured.Unstructured{*ns1, *ns2, *ns3}
 }
 
@@ -750,7 +749,7 @@ func fixCrdResourceWith(name, api, version, label, value string) *unstructured.U
 	}
 }
 
-func fixResourceWith(name, label, value string) *unstructured.Unstructured {
+func fixResourceWithGiven(name, label, value string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "v1",

@@ -1,7 +1,8 @@
-package preinstaller
+package deployment
 
 import (
 	"fmt"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
 	"path"
 	"regexp"
 	"testing"
@@ -9,7 +10,6 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/test"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +24,7 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
 	resourceName := "name"
-	crdResource := fixCrdResourceWith(resourceName)
+	crdResource := fixCrdResourceWithGivenName(resourceName)
 
 	t.Run("should install CRDs", func(t *testing.T) {
 		// given
@@ -64,7 +64,7 @@ func TestPreInstaller_CreateNamespaces(t *testing.T) {
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
 	resourceName := "name"
-	namespaceResource := fixNamespaceResourceWith(resourceName)
+	namespaceResource := fixNamespaceResourceWithGivenName(resourceName)
 
 	t.Run("should create namespaces", func(t *testing.T) {
 		// given
@@ -103,8 +103,8 @@ func TestPreInstaller_install(t *testing.T) {
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
 	resourceName := "name"
-	crdResource := fixCrdResourceWith(resourceName)
-	namespaceResource := fixNamespaceResourceWith(resourceName)
+	crdResource := fixCrdResourceWithGivenName(resourceName)
+	namespaceResource := fixNamespaceResourceWithGivenName(resourceName)
 
 	t.Run("should install CRDs", func(t *testing.T) {
 		// given
@@ -462,7 +462,7 @@ func Test_addLabel(t *testing.T) {
 
 	t.Run("should add label when label is not empty and object had any label", func(t *testing.T) {
 		// given
-		obj := fixResourceWithLabel("label1")
+		obj := fixResourceWithGivenLabel("label1")
 		label := "label"
 		value := "value"
 
@@ -482,7 +482,7 @@ func Test_addLabel(t *testing.T) {
 
 	t.Run("should override label when label is not empty and object had given label", func(t *testing.T) {
 		// given
-		obj := fixResourceWithLabel("label")
+		obj := fixResourceWithGivenLabel("label")
 		label := "label"
 		value := "newValue"
 
@@ -534,7 +534,7 @@ func containsFileWithDetails(files []File, component string, path string) bool {
 	return false
 }
 
-func fixCrdResourceWith(name string) *unstructured.Unstructured {
+func fixCrdResourceWithGivenName(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "apiextensions.k8s.io/v1",
@@ -549,7 +549,7 @@ func fixCrdResourceWith(name string) *unstructured.Unstructured {
 	}
 }
 
-func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
+func fixNamespaceResourceWithGivenName(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "v1",
@@ -561,7 +561,7 @@ func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
 	}
 }
 
-func fixResourceWithLabel(label string) *unstructured.Unstructured {
+func fixResourceWithGivenLabel(label string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "v1",
@@ -575,8 +575,8 @@ func fixResourceWithLabel(label string) *unstructured.Unstructured {
 	}
 }
 
-func getPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface) *PreInstaller {
-	return &PreInstaller{
+func getPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface) *preInstaller {
+	return &preInstaller{
 		applier:       applier,
 		parser:        parser,
 		cfg:           cfg,

@@ -4,6 +4,7 @@ package deployment
 import (
 	"context"
 	"fmt"
+	"github.com/avast/retry-go"
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -44,6 +45,35 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func
 
 //StartKymaDeployment deploys Kyma to a cluster
 func (d *Deployment) StartKymaDeployment() error {
+	//Prepare cluster before Kyma installation
+	retryOpts := []retry.Option{
+		retry.Delay(time.Duration(d.cfg.BackoffInitialIntervalSeconds) * time.Second),
+		retry.Attempts(uint(d.cfg.BackoffMaxElapsedTimeSeconds / d.cfg.BackoffInitialIntervalSeconds)),
+		retry.DelayType(retry.FixedDelay),
+	}
+
+	preInstallerCfg := Config{
+		InstallationResourcePath: d.cfg.InstallationResourcePath,
+		Log:                      d.cfg.Log,
+		KubeconfigSource:         d.cfg.KubeconfigSource,
+		RetryOptions:             retryOpts,
+	}
+
+	preInstaller, err := NewPreInstaller(preInstallerCfg)
+	if err != nil {
+		d.cfg.Log.Fatalf("Failed to create Kyma pre-installer: %v", err)
+	}
+
+	result, err := preInstaller.InstallCRDs()
+	if err != nil || len(result.NotInstalled) > 0 {
+		d.cfg.Log.Fatalf("Failed to install CRDs: %s", err)
+	}
+
+	result, err = preInstaller.CreateNamespaces()
+	if err != nil || len(result.NotInstalled) > 0 {
+		d.cfg.Log.Fatalf("Failed to create namespaces: %s", err)
+	}
+
 	overridesProvider, prerequisitesEng, componentsEng, err := d.getConfig()
 	if err != nil {
 		return err

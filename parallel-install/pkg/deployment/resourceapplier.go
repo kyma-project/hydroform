@@ -1,4 +1,4 @@
-package preinstaller
+package deployment
 
 import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"

@@ -1,9 +1,9 @@
-package preinstaller
+package deployment
 
 import (
 	"fmt"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
