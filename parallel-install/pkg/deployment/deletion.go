@@ -4,7 +4,6 @@ package deployment
 import (
 	"context"
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"sync"
@@ -31,7 +30,7 @@ type Deletion struct {
 	mp              *helm.KymaMetadataProvider
 	scclient        *clientset.Clientset
 	dClient         dynamic.Interface
-	resourceManager preinstaller.ResourceManager
+	resourceManager ResourceManager
 	retryOptions    []retry.Option
 }
 
@@ -61,7 +60,7 @@ func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(P
 		return nil, err
 	}
 
-	resourceManager, err := preinstaller.NewDefaultResourceManager(cfg.KubeconfigSource, cfg.Log, retryOptions)
+	resourceManager, err := NewDefaultResourceManager(cfg.KubeconfigSource, cfg.Log, retryOptions)
 	if err != nil {
 		return nil, err
 	}

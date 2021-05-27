@@ -1,9 +1,9 @@
-package preinstaller
+package deployment
 
 import (
 	"fmt"
+	mocks2 "github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -18,7 +18,7 @@ func TestResourceApplier_Apply(t *testing.T) {
 	t.Run("should not apply resource", func(t *testing.T) {
 		t.Run("due to not existing resource", func(t *testing.T) {
 			// given
-			manager := &mocks.ResourceManager{}
+			manager := &mocks2.ResourceManager{}
 			applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
 
 			// when
@@ -35,7 +35,7 @@ func TestResourceApplier_Apply(t *testing.T) {
 		t.Run("due to get resource error", func(t *testing.T) {
 			// given
 			resource := fixResourceWith(resourceName)
-			manager := &mocks.ResourceManager{}
+			manager := &mocks2.ResourceManager{}
 			manager.On("GetResource", resourceName, fixResourceGvkSchema(), mock.AnythingOfType("GetOptions")).Return(nil, errors.New("Get resource error"))
 			applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
 
@@ -54,7 +54,7 @@ func TestResourceApplier_Apply(t *testing.T) {
 			// given
 			resource := fixResourceWith(resourceName)
 			resourceSchema := fixResourceGvkSchema()
-			manager := &mocks.ResourceManager{}
+			manager := &mocks2.ResourceManager{}
 			manager.On("GetResource", resourceName, resourceSchema, mock.AnythingOfType("GetOptions")).Return(resource, nil)
 			manager.On("UpdateResource", resource, resourceSchema, mock.AnythingOfType("UpdateOptions")).Return(nil, errors.New("Update resource error"))
 			applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
@@ -74,7 +74,7 @@ func TestResourceApplier_Apply(t *testing.T) {
 			// given
 			resource := fixResourceWith(resourceName)
 			resourceSchema := fixResourceGvkSchema()
-			manager := &mocks.ResourceManager{}
+			manager := &mocks2.ResourceManager{}
 			manager.On("GetResource", resourceName, resourceSchema, mock.AnythingOfType("GetOptions")).Return(nil, nil)
 			manager.On("CreateResource", resource, resourceSchema, mock.AnythingOfType("CreateOptions")).Return(errors.New("Create resource error"))
 			applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
@@ -95,7 +95,7 @@ func TestResourceApplier_Apply(t *testing.T) {
 		// given
 		resource := fixResourceWith(resourceName)
 		resourceSchema := fixResourceGvkSchema()
-		manager := &mocks.ResourceManager{}
+		manager := &mocks2.ResourceManager{}
 		manager.On("GetResource", resourceName, resourceSchema, mock.AnythingOfType("GetOptions")).Return(nil, nil)
 		manager.On("CreateResource", resource, resourceSchema, mock.AnythingOfType("CreateOptions")).Return(nil)
 		applier := NewGenericResourceApplier(logger.NewLogger(true), manager)
@@ -111,7 +111,7 @@ func TestResourceApplier_Apply(t *testing.T) {
 		// given
 		resource := fixResourceWith(resourceName)
 		resourceSchema := fixResourceGvkSchema()
-		manager := &mocks.ResourceManager{}
+		manager := &mocks2.ResourceManager{}
 		manager.On("GetResource", resourceName, resourceSchema, mock.AnythingOfType("GetOptions")).Return(resource, nil)
 		manager.On("UpdateResource", resource, resourceSchema, mock.AnythingOfType("UpdateOptions")).Return(resource, nil)
 		applier := NewGenericResourceApplier(logger.NewLogger(true), manager)

@@ -1,7 +1,8 @@
-package preinstaller
+package deployment
 
 import (
 	"fmt"
+	mocks2 "github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
 	"path"
 	"regexp"
 	"testing"
@@ -9,7 +10,6 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/test"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -24,12 +24,12 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
 	resourceName := "name"
-	crdResource := fixCrdResourceWith(resourceName)
+	crdResource := fixCrdResourceWithGivenName(resourceName)
 
 	t.Run("should install CRDs", func(t *testing.T) {
 		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
+		resourceParser := &mocks2.ResourceParser{}
+		resourceApplier := &mocks2.ResourceApplier{}
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		cfg.InstallationResourcePath = resourcePath
 		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
@@ -64,12 +64,12 @@ func TestPreInstaller_CreateNamespaces(t *testing.T) {
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
 	resourceName := "name"
-	namespaceResource := fixNamespaceResourceWith(resourceName)
+	namespaceResource := fixNamespaceResourceWithGivenName(resourceName)
 
 	t.Run("should create namespaces", func(t *testing.T) {
 		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
+		resourceParser := &mocks2.ResourceParser{}
+		resourceApplier := &mocks2.ResourceApplier{}
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		cfg.InstallationResourcePath = resourcePath
 		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
@@ -103,13 +103,13 @@ func TestPreInstaller_install(t *testing.T) {
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
 	resourceName := "name"
-	crdResource := fixCrdResourceWith(resourceName)
-	namespaceResource := fixNamespaceResourceWith(resourceName)
+	crdResource := fixCrdResourceWithGivenName(resourceName)
+	namespaceResource := fixNamespaceResourceWithGivenName(resourceName)
 
 	t.Run("should install CRDs", func(t *testing.T) {
 		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
+		resourceParser := &mocks2.ResourceParser{}
+		resourceApplier := &mocks2.ResourceApplier{}
 		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
@@ -143,8 +143,8 @@ func TestPreInstaller_install(t *testing.T) {
 
 	t.Run("should not install CRDs due to incorrect input resource type", func(t *testing.T) {
 		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
+		resourceParser := &mocks2.ResourceParser{}
+		resourceApplier := &mocks2.ResourceApplier{}
 		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
@@ -178,8 +178,8 @@ func TestPreInstaller_install(t *testing.T) {
 
 	t.Run("should create namespaces", func(t *testing.T) {
 		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
+		resourceParser := &mocks2.ResourceParser{}
+		resourceApplier := &mocks2.ResourceApplier{}
 		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
@@ -213,8 +213,8 @@ func TestPreInstaller_install(t *testing.T) {
 
 	t.Run("should not create namespaces due to incorrect input resource type", func(t *testing.T) {
 		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
+		resourceParser := &mocks2.ResourceParser{}
+		resourceApplier := &mocks2.ResourceApplier{}
 		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
@@ -248,8 +248,8 @@ func TestPreInstaller_install(t *testing.T) {
 
 	t.Run("should partially install resources due to incorrect resource format and resource type different than input info", func(t *testing.T) {
 		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
+		resourceParser := &mocks2.ResourceParser{}
+		resourceApplier := &mocks2.ResourceApplier{}
 		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/partiallycorrect")
@@ -301,8 +301,8 @@ func TestPreInstaller_install(t *testing.T) {
 	t.Run("should fail to install resources", func(t *testing.T) {
 		t.Run("due to error about not existing installation resources path", func(t *testing.T) {
 			// given
-			resourceParser := &mocks.ResourceParser{}
-			resourceApplier := &mocks.ResourceApplier{}
+			resourceParser := &mocks2.ResourceParser{}
+			resourceApplier := &mocks2.ResourceApplier{}
 			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
@@ -333,8 +333,8 @@ func TestPreInstaller_install(t *testing.T) {
 
 		t.Run("due to no components detected in installation resources path", func(t *testing.T) {
 			// given
-			resourceParser := &mocks.ResourceParser{}
-			resourceApplier := &mocks.ResourceApplier{}
+			resourceParser := &mocks2.ResourceParser{}
+			resourceApplier := &mocks2.ResourceApplier{}
 			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/nocomponents")
 
@@ -355,8 +355,8 @@ func TestPreInstaller_install(t *testing.T) {
 
 		t.Run("due to parser error", func(t *testing.T) {
 			// given
-			resourceParser := &mocks.ResourceParser{}
-			resourceApplier := &mocks.ResourceApplier{}
+			resourceParser := &mocks2.ResourceParser{}
+			resourceApplier := &mocks2.ResourceApplier{}
 			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
@@ -388,8 +388,8 @@ func TestPreInstaller_install(t *testing.T) {
 
 		t.Run("due to applier error", func(t *testing.T) {
 			// given
-			resourceParser := &mocks.ResourceParser{}
-			resourceApplier := &mocks.ResourceApplier{}
+			resourceParser := &mocks2.ResourceParser{}
+			resourceApplier := &mocks2.ResourceApplier{}
 			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
@@ -462,7 +462,7 @@ func Test_addLabel(t *testing.T) {
 
 	t.Run("should add label when label is not empty and object had any label", func(t *testing.T) {
 		// given
-		obj := fixResourceWithLabel("label1")
+		obj := fixResourceWithGivenLabel("label1")
 		label := "label"
 		value := "value"
 
@@ -482,7 +482,7 @@ func Test_addLabel(t *testing.T) {
 
 	t.Run("should override label when label is not empty and object had given label", func(t *testing.T) {
 		// given
-		obj := fixResourceWithLabel("label")
+		obj := fixResourceWithGivenLabel("label")
 		label := "label"
 		value := "newValue"
 
@@ -534,7 +534,7 @@ func containsFileWithDetails(files []File, component string, path string) bool {
 	return false
 }
 
-func fixCrdResourceWith(name string) *unstructured.Unstructured {
+func fixCrdResourceWithGivenName(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "apiextensions.k8s.io/v1",
@@ -549,7 +549,7 @@ func fixCrdResourceWith(name string) *unstructured.Unstructured {
 	}
 }
 
-func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
+func fixNamespaceResourceWithGivenName(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "v1",
@@ -561,7 +561,7 @@ func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
 	}
 }
 
-func fixResourceWithLabel(label string) *unstructured.Unstructured {
+func fixResourceWithGivenLabel(label string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "v1",
@@ -575,8 +575,8 @@ func fixResourceWithLabel(label string) *unstructured.Unstructured {
 	}
 }
 
-func getPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface) *PreInstaller {
-	return &PreInstaller{
+func getPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface) *preInstaller {
+	return &preInstaller{
 		applier:       applier,
 		parser:        parser,
 		cfg:           cfg,

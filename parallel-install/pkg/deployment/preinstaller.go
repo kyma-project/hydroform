@@ -23,7 +23,7 @@
 // in order to distinguish them among other resources not managed by Kyma.
 // As a result, on basis of the label they are marked for deletion during Kyma uninstallation.
 
-package preinstaller
+package deployment
 
 import (
 	"fmt"
@@ -37,7 +37,7 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-// Config defines configuration values for the PreInstaller.
+// Config defines configuration values for the preInstaller.
 type Config struct {
 	InstallationResourcePath string                  //Path to the installation resources.
 	Log                      logger.Interface        //Logger to be used.
@@ -45,26 +45,26 @@ type Config struct {
 	RetryOptions             []retry.Option          //RetryOptions for networking operations.
 }
 
-// PreInstaller prepares k8s cluster for Kyma installation.
-type PreInstaller struct {
+// preInstaller prepares k8s cluster for Kyma installation.
+type preInstaller struct {
 	applier       ResourceApplier
 	parser        ResourceParser
 	cfg           Config
 	dynamicClient dynamic.Interface
 }
 
-// File consists of a path to the file that was a part of PreInstaller installation
+// File consists of a path to the file that was a part of preInstaller installation
 // and a component fileName that it belongs to.
 type File struct {
 	component string
 	path      string
 }
 
-// Output contains lists of Installed and not Installed files during PreInstaller installation.
+// Output contains lists of Installed and not Installed files during preInstaller installation.
 type Output struct {
-	// Installed files during PreInstaller installation.
+	// Installed files during preInstaller installation.
 	Installed []File
-	// NotInstalled files during PreInstaller installation.
+	// NotInstalled files during preInstaller installation.
 	NotInstalled []File
 }
 
@@ -83,8 +83,8 @@ type resourceInfoResult struct {
 	label        string
 }
 
-// NewPreInstaller creates a new instance of PreInstaller.
-func NewPreInstaller(cfg Config) (*PreInstaller, error) {
+// NewPreInstaller creates a new instance of preInstaller.
+func NewPreInstaller(cfg Config) (*preInstaller, error) {
 	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func NewPreInstaller(cfg Config) (*PreInstaller, error) {
 	applier := NewGenericResourceApplier(cfg.Log, manager)
 	parser := &GenericResourceParser{}
 
-	return &PreInstaller{
+	return &preInstaller{
 		applier:       applier,
 		parser:        parser,
 		cfg:           cfg,
@@ -113,7 +113,7 @@ func NewPreInstaller(cfg Config) (*PreInstaller, error) {
 
 // InstallCRDs on a k8s cluster.
 // Returns Output containing results of installation.
-func (i *PreInstaller) InstallCRDs() (Output, error) {
+func (i *preInstaller) InstallCRDs() (Output, error) {
 	input := resourceInfoInput{
 		resourceType:             "CustomResourceDefinition",
 		dirSuffix:                "crds",
@@ -132,7 +132,7 @@ func (i *PreInstaller) InstallCRDs() (Output, error) {
 
 // CreateNamespaces in a k8s cluster.
 // Returns Output containing results of installation.
-func (i *PreInstaller) CreateNamespaces() (Output, error) {
+func (i *preInstaller) CreateNamespaces() (Output, error) {
 	input := resourceInfoInput{
 		resourceType:             "Namespace",
 		dirSuffix:                "namespaces",
@@ -149,7 +149,7 @@ func (i *PreInstaller) CreateNamespaces() (Output, error) {
 	return output, nil
 }
 
-func (i *PreInstaller) install(input resourceInfoInput) (o Output, err error) {
+func (i *preInstaller) install(input resourceInfoInput) (o Output, err error) {
 	resources, err := i.findResourcesIn(input)
 	if err != nil {
 		return Output{}, err
@@ -158,7 +158,7 @@ func (i *PreInstaller) install(input resourceInfoInput) (o Output, err error) {
 	return i.apply(resources)
 }
 
-func (i *PreInstaller) findResourcesIn(input resourceInfoInput) (results []resourceInfoResult, err error) {
+func (i *preInstaller) findResourcesIn(input resourceInfoInput) (results []resourceInfoResult, err error) {
 	installationResourcePath := input.installationResourcePath
 	path := fmt.Sprintf("%s/%s", installationResourcePath, input.dirSuffix)
 	rawComponentsDir, err := ioutil.ReadDir(path)
@@ -204,7 +204,7 @@ func (i *PreInstaller) findResourcesIn(input resourceInfoInput) (results []resou
 	return results, nil
 }
 
-func (i *PreInstaller) apply(resources []resourceInfoResult) (o Output, err error) {
+func (i *preInstaller) apply(resources []resourceInfoResult) (o Output, err error) {
 	for _, resource := range resources {
 		file := File{
 			component: resource.component,
