@@ -185,7 +185,7 @@ InstallLoop:
 			return err
 		}
 	}
-
+	// Only will be executed if Kyma deploy was successfull
 	if phase == InstallComponents {
 		jobmanager.ExecutePost("global")
 	}
