@@ -135,7 +135,7 @@ func TestSuccessScenario(t *testing.T) {
 
 	componentsProvider := &mockComponentsProvider{t, helmClient}
 
-	componentsToBeProcessed := componentsProvider.GetComponents()
+	componentsToBeProcessed := componentsProvider.GetComponents(false)
 
 	engineCfg := Config{
 		WorkersCount: defualtWorkersCount,
@@ -174,7 +174,7 @@ func TestErrorScenario(t *testing.T) {
 
 	componentsProvider := &mockComponentsProvider{t, helmClient}
 
-	componentsToBeProcessed := componentsProvider.GetComponents()
+	componentsToBeProcessed := componentsProvider.GetComponents(false)
 
 	engineCfg := Config{
 		WorkersCount: defualtWorkersCount,
@@ -286,7 +286,7 @@ type mockComponentsProvider struct {
 	hc helm.ClientInterface
 }
 
-func (p *mockComponentsProvider) GetComponents() []components.KymaComponent {
+func (p *mockComponentsProvider) GetComponents(reversed bool) []components.KymaComponent {
 	var comps []components.KymaComponent
 	for _, name := range testComponentsNames {
 		component := components.KymaComponent{

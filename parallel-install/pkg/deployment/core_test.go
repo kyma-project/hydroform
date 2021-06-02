@@ -34,7 +34,7 @@ type mockProvider struct {
 	hc *mockHelmClient
 }
 
-func (p *mockProvider) GetComponents() []components.KymaComponent {
+func (p *mockProvider) GetComponents(reversed bool) []components.KymaComponent {
 	return []components.KymaComponent{
 		{
 			Name:            "test1",
