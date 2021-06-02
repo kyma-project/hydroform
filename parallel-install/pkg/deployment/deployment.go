@@ -4,8 +4,10 @@ package deployment
 import (
 	"context"
 	"fmt"
-	"github.com/avast/retry-go"
 	"time"
+
+	"github.com/avast/retry-go"
+	"github.com/pkg/errors"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -150,6 +152,13 @@ InstallLoop:
 				i.processUpdateComponent(phase, cmp)
 				//Received a status update
 				if cmp.Status == components.StatusError {
+					// prerequisites fail fast
+					if phase == InstallPreRequisites {
+						err := errors.Wrapf(cmp.Error, "Error deploying prerequisite: %s", cmp.Name)
+						i.processUpdate(phase, ProcessExecutionFailure, err)
+						i.logStatuses(statusMap)
+						return err
+					}
 					errCount++
 				}
 				statusMap[cmp.Name] = cmp.Status
