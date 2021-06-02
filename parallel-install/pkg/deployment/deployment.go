@@ -4,12 +4,14 @@ package deployment
 import (
 	"context"
 	"fmt"
-	"github.com/avast/retry-go"
 	"time"
+
+	"github.com/avast/retry-go"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/jobmanager"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"k8s.io/client-go/kubernetes"
@@ -134,6 +136,9 @@ func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.Ca
 	statusMap := map[string]string{}
 	errCount := 0
 
+	if phase == InstallPreRequisites {
+		jobmanager.ExecutePre("global")
+	}
 	statusChan, err := eng.Deploy(ctx)
 	if err != nil {
 		return fmt.Errorf("Kyma deployment failed. Error: %v", err)
@@ -180,6 +185,11 @@ InstallLoop:
 			return err
 		}
 	}
+
+	if phase == InstallComponents {
+		jobmanager.ExecutePost("global")
+	}
+
 	i.processUpdate(phase, ProcessFinished, nil)
 	return nil
 }
