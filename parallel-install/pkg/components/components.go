@@ -11,7 +11,8 @@ import (
 
 //Provider is an entity that produces a list of components for Kyma installation or uninstallation.
 type Provider interface {
-	GetComponents() []KymaComponent
+	// GetComponents returns the component list in the provider either in natural or reverded order
+	GetComponents(reversed bool) []KymaComponent
 }
 
 //ComponentsProvider implements the Provider interface.
@@ -48,7 +49,7 @@ func NewComponentsProvider(overridesProvider overrides.Provider, cfg *config.Con
 }
 
 //Implements Provider.GetComponents.
-func (p *ComponentsProvider) GetComponents() []KymaComponent {
+func (p *ComponentsProvider) GetComponents(reversed bool) []KymaComponent {
 	helmClient := helm.NewClient(p.helmConfig)
 
 	var components []KymaComponent
@@ -62,7 +63,12 @@ func (p *ComponentsProvider) GetComponents() []KymaComponent {
 			HelmClient:      helmClient,
 			Log:             p.log,
 		}
-		components = append(components, cmp)
+		if reversed {
+			// prepend component to reverse the list
+			components = append([]KymaComponent{cmp}, components...)
+		} else {
+			components = append(components, cmp)
+		}
 	}
 
 	return components
