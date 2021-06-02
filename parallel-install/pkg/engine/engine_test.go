@@ -286,7 +286,7 @@ type mockComponentsProvider struct {
 	hc helm.ClientInterface
 }
 
-func (p *mockComponentsProvider) GetComponents(reverdes bool) []components.KymaComponent {
+func (p *mockComponentsProvider) GetComponents(reversed bool) []components.KymaComponent {
 	var comps []components.KymaComponent
 	for _, name := range testComponentsNames {
 		component := components.KymaComponent{
