@@ -11,7 +11,7 @@ import (
 
 //Provider is an entity that produces a list of components for Kyma installation or uninstallation.
 type Provider interface {
-	// GetComponents returns the component list in the provider either in natural or reverded order
+	// GetComponents returns the component list in the provider either in natural or reversed order
 	GetComponents(reversed bool) []KymaComponent
 }
 
