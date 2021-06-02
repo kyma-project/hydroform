@@ -156,6 +156,7 @@ InstallLoop:
 					if phase == InstallPreRequisites {
 						err := errors.Wrapf(cmp.Error, "Error deploying prerequisite: %s", cmp.Name)
 						i.processUpdate(phase, ProcessExecutionFailure, err)
+						i.logStatuses(statusMap)
 						return err
 					}
 					errCount++
