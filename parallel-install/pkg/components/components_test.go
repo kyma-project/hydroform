@@ -56,6 +56,12 @@ func Test_GetComponents(t *testing.T) {
 	cmpMetadataTpl := helm.NewKymaComponentMetadataTemplate("version", "profile").ForComponents()
 	provider := NewComponentsProvider(overridesProvider, instCfg, instCfg.ComponentList.Components, cmpMetadataTpl)
 
-	res := provider.GetComponents()
+	res := provider.GetComponents(false)
 	require.Equal(t, 2, len(res), "Number of components not as expected")
+	require.Equal(t, "comp1", res[0].Name)
+
+	// test reversing
+	res = provider.GetComponents(true)
+	require.Equal(t, 2, len(res), "Number of components not as expected")
+	require.Equal(t, "comp2", res[0].Name)
 }

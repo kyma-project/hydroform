@@ -75,7 +75,7 @@ type Installation interface {
 }
 
 func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, error) {
-	cmps := e.componentsProvider.GetComponents()
+	cmps := e.componentsProvider.GetComponents(false)
 
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
@@ -97,7 +97,7 @@ func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, e
 }
 
 func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent, error) {
-	cmps := e.componentsProvider.GetComponents()
+	cmps := e.componentsProvider.GetComponents(true)
 
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
