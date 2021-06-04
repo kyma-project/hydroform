@@ -137,11 +137,11 @@ func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.Ca
 	errCount := 0
 
 	if phase == InstallPreRequisites {
-		jobmanager.ExecutePre("global")
+		jobmanager.ExecutePre(ctx, "global")
 	}
 	statusChan, err := eng.Deploy(ctx)
 	if err != nil {
-		return fmt.Errorf("Kyma deployment failed. Error: %v", err)
+		return fmt.Errorf(ctx, "Kyma deployment failed. Error: %v", err)
 	}
 
 	i.processUpdate(phase, ProcessStart, nil)

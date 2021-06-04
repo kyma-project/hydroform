@@ -163,13 +163,13 @@ func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan 
 			}
 			if ok {
 				if installType == deploy {
-					jobmanager.ExecutePre(component.Name)
+					jobmanager.ExecutePre(ctx, component.Name)
 					if err := component.Deploy(ctx); err != nil {
 						component.Status = components.StatusError
 						component.Error = err
 					} else {
 						component.Status = components.StatusInstalled
-						jobmanager.ExecutePost(component.Name)
+						jobmanager.ExecutePost(ctx, component.Name)
 					}
 					statusChan <- component
 				} else if installType == uninstall {
