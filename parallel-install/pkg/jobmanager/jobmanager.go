@@ -70,7 +70,9 @@ func ExecutePre(ctx context.Context, c component) {
 	}
 
 	for status := range statusChan {
-		if status.status == false {
+		if status.status == true {
+			Log.Info("Following job executed: %v", status.job)
+		} else if status.status == false {
 			Log.Fatal("Following job failed while execution: %v", status.job)
 		}
 	}

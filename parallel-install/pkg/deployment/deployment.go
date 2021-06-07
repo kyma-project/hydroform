@@ -143,7 +143,6 @@ func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.Ca
 	if err != nil {
 		return fmt.Errorf(ctx, "Kyma deployment failed. Error: %v", err)
 	}
-
 	i.processUpdate(phase, ProcessStart, nil)
 
 	//Await completion
