@@ -113,7 +113,6 @@ func newPreInstaller(cfg inputConfig) (*preInstaller, error) {
 }
 
 // InstallCRDs on a k8s cluster.
-// Returns output containing results of installation.
 func (i *preInstaller) InstallCRDs() error {
 	input := resourceInfoInput{
 		resourceType:             "CustomResourceDefinition",
@@ -132,7 +131,6 @@ func (i *preInstaller) InstallCRDs() error {
 }
 
 // CreateNamespaces in a k8s cluster.
-// Returns output containing results of installation.
 func (i *preInstaller) CreateNamespaces() error {
 	input := resourceInfoInput{
 		resourceType:             "Namespace",
