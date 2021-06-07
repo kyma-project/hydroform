@@ -91,7 +91,7 @@ func (ob *Builder) Raw() (Overrides, error) {
 	}, nil
 }
 
-// mergeSources merges together all overrides sources int a single map
+// mergeSources merges together all overrides sources into a single map
 func (ob *Builder) mergeSources() (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 
