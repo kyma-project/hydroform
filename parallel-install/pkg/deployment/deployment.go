@@ -11,6 +11,7 @@ import (
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/k3d"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/jobmanager"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
@@ -24,7 +25,7 @@ type Deployment struct {
 }
 
 //NewDeployment creates a new Deployment instance for deploying Kyma on a cluster.
-func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func(ProcessUpdate)) (*Deployment, error) {
+func NewDeployment(cfg *config.Config, ob *overrides.Builder, processUpdates func(ProcessUpdate)) (*Deployment, error) {
 	if err := cfg.ValidateDeployment(); err != nil {
 		return nil, err
 	}
@@ -99,7 +100,7 @@ func (d *Deployment) startKymaDeployment(overridesProvider overrides.Provider, p
 		return fmt.Errorf("error while reading overrides: %v", err)
 	}
 
-	isK3s, err := isK3dCluster(d.kubeClient)
+	isK3s, err := k3d.IsK3dCluster(d.kubeClient)
 	if err != nil {
 		return err
 	}

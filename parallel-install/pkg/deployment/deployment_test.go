@@ -6,6 +6,7 @@ import (
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -294,6 +295,6 @@ func newDeployment(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kub
 		Log:                           logger.NewLogger(true),
 		ComponentList:                 compList,
 	}
-	core := newCore(config, &OverridesBuilder{}, kubeClient, procUpdates)
+	core := newCore(config, &overrides.Builder{}, kubeClient, procUpdates)
 	return &Deployment{core}
 }
