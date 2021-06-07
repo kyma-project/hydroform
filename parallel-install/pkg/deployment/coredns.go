@@ -7,9 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"time"
 
 	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/gardener"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/k3d"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	v1 "k8s.io/api/core/v1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +57,7 @@ const (
 )
 
 // patchCoreDNS patches the CoreDNS cnfiguration based on the overrides and the cloud provider.
-func patchCoreDNS(kubeClient kubernetes.Interface, overrides *OverridesBuilder, isK3s bool, log logger.Interface) (cm *v1.ConfigMap, err error) {
+func patchCoreDNS(kubeClient kubernetes.Interface, overrides *overrides.Builder, isK3s bool, log logger.Interface) (cm *v1.ConfigMap, err error) {
 	err = retry.Do(func() error {
 		_, err := kubeClient.AppsV1().Deployments("kube-system").Get(context.TODO(), "coredns", metav1.GetOptions{})
 		if err != nil {
@@ -74,7 +78,7 @@ func patchCoreDNS(kubeClient kubernetes.Interface, overrides *OverridesBuilder, 
 			return err
 		}
 		return nil
-	}, defaultRetryOptions()...)
+	}, retry.Delay(2*time.Second), retry.Attempts(3), retry.DelayType(retry.FixedDelay))
 
 	return
 }
@@ -131,10 +135,10 @@ func newCoreDNSConfigMap(data map[string]string) *v1.ConfigMap {
 	}
 }
 
-func generatePatches(kubeClient kubernetes.Interface, overrides *OverridesBuilder, isK3s bool) (map[string]string, error) {
+func generatePatches(kubeClient kubernetes.Interface, overrides *overrides.Builder, isK3s bool) (map[string]string, error) {
 	patches := make(map[string]string)
 	// patch the CoreFile only if not on gardener and no custom domain is provided
-	gardenerDomain, err := findGardenerDomain(kubeClient)
+	gardenerDomain, err := gardener.Domain(kubeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +187,7 @@ func generateCorefile(domainName string) (coreFile string, err error) {
 }
 
 func generateHosts(kubeClient kubernetes.Interface) (string, error) {
-	clusterName, err := getK3dClusterName(kubeClient)
+	clusterName, err := k3d.K3dClusterName(kubeClient)
 	if err != nil {
 		return "", err
 	}

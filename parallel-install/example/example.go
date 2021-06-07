@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
@@ -43,7 +45,7 @@ func main() {
 		log.Fatal("Please set GOPATH")
 	}
 
-	builder := &deployment.OverridesBuilder{}
+	builder := &overrides.Builder{}
 	if err := builder.AddFile("./overrides.yaml"); err != nil {
 		log.Error("Failed to add overrides file. Exiting...")
 		os.Exit(1)

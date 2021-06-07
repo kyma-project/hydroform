@@ -3,12 +3,14 @@ package deployment
 import (
 	"context"
 	"fmt"
+
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -556,7 +558,7 @@ func newDeletion(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kuber
 		Log:                           logger.NewLogger(true),
 		ComponentList:                 compList,
 	}
-	core := newCore(cfg, &OverridesBuilder{}, kubeClient, procUpdates)
+	core := newCore(cfg, &overrides.Builder{}, kubeClient, procUpdates)
 	metaProv := helm.GetKymaMetadataProvider(kubeClient)
 	return &Deletion{core, metaProv, nil, dynamicClient, manager, retryOptions}
 }

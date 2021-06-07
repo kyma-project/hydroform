@@ -4,10 +4,11 @@ package deployment
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"sync"
 	"time"
+
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 
 	"github.com/avast/retry-go"
 	"github.com/kubernetes-sigs/service-catalog/pkg/client/clientset_generated/clientset"
@@ -15,6 +16,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
@@ -35,7 +37,7 @@ type Deletion struct {
 }
 
 //NewDeletion creates a new Deployment instance for deleting Kyma on a cluster.
-func NewDeletion(cfg *config.Config, ob *OverridesBuilder, processUpdates func(ProcessUpdate), retryOptions []retry.Option) (*Deletion, error) {
+func NewDeletion(cfg *config.Config, ob *overrides.Builder, processUpdates func(ProcessUpdate), retryOptions []retry.Option) (*Deletion, error) {
 	if err := cfg.ValidateDeletion(); err != nil {
 		return nil, err
 	}

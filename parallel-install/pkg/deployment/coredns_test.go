@@ -6,7 +6,9 @@ import (
 
 	dockerTypes "github.com/docker/docker/api/types"
 	dockerNet "github.com/docker/docker/api/types/network"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/k3d"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"github.com/stretchr/testify/require"
 	v1apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -25,7 +27,7 @@ func Test_patchCoreDNS(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset(coreDNSConfigMap)
 
 		// when
-		cm, err := patchCoreDNS(kubeClient, &OverridesBuilder{}, false, log)
+		cm, err := patchCoreDNS(kubeClient, &overrides.Builder{}, false, log)
 
 		// then
 		require.NoError(t, err)
@@ -44,7 +46,7 @@ func Test_patchCoreDNS(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset(coreDNSDeployment, emptyConfigMap)
 
 		// when
-		cm, err := patchCoreDNS(kubeClient, &OverridesBuilder{}, false, log)
+		cm, err := patchCoreDNS(kubeClient, &overrides.Builder{}, false, log)
 
 		// then
 		require.NoError(t, err)
@@ -56,7 +58,7 @@ func Test_patchCoreDNS(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset(coreDNSDeployment, fakeWrongCoreDNSConfigMap())
 
 		// when
-		cm, err := patchCoreDNS(kubeClient, &OverridesBuilder{}, false, log)
+		cm, err := patchCoreDNS(kubeClient, &overrides.Builder{}, false, log)
 
 		// then
 		require.NoError(t, err)
@@ -65,7 +67,7 @@ func Test_patchCoreDNS(t *testing.T) {
 
 	t.Run("test patching coreDNS configMap on K3s", func(t *testing.T) {
 		// given
-		kubeClient := fake.NewSimpleClientset(coreDNSDeployment, coreDNSConfigMap, fakeK3dNode())
+		kubeClient := fake.NewSimpleClientset(coreDNSDeployment, coreDNSConfigMap, k3d.FakeK3dNode())
 
 		// mock the docker inspect to give a fake registry IP
 		defaultInspector = func(ctx context.Context, containerID string) (dockerTypes.ContainerJSON, error) {
@@ -81,7 +83,7 @@ func Test_patchCoreDNS(t *testing.T) {
 		}
 
 		// when
-		cm, err := patchCoreDNS(kubeClient, &OverridesBuilder{}, true, log)
+		cm, err := patchCoreDNS(kubeClient, &overrides.Builder{}, true, log)
 
 		// then
 		require.NoError(t, err)

@@ -1,199 +1,228 @@
-//Package overrides implements the logic related to handling overrides.
-//The manually-provided overrides have precedence over standard Kyma overrides defined in the cluster.
-//
-//The code in the package uses the user-provided function for logging.
 package overrides
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"strings"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"helm.sh/helm/v3/pkg/strvals"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"github.com/pkg/errors"
+
+	"github.com/imdario/mergo"
+	"gopkg.in/yaml.v3"
 )
 
-const logPrefix = "[overrides/overrides.go]"
+var (
+	supportedFileExt = []string{"yaml", "yml", "json"}
+)
 
-var commonListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, !component"}
-var componentListOpts = metav1.ListOptions{LabelSelector: "installer=overrides, component"}
+type interceptorOps string
 
-//Provider type caches overrides for further use.
-//It contains overrides from the cluster and the manually-provided ones.
-type defaultProvider struct {
-	overrides                    map[string]interface{}
-	additionalOverrides          map[string]interface{}
-	componentOverrides           map[string]map[string]interface{}
-	additionalComponentOverrides map[string]map[string]interface{}
-	kubeClient                   kubernetes.Interface
-	log                          logger.Interface
+const (
+	interceptorOpsString    = "String"
+	interceptorOpsIntercept = "Intercept"
+)
+
+// Overrides manages override merges
+type Builder struct {
+	files        []string
+	overrides    []map[string]interface{}
+	interceptors map[string]OverrideInterceptor
 }
 
-//Provider defines the contract for reading overrides for a given Helm release.
-type Provider interface {
-	//OverridesGetterFunctionFor returns a function returning overrides for a Helm release with the provided name.
-	//Before using this function, ensure that the overrides cache is populated by calling the ReadOverridesFromCluster function.
-	OverridesGetterFunctionFor(name string) func() map[string]interface{}
-
-	//Populates overrides cache by reading data from the cluster. You have to call this function before using OverridesGetterFunctionFor.
-	ReadOverridesFromCluster() error
+// AddFile adds overrides defined in a file to the builder
+func (ob *Builder) AddFile(file string) error {
+	for _, ext := range supportedFileExt {
+		if strings.HasSuffix(file, fmt.Sprintf(".%s", ext)) {
+			ob.files = append(ob.files, file)
+			return nil
+		}
+	}
+	return fmt.Errorf("Unsupported override file extension. Supported extensions are: %s", strings.Join(supportedFileExt, ", "))
 }
 
-//New returns a new Provider.
-//
-//overridesYaml contains a list of manually-provided overrides.
-//Every value in the list contains data in the YAML format.
-//The structure of the file should follow the Helm's values.yaml convention.
-//There is one difference from the plain Helm's values.yaml file: These are not values for a single release but for the entire Kyma installation.
-//Because of that, you have to put values for a specific Component (e.g: Component name is "foo") under a key equal to the component's name (i.e: "foo").
-//You can also put overrides under a "global" key. These will merge with the top-level "global" Helm key for every Helm chart.
-func New(client kubernetes.Interface, overrides map[string]interface{}, log logger.Interface) (Provider, error) {
-	provider := defaultProvider{
-		kubeClient: client,
-		log:        log,
+// AddOverrides adds overrides for a chart to the builder
+func (ob *Builder) AddOverrides(chart string, overrides map[string]interface{}) error {
+	if chart == "" {
+		return fmt.Errorf("Chart name cannot be empty when adding overrides")
 	}
-
-	err := provider.parseAdditionalOverrides(overrides)
-	if err != nil {
-		return nil, err
+	if len(overrides) < 1 {
+		return fmt.Errorf("Empty overrides map provided for chart '%s'", chart)
 	}
-
-	return &provider, nil
-}
-
-func (p *defaultProvider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {
-	return func() map[string]interface{} {
-		if val, ok := p.componentOverrides[name]; ok {
-			val = MergeMaps(val, p.overrides)
-			return val
-		}
-		return p.overrides
-	}
-}
-
-func (p *defaultProvider) ReadOverridesFromCluster() error {
-
-	// TODO: add retries
-	//Read global overrides
-	globalOverrideCMs, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), commonListOpts)
-	if err != nil {
-		return err
-	}
-
-	var globalValues []string
-	for _, cm := range globalOverrideCMs.Items {
-		for k, v := range cm.Data {
-			globalValues = append(globalValues, k+"="+v)
-		}
-	}
-
-	if p.overrides == nil {
-		p.overrides = make(map[string]interface{})
-	}
-
-	globalFromCluster := make(map[string]interface{})
-
-	for _, value := range globalValues {
-		if err := strvals.ParseInto(value, globalFromCluster); err != nil {
-			p.log.Errorf("%s Error parsing global overrides: %v", logPrefix, err)
-			return err
-		}
-	}
-
-	p.overrides = MergeMaps(p.overrides, globalFromCluster)
-	p.overrides = MergeMaps(p.overrides, p.additionalOverrides) // always keep additionalOverrides on top
-
-	//Read component overrides
-	if p.componentOverrides == nil {
-		p.componentOverrides = make(map[string]map[string]interface{})
-	}
-
-	componentOverrideCMs, err := p.kubeClient.CoreV1().ConfigMaps("kyma-installer").List(context.TODO(), componentListOpts)
-	if err != nil {
-		return err
-	}
-
-	for _, cm := range componentOverrideCMs.Items {
-		var componentValues []string
-		name := cm.Labels["component"]
-
-		for k, v := range cm.Data {
-			componentValues = append(componentValues, k+"="+v)
-		}
-
-		if p.componentOverrides[name] == nil {
-			p.componentOverrides[name] = make(map[string]interface{})
-		}
-
-		componentsFromCluster := make(map[string]interface{})
-
-		for _, value := range componentValues {
-			if err := strvals.ParseInto(value, componentsFromCluster); err != nil {
-				p.log.Infof("%s Error parsing overrides for %s: %v", logPrefix, name, err)
-				return err
-			}
-		}
-
-		p.componentOverrides[name] = MergeMaps(p.componentOverrides[name], componentsFromCluster)
-		p.componentOverrides[name] = MergeMaps(p.componentOverrides[name], p.additionalComponentOverrides[name]) // always keep additionalOverrides on top
-	}
-
-	p.log.Infof("%s Reading the overrides from the cluster completed successfully!", logPrefix)
+	overridesMap := make(map[string]interface{})
+	overridesMap[chart] = overrides
+	ob.overrides = append(ob.overrides, overridesMap)
 	return nil
 }
 
-func (p *defaultProvider) parseAdditionalOverrides(additionalOverrides map[string]interface{}) error {
+// AddInterceptor registers an interceptor for particular override keys
+func (ob *Builder) AddInterceptor(overrideKeys []string, interceptor OverrideInterceptor) {
+	if ob.interceptors == nil {
+		ob.interceptors = make(map[string]OverrideInterceptor)
+	}
+	for _, overrideKey := range overrideKeys {
+		ob.interceptors[overrideKey] = interceptor
+	}
+}
 
-	if p.additionalComponentOverrides == nil {
-		p.additionalComponentOverrides = make(map[string]map[string]interface{})
+// Build an overrides object merging all provided sources and applying interceptors
+// WARNING: call this function sparingly, it runs all interceptors, potentially incurring heavy computations.
+func (ob *Builder) Build() (Overrides, error) {
+	o, err := ob.Raw()
+	if err != nil {
+		return Overrides{}, err
 	}
 
-	if p.componentOverrides == nil {
-		p.componentOverrides = make(map[string]map[string]interface{})
+	// assign intercepted overrides back to the original object to not loose the values
+	o.overrides, err = o.intercept(interceptorOpsIntercept)
+	return o, err
+}
+
+// Raw builds an overrides object contining only the raw values in the sources, without applying interceptors.
+func (ob *Builder) Raw() (Overrides, error) {
+	merged, err := ob.mergeSources()
+	if err != nil {
+		return Overrides{}, err
 	}
 
-	for k, v := range additionalOverrides {
-		if k == "global" {
-			globalOverrides := make(map[string]interface{})
-			globalOverrides[k] = v
-			p.overrides = MergeMaps(p.overrides, globalOverrides)
-			p.additionalOverrides = MergeMaps(p.additionalOverrides, globalOverrides)
+	return Overrides{
+		overrides:    merged,
+		interceptors: ob.interceptors,
+	}, nil
+}
+
+// mergeSources merges together all overrides sources into a single map
+func (ob *Builder) mergeSources() (map[string]interface{}, error) {
+	result := make(map[string]interface{})
+
+	// merge files
+	var fileOverrides map[string]interface{}
+	for _, file := range ob.files {
+		// read data
+		data, err := ioutil.ReadFile(file)
+		if err != nil {
+			return nil, err
+		}
+		// unmarshal
+		if strings.HasSuffix(file, ".json") {
+			err = json.Unmarshal(data, &fileOverrides)
 		} else {
-			if p.additionalComponentOverrides[k] == nil {
-				p.additionalComponentOverrides[k] = make(map[string]interface{})
-			}
-			if p.componentOverrides[k] == nil {
-				p.componentOverrides[k] = make(map[string]interface{})
-			}
-
-			if vTypeSafe, ok := v.(map[string]interface{}); ok {
-				p.componentOverrides[k] = MergeMaps(p.componentOverrides[k], vTypeSafe)
-				p.additionalComponentOverrides[k] = MergeMaps(p.additionalComponentOverrides[k], vTypeSafe)
-			} else {
-				return fmt.Errorf("Cannot add override '%s=%s' as the value has to be a map", k, v)
-			}
+			err = yaml.Unmarshal(data, &fileOverrides)
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("Failed to process configuration values defined in file '%s'", file))
+		}
+		// merge
+		if err := mergo.Map(&result, fileOverrides, mergo.WithOverride); err != nil {
+			return nil, err
 		}
 	}
 
+	//merge overrides
+	for _, override := range ob.overrides {
+		if err := mergo.Map(&result, override, mergo.WithOverride); err != nil {
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
+
+type Overrides struct {
+	overrides    map[string]interface{}
+	interceptors map[string]OverrideInterceptor
+}
+
+// Map returns a copy of the overrides in map form
+func (o Overrides) Map() map[string]interface{} {
+	return copyMap(o.overrides)
+}
+
+// String all provided overrides
+func (o Overrides) String() string {
+	in, err := o.intercept(interceptorOpsString)
+	if err != nil {
+		return fmt.Sprint(err)
+	}
+	return fmt.Sprintf("%v", in)
+}
+
+// Find returns a value on the overrides following a path separated by "." and if it exists.
+func (o Overrides) Find(key string) (interface{}, bool) {
+	return deepFind(o.overrides, strings.Split(key, "."))
+}
+
+func deepFind(m map[string]interface{}, path []string) (interface{}, bool) {
+	// if reached the end of the path it means the searched value is a map itself
+	// return the map
+	if len(path) == 0 {
+		return m, true
+	}
+
+	if v, ok := m[path[0]].(map[string]interface{}); ok {
+		return deepFind(v, path[1:])
+	}
+	v, ok := m[path[0]]
+	return v, ok
+}
+
+// setValue recursively traverses a map of maps and sets the given value in the given path separated by ".".
+// Should the value type not be assignable to the path an error will be returned
+func setValue(m map[string]interface{}, path []string, value interface{}) error {
+	// if reached the end of the path it means the user is setting a map or path is wrong
+	if len(path) == 0 {
+		return errors.New("Error setting value, given key is a map")
+	}
+
+	if v, ok := m[path[0]].(map[string]interface{}); ok {
+		return setValue(v, path[1:], value)
+	}
+	if len(path) > 1 {
+		return fmt.Errorf("Error setting value, path is incorrect. Map expected at subkey %s but have %T", path[0], m[path[0]])
+	}
+	m[path[0]] = value
 	return nil
 }
 
-func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
-	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
-			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = MergeMaps(bv, v)
-					continue
+// intercept runs all interceptors on the overrides and returns a copy of the overrides map with updated values
+// The updated map can either be assigned back to the overrides to update the object optionally.
+func (o Overrides) intercept(ops interceptorOps) (map[string]interface{}, error) {
+	result := copyMap(o.overrides)
+
+	for k, interceptor := range o.interceptors {
+		if v, exists := o.Find(k); exists {
+			if ops == interceptorOpsString {
+				newVal := interceptor.String(v, k)
+				if err := setValue(result, strings.Split(k, "."), newVal); err != nil {
+					return nil, err
+				}
+			} else {
+				newVal, err := interceptor.Intercept(v, k)
+				if err != nil {
+					return nil, err
+				}
+				if err := setValue(result, strings.Split(k, "."), newVal); err != nil {
+					return nil, err
 				}
 			}
+		} else {
+			if err := interceptor.Undefined(result, k); err != nil {
+				return nil, err
+			}
 		}
-		out[k] = v
 	}
-	return out
+
+	return result, nil
+}
+
+func copyMap(m map[string]interface{}) map[string]interface{} {
+	c := make(map[string]interface{}, len(m))
+	for k, v := range m {
+		if m2, ok := m[k].(map[string]interface{}); ok {
+			c[k] = copyMap(m2)
+		} else {
+			c[k] = v
+		}
+	}
+	return c
 }
