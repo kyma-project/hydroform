@@ -51,6 +51,8 @@ type Config struct {
 	KubeconfigSource KubeconfigSource
 	//Kyma version
 	Version string
+	// Reuse Helm chart values for upgrade
+	ReuseHelmValues bool
 	//Atomic deployment
 	Atomic bool
 }
