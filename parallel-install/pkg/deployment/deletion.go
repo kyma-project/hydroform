@@ -329,6 +329,26 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 					i.cfg.Log.Infof("Deleted finalizer from Rule: %s", rule.GetName())
 				}
 
+				//HACK: Delete finalizers of leftover ORY OAuth2 Clients
+				authClientResource := schema.GroupVersionResource{
+					Group:    "hydra.ory.sh",
+					Version:  "v1alpha1",
+					Resource: "oauth2clients",
+				}
+
+				authClients, err := i.dClient.Resource(authClientResource).Namespace(ns).List(context.Background(), metav1.ListOptions{})
+				if err != nil {
+					errorCh <- err
+				}
+				for _, client := range authClients.Items {
+					client.SetFinalizers(nil)
+					_, err := i.dClient.Resource(authClientResource).Namespace(ns).Update(context.Background(), &client, metav1.UpdateOptions{})
+					if err != nil {
+						errorCh <- err
+					}
+					i.cfg.Log.Infof("Deleted finalizer from ORY OAuth Client: %s", client.GetName())
+				}
+
 				//HACK: Delete finalizers of leftover Usage Kinds
 				ukResource := schema.GroupVersionResource{
 					Group:    "servicecatalog.kyma-project.io",
