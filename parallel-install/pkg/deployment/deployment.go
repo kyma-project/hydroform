@@ -59,26 +59,26 @@ func (d *Deployment) StartKymaDeployment() error {
 		retry.DelayType(retry.FixedDelay),
 	}
 
-	preInstallerCfg := Config{
+	preInstallerCfg := inputConfig{
 		InstallationResourcePath: d.cfg.InstallationResourcePath,
 		Log:                      d.cfg.Log,
 		KubeconfigSource:         d.cfg.KubeconfigSource,
 		RetryOptions:             retryOpts,
 	}
 
-	preInstaller, err := NewPreInstaller(preInstallerCfg)
+	preInstaller, err := newPreInstaller(preInstallerCfg)
 	if err != nil {
 		d.cfg.Log.Fatalf("Failed to create Kyma pre-installer: %v", err)
 	}
 
-	result, err := preInstaller.InstallCRDs()
-	if err != nil || len(result.NotInstalled) > 0 {
-		d.cfg.Log.Fatalf("Failed to install CRDs: %s", err)
+	err = preInstaller.InstallCRDs()
+	if err != nil {
+		return err
 	}
 
-	result, err = preInstaller.CreateNamespaces()
-	if err != nil || len(result.NotInstalled) > 0 {
-		d.cfg.Log.Fatalf("Failed to create namespaces: %s", err)
+	err = preInstaller.CreateNamespaces()
+	if err != nil {
+		return err
 	}
 
 	overridesProvider, prerequisitesEng, componentsEng, err := d.getConfig()
