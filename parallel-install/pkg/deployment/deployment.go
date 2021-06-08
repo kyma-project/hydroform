@@ -42,6 +42,9 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func
 
 	core := newCore(cfg, ob, kubeClient, processUpdates)
 
+	jobmanager.SetConfig(cfg)
+	jobmanager.SetKubeClient(kubeClient)
+
 	return &Deployment{core}, nil
 }
 
@@ -141,7 +144,7 @@ func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.Ca
 	}
 	statusChan, err := eng.Deploy(ctx)
 	if err != nil {
-		return fmt.Errorf(ctx, "Kyma deployment failed. Error: %v", err)
+		return fmt.Errorf("Kyma deployment failed. Error: %v", err)
 	}
 	i.processUpdate(phase, ProcessStart, nil)
 
@@ -185,9 +188,9 @@ InstallLoop:
 		}
 	}
 	// Only will be executed if Kyma deploy was successfull
-	if phase == InstallComponents {
-		jobmanager.ExecutePost("global")
-	}
+	//if phase == InstallComponents {
+	//	jobmanager.ExecutePost("global")
+	//}
 
 	i.processUpdate(phase, ProcessFinished, nil)
 	return nil
