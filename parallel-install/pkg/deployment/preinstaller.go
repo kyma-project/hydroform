@@ -27,6 +27,7 @@ package deployment
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
@@ -37,8 +38,8 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-// Config defines configuration values for the preInstaller.
-type Config struct {
+// inputConfig defines configuration values for the preInstaller.
+type inputConfig struct {
 	InstallationResourcePath string                  //Path to the installation resources.
 	Log                      logger.Interface        //Logger to be used.
 	KubeconfigSource         config.KubeconfigSource //KubeconfigSource to be used.
@@ -49,23 +50,23 @@ type Config struct {
 type preInstaller struct {
 	applier       ResourceApplier
 	parser        ResourceParser
-	cfg           Config
+	cfg           inputConfig
 	dynamicClient dynamic.Interface
 }
 
-// File consists of a path to the file that was a part of preInstaller installation
+// file consists of a path to the file that was a part of preInstaller installation
 // and a component fileName that it belongs to.
-type File struct {
+type file struct {
 	component string
 	path      string
 }
 
-// Output contains lists of Installed and not Installed files during preInstaller installation.
-type Output struct {
+// output contains lists of Installed and not Installed files during preInstaller installation.
+type output struct {
 	// Installed files during preInstaller installation.
-	Installed []File
+	Installed []file
 	// NotInstalled files during preInstaller installation.
-	NotInstalled []File
+	NotInstalled []file
 }
 
 type resourceInfoInput struct {
@@ -83,8 +84,8 @@ type resourceInfoResult struct {
 	label        string
 }
 
-// NewPreInstaller creates a new instance of preInstaller.
-func NewPreInstaller(cfg Config) (*preInstaller, error) {
+// newPreInstaller creates a new instance of preInstaller.
+func newPreInstaller(cfg inputConfig) (*preInstaller, error) {
 	restConfig, err := config.RestConfig(cfg.KubeconfigSource)
 	if err != nil {
 		return nil, err
@@ -112,8 +113,7 @@ func NewPreInstaller(cfg Config) (*preInstaller, error) {
 }
 
 // InstallCRDs on a k8s cluster.
-// Returns Output containing results of installation.
-func (i *preInstaller) InstallCRDs() (Output, error) {
+func (i *preInstaller) InstallCRDs() error {
 	input := resourceInfoInput{
 		resourceType:             "CustomResourceDefinition",
 		dirSuffix:                "crds",
@@ -123,16 +123,15 @@ func (i *preInstaller) InstallCRDs() (Output, error) {
 
 	i.cfg.Log.Info("Kyma CRDs installation")
 	output, err := i.install(input)
-	if err != nil {
-		return Output{}, err
+	if err != nil || len(output.NotInstalled) > 0 {
+		return errors.Wrap(err, "Failed to install CRDs")
 	}
 
-	return output, nil
+	return nil
 }
 
 // CreateNamespaces in a k8s cluster.
-// Returns Output containing results of installation.
-func (i *preInstaller) CreateNamespaces() (Output, error) {
+func (i *preInstaller) CreateNamespaces() error {
 	input := resourceInfoInput{
 		resourceType:             "Namespace",
 		dirSuffix:                "namespaces",
@@ -142,17 +141,17 @@ func (i *preInstaller) CreateNamespaces() (Output, error) {
 
 	i.cfg.Log.Info("Kyma Namespaces creation")
 	output, err := i.install(input)
-	if err != nil {
-		return Output{}, err
+	if err != nil || len(output.NotInstalled) > 0 {
+		return errors.Wrap(err, "Failed to create namespaces")
 	}
 
-	return output, nil
+	return nil
 }
 
-func (i *preInstaller) install(input resourceInfoInput) (o Output, err error) {
+func (i *preInstaller) install(input resourceInfoInput) (o output, err error) {
 	resources, err := i.findResourcesIn(input)
 	if err != nil {
-		return Output{}, err
+		return output{}, err
 	}
 
 	return i.apply(resources)
@@ -204,9 +203,9 @@ func (i *preInstaller) findResourcesIn(input resourceInfoInput) (results []resou
 	return results, nil
 }
 
-func (i *preInstaller) apply(resources []resourceInfoResult) (o Output, err error) {
+func (i *preInstaller) apply(resources []resourceInfoResult) (o output, err error) {
 	for _, resource := range resources {
-		file := File{
+		file := file{
 			component: resource.component,
 			path:      resource.path,
 		}
