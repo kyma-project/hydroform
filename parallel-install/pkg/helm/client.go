@@ -138,7 +138,7 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 	return nil
 }
 
-func (c *Client) upgradeRelease(namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
+func (c *Client) newUpgrade(cfg *action.Configuration) *action.Upgrade {
 	upgrade := action.NewUpgrade(cfg)
 	upgrade.Atomic = c.cfg.Atomic
 	upgrade.CleanupOnFail = true
@@ -147,7 +147,11 @@ func (c *Client) upgradeRelease(namespace, name string, overrides map[string]int
 	upgrade.Recreate = false
 	upgrade.MaxHistory = c.cfg.MaxHistory
 	upgrade.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
+	return upgrade
+}
 
+func (c *Client) upgradeRelease(namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
+	upgrade := c.newUpgrade(cfg)
 	c.cfg.Log.Infof("%s Starting upgrade for release %s in namespace %s", logPrefix, name, namespace)
 	rel, err := upgrade.Run(name, chart, overrides)
 	if err != nil {
