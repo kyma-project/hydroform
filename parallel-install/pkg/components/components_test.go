@@ -76,9 +76,7 @@ func Test_ReuseHelmValues(t *testing.T) {
 	require.NoError(t, err)
 
 	instCfg := &config.Config{
-		ComponentList: &config.ComponentList{
-			Components: []config.ComponentDefinition{},
-		},
+		ComponentList:   &config.ComponentList{},
 		ReuseHelmValues: true,
 	}
 
