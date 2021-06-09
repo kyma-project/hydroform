@@ -273,13 +273,15 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 				if err != nil {
 					errorCh <- err
 				}
-				for _, csb := range csbList.Items {
-					csb.Finalizers = []string{}
-					_, err := i.scclient.ServicecatalogV1beta1().ClusterServiceBrokers().Update(context.Background(), &csb, metav1.UpdateOptions{})
-					if err != nil {
-						errorCh <- err
+				if csbList != nil {
+					for _, csb := range csbList.Items {
+						csb.Finalizers = []string{}
+						_, err := i.scclient.ServicecatalogV1beta1().ClusterServiceBrokers().Update(context.Background(), &csb, metav1.UpdateOptions{})
+						if err != nil {
+							errorCh <- err
+						}
+						i.cfg.Log.Infof("Deleted finalizer from CSB: %s", csb.Name)
 					}
-					i.cfg.Log.Infof("Deleted finalizer from CSB: %s", csb.Name)
 				}
 
 				//HACK: Delete finalizers of leftover Service Brokers
@@ -287,13 +289,15 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 				if err != nil {
 					errorCh <- err
 				}
-				for _, sb := range sbList.Items {
-					sb.Finalizers = []string{}
-					_, err := i.scclient.ServicecatalogV1beta1().ServiceBrokers(ns).Update(context.Background(), &sb, metav1.UpdateOptions{})
-					if err != nil {
-						errorCh <- err
+				if sbList != nil {
+					for _, sb := range sbList.Items {
+						sb.Finalizers = []string{}
+						_, err := i.scclient.ServicecatalogV1beta1().ServiceBrokers(ns).Update(context.Background(), &sb, metav1.UpdateOptions{})
+						if err != nil {
+							errorCh <- err
+						}
+						i.cfg.Log.Infof("Deleted finalizer from SB: %s", sb.Name)
 					}
-					i.cfg.Log.Infof("Deleted finalizer from SB: %s", sb.Name)
 				}
 
 				//HACK: Delete finalizers of leftover Secret
@@ -320,13 +324,15 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 				if err != nil {
 					errorCh <- err
 				}
-				for _, rule := range rules.Items {
-					rule.SetFinalizers(nil)
-					_, err := i.dClient.Resource(ruleResource).Namespace(ns).Update(context.Background(), &rule, metav1.UpdateOptions{})
-					if err != nil {
-						errorCh <- err
+				if rules != nil {
+					for _, rule := range rules.Items {
+						rule.SetFinalizers(nil)
+						_, err := i.dClient.Resource(ruleResource).Namespace(ns).Update(context.Background(), &rule, metav1.UpdateOptions{})
+						if err != nil {
+							errorCh <- err
+						}
+						i.cfg.Log.Infof("Deleted finalizer from Rule: %s", rule.GetName())
 					}
-					i.cfg.Log.Infof("Deleted finalizer from Rule: %s", rule.GetName())
 				}
 
 				//HACK: Delete finalizers of leftover Usage Kinds
@@ -340,13 +346,15 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 				if err != nil {
 					errorCh <- err
 				}
-				for _, kind := range kinds.Items {
-					kind.SetFinalizers(nil)
-					_, err := i.dClient.Resource(ukResource).Update(context.Background(), &kind, metav1.UpdateOptions{})
-					if err != nil {
-						errorCh <- err
+				if kinds != nil {
+					for _, kind := range kinds.Items {
+						kind.SetFinalizers(nil)
+						_, err := i.dClient.Resource(ukResource).Update(context.Background(), &kind, metav1.UpdateOptions{})
+						if err != nil {
+							errorCh <- err
+						}
+						i.cfg.Log.Infof("Deleted finalizer from Usage Kind: %s", kind.GetName())
 					}
-					i.cfg.Log.Infof("Deleted finalizer from Usage Kind: %s", kind.GetName())
 				}
 
 				//HACK: Delete finalizers of leftover Cluster Assets
@@ -360,13 +368,15 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 				if err != nil {
 					errorCh <- err
 				}
-				for _, asset := range assets.Items {
-					asset.SetFinalizers(nil)
-					_, err := i.dClient.Resource(caResource).Update(context.Background(), &asset, metav1.UpdateOptions{})
-					if err != nil {
-						errorCh <- err
+				if assets != nil {
+					for _, asset := range assets.Items {
+						asset.SetFinalizers(nil)
+						_, err := i.dClient.Resource(caResource).Update(context.Background(), &asset, metav1.UpdateOptions{})
+						if err != nil {
+							errorCh <- err
+						}
+						i.cfg.Log.Infof("Deleted finalizer from Cluster Asset: %s", asset.GetName())
 					}
-					i.cfg.Log.Infof("Deleted finalizer from Cluster Asset: %s", asset.GetName())
 				}
 
 				//HACK: Delete finalizers of leftover Cluster Buckets
@@ -380,16 +390,18 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 				if err != nil {
 					errorCh <- err
 				}
-				for _, bucket := range buckets.Items {
-					bucket.SetFinalizers(nil)
-					_, err := i.dClient.Resource(cbResource).Update(context.Background(), &bucket, metav1.UpdateOptions{})
-					if err != nil {
-						errorCh <- err
-					}
-					i.cfg.Log.Infof("Deleted finalizer from Cluster Bucket: %s", bucket.GetName())
-					err = i.dClient.Resource(cbResource).Delete(context.Background(), bucket.GetName(), metav1.DeleteOptions{})
-					if err != nil {
-						errorCh <- err
+				if buckets != nil {
+					for _, bucket := range buckets.Items {
+						bucket.SetFinalizers(nil)
+						_, err := i.dClient.Resource(cbResource).Update(context.Background(), &bucket, metav1.UpdateOptions{})
+						if err != nil {
+							errorCh <- err
+						}
+						i.cfg.Log.Infof("Deleted finalizer from Cluster Bucket: %s", bucket.GetName())
+						err = i.dClient.Resource(cbResource).Delete(context.Background(), bucket.GetName(), metav1.DeleteOptions{})
+						if err != nil {
+							errorCh <- err
+						}
 					}
 				}
 			}
