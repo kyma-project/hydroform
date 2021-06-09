@@ -302,7 +302,6 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 						}
 						if customResourceList != nil {
 							for _, cr := range customResourceList.Items {
-								i.cfg.Log.Infof("Deleting finalizer from %s: %s", cr.GetKind(), cr.GetName())
 								cr.SetFinalizers(nil)
 								_, err := i.dClient.Resource(customResource).Namespace(ns).Update(context.Background(), &cr, metav1.UpdateOptions{})
 								if err != nil {
