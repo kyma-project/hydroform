@@ -69,17 +69,7 @@ func Test_GetComponents(t *testing.T) {
 func Test_ReuseHelmValues(t *testing.T) {
 	// fake k8s with override ConfigMaps
 	k8sMock := fake.NewSimpleClientset(
-		&v1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "global-overrides",
-				Namespace: "kyma-installer",
-				Labels:    map[string]string{"installer": "overrides"},
-			},
-			Data: map[string]string{
-				"globalOverride1": "test1",
-				"globalOverride2": "test2",
-			},
-		},
+		&v1.ConfigMap{},
 	)
 
 	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), logger.NewLogger(true))
@@ -87,20 +77,7 @@ func Test_ReuseHelmValues(t *testing.T) {
 
 	instCfg := &config.Config{
 		ComponentList: &config.ComponentList{
-			Components: []config.ComponentDefinition{
-				{
-					Name:      "comp1",
-					Namespace: "ns1",
-				},
-				{
-					Name:      "comp2",
-					Namespace: "ns2",
-				},
-			},
-		},
-		KubeconfigSource: config.KubeconfigSource{
-			Path:    "path",
-			Content: "",
+			Components: []config.ComponentDefinition{},
 		},
 		ReuseHelmValues: true,
 	}
