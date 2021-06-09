@@ -133,6 +133,8 @@ func (d *Deployment) startKymaDeployment(overridesProvider overrides.Provider, p
 }
 
 func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.CancelFunc, phase InstallationPhase, eng *engine.Engine, cancelTimeout time.Duration, quitTimeout time.Duration) error {
+	fmt.Println("3#################################################################")
+	fmt.Println("3#################################################################")
 	cancelTimeoutChan := time.After(cancelTimeout)
 	quitTimeoutChan := time.After(quitTimeout)
 	timeoutOccurred := false
