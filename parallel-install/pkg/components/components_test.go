@@ -65,3 +65,23 @@ func Test_GetComponents(t *testing.T) {
 	require.Equal(t, 2, len(res), "Number of components not as expected")
 	require.Equal(t, "comp2", res[0].Name)
 }
+
+func Test_ReuseHelmValues(t *testing.T) {
+	// fake k8s with override ConfigMaps
+	k8sMock := fake.NewSimpleClientset(
+		&v1.ConfigMap{},
+	)
+
+	overridesProvider, err := overrides.New(k8sMock, make(map[string]interface{}), logger.NewLogger(true))
+	require.NoError(t, err)
+
+	instCfg := &config.Config{
+		ComponentList:   &config.ComponentList{},
+		ReuseHelmValues: true,
+	}
+
+	cmpMetadataTpl := helm.NewKymaComponentMetadataTemplate("version", "profile").ForComponents()
+	provider := NewComponentsProvider(overridesProvider, instCfg, instCfg.ComponentList.Components, cmpMetadataTpl)
+	require.Equal(t, provider.helmConfig.ReuseValues, true)
+
+}

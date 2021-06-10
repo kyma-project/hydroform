@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
+	apixv1beta1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,10 +39,12 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 			Labels: map[string]string{"istio-injection": "disabled", "kyma-project.io/installation": ""},
 		},
 	})
+	apixClient := apixv1beta1fake.NewSimpleClientset().ApiextensionsV1beta1()
+
 	dynamicClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), fixCrdGvrMap())
 	manager := &mocks.ResourceManager{}
 	manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
-	i := newDeletion(t, nil, kubeClient, dynamicClient, manager, nil)
+	i := newDeletion(t, nil, kubeClient, apixClient, dynamicClient, manager, nil)
 
 	t.Run("should uninstall Kyma", func(t *testing.T) {
 		hc := &mockHelmClient{}
@@ -171,7 +175,7 @@ func TestDeployment_StartKymaUninstallation(t *testing.T) {
 		t.Run("due to quit timeout", func(t *testing.T) {
 			kubeClient := k8sfake.NewSimpleClientset()
 
-			inst := newDeletion(t, nil, kubeClient, nil, nil, nil)
+			inst := newDeletion(t, nil, kubeClient, apixClient, nil, nil, nil)
 
 			// Changing it to higher amounts to minimize difference between cancel and quit timeout
 			// and give program enough time to process
@@ -224,7 +228,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 			requireNoCrdsOnTheCluster(t, client)
 			manager := &mocks.ResourceManager{}
 			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
-			deletion := newDeletion(t, nil, nil, client, manager, nil)
+			deletion := newDeletion(t, nil, nil, nil, client, manager, nil)
 
 			// when
 			err := deletion.deleteKymaCrds()
@@ -243,7 +247,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 			requireNoKymaCrdsOnTheCluster(t, client)
 			manager := &mocks.ResourceManager{}
 			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
-			deletion := newDeletion(t, nil, nil, client, manager, nil)
+			deletion := newDeletion(t, nil, nil, nil, client, manager, nil)
 
 			// when
 			err := deletion.deleteKymaCrds()
@@ -262,7 +266,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 			requireNoKymaCrdsOnTheCluster(t, client)
 			manager := &mocks.ResourceManager{}
 			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
-			deletion := newDeletion(t, nil, nil, client, manager, nil)
+			deletion := newDeletion(t, nil, nil, nil, client, manager, nil)
 
 			// when
 			err := deletion.deleteKymaCrds()
@@ -281,7 +285,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 			requireNoGenericCrdsOnTheCluster(t, client)
 			manager := &mocks.ResourceManager{}
 			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
-			deletion := newDeletion(t, nil, nil, client, manager, nil)
+			deletion := newDeletion(t, nil, nil, nil, client, manager, nil)
 
 			// when
 			err := deletion.deleteKymaCrds()
@@ -300,7 +304,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 			requireNoGenericCrdsOnTheCluster(t, client)
 			manager := &mocks.ResourceManager{}
 			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
-			deletion := newDeletion(t, nil, nil, client, manager, nil)
+			deletion := newDeletion(t, nil, nil, nil, client, manager, nil)
 
 			// when
 			err := deletion.deleteKymaCrds()
@@ -318,7 +322,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 			requireNoCrdsOnTheCluster(t, client)
 			manager := &mocks.ResourceManager{}
 			manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
-			deletion := newDeletion(t, nil, nil, client, manager, nil)
+			deletion := newDeletion(t, nil, nil, nil, client, manager, nil)
 
 			// when
 			err := deletion.deleteKymaCrds()
@@ -345,7 +349,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 				func(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOps metav1.ListOptions) error {
 					return deleteAllMockObjs(t, client, crdsV1, fixCrdGvrV1())
 				})
-			deletion := newDeletion(t, nil, nil, client, manager, nil)
+			deletion := newDeletion(t, nil, nil, nil, client, manager, nil)
 
 			// when
 			err := deletion.deleteKymaCrds()
@@ -375,7 +379,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 				func(gvk schema.GroupVersionKind, opts metav1.DeleteOptions, listOps metav1.ListOptions) error {
 					return deleteAllMockObjs(t, client, crdsV1, fixCrdGvrV1())
 				})
-			deletion := newDeletion(t, nil, nil, client, manager, nil)
+			deletion := newDeletion(t, nil, nil, nil, client, manager, nil)
 
 			// when
 			err := deletion.deleteKymaCrds()
@@ -400,7 +404,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 					return deleteAllMockObjs(t, client, crdsLabeledByKyma, fixCrdGvrV1Beta1())
 				})
 			manager.On("DeleteCollectionOfResources", fixCrdGvkV1(), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
-			deletion := newDeletion(t, nil, nil, client, manager, nil)
+			deletion := newDeletion(t, nil, nil, nil, client, manager, nil)
 
 			// when
 			err := deletion.deleteKymaCrds()
@@ -425,7 +429,7 @@ func TestPostUninstaller_UninstallCRDs(t *testing.T) {
 					return deleteAllMockObjs(t, client, crdsV1Beta1, fixCrdGvrV1Beta1())
 				})
 			manager.On("DeleteCollectionOfResources", fixCrdGvkV1(), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(errors.New("Error"))
-			deletion := newDeletion(t, nil, nil, client, manager, nil)
+			deletion := newDeletion(t, nil, nil, nil, client, manager, nil)
 
 			// when
 			err := deletion.deleteKymaCrds()
@@ -459,9 +463,10 @@ func TestDeployment_DeleteNamespaces(t *testing.T) {
 			},
 		})
 	dynamicClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), fixCrdGvrMap())
+	apixClient := apixv1beta1fake.NewSimpleClientset().ApiextensionsV1beta1()
 	manager := &mocks.ResourceManager{}
 	manager.On("DeleteCollectionOfResources", mock.AnythingOfType("schema.GroupVersionKind"), mock.AnythingOfType("v1.DeleteOptions"), mock.AnythingOfType("v1.ListOptions")).Return(nil)
-	i := newDeletion(t, nil, kubeClient, dynamicClient, manager, nil)
+	i := newDeletion(t, nil, kubeClient, apixClient, dynamicClient, manager, nil)
 
 	t.Run("should uninstall components and Kyma namespaces", func(t *testing.T) {
 		t.Run("without errors", func(t *testing.T) {
@@ -518,7 +523,7 @@ func TestDeployment_DeleteNamespaces(t *testing.T) {
 		retry.Attempts(1),
 		retry.DelayType(retry.FixedDelay),
 	}
-	i = newDeletion(t, nil, kubeClientWithPod, dynamicClient, manager, retryOpts)
+	i = newDeletion(t, nil, kubeClientWithPod, apixClient, dynamicClient, manager, retryOpts)
 
 	t.Run("should uninstall components and fail to uninstall Kyma namespaces", func(t *testing.T) {
 		t.Run("due to running Pods", func(t *testing.T) {
@@ -547,7 +552,7 @@ func TestDeployment_DeleteNamespaces(t *testing.T) {
 }
 
 // Pass optionally an receiver-channel to get progress updates
-func newDeletion(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, manager ResourceManager, retryOptions []retry.Option) *Deletion {
+func newDeletion(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kubernetes.Interface, apixClient apixv1beta1client.ApiextensionsV1beta1Interface, dynamicClient dynamic.Interface, manager ResourceManager, retryOptions []retry.Option) *Deletion {
 	compList, err := config.NewComponentList("../test/data/componentlist.yaml")
 	assert.NoError(t, err)
 	cfg := &config.Config{
@@ -560,7 +565,7 @@ func newDeletion(t *testing.T, procUpdates func(ProcessUpdate), kubeClient kuber
 	}
 	core := newCore(cfg, &overrides.Builder{}, kubeClient, procUpdates)
 	metaProv := helm.GetKymaMetadataProvider(kubeClient)
-	return &Deletion{core, metaProv, nil, dynamicClient, manager, retryOptions}
+	return &Deletion{core, metaProv, apixClient, dynamicClient, manager, retryOptions}
 }
 
 func createThreeCrdsUsingGivenNamesAndApply(t *testing.T, client *dynamicfake.FakeDynamicClient, gvr schema.GroupVersionResource, api, version, label, value, name1, name2, name3 string) []unstructured.Unstructured {
