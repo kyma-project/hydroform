@@ -266,54 +266,54 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 
 		go func(ns string) {
 			defer wg.Done()
-			if ns == "kyma-system" {
-				// All the hacks below should be deleted after this issue is done: https://github.com/kyma-project/kyma/issues/11298
-
-				//HACK: Delete finalizers of leftover Secret
-				secret, err := i.kubeClient.CoreV1().Secrets(ns).Get(context.Background(), "serverless-registry-config-default", metav1.GetOptions{})
-				if err != nil && !apierr.IsNotFound(err) {
-					errorCh <- err
-				}
-				if secret != nil {
-					secret.Finalizers = []string{}
-					if _, err := i.kubeClient.CoreV1().Secrets(ns).Update(context.Background(), secret, metav1.UpdateOptions{}); err != nil {
+			// All the hacks below should be deleted after this issue is done: https://github.com/kyma-project/kyma/issues/11298
+			//HACK: Delete finalizers of leftover Secret
+			secrets, err := i.kubeClient.CoreV1().Secrets(ns).List(context.Background(), metav1.ListOptions{LabelSelector: "serverless.kyma-project.io/config=credentials"})
+			if err != nil && !apierr.IsNotFound(err) {
+				errorCh <- err
+			}
+			if secrets != nil {
+				for _, secret := range secrets.Items {
+					secret.SetFinalizers(nil)
+					if _, err := i.kubeClient.CoreV1().Secrets(ns).Update(context.Background(), &secret, metav1.UpdateOptions{}); err != nil {
 						errorCh <- err
 					}
 					i.cfg.Log.Infof("Deleted finalizer from Secret: %s", secret.Name)
 				}
+			}
 
-				//HACK: Delete finalizers of leftover Custom Resources
-				crds, err := i.apixClient.CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					errorCh <- err
-				}
+			//HACK: Delete finalizers of leftover Custom Resources
+			crds, err := i.apixClient.CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
+			if err != nil && !apierr.IsNotFound(err) {
+				errorCh <- err
+			}
 
-				if crds != nil {
-					for _, crd := range crds.Items {
-						customResource := schema.GroupVersionResource{
-							Group:    crd.Spec.Group,
-							Version:  crd.Spec.Version,
-							Resource: crd.Spec.Names.Plural,
-						}
+			if crds != nil {
+				for _, crd := range crds.Items {
+					customResource := schema.GroupVersionResource{
+						Group:    crd.Spec.Group,
+						Version:  crd.Spec.Version,
+						Resource: crd.Spec.Names.Plural,
+					}
 
-						customResourceList, err := i.dClient.Resource(customResource).Namespace(ns).List(context.Background(), metav1.ListOptions{})
-						if err != nil && !apierr.IsNotFound(err) {
-							errorCh <- err
-						}
-						if customResourceList != nil {
-							for _, cr := range customResourceList.Items {
-								cr.SetFinalizers(nil)
-								_, err := i.dClient.Resource(customResource).Namespace(ns).Update(context.Background(), &cr, metav1.UpdateOptions{})
-								if err != nil {
-									errorCh <- err
-								}
-								i.cfg.Log.Infof("Deleted finalizer from %s: %s", cr.GetKind(), cr.GetName())
+					customResourceList, err := i.dClient.Resource(customResource).Namespace(ns).List(context.Background(), metav1.ListOptions{})
+					if err != nil && !apierr.IsNotFound(err) {
+						errorCh <- err
+					}
+					if customResourceList != nil {
+						for _, cr := range customResourceList.Items {
+							cr.SetFinalizers(nil)
+							_, err := i.dClient.Resource(customResource).Namespace(ns).Update(context.Background(), &cr, metav1.UpdateOptions{})
+							if err != nil {
+								errorCh <- err
 							}
+							i.cfg.Log.Infof("Deleted finalizer from %s: %s", cr.GetKind(), cr.GetName())
 						}
 					}
 				}
 			}
-			err := retry.Do(func() error {
+
+			err = retry.Do(func() error {
 				//remove namespace
 				if err := i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{}); err != nil && !apierr.IsNotFound(err) {
 					errorCh <- err
