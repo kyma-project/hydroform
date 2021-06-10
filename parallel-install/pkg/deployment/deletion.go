@@ -274,16 +274,18 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 			}
 			if secrets != nil {
 				for _, secret := range secrets.Items {
-					secret.SetFinalizers(nil)
-					if _, err := i.kubeClient.CoreV1().Secrets(ns).Update(context.Background(), &secret, metav1.UpdateOptions{}); err != nil {
-						errorCh <- err
+					if len(secret.GetFinalizers()) > 0 {
+						secret.SetFinalizers(nil)
+						if _, err := i.kubeClient.CoreV1().Secrets(ns).Update(context.Background(), &secret, metav1.UpdateOptions{}); err != nil {
+							errorCh <- err
+						}
+						i.cfg.Log.Infof("Deleted finalizer from Secret: %s", secret.Name)
 					}
-					i.cfg.Log.Infof("Deleted finalizer from Secret: %s", secret.Name)
 				}
 			}
 
 			//HACK: Delete finalizers of leftover Custom Resources
-			crds, err := i.apixClient.CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
+			crds, err := i.apixClient.CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{LabelSelector: "origin=kyma"})
 			if err != nil && !apierr.IsNotFound(err) {
 				errorCh <- err
 			}
@@ -302,12 +304,14 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 					}
 					if customResourceList != nil {
 						for _, cr := range customResourceList.Items {
-							cr.SetFinalizers(nil)
-							_, err := i.dClient.Resource(customResource).Namespace(ns).Update(context.Background(), &cr, metav1.UpdateOptions{})
-							if err != nil {
-								errorCh <- err
+							if len(cr.GetFinalizers()) > 0 {
+								cr.SetFinalizers(nil)
+								_, err := i.dClient.Resource(customResource).Namespace(ns).Update(context.Background(), &cr, metav1.UpdateOptions{})
+								if err != nil {
+									errorCh <- err
+								}
+								i.cfg.Log.Infof("Deleted finalizer from %s: %s", cr.GetKind(), cr.GetName())
 							}
-							i.cfg.Log.Infof("Deleted finalizer from %s: %s", cr.GetKind(), cr.GetName())
 						}
 					}
 				}
