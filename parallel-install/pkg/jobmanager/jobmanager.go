@@ -73,7 +73,7 @@ func ExecutePost(ctx context.Context, c string) {
 
 func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup, j job) {
 	defer wg.Done()
-	if err := j.execute(cfg, kubeClient); err != nil { // TODO> Need to figure out how to pass config and K8s client
+	if err := j.execute(cfg, kubeClient); err != nil {
 		statusChan <- jobStatus{j.identify(), false}
 	} else {
 		statusChan <- jobStatus{j.identify(), true}
