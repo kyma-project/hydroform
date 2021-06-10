@@ -11,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 
 	"github.com/avast/retry-go"
-	"github.com/kubernetes-sigs/service-catalog/pkg/client/clientset_generated/clientset"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
@@ -19,6 +18,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
+	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -30,7 +30,7 @@ import (
 type Deletion struct {
 	*core
 	mp              *helm.KymaMetadataProvider
-	scclient        *clientset.Clientset
+	apixClient      *apixv1beta1client.ApiextensionsV1beta1Client
 	dClient         dynamic.Interface
 	resourceManager ResourceManager
 	retryOptions    []retry.Option
@@ -52,12 +52,12 @@ func NewDeletion(cfg *config.Config, ob *overrides.Builder, processUpdates func(
 		return nil, err
 	}
 
-	scclient, err := clientset.NewForConfig(restConfig)
+	dClient, err := dynamic.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	dClient, err := dynamic.NewForConfig(restConfig)
+	apixClient, err := apixv1beta1client.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func NewDeletion(cfg *config.Config, ob *overrides.Builder, processUpdates func(
 		return nil, err
 	}
 
-	return &Deletion{core, mp, scclient, dClient, resourceManager, retryOptions}, nil
+	return &Deletion{core, mp, apixClient, dClient, resourceManager, retryOptions}, nil
 }
 
 //StartKymaUninstallation removes Kyma from a cluster
@@ -268,37 +268,6 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 			defer wg.Done()
 			if ns == "kyma-system" {
 				// All the hacks below should be deleted after this issue is done: https://github.com/kyma-project/kyma/issues/11298
-				//HACK: Delete finalizers of leftover Cluster Service Brokers
-				csbList, err := i.scclient.ServicecatalogV1beta1().ClusterServiceBrokers().List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					errorCh <- err
-				}
-				if csbList != nil {
-					for _, csb := range csbList.Items {
-						csb.Finalizers = []string{}
-						_, err := i.scclient.ServicecatalogV1beta1().ClusterServiceBrokers().Update(context.Background(), &csb, metav1.UpdateOptions{})
-						if err != nil {
-							errorCh <- err
-						}
-						i.cfg.Log.Infof("Deleted finalizer from CSB: %s", csb.Name)
-					}
-				}
-
-				//HACK: Delete finalizers of leftover Service Brokers
-				sbList, err := i.scclient.ServicecatalogV1beta1().ServiceBrokers(ns).List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					errorCh <- err
-				}
-				if sbList != nil {
-					for _, sb := range sbList.Items {
-						sb.Finalizers = []string{}
-						_, err := i.scclient.ServicecatalogV1beta1().ServiceBrokers(ns).Update(context.Background(), &sb, metav1.UpdateOptions{})
-						if err != nil {
-							errorCh <- err
-						}
-						i.cfg.Log.Infof("Deleted finalizer from SB: %s", sb.Name)
-					}
-				}
 
 				//HACK: Delete finalizers of leftover Secret
 				secret, err := i.kubeClient.CoreV1().Secrets(ns).Get(context.Background(), "serverless-registry-config-default", metav1.GetOptions{})
@@ -313,120 +282,53 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 					i.cfg.Log.Infof("Deleted finalizer from Secret: %s", secret.Name)
 				}
 
-				//HACK: Delete finalizers of leftover ORY Rules
-				ruleResource := schema.GroupVersionResource{
-					Group:    "oathkeeper.ory.sh",
-					Version:  "v1alpha1",
-					Resource: "rules",
-				}
-
-				rules, err := i.dClient.Resource(ruleResource).Namespace(ns).List(context.Background(), metav1.ListOptions{})
+				//HACK: Delete finalizers of leftover Custom Resources
+				crds, err := i.apixClient.CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					errorCh <- err
 				}
-				if rules != nil {
-					for _, rule := range rules.Items {
-						rule.SetFinalizers(nil)
-						_, err := i.dClient.Resource(ruleResource).Namespace(ns).Update(context.Background(), &rule, metav1.UpdateOptions{})
-						if err != nil {
+
+				if crds != nil {
+					for _, crd := range crds.Items {
+						customResource := schema.GroupVersionResource{
+							Group:    crd.Spec.Group,
+							Version:  crd.Spec.Version,
+							Resource: crd.Spec.Names.Plural,
+						}
+
+						customResourceList, err := i.dClient.Resource(customResource).Namespace(ns).List(context.Background(), metav1.ListOptions{})
+						if err != nil && !apierr.IsNotFound(err) {
 							errorCh <- err
 						}
-						i.cfg.Log.Infof("Deleted finalizer from Rule: %s", rule.GetName())
-					}
-				}
-
-				//HACK: Delete finalizers of leftover ORY OAuth2 Clients
-				authClientResource := schema.GroupVersionResource{
-					Group:    "hydra.ory.sh",
-					Version:  "v1alpha1",
-					Resource: "oauth2clients",
-				}
-
-				authClients, err := i.dClient.Resource(authClientResource).Namespace(ns).List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					errorCh <- err
-				}
-				for _, client := range authClients.Items {
-					client.SetFinalizers(nil)
-					_, err := i.dClient.Resource(authClientResource).Namespace(ns).Update(context.Background(), &client, metav1.UpdateOptions{})
-					if err != nil {
-						errorCh <- err
-					}
-					i.cfg.Log.Infof("Deleted finalizer from ORY OAuth Client: %s", client.GetName())
-				}
-
-				//HACK: Delete finalizers of leftover Usage Kinds
-				ukResource := schema.GroupVersionResource{
-					Group:    "servicecatalog.kyma-project.io",
-					Version:  "v1alpha1",
-					Resource: "usagekinds",
-				}
-
-				kinds, err := i.dClient.Resource(ukResource).List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					errorCh <- err
-				}
-				if kinds != nil {
-					for _, kind := range kinds.Items {
-						kind.SetFinalizers(nil)
-						_, err := i.dClient.Resource(ukResource).Update(context.Background(), &kind, metav1.UpdateOptions{})
-						if err != nil {
-							errorCh <- err
-						}
-						i.cfg.Log.Infof("Deleted finalizer from Usage Kind: %s", kind.GetName())
-					}
-				}
-
-				//HACK: Delete finalizers of leftover Cluster Assets
-				caResource := schema.GroupVersionResource{
-					Group:    "rafter.kyma-project.io",
-					Version:  "v1beta1",
-					Resource: "clusterassets",
-				}
-
-				assets, err := i.dClient.Resource(caResource).List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					errorCh <- err
-				}
-				if assets != nil {
-					for _, asset := range assets.Items {
-						asset.SetFinalizers(nil)
-						_, err := i.dClient.Resource(caResource).Update(context.Background(), &asset, metav1.UpdateOptions{})
-						if err != nil {
-							errorCh <- err
-						}
-						i.cfg.Log.Infof("Deleted finalizer from Cluster Asset: %s", asset.GetName())
-					}
-				}
-
-				//HACK: Delete finalizers of leftover Cluster Buckets
-				cbResource := schema.GroupVersionResource{
-					Group:    "rafter.kyma-project.io",
-					Version:  "v1beta1",
-					Resource: "clusterbuckets",
-				}
-
-				buckets, err := i.dClient.Resource(cbResource).List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					errorCh <- err
-				}
-				if buckets != nil {
-					for _, bucket := range buckets.Items {
-						bucket.SetFinalizers(nil)
-						_, err := i.dClient.Resource(cbResource).Update(context.Background(), &bucket, metav1.UpdateOptions{})
-						if err != nil {
-							errorCh <- err
-						}
-						i.cfg.Log.Infof("Deleted finalizer from Cluster Bucket: %s", bucket.GetName())
-						err = i.dClient.Resource(cbResource).Delete(context.Background(), bucket.GetName(), metav1.DeleteOptions{})
-						if err != nil {
-							errorCh <- err
+						if customResourceList != nil {
+							for _, cr := range customResourceList.Items {
+								cr.SetFinalizers(nil)
+								_, err := i.dClient.Resource(customResource).Namespace(ns).Update(context.Background(), &cr, metav1.UpdateOptions{})
+								if err != nil {
+									errorCh <- err
+								}
+								i.cfg.Log.Infof("Deleted finalizer from %s: %s", cr.GetKind(), cr.GetName())
+							}
 						}
 					}
 				}
 			}
-			//remove namespace
-			if err := i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{}); err != nil && !apierr.IsNotFound(err) {
+			err := retry.Do(func() error {
+				//remove namespace
+				if err := i.kubeClient.CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{}); err != nil && !apierr.IsNotFound(err) {
+					errorCh <- err
+				}
+
+				nsT, err := i.kubeClient.CoreV1().Namespaces().Get(context.Background(), ns, metav1.GetOptions{})
+				if err != nil && !apierr.IsNotFound(err) {
+					errorCh <- err
+				} else if apierr.IsNotFound(err) {
+					return nil
+				}
+				i.cfg.Log.Infof("Namespace '%s' still exists with Phase: '%s'", nsT.Name, nsT.Status.Phase)
+				return fmt.Errorf("Namespace '%s' still exists with Phase: '%s'", nsT.Name, nsT.Status.Phase)
+			}, i.retryOptions...)
+			if err != nil {
 				errorCh <- err
 			}
 			i.cfg.Log.Infof("Namespace '%s' is removed", ns)
