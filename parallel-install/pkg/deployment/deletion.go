@@ -30,7 +30,7 @@ import (
 type Deletion struct {
 	*core
 	mp              *helm.KymaMetadataProvider
-	apixClient      *apixv1beta1client.ApiextensionsV1beta1Client
+	apixClient      apixv1beta1client.ApiextensionsV1beta1Interface
 	dClient         dynamic.Interface
 	resourceManager ResourceManager
 	retryOptions    []retry.Option
