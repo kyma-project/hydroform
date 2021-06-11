@@ -19,9 +19,8 @@ type job1 struct{}
 
 var _ = register(job1{})
 
-func (j job1) execute(cfg *config.Config, kubeClient kubernetes.Interface) error {
+func (j job1) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
 	fmt.Println("\nStart of sample Job")
-	ctx := context.TODO()
 
 	namespace := "kyma-system"
 	pvc := "storage-logging-loki-0"

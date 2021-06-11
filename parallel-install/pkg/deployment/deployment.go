@@ -197,9 +197,9 @@ InstallLoop:
 		}
 	}
 	// Only will be executed if Kyma deploy was successfull
-	//if phase == InstallComponents {
-	//	jobmanager.ExecutePost("global")
-	//}
+	if phase == InstallComponents {
+		jobmanager.ExecutePost(ctx, "global")
+	}
 
 	i.processUpdate(phase, ProcessFinished, nil)
 	return nil

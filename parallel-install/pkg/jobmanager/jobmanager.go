@@ -22,7 +22,7 @@ type jobStatus struct {
 
 // Define type for jobs
 type job interface {
-	execute(*config.Config, kubernetes.Interface) error
+	execute(*config.Config, kubernetes.Interface, context.Context) error
 	when() (component, executionTime)
 	identify() jobName
 }
@@ -92,18 +92,13 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 	}()
 	emptyJob := jobStatus{}
 	for status := range statusChan {
-		fmt.Printf("\nJob Status: %+v\n", status)
-
 		if status != emptyJob {
 			if status.status == true {
 				fmt.Printf("Following job executed: %v", status.job)
 			} else if status.status == false {
 				fmt.Printf("Following job failed while execution: %v", status.job)
 			}
-		} else {
-			fmt.Println("Empty Job")
 		}
-
 	}
 
 	t := time.Now()
@@ -112,15 +107,13 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 
 func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup, j job) {
 	defer wg.Done()
-	if err := j.execute(cfg, kubeClient); err != nil {
+	if err := j.execute(cfg, kubeClient, ctx); err != nil {
 		j := jobStatus{j.identify(), false}
 		statusChan <- j
 	} else {
 		j := jobStatus{j.identify(), true}
 		statusChan <- j
 	}
-	fmt.Printf("\n JobStatus: %v\n", j)
-
 }
 
 // Returns duration of all jobs for benchmarking
