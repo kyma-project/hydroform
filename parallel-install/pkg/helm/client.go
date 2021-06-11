@@ -20,6 +20,7 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -154,6 +155,15 @@ func (c *Client) upgradeRelease(namespace, name string, overrides map[string]int
 	upgrade := c.newUpgrade(cfg)
 	c.cfg.Log.Infof("%s Starting upgrade for release %s in namespace %s", logPrefix, name, namespace)
 	rel, err := upgrade.Run(name, chart, overrides)
+	if rel != nil {
+		if errUpdateMeta := c.updateKymaMetadata(cfg, rel); errUpdateMeta != nil {
+			if err != nil {
+				return errors.Wrap(err, errUpdateMeta.Error())
+			}
+			return errUpdateMeta
+		}
+	}
+
 	if err != nil {
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 		return err
@@ -162,10 +172,6 @@ func (c *Client) upgradeRelease(namespace, name string, overrides map[string]int
 	if rel == nil || rel.Info == nil {
 		err = fmt.Errorf("Failed to upgrade %s. Status: %v", name, "Unknown")
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
-		return err
-	}
-
-	if err := c.updateKymaMetadata(cfg, rel); err != nil {
 		return err
 	}
 
@@ -189,6 +195,15 @@ func (c *Client) installRelease(namespace, name string, overrides map[string]int
 
 	c.cfg.Log.Infof("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
 	rel, err := install.Run(chart, overrides)
+	if rel != nil {
+		if errUpdateMeta := c.updateKymaMetadata(cfg, rel); errUpdateMeta != nil {
+			if err != nil {
+				return errors.Wrap(err, errUpdateMeta.Error())
+			}
+			return errUpdateMeta
+		}
+	}
+
 	if err != nil {
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 		return err
@@ -197,10 +212,6 @@ func (c *Client) installRelease(namespace, name string, overrides map[string]int
 	if rel == nil || rel.Info == nil {
 		err = fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
-		return err
-	}
-
-	if err := c.updateKymaMetadata(cfg, rel); err != nil {
 		return err
 	}
 
