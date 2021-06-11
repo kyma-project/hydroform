@@ -2,6 +2,7 @@ package jobmanager
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -71,16 +72,6 @@ func ExecutePost(ctx context.Context, c string) {
 	execute(ctx, c, postJobMap)
 }
 
-func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup, j job) {
-	defer wg.Done()
-	if err := j.execute(cfg, kubeClient); err != nil {
-		statusChan <- jobStatus{j.identify(), false}
-	} else {
-		statusChan <- jobStatus{j.identify(), true}
-	}
-
-}
-
 func execute(ctx context.Context, c string, executionMap map[component][]job) {
 	var wg sync.WaitGroup
 	statusChan := make(chan jobStatus)
@@ -99,17 +90,37 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 		wg.Wait()
 		close(statusChan)
 	}()
-
+	emptyJob := jobStatus{}
 	for status := range statusChan {
-		if status.status == true {
-			Log.Info("Following job executed: %v", status.job)
-		} else if status.status == false {
-			Log.Fatal("Following job failed while execution: %v", status.job)
+		fmt.Printf("\nJob Status: %+v\n", status)
+
+		if status != emptyJob {
+			if status.status == true {
+				fmt.Printf("Following job executed: %v", status.job)
+			} else if status.status == false {
+				fmt.Printf("Following job failed while execution: %v", status.job)
+			}
+		} else {
+			fmt.Println("Empty Job")
 		}
+
 	}
 
 	t := time.Now()
 	duration += t.Sub(start)
+}
+
+func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup, j job) {
+	defer wg.Done()
+	if err := j.execute(cfg, kubeClient); err != nil {
+		j := jobStatus{j.identify(), false}
+		statusChan <- j
+	} else {
+		j := jobStatus{j.identify(), true}
+		statusChan <- j
+	}
+	fmt.Printf("\n JobStatus: %v\n", j)
+
 }
 
 // Returns duration of all jobs for benchmarking
