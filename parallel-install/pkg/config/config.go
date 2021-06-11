@@ -53,8 +53,10 @@ type Config struct {
 	Version string
 	// Reuse Helm chart values for upgrade
 	ReuseHelmValues bool
-	//Atomic deployment
+	// Atomic deployment
 	Atomic bool
+	// Keep Kyma CRDs during deletion
+	KeepCRDs bool
 }
 
 // KubeconfigSource aggregates kubeconfig in a form of either a path or a raw content.
