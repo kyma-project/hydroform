@@ -29,7 +29,7 @@ func (j job1) identify() jobName {
 
 func (j job1) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
 	ctx.Done()
-	fmt.Println("\nStart of sample Job")
+	zapLogger.Info("Start of sample Job")
 
 	namespace := "kyma-system"
 	pvc := "storage-logging-loki-0"
@@ -40,16 +40,16 @@ func (j job1) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx c
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			fmt.Printf("\nPVC %s in namespace %s not found -> Skipping Job", pvc, namespace)
+			zapLogger.Infof("PVC %s in namespace %s not found -> Skipping Job", pvc, namespace)
 		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
-			fmt.Printf("\nError getting PVC %s in namespace %s: %v -> Skipping Job",
+			zapLogger.Infof("Error getting PVC %s in namespace %s: %v -> Skipping Job",
 				pvc, namespace, statusError.ErrStatus.Message)
 		} else if err != nil {
-			fmt.Printf("\nError in get PVC: %s -> Skipping Job", err.Error())
+			zapLogger.Infof("Error in get PVC: %s -> Skipping Job", err.Error())
 		}
 		return err
 	} else {
-		fmt.Printf("\nFound PVC %s in namespace %s\n", pvc, namespace)
+		zapLogger.Infof("Found PVC %s in namespace %s", pvc, namespace)
 
 		pvcStorageSize := pvcReturn.Spec.Resources.Requests.Storage().String()
 		re := regexp.MustCompile(`[-]?\d[\d,]*[\.]?[\d{2}]*`)
@@ -58,31 +58,31 @@ func (j job1) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx c
 		curSize, err := strconv.Atoi(string(submatch))
 		if err != nil {
 		}
-		fmt.Printf("CurSiyze: %d TarSize %d\n", curSize, targetPVCSize)
+		zapLogger.Infof("CurSiyze: %d TarSize %d", curSize, targetPVCSize)
 		if curSize != targetPVCSize {
 			err := kubeClient.AppsV1().StatefulSets(namespace).Delete(ctx, statefulset, metav1.DeleteOptions{})
 			if err != nil {
-				fmt.Printf("\nError while deleting StatefulSet: %s", err)
+				zapLogger.Infof("Error while deleting StatefulSet: %s", err)
 			} else {
-				fmt.Println("\nDeleted StatefulSet")
+				zapLogger.Info("Deleted StatefulSet")
 			}
 
 			finalTargetSize := constructSizeString(targetPVCSize)
-			fmt.Printf("\nFinal PVC Size: %s\n", finalTargetSize)
+			zapLogger.Infof("Final PVC Size: %s", finalTargetSize)
 			jsonPatch := []byte(fmt.Sprintf(`{ "spec": { "resources": { "requests": {"storage": "%s"}}}}`, finalTargetSize))
 			res, err := kubeClient.CoreV1().PersistentVolumeClaims(namespace).Patch(ctx, pvc, types.MergePatchType, jsonPatch, metav1.PatchOptions{})
-			fmt.Printf("Result of Patch %s\n", res)
+			zapLogger.Infof("Result of Patch %s", res)
 			if errors.IsNotFound(err) {
-				fmt.Printf("PVC %s in namespace %s not found\n", pvc, namespace)
+				zapLogger.Infof("PVC %s in namespace %s not found", pvc, namespace)
 			} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
-				fmt.Printf("Error adjust PVC size%s in namespace %s: %v\n",
+				zapLogger.Infof("Error adjust PVC size%s in namespace %s: %v",
 					pvc, namespace, statusError.ErrStatus.Message)
 			} else if err != nil {
 				panic(err.Error())
 			}
 
 		} else {
-			fmt.Printf("Following job is skipped, due to current cluster state: %s\n", "exampleJob")
+			zapLogger.Infof("Following job is skipped, due to current cluster state: %s", "exampleJob")
 		}
 
 		return nil

@@ -2,12 +2,15 @@ package jobmanager
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-project/kyma/common/logging/logger"
 	"k8s.io/client-go/kubernetes"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 type component string
@@ -17,6 +20,7 @@ type jobName string
 type jobStatus struct {
 	job    jobName
 	status bool
+	err    error
 }
 
 type job interface {
@@ -37,6 +41,8 @@ var postJobMap = make(map[component][]job)
 
 var kubeClient kubernetes.Interface
 var cfg *config.Config
+
+var zapLogger *zap.SugaredLogger
 
 // Register job
 func register(j job) int {
@@ -94,12 +100,12 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 
 	emptyJob := jobStatus{}
 	for status := range statusChan {
-		fmt.Printf("Job Status: %v\n", status)
+		zapLogger.Infof("Job Status: %v", status)
 		if status != emptyJob {
 			if status.status == true {
-				fmt.Printf("Following job executed: %v\n", status.job)
+				zapLogger.Infof("Following job executed: %v", status.job)
 			} else if status.status == false {
-				fmt.Printf("Following job failed while execution: %v\n", status.job)
+				zapLogger.Infof("Following job failed while execution: `%v` with error: %s", status.job, status.err)
 			}
 		}
 	}
@@ -111,20 +117,27 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup, j job) {
 	defer wg.Done()
 	if err := j.execute(cfg, kubeClient, ctx); err != nil {
-		j := jobStatus{j.identify(), false}
+		j := jobStatus{j.identify(), false, nil}
 		statusChan <- j
 	} else {
-		j := jobStatus{j.identify(), true}
+		j := jobStatus{j.identify(), true, err}
 		statusChan <- j
 	}
 }
 
 // Returns duration of all jobs for benchmarking
 func GetDuration() time.Duration {
+	zapLogger.Infof("Duration of runned jobs: %d", duration)
 	return duration
 }
 
 func init() {
 	duration = 0 * time.Second
-	//Log = logger.NewLogger(true)
+
+	core, _ := observer.New(zap.DebugLevel)
+	log, _ := logger.New(logger.TEXT, logger.INFO, core)
+	zapLogger = log.WithContext()
+
+	zapLogger.Desugar().WithOptions(zap.AddCaller())
+
 }
