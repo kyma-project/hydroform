@@ -24,12 +24,12 @@ func (j job1) when() (component, executionTime) {
 }
 
 func (j job1) identify() jobName {
-	return jobName("exampleJob")
+	return jobName("increaseLoggingPvcSize")
 }
 
 func (j job1) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
 	ctx.Done()
-	zapLogger.Info("Start of sample Job")
+	zapLogger.Infof("Start of %s", j.identify())
 
 	namespace := "kyma-system"
 	pvc := "storage-logging-loki-0"
@@ -40,12 +40,12 @@ func (j job1) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx c
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			zapLogger.Infof("PVC %s in namespace %s not found -> Skipping Job", pvc, namespace)
+			zapLogger.Debugf("PVC %s in namespace %s not found -> Skipping Job", pvc, namespace)
 		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
-			zapLogger.Infof("Error getting PVC %s in namespace %s: %v -> Skipping Job",
+			zapLogger.Debugf("Error getting PVC %s in namespace %s: %v -> Skipping Job",
 				pvc, namespace, statusError.ErrStatus.Message)
 		} else if err != nil {
-			zapLogger.Infof("Error in get PVC: %s -> Skipping Job", err.Error())
+			zapLogger.Debugf("Error in get PVC: %s -> Skipping Job", err.Error())
 		}
 		return err
 	} else {
@@ -58,31 +58,29 @@ func (j job1) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx c
 		curSize, err := strconv.Atoi(string(submatch))
 		if err != nil {
 		}
-		zapLogger.Infof("CurSiyze: %d TarSize %d", curSize, targetPVCSize)
+		zapLogger.Debugf("CurSiyze: %d TarSize %d", curSize, targetPVCSize)
 		if curSize != targetPVCSize {
 			err := kubeClient.AppsV1().StatefulSets(namespace).Delete(ctx, statefulset, metav1.DeleteOptions{})
 			if err != nil {
-				zapLogger.Infof("Error while deleting StatefulSet: %s", err)
+				zapLogger.Warnf("Error deleting StatefulSet: %s", err)
+				return err
 			} else {
-				zapLogger.Info("Deleted StatefulSet")
+				zapLogger.Debug("Deleted StatefulSet")
 			}
 
 			finalTargetSize := constructSizeString(targetPVCSize)
-			zapLogger.Infof("Final PVC Size: %s", finalTargetSize)
+			zapLogger.Debugf("Final PVC Size: %s", finalTargetSize)
 			jsonPatch := []byte(fmt.Sprintf(`{ "spec": { "resources": { "requests": {"storage": "%s"}}}}`, finalTargetSize))
 			res, err := kubeClient.CoreV1().PersistentVolumeClaims(namespace).Patch(ctx, pvc, types.MergePatchType, jsonPatch, metav1.PatchOptions{})
-			zapLogger.Infof("Result of Patch %s", res)
-			if errors.IsNotFound(err) {
-				zapLogger.Infof("PVC %s in namespace %s not found", pvc, namespace)
-			} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
-				zapLogger.Infof("Error adjust PVC size%s in namespace %s: %v",
-					pvc, namespace, statusError.ErrStatus.Message)
-			} else if err != nil {
-				panic(err.Error())
+
+			zapLogger.Debugf("Result of Patch %s", res)
+			if err != nil {
+				zapLogger.Warnf("Error patching PVC: %s", err)
+				return err
 			}
 
 		} else {
-			zapLogger.Infof("Following job is skipped, due to current cluster state: %s", "exampleJob")
+			zapLogger.Infof("Job %s skipped", j.identify())
 		}
 
 		return nil

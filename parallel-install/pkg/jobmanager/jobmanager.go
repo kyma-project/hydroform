@@ -100,7 +100,7 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 
 	emptyJob := jobStatus{}
 	for status := range statusChan {
-		zapLogger.Infof("Job Status: %v", status)
+		zapLogger.Debugf("Job Status: %v", status)
 		if status != emptyJob {
 			if status.status == true {
 				zapLogger.Infof("Following job executed: %v", status.job)
