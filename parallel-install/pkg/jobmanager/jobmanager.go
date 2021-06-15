@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -20,7 +19,6 @@ type jobStatus struct {
 	status bool
 }
 
-// Define type for jobs
 type job interface {
 	execute(*config.Config, kubernetes.Interface, context.Context) error
 	when() (component, executionTime)
@@ -40,8 +38,6 @@ var postJobMap = make(map[component][]job)
 var kubeClient kubernetes.Interface
 var cfg *config.Config
 
-var Log logger.Interface
-
 // Register job
 func register(j job) int {
 	component, executionTime := j.when()
@@ -53,50 +49,57 @@ func register(j job) int {
 	return 0
 }
 
+// Sets Installation Config at package level
 func SetConfig(config *config.Config) {
 	cfg = config
 }
 
+// Sets Kubernetes Cleint at package level
 func SetKubeClient(kc kubernetes.Interface) {
 	kubeClient = kc
 }
 
 // Function should be called before component is being deployed/upgraded
-// If the Context is cancelled, the worker quits immediately, skipping the remaining components.
+// If the Context is cancelled, the worker quits immediately, skipping the remaining components
 func ExecutePre(ctx context.Context, c string) {
 	execute(ctx, c, preJobMap)
 }
 
 // Function should be called after compoent is being deployed/upgraded
+// If the Context is cancelled, the worker quits immediately, skipping the remaining components
 func ExecutePost(ctx context.Context, c string) {
 	execute(ctx, c, postJobMap)
 }
 
+// Used by ExecutePre() && ExecutePost()
+// Used to start workers and grab jobs belonging to the respective component
 func execute(ctx context.Context, c string, executionMap map[component][]job) {
 	var wg sync.WaitGroup
-	statusChan := make(chan jobStatus)
 
 	start := time.Now()
 
 	jobs := executionMap[component(c)]
+	statusChan := make(chan jobStatus, len(jobs))
+	wg.Add(len(jobs))
+
 	if len(jobs) > 0 {
-		wg.Add(len(jobs))
 		for _, job := range jobs {
 			go worker(ctx, statusChan, &wg, job)
 		}
 	}
-
 	go func() {
 		wg.Wait()
 		close(statusChan)
 	}()
+
 	emptyJob := jobStatus{}
 	for status := range statusChan {
+		fmt.Printf("Job Status: %v\n", status)
 		if status != emptyJob {
 			if status.status == true {
-				fmt.Printf("Following job executed: %v", status.job)
+				fmt.Printf("Following job executed: %v\n", status.job)
 			} else if status.status == false {
-				fmt.Printf("Following job failed while execution: %v", status.job)
+				fmt.Printf("Following job failed while execution: %v\n", status.job)
 			}
 		}
 	}
