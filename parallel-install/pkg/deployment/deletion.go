@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	k8sRetry "k8s.io/client-go/util/retry"
 )
 
 //Deletion removes Kyma from a cluster
@@ -362,20 +363,34 @@ func (i *Deletion) cleanupFinalizers() error {
 			}
 			if customResourceList != nil {
 				for _, cr := range customResourceList.Items {
-					if len(cr.GetFinalizers()) > 0 {
-						i.cfg.Log.Infof("Deleting finalizer for \"%s\" %s", cr.GetName(), cr.GetKind())
-						cr.SetFinalizers(nil)
-						_, err := i.dClient.Resource(customResource).Namespace(cr.GetNamespace()).Update(context.Background(), &cr, metav1.UpdateOptions{})
-						if err != nil {
-							return err
-						}
-						i.cfg.Log.Infof("Deleted finalizer for \"%s\" %s", cr.GetName(), cr.GetKind())
-					}
-					if !i.cfg.KeepCRDs {
-						err = i.dClient.Resource(customResource).Namespace(cr.GetNamespace()).Delete(context.Background(), cr.GetName(), metav1.DeleteOptions{})
+					retryErr := k8sRetry.RetryOnConflict(k8sRetry.DefaultRetry, func() error {
+						// Retrieve the latest version of Custom Resource before attempting update
+						// RetryOnConflict uses exponential backoff to avoid exhausting the apiserver
+						res, err := i.dClient.Resource(customResource).Namespace(cr.GetNamespace()).Get(context.Background(), cr.GetName(), metav1.GetOptions{})
 						if err != nil && !apierr.IsNotFound(err) {
 							return err
 						}
+						if res != nil {
+							if len(res.GetFinalizers()) > 0 {
+								i.cfg.Log.Infof("Deleting finalizer for \"%s\" %s", res.GetName(), cr.GetKind())
+								res.SetFinalizers(nil)
+								_, err := i.dClient.Resource(customResource).Namespace(res.GetNamespace()).Update(context.Background(), res, metav1.UpdateOptions{})
+								if err != nil {
+									return err
+								}
+								i.cfg.Log.Infof("Deleted finalizer for \"%s\" %s", res.GetName(), res.GetKind())
+							}
+							if !i.cfg.KeepCRDs {
+								err = i.dClient.Resource(customResource).Namespace(res.GetNamespace()).Delete(context.Background(), res.GetName(), metav1.DeleteOptions{})
+								if err != nil && !apierr.IsNotFound(err) {
+									return err
+								}
+							}
+						}
+						return nil
+					})
+					if retryErr != nil {
+						return fmt.Errorf("Deleting finalizer failed: %v", retryErr)
 					}
 				}
 			}
