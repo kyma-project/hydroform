@@ -2,6 +2,7 @@ package jobmanager
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -80,6 +81,7 @@ func ExecutePost(ctx context.Context, c string) {
 // Used by ExecutePre() && ExecutePost()
 // Used to start workers and grab jobs belonging to the respective component
 func execute(ctx context.Context, c string, executionMap map[component][]job) {
+	fmt.Printf("Map: %v\n", executionMap)
 	var wg sync.WaitGroup
 
 	start := time.Now()
@@ -88,6 +90,7 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 	statusChan := make(chan jobStatus, len(jobs))
 	wg.Add(len(jobs))
 
+	fmt.Printf("Jobs: %v\n", jobs)
 	if len(jobs) > 0 {
 		for _, job := range jobs {
 			go worker(ctx, statusChan, &wg, job)
@@ -116,6 +119,7 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 
 func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup, j job) {
 	defer wg.Done()
+	fmt.Println("Before worker execute")
 	if err := j.execute(cfg, kubeClient, ctx); err != nil {
 		j := jobStatus{j.identify(), false, nil}
 		statusChan <- j
@@ -129,6 +133,18 @@ func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup
 func GetDuration() time.Duration {
 	zapLogger.Infof("Duration of runned jobs: %d", duration)
 	return duration
+}
+
+func resetDuration() {
+	duration = 0.00
+}
+
+func resetMap(exec executionTime) {
+	if exec == Pre {
+		preJobMap = make(map[component][]job)
+	} else if exec == Post {
+		postJobMap = make(map[component][]job)
+	}
 }
 
 func init() {

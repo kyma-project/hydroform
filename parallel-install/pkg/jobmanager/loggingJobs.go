@@ -15,20 +15,19 @@ import (
 
 // Register job using implemented interface
 
-type job1 struct{}
+type increaseLoggingPvcSize struct{}
 
-var _ = register(job1{})
+var _ = register(increaseLoggingPvcSize{})
 
-func (j job1) when() (component, executionTime) {
+func (j increaseLoggingPvcSize) when() (component, executionTime) {
 	return component("logging"), Pre
 }
 
-func (j job1) identify() jobName {
+func (j increaseLoggingPvcSize) identify() jobName {
 	return jobName("increaseLoggingPvcSize")
 }
 
-func (j job1) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
-	ctx.Done()
+func (j increaseLoggingPvcSize) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
 	zapLogger.Infof("Start of %s", j.identify())
 
 	namespace := "kyma-system"
