@@ -77,15 +77,42 @@ type Installation interface {
 	Manifests() ([]*components.Manifest, error)
 }
 
+type manifestResult struct {
+	manifest *components.Manifest
+	err      error
+}
+
 func (e *Engine) Manifests() ([]*components.Manifest, error) {
-	result := []*components.Manifest{}
 	cmps := e.componentsProvider.GetComponents(false)
+	manifests := make(chan manifestResult, len(cmps))
+
+	//run templating in parallel
+	var wg sync.WaitGroup
+
+	sem := make(chan int, e.cfg.WorkersCount)
 	for _, cmp := range cmps {
-		manifest, err := cmp.Manifest()
-		if err != nil {
-			return result, err
+		wg.Add(1)
+		sem <- 1 // will block if there is the limit defined in e.cfg.WorkersCount reached
+		go func(cmp components.KymaComponent, manifests chan manifestResult, wg *sync.WaitGroup) {
+			manifest, err := cmp.Manifest()
+			manifests <- manifestResult{
+				manifest: manifest,
+				err:      err,
+			}
+			<-sem
+			wg.Done()
+		}(cmp, manifests, &wg)
+	}
+	wg.Wait()
+	close(manifests)
+
+	//extract manifests and check for errors
+	result := []*components.Manifest{}
+	for manifestResult := range manifests {
+		if manifestResult.err != nil { //rendering of one of the components failed
+			return nil, manifestResult.err
 		}
-		result = append(result, manifest)
+		result = append(result, manifestResult.manifest)
 	}
 	return result, nil
 }

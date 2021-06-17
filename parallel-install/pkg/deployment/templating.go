@@ -37,7 +37,7 @@ func NewTemplating(cfg *config.Config, ob *overrides.Builder) (*Templating, erro
 	return &Templating{core}, nil
 }
 
-//StartKymaTemlating renders the Kyma component Helm templates
+//Render renders the Kyma component templates
 func (d *Templating) Render() ([]*components.Manifest, error) {
 	//Prepare cluster before Kyma installation
 	preInstallerCfg := inputConfig{
@@ -53,7 +53,7 @@ func (d *Templating) Render() ([]*components.Manifest, error) {
 
 	result, err := preInstaller.Manifests()
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 
 	_, prerequisitesEng, componentsEng, err := d.getConfig()
@@ -64,10 +64,10 @@ func (d *Templating) Render() ([]*components.Manifest, error) {
 	for _, eng := range []*engine.Engine{prerequisitesEng, componentsEng} {
 		manifests, err := eng.Manifests()
 		if err != nil {
-			return result, err
+			return nil, err
 		}
 		result = append(result, manifests...)
 	}
 
-	return result, err
+	return result, nil
 }

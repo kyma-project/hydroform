@@ -128,16 +128,16 @@ func (i *preInstaller) Manifests() ([]*components.Manifest, error) {
 	result := []*components.Manifest{}
 	resInfoResults, err := i.findResourcesIn(input)
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 	for _, resInfoResult := range resInfoResults {
 		resource, err := i.parseResource(resInfoResult)
 		if err != nil {
-			return result, err
+			return nil, err
 		}
 		resourceYaml, err := yaml.Marshal(resource.Object)
 		if err != nil {
-			return result, err
+			return nil, err
 		}
 		result = append(result, &components.Manifest{
 			Type:      components.CRD,

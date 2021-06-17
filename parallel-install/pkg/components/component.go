@@ -24,6 +24,9 @@ type Component interface {
 	//The function is blocking until the component is uninstalled or an error (including Helm timeout) occurs.
 	//See the helm.HelmClient.UninstallRelease documentation for how context.Context is used for cancellation.
 	Uninstall(context.Context) error
+
+	//Manifest returns the rendered manifest of the component
+	Manifest() (*Manifest, error)
 }
 
 //KymaComponent implements the Component interface.
