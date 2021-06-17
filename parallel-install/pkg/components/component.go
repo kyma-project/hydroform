@@ -75,3 +75,21 @@ func (c *KymaComponent) Uninstall(ctx context.Context) error {
 
 	return nil
 }
+
+//Manifest returns the rendered manifest of the component
+func (c *KymaComponent) Manifest() (*Manifest, error) {
+	c.Log.Infof("%s Render Helm chart %s (namespace %s) from directory %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
+
+	manifest, err := c.HelmClient.Template(c.ChartDir, c.Namespace, c.Name, c.OverridesGetter(), c.Profile)
+	if err != nil {
+		c.Log.Infof("%s Error rendering Helm chart %s: %v", logPrefix, c.Name, err)
+		return nil, err
+	}
+
+	return &Manifest{
+		Type:      HelmChart,
+		Name:      c.Name,
+		Component: c.Name,
+		Manifest:  manifest,
+	}, nil
+}

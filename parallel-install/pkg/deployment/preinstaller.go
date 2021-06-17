@@ -27,12 +27,15 @@ package deployment
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 
+	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"k8s.io/client-go/dynamic"
@@ -112,6 +115,40 @@ func newPreInstaller(cfg inputConfig) (*preInstaller, error) {
 	}, nil
 }
 
+// GetCRDs
+func (i *preInstaller) Manifests() ([]*components.Manifest, error) {
+	input := resourceInfoInput{
+		resourceType:             "CustomResourceDefinition",
+		dirSuffix:                "crds",
+		installationResourcePath: i.cfg.InstallationResourcePath,
+		label:                    config.LABEL_KEY_ORIGIN,
+	}
+
+	i.cfg.Log.Info("Get Kyma CRD manifests")
+	result := []*components.Manifest{}
+	resInfoResults, err := i.findResourcesIn(input)
+	if err != nil {
+		return result, err
+	}
+	for _, resInfoResult := range resInfoResults {
+		resource, err := i.parseResource(resInfoResult)
+		if err != nil {
+			return result, err
+		}
+		resourceYaml, err := yaml.Marshal(resource.Object)
+		if err != nil {
+			return result, err
+		}
+		result = append(result, &components.Manifest{
+			Type:      components.CRD,
+			Component: resInfoResult.component,
+			Name:      resInfoResult.fileName,
+			Manifest:  string(resourceYaml),
+		})
+	}
+	return result, nil
+}
+
 // InstallCRDs on a k8s cluster.
 func (i *preInstaller) InstallCRDs() error {
 	input := resourceInfoInput{
@@ -120,23 +157,27 @@ func (i *preInstaller) InstallCRDs() error {
 		installationResourcePath: i.cfg.InstallationResourcePath,
 		label:                    config.LABEL_KEY_ORIGIN,
 	}
-
 	i.cfg.Log.Info("Kyma CRDs installation")
-	output, err := i.install(input)
-	if err != nil || len(output.NotInstalled) > 0 {
+	if _, err := i.install(input); err != nil {
 		return errors.Wrap(err, "Failed to install CRDs")
 	}
-
 	return nil
 }
 
-func (i *preInstaller) install(input resourceInfoInput) (o output, err error) {
+func (i *preInstaller) install(input resourceInfoInput) (output, error) {
 	resources, err := i.findResourcesIn(input)
 	if err != nil {
 		return output{}, err
 	}
 
-	return i.apply(resources)
+	output := i.apply(resources)
+
+	notInstalledRes := len(output.NotInstalled)
+	if notInstalledRes > 0 {
+		return output, fmt.Errorf("Installation of %d resources failed", notInstalledRes)
+	}
+
+	return output, nil
 }
 
 func (i *preInstaller) findResourcesIn(input resourceInfoInput) (results []resourceInfoResult, err error) {
@@ -149,7 +190,7 @@ func (i *preInstaller) findResourcesIn(input resourceInfoInput) (results []resou
 
 	components := findOnlyDirectoriesAmong(rawComponentsDir)
 
-	if components == nil || len(components) == 0 {
+	if len(components) == 0 {
 		i.cfg.Log.Warn("There were no components detected for installation. Skipping.")
 		return results, nil
 	}
@@ -185,30 +226,42 @@ func (i *preInstaller) findResourcesIn(input resourceInfoInput) (results []resou
 	return results, nil
 }
 
-func (i *preInstaller) apply(resources []resourceInfoResult) (o output, err error) {
+func (i *preInstaller) parseResource(resource resourceInfoResult) (*unstructured.Unstructured, error) {
+	parsedResource, err := i.parser.ParseFile(resource.path)
+	if err != nil {
+		msg := fmt.Sprintf("Error occurred when processing resource %s of component %s",
+			resource.fileName, resource.component)
+		i.cfg.Log.Warnf(msg)
+		return parsedResource, errors.Wrap(err, msg)
+	}
+
+	if parsedResource.GetKind() != resource.resourceType {
+		err := fmt.Errorf("Resource type does not match for resource %s of component %s : got %s but expected %s",
+			resource.fileName, resource.component, parsedResource.GroupVersionKind().Kind, resource.resourceType)
+		i.cfg.Log.Warnf(err.Error())
+		return parsedResource, err
+	}
+
+	addLabel(parsedResource, resource.label, config.LABEL_VALUE_KYMA)
+
+	return parsedResource, nil
+}
+
+func (i *preInstaller) apply(resources []resourceInfoResult) (o output) {
 	for _, resource := range resources {
 		file := file{
 			component: resource.component,
 			path:      resource.path,
 		}
 
-		parsedResource, err := i.parser.ParseFile(file.path)
-		if err != nil {
-			i.cfg.Log.Warnf("Error occurred when processing resource %s of component %s : %s", resource.fileName, resource.component, err.Error())
+		parsedResource, e := i.parseResource(resource)
+		if e != nil {
 			o.NotInstalled = append(o.NotInstalled, file)
 			continue
 		}
-
-		if parsedResource.GetKind() != resource.resourceType {
-			i.cfg.Log.Warnf("Resource type does not match for resource %s of component %s : got %s but expected %s", resource.fileName, resource.component, parsedResource.GroupVersionKind().Kind, resource.resourceType)
-			o.NotInstalled = append(o.NotInstalled, file)
-			continue
-		}
-
-		addLabel(parsedResource, resource.label, config.LABEL_VALUE_KYMA)
 
 		i.cfg.Log.Infof("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component)
-		err = i.applier.Apply(parsedResource)
+		err := i.applier.Apply(parsedResource)
 		if err != nil {
 			i.cfg.Log.Warnf("Error occurred when processing file %s of component %s : %s", resource.fileName, resource.component, err.Error())
 			o.NotInstalled = append(o.NotInstalled, file)
@@ -218,7 +271,7 @@ func (i *preInstaller) apply(resources []resourceInfoResult) (o output, err erro
 		o.Installed = append(o.Installed, file)
 	}
 
-	return o, nil
+	return o
 }
 
 func findOnlyDirectoriesAmong(input []os.FileInfo) (o []os.FileInfo) {

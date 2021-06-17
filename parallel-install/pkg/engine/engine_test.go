@@ -281,6 +281,10 @@ func (c *mockHelmClientWithSemaphore) UninstallRelease(ctx context.Context, name
 	return nil
 }
 
+func (c *mockHelmClientWithSemaphore) Template(chartDir, namespace, name string, overrides map[string]interface{}, profile string) (string, error) {
+	return "Templating is not supported by this mock", nil
+}
+
 type mockComponentsProvider struct {
 	t  *testing.T
 	hc helm.ClientInterface
@@ -323,6 +327,10 @@ func (c *mockSimpleHelmClient) UninstallRelease(ctx context.Context, namespace, 
 		}
 	}
 	return nil
+}
+
+func (c *mockSimpleHelmClient) Template(chartDir, namespace, name string, overrides map[string]interface{}, profile string) (string, error) {
+	return "Templating is not supported by this mock", nil
 }
 
 type mockOverridesProvider struct{}

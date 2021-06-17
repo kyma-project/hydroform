@@ -72,6 +72,22 @@ type Installation interface {
 	//All remaining components are not processed then.
 	//
 	Uninstall(ctx context.Context) (<-chan components.KymaComponent, error)
+
+	//Returns the rendered Kubernetes manifests of Kyma components.
+	Manifests() ([]*components.Manifest, error)
+}
+
+func (e *Engine) Manifests() ([]*components.Manifest, error) {
+	result := []*components.Manifest{}
+	cmps := e.componentsProvider.GetComponents(false)
+	for _, cmp := range cmps {
+		manifest, err := cmp.Manifest()
+		if err != nil {
+			return result, err
+		}
+		result = append(result, manifest)
+	}
+	return result, nil
 }
 
 func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, error) {
