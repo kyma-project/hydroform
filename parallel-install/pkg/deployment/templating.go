@@ -40,14 +40,14 @@ func NewTemplating(cfg *config.Config, ob *overrides.Builder) (*Templating, erro
 func (t *Templating) Render() ([]*components.Manifest, error) {
 	//Prepare cluster before Kyma installation
 	preInstallerCfg := inputConfig{
-		InstallationResourcePath: d.cfg.InstallationResourcePath,
-		Log:                      d.cfg.Log,
-		KubeconfigSource:         d.cfg.KubeconfigSource,
+		InstallationResourcePath: t.cfg.InstallationResourcePath,
+		Log:                      t.cfg.Log,
+		KubeconfigSource:         t.cfg.KubeconfigSource,
 	}
 
 	preInstaller, err := newPreInstaller(preInstallerCfg)
 	if err != nil {
-		d.cfg.Log.Fatalf("Failed to create Kyma pre-installer: %v", err)
+		t.cfg.Log.Fatalf("Failed to create Kyma pre-installer: %v", err)
 	}
 
 	result, err := preInstaller.Manifests()
