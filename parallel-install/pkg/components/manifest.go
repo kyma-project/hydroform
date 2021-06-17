@@ -8,8 +8,9 @@ const (
 )
 
 type Manifest struct {
-	Type      ManifestType
-	Name      string
-	Manifest  string
-	Component string
+	Type         ManifestType
+	Name         string
+	Manifest     string
+	Component    string
+	Prerequisite bool
 }

@@ -82,7 +82,7 @@ type manifestResult struct {
 	err      error
 }
 
-func (e *Engine) Manifests() ([]*components.Manifest, error) {
+func (e *Engine) Manifests(isPrerequisite bool) ([]*components.Manifest, error) {
 	cmps := e.componentsProvider.GetComponents(false)
 	manifests := make(chan manifestResult, len(cmps))
 
@@ -94,7 +94,7 @@ func (e *Engine) Manifests() ([]*components.Manifest, error) {
 		wg.Add(1)
 		sem <- 1 // will block if there is the limit defined in e.cfg.WorkersCount reached
 		go func(cmp components.KymaComponent, manifests chan manifestResult, wg *sync.WaitGroup) {
-			manifest, err := cmp.Manifest()
+			manifest, err := cmp.Manifest(isPrerequisite)
 			manifests <- manifestResult{
 				manifest: manifest,
 				err:      err,

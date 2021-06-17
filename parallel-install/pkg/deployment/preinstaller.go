@@ -140,10 +140,11 @@ func (i *preInstaller) Manifests() ([]*components.Manifest, error) {
 			return nil, err
 		}
 		result = append(result, &components.Manifest{
-			Type:      components.CRD,
-			Component: resInfoResult.component,
-			Name:      resInfoResult.fileName,
-			Manifest:  string(resourceYaml),
+			Type:         components.CRD,
+			Component:    resInfoResult.component,
+			Name:         resInfoResult.fileName,
+			Manifest:     string(resourceYaml),
+			Prerequisite: true,
 		})
 	}
 	return result, nil

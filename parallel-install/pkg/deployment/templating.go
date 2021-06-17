@@ -4,7 +4,6 @@ package deployment
 import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"k8s.io/client-go/kubernetes"
 )
@@ -38,7 +37,7 @@ func NewTemplating(cfg *config.Config, ob *overrides.Builder) (*Templating, erro
 }
 
 //Render renders the Kyma component templates
-func (d *Templating) Render() ([]*components.Manifest, error) {
+func (t *Templating) Render() ([]*components.Manifest, error) {
 	//Prepare cluster before Kyma installation
 	preInstallerCfg := inputConfig{
 		InstallationResourcePath: d.cfg.InstallationResourcePath,
@@ -56,18 +55,22 @@ func (d *Templating) Render() ([]*components.Manifest, error) {
 		return nil, err
 	}
 
-	_, prerequisitesEng, componentsEng, err := d.getConfig()
+	_, prerequisitesEng, componentsEng, err := t.getConfig()
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 
-	for _, eng := range []*engine.Engine{prerequisitesEng, componentsEng} {
-		manifests, err := eng.Manifests()
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, manifests...)
+	prereqManifests, err := prerequisitesEng.Manifests(true)
+	if err != nil {
+		return nil, err
 	}
+	result = append(result, prereqManifests...)
+
+	compManifests, err := componentsEng.Manifests(false)
+	if err != nil {
+		return nil, err
+	}
+	result = append(result, compManifests...)
 
 	return result, nil
 }
