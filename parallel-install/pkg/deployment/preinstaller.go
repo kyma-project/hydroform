@@ -37,6 +37,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/debug"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"k8s.io/client-go/dynamic"
 )
@@ -259,6 +260,10 @@ func (i *preInstaller) apply(resources []resourceInfoResult) (o output) {
 		if e != nil {
 			o.NotInstalled = append(o.NotInstalled, file)
 			continue
+		}
+
+		if err := debug.NewManifestDumper().DumpUnstructuredResource(resource.fileName, parsedResource); err != nil {
+			i.cfg.Log.Infof("Failed to dump manifest: %v", err.Error())
 		}
 
 		i.cfg.Log.Infof("Processing %s file: %s of component: %s", resource.resourceType, resource.fileName, resource.component)

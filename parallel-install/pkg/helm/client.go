@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/debug"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
@@ -215,6 +216,9 @@ func (c *Client) upgradeRelease(namespace, name string, overrides map[string]int
 	c.cfg.Log.Infof("%s Starting upgrade for release %s in namespace %s", logPrefix, name, namespace)
 	rel, err := upgrade.Run(name, chart, overrides)
 	if rel != nil {
+		if err := debug.NewManifestDumper().DumpHelmRelease(rel); err != nil {
+			return err
+		}
 		if errUpdateMeta := c.updateKymaMetadata(cfg, rel); errUpdateMeta != nil {
 			if err != nil {
 				return errors.Wrap(err, errUpdateMeta.Error())
@@ -255,6 +259,9 @@ func (c *Client) installRelease(namespace, name string, overrides map[string]int
 	c.cfg.Log.Infof("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
 	rel, err := install.Run(chart, overrides)
 	if rel != nil {
+		if err := debug.NewManifestDumper().DumpHelmRelease(rel); err != nil {
+			return err
+		}
 		if errUpdateMeta := c.updateKymaMetadata(cfg, rel); errUpdateMeta != nil {
 			if err != nil {
 				return errors.Wrap(err, errUpdateMeta.Error())

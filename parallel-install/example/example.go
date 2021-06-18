@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -156,7 +158,16 @@ func template(cfg *config.Config, builder *overrides.Builder) {
 		log.Fatalf("Failed to render Helm charts: %v", err)
 	}
 	for _, manifest := range manifests {
-		fmt.Println(manifest.Manifest)
+		var filename string
+		if manifest.Type == components.CRD {
+			filename = path.Join("template", manifest.Name)
+		} else {
+			filename = path.Join("template", fmt.Sprintf("%s.yaml", manifest.Name))
+		}
+
+		if err := ioutil.WriteFile(filename, []byte(manifest.Manifest), 0600); err != nil {
+			log.Errorf("Failed to write manifest '%s'", manifest.Name)
+		}
 	}
 }
 
