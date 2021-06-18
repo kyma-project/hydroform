@@ -18,7 +18,7 @@ import (
 
 var testLogger *zap.SugaredLogger
 
-func TestJob(t *testing.T) {
+func TestJobManager(t *testing.T) {
 	t.Run("concurrent pre-jobs sampleOne and sampleTwo should be triggered", func(t *testing.T) {
 		// Init test setup
 		observedTestLogs := initLogger(t)
@@ -29,10 +29,7 @@ func TestJob(t *testing.T) {
 		execute(context.TODO(), "componentOne", jobMap)
 
 		// Copy logs into slice
-		logs := []string{}
-		for i := 0; i < observedTestLogs.Len(); i++ {
-			logs = append(logs, observedTestLogs.All()[i].Message)
-		}
+		logs := getLogs(observedTestLogs)
 
 		// Check if logs are correct
 		require.Equal(t, 2, observedTestLogs.Len())
@@ -55,10 +52,7 @@ func TestJob(t *testing.T) {
 		execute(context.TODO(), "componentTwo", jobMap)
 
 		// Copy logs into slice
-		logs := []string{}
-		for i := 0; i < observedTestLogs.Len(); i++ {
-			logs = append(logs, observedTestLogs.All()[i].Message)
-		}
+		logs := getLogs(observedTestLogs)
 
 		// Check if logs are correct
 		require.Equal(t, 1, observedTestLogs.Len())
@@ -76,12 +70,6 @@ func TestJob(t *testing.T) {
 		jobMap := initJobMap()
 		execute(context.TODO(), "nonExistingComponent", jobMap)
 
-		// Copy logs into slice
-		logs := []string{}
-		for i := 0; i < observedTestLogs.Len(); i++ {
-			logs = append(logs, observedTestLogs.All()[i].Message)
-		}
-
 		// Check if logs are correct
 		require.Equal(t, 0, observedTestLogs.Len())
 		require.NotEqual(t, 0*time.Second, GetDuration())
@@ -98,10 +86,7 @@ func TestJob(t *testing.T) {
 		execute(context.TODO(), "componentFour", jobMap)
 
 		// Copy logs into slice
-		logs := []string{}
-		for i := 0; i < observedLogs.Len(); i++ {
-			logs = append(logs, observedLogs.All()[i].Message)
-		}
+		logs := getLogs(observedLogs)
 
 		// Check if logs are correct
 		require.Contains(t, logs, "Following job failed while execution: `sampleFive` with error: JobFiveError")
@@ -166,8 +151,16 @@ func initJobMap() map[component][]job {
 	jobMap[component("componentTwo")] = []job{sampleThree{}}
 	jobMap[component("componentThree")] = []job{sampleFour{}}
 	jobMap[component("componentFour")] = []job{sampleFive{}}
-
 	return jobMap
+}
+
+func getLogs(observedLogs *observer.ObservedLogs) []string {
+	// Copy logs into slice
+	logs := []string{}
+	for i := 0; i < observedLogs.Len(); i++ {
+		logs = append(logs, observedLogs.All()[i].Message)
+	}
+	return logs
 }
 
 // ######### Test Jobs #########
