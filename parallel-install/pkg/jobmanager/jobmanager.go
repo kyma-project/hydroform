@@ -2,7 +2,6 @@ package jobmanager
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 )
 
@@ -44,6 +44,8 @@ var kubeClient kubernetes.Interface
 var cfg *config.Config
 
 var zapLogger *zap.SugaredLogger
+var observedLogs *observer.ObservedLogs
+var core zapcore.Core
 
 // Register job
 func register(j job) int {
@@ -81,7 +83,6 @@ func ExecutePost(ctx context.Context, c string) {
 // Used by ExecutePre() && ExecutePost()
 // Used to start workers and grab jobs belonging to the respective component
 func execute(ctx context.Context, c string, executionMap map[component][]job) {
-	fmt.Printf("Map: %v\n", executionMap)
 	var wg sync.WaitGroup
 
 	start := time.Now()
@@ -90,7 +91,6 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 	statusChan := make(chan jobStatus, len(jobs))
 	wg.Add(len(jobs))
 
-	fmt.Printf("Jobs: %v\n", jobs)
 	if len(jobs) > 0 {
 		for _, job := range jobs {
 			go worker(ctx, statusChan, &wg, job)
@@ -119,24 +119,23 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 
 func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup, j job) {
 	defer wg.Done()
-	fmt.Println("Before worker execute")
 	if err := j.execute(cfg, kubeClient, ctx); err != nil {
-		j := jobStatus{j.identify(), false, nil}
+		j := jobStatus{j.identify(), false, err}
 		statusChan <- j
 	} else {
-		j := jobStatus{j.identify(), true, err}
+		j := jobStatus{j.identify(), true, nil}
 		statusChan <- j
 	}
 }
 
 // Returns duration of all jobs for benchmarking
 func GetDuration() time.Duration {
-	zapLogger.Infof("Duration of runned jobs: %d", duration)
+	zapLogger.Infof("Duration of runned jobs in sec: %d", duration.Seconds())
 	return duration
 }
 
 func resetDuration() {
-	duration = 0.00
+	duration = 0 * time.Second
 }
 
 func resetMap(exec executionTime) {
@@ -150,7 +149,7 @@ func resetMap(exec executionTime) {
 func init() {
 	duration = 0 * time.Second
 
-	core, _ := observer.New(zap.DebugLevel)
+	core, observedLogs = observer.New(zap.DebugLevel)
 	log, _ := logger.New(logger.TEXT, logger.INFO, core)
 	zapLogger = log.WithContext()
 
