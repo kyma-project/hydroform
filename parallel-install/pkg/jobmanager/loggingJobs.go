@@ -71,7 +71,6 @@ func (j increaseLoggingPvcSize) execute(cfg *config.Config, kubeClient kubernete
 			zapLogger.Debugf("Final PVC Size: %s", finalTargetSize)
 			jsonPatch := []byte(fmt.Sprintf(`{ "spec": { "resources": { "requests": {"storage": "%s"}}}}`, finalTargetSize))
 			res, err := kubeClient.CoreV1().PersistentVolumeClaims(namespace).Patch(ctx, pvc, types.MergePatchType, jsonPatch, metav1.PatchOptions{})
-
 			zapLogger.Debugf("Result of Patch %s", res)
 			if err != nil {
 				zapLogger.Warnf("Error patching PVC: %s", err)
@@ -81,7 +80,6 @@ func (j increaseLoggingPvcSize) execute(cfg *config.Config, kubeClient kubernete
 		} else {
 			zapLogger.Infof("Job %s skipped", j.identify())
 		}
-
 		return nil
 	}
 }
