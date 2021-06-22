@@ -24,6 +24,9 @@ type Component interface {
 	//The function is blocking until the component is uninstalled or an error (including Helm timeout) occurs.
 	//See the helm.HelmClient.UninstallRelease documentation for how context.Context is used for cancellation.
 	Uninstall(context.Context) error
+
+	//Manifest returns the rendered manifest of the component
+	Manifest() (*Manifest, error)
 }
 
 //KymaComponent implements the Component interface.
@@ -74,4 +77,23 @@ func (c *KymaComponent) Uninstall(ctx context.Context) error {
 	c.Log.Infof("%s Uninstalled %s in %s", logPrefix, c.Name, c.Namespace)
 
 	return nil
+}
+
+//Manifest returns the rendered manifest of the component
+func (c *KymaComponent) Manifest(isPrerequisite bool) (*Manifest, error) {
+	c.Log.Infof("%s Render Helm chart %s (namespace %s) from directory %s", logPrefix, c.Name, c.Namespace, c.ChartDir)
+
+	manifest, err := c.HelmClient.Template(c.ChartDir, c.Namespace, c.Name, c.OverridesGetter(), c.Profile)
+	if err != nil {
+		c.Log.Infof("%s Error rendering Helm chart %s: %v", logPrefix, c.Name, err)
+		return nil, err
+	}
+
+	return &Manifest{
+		Type:         HelmChart,
+		Name:         c.Name,
+		Component:    c.Name,
+		Manifest:     manifest,
+		Prerequisite: isPrerequisite,
+	}, nil
 }

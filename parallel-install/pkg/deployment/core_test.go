@@ -29,6 +29,10 @@ func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name s
 	return nil
 }
 
+func (c *mockHelmClient) Template(chartDir, namespace, name string, overrides map[string]interface{}, profile string) (string, error) {
+	return "Templating is not supported by this mock", nil
+}
+
 //mockProvider is used in test-cases of core extending objects, like Deletion an Deployment tests
 type mockProvider struct {
 	hc *mockHelmClient

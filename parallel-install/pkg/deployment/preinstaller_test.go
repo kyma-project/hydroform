@@ -2,11 +2,12 @@ package deployment
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
-	"github.com/stretchr/testify/require"
 	"path"
 	"regexp"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
+	"github.com/stretchr/testify/require"
 
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -119,7 +120,7 @@ func TestPreInstaller_install(t *testing.T) {
 		output, err := i.install(input)
 
 		// then
-		require.NoError(t, err)
+		require.Error(t, err)
 		resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
 		resourceApplier.AssertNumberOfCalls(t, "Apply", 0)
 
@@ -161,7 +162,7 @@ func TestPreInstaller_install(t *testing.T) {
 		output, err := i.install(input)
 
 		// then
-		require.NoError(t, err)
+		require.Error(t, err)
 		resourceParser.AssertNumberOfCalls(t, "ParseFile", 5)
 		resourceApplier.AssertNumberOfCalls(t, "Apply", 2)
 
@@ -257,7 +258,7 @@ func TestPreInstaller_install(t *testing.T) {
 			output, err := i.install(input)
 
 			// then
-			require.NoError(t, err)
+			require.Error(t, err)
 			resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
 			resourceApplier.AssertNumberOfCalls(t, "Apply", 0)
 
@@ -291,7 +292,7 @@ func TestPreInstaller_install(t *testing.T) {
 			output, err := i.install(input)
 
 			// then
-			require.NoError(t, err)
+			require.Error(t, err)
 			resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
 			resourceApplier.AssertNumberOfCalls(t, "Apply", 2)
 
