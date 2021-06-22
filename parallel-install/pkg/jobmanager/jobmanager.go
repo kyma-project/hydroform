@@ -153,6 +153,4 @@ func init() {
 	log, _ := logger.New(logger.TEXT, logger.INFO, core)
 	zapLogger = log.WithContext()
 
-	zapLogger.Desugar().WithOptions(zap.AddCaller())
-
 }
