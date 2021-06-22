@@ -130,7 +130,7 @@ func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup
 
 // Returns duration of all jobs for benchmarking
 func GetDuration() time.Duration {
-	zapLogger.Infof("Duration of runned jobs in sec: %d", duration.Seconds())
+	zapLogger.Infof("Duration of executed jobs: %d seconds", duration.Seconds())
 	return duration
 }
 
