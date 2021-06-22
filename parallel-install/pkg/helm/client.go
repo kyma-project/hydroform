@@ -120,8 +120,7 @@ func (c *Client) templateRelease(name, namespace string, overrides map[string]in
 	install.Wait = true
 	install.CreateNamespace = true
 	install.DryRun = true
-	install.Replace = true // Skip the name check
-	install.ClientOnly = true
+	install.Replace = true      // Skip the name check
 	install.IncludeCRDs = false //include CRDs in the templated output
 	install.ClientOnly = true   //if false, it will validate the manifests against the Kubernetes cluster the kubeclient is currently pointing at
 

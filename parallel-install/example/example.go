@@ -165,8 +165,13 @@ func template(cfg *config.Config, builder *overrides.Builder) {
 			filename = path.Join("template", fmt.Sprintf("%s.yaml", manifest.Name))
 		}
 
+		err := os.MkdirAll("template", os.ModePerm)
+		if err != nil {
+			log.Fatalf("Failed to create template folder: %v", err)
+		}
+
 		if err := ioutil.WriteFile(filename, []byte(manifest.Manifest), 0600); err != nil {
-			log.Errorf("Failed to write manifest '%s'", manifest.Name)
+			log.Errorf("Failed to write manifest '%s': %v", manifest.Name, err)
 		}
 	}
 }
