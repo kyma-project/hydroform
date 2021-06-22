@@ -72,11 +72,6 @@ func (d *Deployment) StartKymaDeployment() error {
 		return err
 	}
 
-	err = preInstaller.CreateNamespaces()
-	if err != nil {
-		return err
-	}
-
 	overridesProvider, prerequisitesEng, componentsEng, err := d.getConfig()
 	if err != nil {
 		return err

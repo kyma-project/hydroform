@@ -130,24 +130,6 @@ func (i *preInstaller) InstallCRDs() error {
 	return nil
 }
 
-// CreateNamespaces in a k8s cluster.
-func (i *preInstaller) CreateNamespaces() error {
-	input := resourceInfoInput{
-		resourceType:             "Namespace",
-		dirSuffix:                "namespaces",
-		installationResourcePath: i.cfg.InstallationResourcePath,
-		label:                    "",
-	}
-
-	i.cfg.Log.Info("Kyma Namespaces creation")
-	output, err := i.install(input)
-	if err != nil || len(output.NotInstalled) > 0 {
-		return errors.Wrap(err, "Failed to create namespaces")
-	}
-
-	return nil
-}
-
 func (i *preInstaller) install(input resourceInfoInput) (o output, err error) {
 	resources, err := i.findResourcesIn(input)
 	if err != nil {
