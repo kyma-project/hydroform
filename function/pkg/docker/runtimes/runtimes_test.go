@@ -138,6 +138,52 @@ func TestContainerEnvs(t *testing.T) {
 				"CHERRYPY_RELOADED=true",
 			},
 		},
+		{
+			name: "should return envs for python39",
+			args: args{
+				runtime:   types.Python39,
+				hotDeploy: false,
+			},
+			want: []string{
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
+				"FUNC_RUNTIME=python39",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				Python39Path,
+			},
+		},
+		{
+			name: "should return envs for python39 with debug",
+			args: args{
+				runtime:   types.Python39,
+				hotDeploy: false,
+			},
+			want: []string{
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
+				"FUNC_RUNTIME=python39",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				Python39Path,
+			},
+		},
+		{
+			name: "should return envs for python39 with hotDeploy",
+			args: args{
+				runtime:   types.Python39,
+				hotDeploy: true,
+			},
+			want: []string{
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
+				"FUNC_RUNTIME=python39",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				Python39Path,
+				"CHERRYPY_RELOADED=true",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -173,6 +219,11 @@ func TestRuntimeDebugPort(t *testing.T) {
 			name:    "should return python38 debug port",
 			runtime: types.Python38,
 			want:    Python38DebugEndpoint,
+		},
+		{
+			name:    "should return python39 debug port",
+			runtime: types.Python39,
+			want:    Python39DebugEndpoint,
 		},
 	}
 	for _, tt := range tests {
@@ -332,6 +383,57 @@ func TestContainerCommands(t *testing.T) {
 				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
 			},
 		},
+
+		{
+			name: "should return commands for Python39",
+			args: args{
+				runtime: types.Python39,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python39 with hotDeploy",
+			args: args{
+				runtime:   types.Python39,
+				hotDeploy: true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python39 with hotDeploy",
+			args: args{
+				runtime:   types.Python39,
+				hotDeploy: true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python39 with debug",
+			args: args{
+				runtime: types.Python39,
+				debug:   true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python39 with hotDeploy and debug",
+			args: args{
+				runtime:   types.Python39,
+				hotDeploy: true,
+				debug:     true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -379,6 +481,13 @@ func TestContainerImage(t *testing.T) {
 			},
 			want: "eu.gcr.io/kyma-project/function-runtime-python38:PR-11121",
 		},
+		{
+			name: "should return image for Python39",
+			args: args{
+				runtime: types.Python39,
+			},
+			want: "eu.gcr.io/kyma-project/function-runtime-python39:PR-11498",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -423,6 +532,13 @@ func TestContainerUser(t *testing.T) {
 			name: "should return user for Python38",
 			args: args{
 				runtime: types.Python38,
+			},
+			want: "root",
+		},
+		{
+			name: "should return user for Python39",
+			args: args{
+				runtime: types.Python39,
 			},
 			want: "root",
 		},
