@@ -84,12 +84,6 @@ func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, e
 	go func() {
 		defer close(statusChan)
 
-		err := e.overridesProvider.ReadOverridesFromCluster()
-		if err != nil {
-			e.cfg.Log.Errorf("%s error while reading overrides: %v", logPrefix, err)
-			return
-		}
-
 		e.run(ctx, statusChan, cmps, deploy)
 	}()
 
