@@ -19,6 +19,7 @@ func TestLoggingJobs(t *testing.T) {
 		requestedBytes := 100
 		namespace := "kyma-system"
 		pvc := "storage-logging-loki-0"
+		statefuleset := "logging-loki"
 
 		kubeClient := fake.NewSimpleClientset(
 			&v1.PersistentVolumeClaim{
@@ -41,7 +42,7 @@ func TestLoggingJobs(t *testing.T) {
 			},
 			&appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "logging-loki",
+					Name:      statefuleset,
 					Namespace: namespace,
 				},
 				Spec:   appsv1.StatefulSetSpec{},
@@ -62,14 +63,17 @@ func TestLoggingJobs(t *testing.T) {
 	})
 
 	t.Run("should catch StatefulSet does not exists", func(t *testing.T) {
+		namespace := "kyma-system"
+		pvc := "storage-logging-loki-0"
+
 		kubeClient := fake.NewSimpleClientset(
 			&v1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "storage-logging-loki-0",
-					Namespace: "kyma-system",
+					Name:      pvc,
+					Namespace: namespace,
 				},
 				Spec: v1.PersistentVolumeClaimSpec{
-					VolumeName: "storage-logging-loki-0",
+					VolumeName: pvc,
 				},
 				Status: v1.PersistentVolumeClaimStatus{
 					Phase: v1.ClaimBound,
@@ -88,11 +92,14 @@ func TestLoggingJobs(t *testing.T) {
 	})
 
 	t.Run("should catch PVC does not exists", func(t *testing.T) {
+		namespace := "kyma-system"
+		statefuleset := "logging-loki"
+
 		kubeClient := fake.NewSimpleClientset(
 			&appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "logging-loki",
-					Namespace: "kyma-system",
+					Name:      statefuleset,
+					Namespace: namespace,
 				},
 				Spec:   appsv1.StatefulSetSpec{},
 				Status: appsv1.StatefulSetStatus{},
