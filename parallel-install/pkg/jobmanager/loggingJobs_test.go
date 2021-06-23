@@ -53,7 +53,6 @@ func TestLoggingJobs(t *testing.T) {
 			WorkersCount: 1,
 		}
 		patchErr := increaseLoggingPvcSize{}.execute(config, kubeClient, context.TODO())
-		// logs := getLogs(observedLogs)
 
 		pvcReturn, _ := kubeClient.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), pvc, metav1.GetOptions{})
 		pvcStorageSize := pvcReturn.Spec.Resources.Requests.Storage().String()

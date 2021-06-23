@@ -199,6 +199,7 @@ InstallLoop:
 	// Only will be executed if Kyma deploy was successfull
 	if phase == InstallComponents {
 		jobmanager.ExecutePost(ctx, "global")
+		i.cfg.Log.Infof("Jobs for deployment took %v seconds", jobmanager.GetDuration().Seconds())
 	}
 
 	i.processUpdate(phase, ProcessFinished, nil)
