@@ -57,6 +57,8 @@ type Config struct {
 	Atomic bool
 	// Keep Kyma CRDs during deletion
 	KeepCRDs bool
+	// Silence deprecation warnings for K8s API
+	Verbose bool
 }
 
 // KubeconfigSource aggregates kubeconfig in a form of either a path or a raw content.
