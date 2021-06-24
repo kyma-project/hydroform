@@ -10,27 +10,21 @@ import (
 	installConfig "github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest/observer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// var testLogger *zap.SugaredLogger
-
 func TestJobManager(t *testing.T) {
 	t.Run("concurrent pre-jobs sampleOne and sampleTwo should be triggered", func(t *testing.T) {
+		// Init test setup
 		resetFinishedJobsMap()
 		SetLogger(logger.NewLogger(false))
-		initJobManager()
 
 		// Test the execution func
 		jobMap := initJobMap()
 		execute(context.TODO(), "componentOne", jobMap)
 
-		// Copy logs into slice
-		//logs := getLogs(observedTestLogs)
-
-		// Check if logs are correct
+		// Check executed Jobs
 		require.Contains(t, finishedJobs, jobStatus{job: "sampleOne", status: true, err: nil})
 		require.Contains(t, finishedJobs, jobStatus{job: "sampleTwo", status: true, err: nil})
 		require.NotContains(t, finishedJobs, jobStatus{job: "sampleThree", status: true, err: nil})
@@ -43,13 +37,12 @@ func TestJobManager(t *testing.T) {
 		// Init test setup
 		resetFinishedJobsMap()
 		SetLogger(logger.NewLogger(false))
-		initJobManager()
 
 		// Test the execution func
 		jobMap := initJobMap()
 		execute(context.TODO(), "componentTwo", jobMap)
 
-		// Check if logs are correct
+		// Check executed Jobs
 		require.NotContains(t, finishedJobs, jobStatus{job: "sampleOne", status: true, err: nil})
 		require.NotContains(t, finishedJobs, jobStatus{job: "sampleTwo", status: true, err: nil})
 		require.Contains(t, finishedJobs, jobStatus{job: "sampleThree", status: true, err: nil})
@@ -62,13 +55,12 @@ func TestJobManager(t *testing.T) {
 		// Init test setup
 		resetFinishedJobsMap()
 		SetLogger(logger.NewLogger(false))
-		initJobManager()
 
 		// Test the execution func
 		jobMap := initJobMap()
 		execute(context.TODO(), "nonExistingComponent", jobMap)
 
-		// Check if logs are correct
+		// Check executed Jobs
 		require.NotContains(t, finishedJobs, jobStatus{job: "sampleOne", status: true, err: nil})
 		require.NotContains(t, finishedJobs, jobStatus{job: "sampleTwo", status: true, err: nil})
 		require.NotContains(t, finishedJobs, jobStatus{job: "sampleThree", status: true, err: nil})
@@ -79,20 +71,29 @@ func TestJobManager(t *testing.T) {
 
 	t.Run("job error should be catched and user be informed", func(t *testing.T) {
 		// Init test setup
-		initJobManager()
+		resetFinishedJobsMap()
+		SetLogger(logger.NewLogger(false))
 
 		// Test the execution func
 		jobMap := make(map[component][]job)
 		jobMap[component("componentFour")] = []job{sampleFive{}}
 		execute(context.TODO(), "componentFour", jobMap)
 
-		// Check if logs are correct
-		require.Contains(t, logs, "Following job failed while execution: `sampleFive` with error: JobFiveError")
+		// Check executed Jobs
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleOne", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleTwo", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleThree", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleFour", status: true, err: nil})
+		require.Contains(t, finishedJobs, jobStatus{job: "sampleFive", status: false, err: errors.New("JobFiveError")})
+
 	})
 
 	t.Run("duration should be reset", func(t *testing.T) {
+		// Set duration to time unequal zero
 		duration = 10*time.Second + 1*time.Hour
+		// Reset duration
 		resetDuration()
+		// Check if duration is reset
 		require.Equal(t, 0*time.Second, duration)
 	})
 
@@ -140,15 +141,6 @@ func initJobMap() map[component][]job {
 	jobMap[component("componentThree")] = []job{sampleFour{}}
 	jobMap[component("componentFour")] = []job{sampleFive{}}
 	return jobMap
-}
-
-func getLogs(observedLogs *observer.ObservedLogs) []string {
-	// Copy logs into slice
-	logs := []string{}
-	for i := 0; i < observedLogs.Len(); i++ {
-		logs = append(logs, observedLogs.All()[i].Message)
-	}
-	return logs
 }
 
 // ######### Test Jobs #########

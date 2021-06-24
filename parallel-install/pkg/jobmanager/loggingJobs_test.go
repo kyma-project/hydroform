@@ -57,7 +57,7 @@ func TestLoggingJobs(t *testing.T) {
 		pvcReturn, _ := kubeClient.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), pvc, metav1.GetOptions{})
 		pvcStorageSize := pvcReturn.Spec.Resources.Requests.Storage().String()
 
-		require.Equal(t, "50Gi", pvcStorageSize)
+		require.Equal(t, "30Gi", pvcStorageSize)
 		require.NoError(t, patchErr)
 	})
 

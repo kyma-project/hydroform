@@ -17,6 +17,7 @@ import (
 
 type increaseLoggingPvcSize struct{}
 
+// No deprecation planned; 06/2021
 var _ = register(increaseLoggingPvcSize{})
 
 func (j increaseLoggingPvcSize) when() (component, executionTime) {
@@ -27,13 +28,15 @@ func (j increaseLoggingPvcSize) identify() jobName {
 	return jobName("increaseLoggingPvcSize")
 }
 
+// This job increases the PVC-size of the logging component to 30GB.
+// This will be triggered before the deployment of its corresponding component.
 func (j increaseLoggingPvcSize) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
 	log.Infof("Start of %s", j.identify())
 
 	namespace := "kyma-system"
 	pvc := "storage-logging-loki-0"
 	statefulset := "logging-loki"
-	targetPVCSize := 50
+	targetPVCSize := 30
 
 	pvcReturn, err := kubeClient.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvc, metav1.GetOptions{})
 
