@@ -66,6 +66,8 @@ func (d *Deployment) StartKymaDeployment() error {
 		RetryOptions:             retryOpts,
 	}
 
+	jobmanager.SetLogger(d.cfg.Log)
+
 	preInstaller, err := newPreInstaller(preInstallerCfg)
 	if err != nil {
 		d.cfg.Log.Fatalf("Failed to create Kyma pre-installer: %v", err)
