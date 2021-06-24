@@ -73,6 +73,49 @@ type Installation interface {
 	//All remaining components are not processed then.
 	//
 	Uninstall(ctx context.Context) (<-chan components.KymaComponent, error)
+
+	//Returns the rendered Kubernetes manifests of Kyma components.
+	Manifests() ([]*components.Manifest, error)
+}
+
+type manifestResult struct {
+	manifest *components.Manifest
+	err      error
+}
+
+func (e *Engine) Manifests(isPrerequisite bool) ([]*components.Manifest, error) {
+	cmps := e.componentsProvider.GetComponents(false)
+	manifests := make(chan manifestResult, len(cmps))
+
+	//run templating in parallel
+	var wg sync.WaitGroup
+
+	sem := make(chan int, e.cfg.WorkersCount)
+	for _, cmp := range cmps {
+		wg.Add(1)
+		sem <- 1 // will block if there is the limit defined in e.cfg.WorkersCount reached
+		go func(cmp components.KymaComponent, manifests chan manifestResult, wg *sync.WaitGroup) {
+			manifest, err := cmp.Manifest(isPrerequisite)
+			manifests <- manifestResult{
+				manifest: manifest,
+				err:      err,
+			}
+			<-sem
+			wg.Done()
+		}(cmp, manifests, &wg)
+	}
+	wg.Wait()
+	close(manifests)
+
+	//extract manifests and check for errors
+	result := []*components.Manifest{}
+	for manifestResult := range manifests {
+		if manifestResult.err != nil { //rendering of one of the components failed
+			return nil, manifestResult.err
+		}
+		result = append(result, manifestResult.manifest)
+	}
+	return result, nil
 }
 
 func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, error) {

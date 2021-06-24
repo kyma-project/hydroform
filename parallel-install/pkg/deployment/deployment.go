@@ -4,6 +4,7 @@ package deployment
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/avast/retry-go"
@@ -50,6 +51,19 @@ func NewDeployment(cfg *config.Config, ob *overrides.Builder, processUpdates fun
 	return &Deployment{core}, nil
 }
 
+type funcReturnErr func() error
+
+func silenceStderr(isVerbose bool, f funcReturnErr) error {
+	stderr := os.Stderr
+	if !isVerbose {
+		os.Stderr = nil
+	}
+	defer func() {
+		os.Stderr = stderr
+	}()
+	return f()
+}
+
 //StartKymaDeployment deploys Kyma to a cluster
 func (d *Deployment) StartKymaDeployment() error {
 	//Prepare cluster before Kyma installation
@@ -72,13 +86,7 @@ func (d *Deployment) StartKymaDeployment() error {
 	if err != nil {
 		d.cfg.Log.Fatalf("Failed to create Kyma pre-installer: %v", err)
 	}
-
-	err = preInstaller.InstallCRDs()
-	if err != nil {
-		return err
-	}
-
-	err = preInstaller.CreateNamespaces()
+	err = silenceStderr(d.cfg.Verbose, preInstaller.InstallCRDs)
 	if err != nil {
 		return err
 	}

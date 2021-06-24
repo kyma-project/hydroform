@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -17,6 +19,11 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 )
 
+const (
+	actionDeployAndDelete = "deploy+delete"
+	actionTemplate        = "template"
+)
+
 var log *logger.Logger
 
 //main provides an example of how to integrate the parallel-install library with your code.
@@ -26,6 +33,9 @@ func main() {
 	profile := flag.String("profile", "", "Deployment profile")
 	version := flag.String("version", "latest", "Kyma version")
 	verbose := flag.Bool("verbose", false, "Verbose mode")
+	action := flag.String("action", actionDeployAndDelete,
+		fmt.Sprintf("Which action to apply. Supported are: %s (default: %s)",
+			strings.Join([]string{actionDeployAndDelete, actionTemplate}, ", "), actionDeployAndDelete))
 
 	flag.Parse()
 
@@ -62,7 +72,7 @@ func main() {
 		log.Fatalf("Cannot read component list: %s", err)
 	}
 
-	installationCfg := &config.Config{
+	cfg := &config.Config{
 		WorkersCount:                  4,
 		CancelTimeout:                 20 * time.Minute,
 		QuitTimeout:                   25 * time.Minute,
@@ -82,14 +92,25 @@ func main() {
 		Version: *version,
 	}
 
+	switch *action {
+	case actionDeployAndDelete:
+		deployAndDelete(cfg, builder)
+	case actionTemplate:
+		template(cfg, builder)
+	default:
+		log.Errorf("Action '%s' is not supported", *action)
+	}
+}
+
+func deployAndDelete(cfg *config.Config, builder *overrides.Builder) {
 	commonRetryOpts := []retry.Option{
-		retry.Delay(time.Duration(installationCfg.BackoffInitialIntervalSeconds) * time.Second),
-		retry.Attempts(uint(installationCfg.BackoffMaxElapsedTimeSeconds / installationCfg.BackoffInitialIntervalSeconds)),
+		retry.Delay(time.Duration(cfg.BackoffInitialIntervalSeconds) * time.Second),
+		retry.Attempts(uint(cfg.BackoffMaxElapsedTimeSeconds / cfg.BackoffInitialIntervalSeconds)),
 		retry.DelayType(retry.FixedDelay),
 	}
 
 	//Deploy Kyma
-	deployer, err := deployment.NewDeployment(installationCfg, builder, callbackUpdate)
+	deployer, err := deployment.NewDeployment(cfg, builder, callbackUpdate)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
@@ -101,7 +122,7 @@ func main() {
 		log.Info("Kyma deployed!")
 	}
 
-	metadataProvider, err := helm.NewKymaMetadataProvider(installationCfg.KubeconfigSource)
+	metadataProvider, err := helm.NewKymaMetadataProvider(cfg.KubeconfigSource)
 	if err != nil {
 		log.Fatalf("Failed to create Kyma metadata provider: %v", err)
 	}
@@ -114,7 +135,7 @@ func main() {
 	}
 
 	//Delete Kyma
-	deleter, err := deployment.NewDeletion(installationCfg, builder, callbackUpdate, commonRetryOpts)
+	deleter, err := deployment.NewDeletion(cfg, builder, callbackUpdate, commonRetryOpts)
 	if err != nil {
 		log.Fatalf("Failed to create deleter: %v", err)
 	}
@@ -124,6 +145,35 @@ func main() {
 	}
 
 	log.Info("Kyma uninstalled!")
+}
+
+func template(cfg *config.Config, builder *overrides.Builder) {
+	//Deploy Kyma
+	templating, err := deployment.NewTemplating(cfg, builder)
+	if err != nil {
+		log.Fatalf("Failed to create installer: %v", err)
+	}
+	manifests, err := templating.Render()
+	if err != nil {
+		log.Fatalf("Failed to render Helm charts: %v", err)
+	}
+	for _, manifest := range manifests {
+		var filename string
+		if manifest.Type == components.CRD {
+			filename = path.Join("template", manifest.Name)
+		} else {
+			filename = path.Join("template", fmt.Sprintf("%s.yaml", manifest.Name))
+		}
+
+		err := os.MkdirAll("template", os.ModePerm)
+		if err != nil {
+			log.Fatalf("Failed to create template folder: %v", err)
+		}
+
+		if err := ioutil.WriteFile(filename, []byte(manifest.Manifest), 0600); err != nil {
+			log.Errorf("Failed to write manifest '%s': %v", manifest.Name, err)
+		}
+	}
 }
 
 func callbackUpdate(update deployment.ProcessUpdate) {

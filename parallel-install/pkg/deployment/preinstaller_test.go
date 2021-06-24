@@ -2,11 +2,12 @@ package deployment
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
-	"github.com/stretchr/testify/require"
 	"path"
 	"regexp"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
+	"github.com/stretchr/testify/require"
 
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
@@ -44,39 +45,6 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 
 		// when
 		err := i.InstallCRDs()
-
-		// then
-		require.NoError(t, err)
-		resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
-		resourceApplier.AssertNumberOfCalls(t, "Apply", 2)
-	})
-
-}
-
-func TestPreInstaller_CreateNamespaces(t *testing.T) {
-	scheme := runtime.NewScheme()
-	dynamicClient := fake.NewSimpleDynamicClient(scheme)
-	cfg := getTestingConfig()
-	resourceName := "name"
-	namespaceResource := fixNamespaceResourceWithGivenName(resourceName)
-
-	t.Run("should create namespaces", func(t *testing.T) {
-		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
-		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
-		cfg.InstallationResourcePath = resourcePath
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
-
-		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
-		resourceParser.On("ParseFile", pathToFirstResource).Return(namespaceResource, nil)
-		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
-		resourceParser.On("ParseFile", pathToSecondResource).Return(namespaceResource, nil)
-
-		resourceApplier.On("Apply", namespaceResource).Return(nil)
-
-		// when
-		err := i.CreateNamespaces()
 
 		// then
 		require.NoError(t, err)
@@ -152,75 +120,7 @@ func TestPreInstaller_install(t *testing.T) {
 		output, err := i.install(input)
 
 		// then
-		require.NoError(t, err)
-		resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
-		resourceApplier.AssertNumberOfCalls(t, "Apply", 0)
-
-		require.Zero(t, len(output.Installed))
-		require.Equal(t, 2, len(output.NotInstalled))
-		require.True(t, containsFileWithDetails(output.NotInstalled, "comp1", pathToFirstResource))
-		require.True(t, containsFileWithDetails(output.NotInstalled, "comp2", pathToSecondResource))
-	})
-
-	t.Run("should create namespaces", func(t *testing.T) {
-		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
-
-		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
-		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
-		resourceParser.On("ParseFile", pathToFirstResource).Return(namespaceResource, nil)
-		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
-		resourceParser.On("ParseFile", pathToSecondResource).Return(namespaceResource, nil)
-
-		resourceApplier.On("Apply", namespaceResource).Return(nil)
-
-		input := resourceInfoInput{
-			resourceType:             "Namespace",
-			dirSuffix:                "namespaces",
-			installationResourcePath: resourcePath,
-		}
-
-		// when
-		output, err := i.install(input)
-
-		// then
-		require.NoError(t, err)
-		resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
-		resourceApplier.AssertNumberOfCalls(t, "Apply", 2)
-
-		require.Equal(t, 2, len(output.Installed))
-		require.Zero(t, len(output.NotInstalled))
-		require.True(t, containsFileWithDetails(output.Installed, "comp1", pathToFirstResource))
-		require.True(t, containsFileWithDetails(output.Installed, "comp2", pathToSecondResource))
-	})
-
-	t.Run("should not create namespaces due to incorrect input resource type", func(t *testing.T) {
-		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
-
-		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
-		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
-		resourceParser.On("ParseFile", pathToFirstResource).Return(namespaceResource, nil)
-		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
-		resourceParser.On("ParseFile", pathToSecondResource).Return(namespaceResource, nil)
-
-		resourceApplier.On("Apply", namespaceResource).Return(nil)
-
-		input := resourceInfoInput{
-			resourceType:             "typeDifferentThanNamespace",
-			dirSuffix:                "namespaces",
-			installationResourcePath: resourcePath,
-		}
-
-		// when
-		output, err := i.install(input)
-
-		// then
-		require.NoError(t, err)
+		require.Error(t, err)
 		resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
 		resourceApplier.AssertNumberOfCalls(t, "Apply", 0)
 
@@ -262,7 +162,7 @@ func TestPreInstaller_install(t *testing.T) {
 		output, err := i.install(input)
 
 		// then
-		require.NoError(t, err)
+		require.Error(t, err)
 		resourceParser.AssertNumberOfCalls(t, "ParseFile", 5)
 		resourceApplier.AssertNumberOfCalls(t, "Apply", 2)
 
@@ -358,7 +258,7 @@ func TestPreInstaller_install(t *testing.T) {
 			output, err := i.install(input)
 
 			// then
-			require.NoError(t, err)
+			require.Error(t, err)
 			resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
 			resourceApplier.AssertNumberOfCalls(t, "Apply", 0)
 
@@ -392,7 +292,7 @@ func TestPreInstaller_install(t *testing.T) {
 			output, err := i.install(input)
 
 			// then
-			require.NoError(t, err)
+			require.Error(t, err)
 			resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
 			resourceApplier.AssertNumberOfCalls(t, "Apply", 2)
 

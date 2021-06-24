@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	k8sRetry "k8s.io/client-go/util/retry"
 )
 
 //Deletion removes Kyma from a cluster
@@ -236,74 +237,15 @@ func (i *Deletion) crdGvkWith(version string) schema.GroupVersionKind {
 }
 
 func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
+	err := i.cleanupFinalizers()
+	if err != nil {
+		return err
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(len(namespaces))
-
 	finishedCh := make(chan bool)
 	errorCh := make(chan error)
-
-	// All the hacks below should be deleted after this issue is done: https://github.com/kyma-project/kyma/issues/11298
-	//HACK: Delete finalizers of leftover Secret
-	secrets, err := i.kubeClient.CoreV1().Secrets(v1.NamespaceAll).List(context.Background(), metav1.ListOptions{LabelSelector: "serverless.kyma-project.io/config=credentials"})
-	if err != nil && !apierr.IsNotFound(err) {
-		errorCh <- err
-	}
-	if secrets != nil {
-		for _, secret := range secrets.Items {
-			if len(secret.GetFinalizers()) > 0 {
-				secret.SetFinalizers(nil)
-				if _, err := i.kubeClient.CoreV1().Secrets(secret.GetNamespace()).Update(context.Background(), &secret, metav1.UpdateOptions{}); err != nil {
-					errorCh <- err
-				}
-				i.cfg.Log.Infof("Deleted finalizer from \"%s\" Secret", secret.GetName())
-			}
-		}
-	}
-
-	//HACK: Delete finalizers of leftover Custom Resources
-	selector, err := i.prepareKymaCrdLabelSelector()
-	if err != nil {
-		errorCh <- err
-	}
-
-	crds, err := i.apixClient.CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{LabelSelector: selector.String()})
-	if err != nil && !apierr.IsNotFound(err) {
-		errorCh <- err
-	}
-
-	if crds != nil {
-		for _, crd := range crds.Items {
-			customResource := schema.GroupVersionResource{
-				Group:    crd.Spec.Group,
-				Version:  crd.Spec.Version,
-				Resource: crd.Spec.Names.Plural,
-			}
-
-			customResourceList, err := i.dClient.Resource(customResource).Namespace(v1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
-			if err != nil && !apierr.IsNotFound(err) {
-				errorCh <- err
-			}
-			if customResourceList != nil {
-				for _, cr := range customResourceList.Items {
-					if len(cr.GetFinalizers()) > 0 {
-						cr.SetFinalizers(nil)
-						_, err := i.dClient.Resource(customResource).Namespace(cr.GetNamespace()).Update(context.Background(), &cr, metav1.UpdateOptions{})
-						if err != nil {
-							errorCh <- err
-						}
-						i.cfg.Log.Infof("Deleted finalizer for \"%s\" %s", cr.GetName(), cr.GetKind())
-					}
-					if !i.cfg.KeepCRDs {
-						err = i.dClient.Resource(customResource).Namespace(cr.GetNamespace()).Delete(context.Background(), cr.GetName(), metav1.DeleteOptions{})
-						if err != nil && !apierr.IsNotFound(err) {
-							errorCh <- err
-						}
-					}
-				}
-			}
-		}
-	}
-
 	// start deletion in goroutines
 	for _, namespace := range namespaces {
 		err := retry.Do(func() error {
@@ -376,4 +318,83 @@ func (i *Deletion) deleteKymaNamespaces(namespaces []string) error {
 			}
 		}
 	}
+}
+
+func (i *Deletion) cleanupFinalizers() error {
+	// All the hacks below should be deleted after this issue is done: https://github.com/kyma-project/kyma/issues/11298
+	//HACK: Delete finalizers of leftover Secret
+	secrets, err := i.kubeClient.CoreV1().Secrets(v1.NamespaceAll).List(context.Background(), metav1.ListOptions{LabelSelector: "serverless.kyma-project.io/config=credentials"})
+	if err != nil && !apierr.IsNotFound(err) {
+		return err
+	}
+	if secrets != nil {
+		for _, secret := range secrets.Items {
+			if len(secret.GetFinalizers()) > 0 {
+				secret.SetFinalizers(nil)
+				if _, err := i.kubeClient.CoreV1().Secrets(secret.GetNamespace()).Update(context.Background(), &secret, metav1.UpdateOptions{}); err != nil {
+					return err
+				}
+				i.cfg.Log.Infof("Deleted finalizer from \"%s\" Secret", secret.GetName())
+			}
+		}
+	}
+	//HACK: Delete finalizers of leftover Custom Resources
+	selector, err := i.prepareKymaCrdLabelSelector()
+	if err != nil {
+		return err
+	}
+
+	crds, err := i.apixClient.CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil && !apierr.IsNotFound(err) {
+		return err
+	}
+
+	if crds != nil {
+		for _, crd := range crds.Items {
+			customResource := schema.GroupVersionResource{
+				Group:    crd.Spec.Group,
+				Version:  crd.Spec.Version,
+				Resource: crd.Spec.Names.Plural,
+			}
+
+			customResourceList, err := i.dClient.Resource(customResource).Namespace(v1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+			if err != nil && !apierr.IsNotFound(err) {
+				return err
+			}
+			if customResourceList != nil {
+				for _, cr := range customResourceList.Items {
+					retryErr := k8sRetry.RetryOnConflict(k8sRetry.DefaultRetry, func() error {
+						// Retrieve the latest version of Custom Resource before attempting update
+						// RetryOnConflict uses exponential backoff to avoid exhausting the apiserver
+						res, err := i.dClient.Resource(customResource).Namespace(cr.GetNamespace()).Get(context.Background(), cr.GetName(), metav1.GetOptions{})
+						if err != nil && !apierr.IsNotFound(err) {
+							return err
+						}
+						if res != nil {
+							if len(res.GetFinalizers()) > 0 {
+								i.cfg.Log.Infof("Deleting finalizer for \"%s\" %s", res.GetName(), cr.GetKind())
+								res.SetFinalizers(nil)
+								_, err := i.dClient.Resource(customResource).Namespace(res.GetNamespace()).Update(context.Background(), res, metav1.UpdateOptions{})
+								if err != nil {
+									return err
+								}
+								i.cfg.Log.Infof("Deleted finalizer for \"%s\" %s", res.GetName(), res.GetKind())
+							}
+							if !i.cfg.KeepCRDs {
+								err = i.dClient.Resource(customResource).Namespace(res.GetNamespace()).Delete(context.Background(), res.GetName(), metav1.DeleteOptions{})
+								if err != nil && !apierr.IsNotFound(err) {
+									return err
+								}
+							}
+						}
+						return nil
+					})
+					if retryErr != nil {
+						return fmt.Errorf("Deleting finalizer failed: %v", retryErr)
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
