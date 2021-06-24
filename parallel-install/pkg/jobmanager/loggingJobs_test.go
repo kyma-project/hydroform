@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	installConfig "github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -16,6 +17,9 @@ import (
 
 func TestLoggingJobs(t *testing.T) {
 	t.Run("should increase PVC size", func(t *testing.T) {
+		resetFinishedJobsMap()
+		SetLogger(logger.NewLogger(false))
+
 		requestedBytes := 100
 		namespace := "kyma-system"
 		pvc := "storage-logging-loki-0"
@@ -62,6 +66,9 @@ func TestLoggingJobs(t *testing.T) {
 	})
 
 	t.Run("should catch StatefulSet does not exists", func(t *testing.T) {
+		resetFinishedJobsMap()
+		SetLogger(logger.NewLogger(false))
+
 		namespace := "kyma-system"
 		pvc := "storage-logging-loki-0"
 
@@ -89,6 +96,9 @@ func TestLoggingJobs(t *testing.T) {
 	})
 
 	t.Run("should catch PVC does not exists", func(t *testing.T) {
+		resetFinishedJobsMap()
+		SetLogger(logger.NewLogger(false))
+
 		namespace := "kyma-system"
 		statefuleset := "logging-loki"
 
