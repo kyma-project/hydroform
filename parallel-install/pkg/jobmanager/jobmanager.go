@@ -32,6 +32,7 @@ const (
 )
 
 var duration time.Duration
+var durationMu sync.Mutex
 
 var preJobMap = make(map[component][]job)
 var postJobMap = make(map[component][]job)
@@ -115,7 +116,7 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 	}
 
 	t := time.Now()
-	duration += t.Sub(start)
+	addDuration(t.Sub(start))
 }
 
 func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup, j job) {
@@ -131,9 +132,17 @@ func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup
 
 // Returns duration of all jobs for benchmarking
 func GetDuration() time.Duration {
+	durationMu.Lock()
+	defer durationMu.Unlock()
 	ret := duration
 	resetDuration()
 	return ret
+}
+
+func addDuration(t time.Duration) {
+	durationMu.Lock()
+	defer durationMu.Unlock()
+	duration += t
 }
 
 func resetDuration() {
