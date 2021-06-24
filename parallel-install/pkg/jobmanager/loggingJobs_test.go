@@ -85,9 +85,7 @@ func TestLoggingJobs(t *testing.T) {
 
 		err := increaseLoggingPvcSize{}.execute(config, kubeClient, context.TODO())
 
-		logs := getLogs(observedLogs)
 		require.Error(t, errors.New("statefulsets.apps \"logging-loki\" not found"), err)
-		require.Contains(t, logs, "Error deleting StatefulSet: statefulsets.apps \"logging-loki\" not found")
 	})
 
 	t.Run("should catch PVC does not exists", func(t *testing.T) {
@@ -110,9 +108,7 @@ func TestLoggingJobs(t *testing.T) {
 
 		err := increaseLoggingPvcSize{}.execute(config, kubeClient, context.TODO())
 
-		logs := getLogs(observedLogs)
 		require.Error(t, errors.New("persistentvolumeclaims \"storage-logging-loki-0\" not found"), err)
-		require.Contains(t, logs, "PVC storage-logging-loki-0 in namespace kyma-system not found -> Skipping Job")
 	})
 
 }

@@ -8,20 +8,19 @@ import (
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	installConfig "github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
-	"github.com/kyma-project/kyma/common/logging/logger"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-var testLogger *zap.SugaredLogger
+// var testLogger *zap.SugaredLogger
 
 func TestJobManager(t *testing.T) {
 	t.Run("concurrent pre-jobs sampleOne and sampleTwo should be triggered", func(t *testing.T) {
-		// Init test setup
-		observedTestLogs := initLogger(t)
+		resetFinishedJobsMap()
+		SetLogger(logger.NewLogger(false))
 		initJobManager()
 
 		// Test the execution func
@@ -29,41 +28,40 @@ func TestJobManager(t *testing.T) {
 		execute(context.TODO(), "componentOne", jobMap)
 
 		// Copy logs into slice
-		logs := getLogs(observedTestLogs)
+		//logs := getLogs(observedTestLogs)
 
 		// Check if logs are correct
-		require.Equal(t, 2, observedTestLogs.Len())
-		require.Contains(t, logs, "sampleOne triggered")
-		require.Contains(t, logs, "sampleTwo triggered")
-		require.NotContains(t, logs, "sampleThree triggered")
-		require.NotContains(t, logs, "sampleFour triggered")
-		require.NotContains(t, logs, "sampleFive triggered")
+		require.Contains(t, finishedJobs, jobStatus{job: "sampleOne", status: true, err: nil})
+		require.Contains(t, finishedJobs, jobStatus{job: "sampleTwo", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleThree", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleFour", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleFive", status: false, err: errors.New("JobFiveError")})
 		require.NotEqual(t, 0*time.Second, GetDuration())
-		t.Log(observedTestLogs.All())
 	})
 
 	t.Run("single pre-job sampleThree should be triggered", func(t *testing.T) {
 		// Init test setup
-		observedTestLogs := initLogger(t)
+		resetFinishedJobsMap()
+		SetLogger(logger.NewLogger(false))
 		initJobManager()
 
 		// Test the execution func
 		jobMap := initJobMap()
 		execute(context.TODO(), "componentTwo", jobMap)
 
-		// Copy logs into slice
-		logs := getLogs(observedTestLogs)
-
 		// Check if logs are correct
-		require.Equal(t, 1, observedTestLogs.Len())
-		require.Contains(t, logs, "sampleThree triggered")
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleOne", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleTwo", status: true, err: nil})
+		require.Contains(t, finishedJobs, jobStatus{job: "sampleThree", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleFour", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleFive", status: false, err: errors.New("JobFiveError")})
 		require.NotEqual(t, 0*time.Second, GetDuration())
-		t.Log(observedTestLogs.All())
 	})
 
 	t.Run("no jobs should be triggered", func(t *testing.T) {
 		// Init test setup
-		observedTestLogs := initLogger(t)
+		resetFinishedJobsMap()
+		SetLogger(logger.NewLogger(false))
 		initJobManager()
 
 		// Test the execution func
@@ -71,9 +69,12 @@ func TestJobManager(t *testing.T) {
 		execute(context.TODO(), "nonExistingComponent", jobMap)
 
 		// Check if logs are correct
-		require.Equal(t, 0, observedTestLogs.Len())
-		require.NotEqual(t, 0*time.Second, GetDuration())
-		t.Log(observedTestLogs.All())
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleOne", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleTwo", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleThree", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleFour", status: true, err: nil})
+		require.NotContains(t, finishedJobs, jobStatus{job: "sampleFive", status: false, err: errors.New("JobFiveError")})
+		require.Less(t, 0*time.Second, GetDuration())
 	})
 
 	t.Run("job error should be catched and user be informed", func(t *testing.T) {
@@ -85,12 +86,8 @@ func TestJobManager(t *testing.T) {
 		jobMap[component("componentFour")] = []job{sampleFive{}}
 		execute(context.TODO(), "componentFour", jobMap)
 
-		// Copy logs into slice
-		logs := getLogs(observedLogs)
-
 		// Check if logs are correct
 		require.Contains(t, logs, "Following job failed while execution: `sampleFive` with error: JobFiveError")
-		t.Log(observedLogs.All())
 	})
 
 	t.Run("duration should be reset", func(t *testing.T) {
@@ -123,15 +120,6 @@ func TestJobManager(t *testing.T) {
 }
 
 // ######## Helper Funcs #######
-func initLogger(t *testing.T) *observer.ObservedLogs {
-	// Initialize new Logger with Observer
-	core, observedTestLogs := observer.New(zap.DebugLevel)
-	log, err := logger.New(logger.JSON, logger.DEBUG, core)
-	require.NoError(t, err)
-	testLogger = log.WithContext()
-	testLogger.Desugar().WithOptions(zap.AddCaller())
-	return observedTestLogs
-}
 
 func initJobManager() {
 	// Empty cluster, to check basic function og jobManager
@@ -176,7 +164,7 @@ func (j sampleOne) identify() jobName {
 	return jobName("sampleOne")
 }
 func (j sampleOne) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
-	testLogger.Debug("sampleOne triggered")
+	// testLogger.Debug("sampleOne triggered")
 	return nil
 }
 
@@ -191,7 +179,7 @@ func (j sampleTwo) identify() jobName {
 	return jobName("sampleTwo")
 }
 func (j sampleTwo) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
-	testLogger.Debug("sampleTwo triggered")
+	// testLogger.Debug("sampleTwo triggered")
 	return nil
 }
 
@@ -206,7 +194,7 @@ func (j sampleThree) identify() jobName {
 	return jobName("sampleThree")
 }
 func (j sampleThree) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
-	testLogger.Debug("sampleThree triggered")
+	// testLogger.Debug("sampleThree triggered")
 	return nil
 }
 
@@ -221,7 +209,7 @@ func (j sampleFour) identify() jobName {
 	return jobName("sampleFour")
 }
 func (j sampleFour) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
-	testLogger.Debug("sampleFour triggered")
+	// testLogger.Debug("sampleFour triggered")
 	return nil
 }
 
@@ -236,6 +224,6 @@ func (j sampleFive) identify() jobName {
 	return jobName("sampleFive")
 }
 func (j sampleFive) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
-	zapLogger.Debug("sampleFive triggered")
+	// testLogger.Debug("sampleFive triggered")
 	return errors.New("JobFiveError")
 }

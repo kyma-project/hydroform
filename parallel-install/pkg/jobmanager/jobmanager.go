@@ -6,12 +6,8 @@ import (
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
-	"github.com/kyma-project/kyma/common/logging/logger"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"k8s.io/client-go/kubernetes"
-
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"go.uber.org/zap/zaptest/observer"
 )
 
 type component string
@@ -39,13 +35,12 @@ var duration time.Duration
 
 var preJobMap = make(map[component][]job)
 var postJobMap = make(map[component][]job)
+var finishedJobs = []jobStatus{}
 
 var kubeClient kubernetes.Interface
 var cfg *config.Config
 
-var zapLogger *zap.SugaredLogger
-var observedLogs *observer.ObservedLogs
-var core zapcore.Core
+var log logger.Interface
 
 // Register job
 func register(j job) int {
@@ -66,6 +61,11 @@ func SetConfig(config *config.Config) {
 // Sets Kubernetes Cleint at package level
 func SetKubeClient(kc kubernetes.Interface) {
 	kubeClient = kc
+}
+
+// Sets Logger at package level
+func SetLogger(logClient logger.Interface) {
+	log = logClient
 }
 
 // Function should be called before component is being deployed/upgraded
@@ -103,12 +103,13 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 
 	emptyJob := jobStatus{}
 	for status := range statusChan {
-		zapLogger.Debugf("Job Status: %v", status)
+		log.Infof("Job Status: %v", status)
 		if status != emptyJob {
+			finishedJobs = append(finishedJobs, status)
 			if status.status == true {
-				zapLogger.Infof("Following job executed: %v", status.job)
+				log.Infof("Following job executed: %v", status.job)
 			} else if status.status == false {
-				zapLogger.Infof("Following job failed while execution: `%v` with error: %s", status.job, status.err)
+				log.Infof("Following job failed while execution: `%v` with error: %s", status.job, status.err)
 			}
 		}
 	}
@@ -136,7 +137,7 @@ func GetDuration() time.Duration {
 }
 
 func resetDuration() {
-	duration = 0 * time.Second
+	duration = 0 * time.Microsecond
 }
 
 func resetMap(exec executionTime) {
@@ -147,11 +148,10 @@ func resetMap(exec executionTime) {
 	}
 }
 
+func resetFinishedJobsMap() {
+	finishedJobs = []jobStatus{}
+}
+
 func init() {
-	duration = 0 * time.Second
-
-	core, observedLogs = observer.New(zap.DebugLevel)
-	log, _ := logger.New(logger.TEXT, logger.INFO, core)
-	zapLogger = log.WithContext()
-
+	duration = 0 * time.Microsecond
 }
