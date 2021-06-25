@@ -89,7 +89,7 @@ func (d *Deployment) StartKymaDeployment() error {
 		return err
 	}
 
-	return d.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
+	return silenceStderr(d.cfg.Verbose, func() error { return d.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng) })
 }
 
 func (d *Deployment) startKymaDeployment(overridesProvider overrides.Provider, prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
