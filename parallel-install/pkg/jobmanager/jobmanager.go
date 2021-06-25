@@ -113,7 +113,7 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 			if status.status == true {
 				log.Infof("Following job executed: %v", status.job)
 			} else if status.status == false {
-				log.Infof("Following job failed while execution: `%v` with error: %s", status.job, status.err)
+				log.Infof("Following job failed: `%v` with error: %s", status.job, status.err)
 			}
 		}
 	}
