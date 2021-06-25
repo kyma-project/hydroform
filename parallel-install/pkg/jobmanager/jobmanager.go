@@ -5,9 +5,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	istio "istio.io/client-go/pkg/clientset/versioned"
+	"k8s.io/client-go/rest"
 )
 
 type component string
@@ -21,7 +24,7 @@ type jobStatus struct {
 }
 
 type job interface {
-	execute(*config.Config, kubernetes.Interface, context.Context) error
+	execute(*config.Config, kubernetes.Interface, istio.Interface, context.Context) error
 	when() (component, executionTime)
 	identify() jobName
 }
@@ -40,6 +43,8 @@ var finishedJobs = []jobStatus{}
 
 var kubeClient kubernetes.Interface
 var cfg *config.Config
+var restConfig *rest.Config
+var istioClient *istio.Clientset
 
 var log logger.Interface
 
@@ -55,9 +60,11 @@ func register(j job) int {
 }
 
 // Sets Installation Config and KubeClient at package level
-func RegisterJobManager(config *config.Config, kc kubernetes.Interface) {
+func RegisterJobManager(config *config.Config, kc kubernetes.Interface, rc *rest.Config) {
 	cfg = config
 	kubeClient = kc
+	restConfig = rc
+	istioClient, _ = istio.NewForConfig(restConfig)
 }
 
 // Sets Logger at package level
@@ -117,7 +124,7 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 
 func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup, j job) {
 	defer wg.Done()
-	if err := j.execute(cfg, kubeClient, ctx); err != nil {
+	if err := j.execute(cfg, kubeClient, istioClient, ctx); err != nil {
 		j := jobStatus{j.identify(), false, err}
 		statusChan <- j
 	} else {

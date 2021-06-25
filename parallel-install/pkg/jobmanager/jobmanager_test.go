@@ -10,8 +10,10 @@ import (
 	installConfig "github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
+	istio "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 )
 
 func TestJobManager(t *testing.T) {
@@ -125,11 +127,12 @@ func TestJobManager(t *testing.T) {
 func initJobManager() {
 	// Empty cluster, to check basic function og jobManager
 	kubeClient := fake.NewSimpleClientset()
+	restConfig := &rest.Config{}
 	installationCfg := &installConfig.Config{
 		WorkersCount: 1,
 	}
 	// Set fake Kubernetes Client and empty installation config
-	RegisterJobManager(installationCfg, kubeClient)
+	RegisterJobManager(installationCfg, kubeClient, restConfig)
 }
 
 func initJobMap() map[component][]job {
@@ -154,7 +157,7 @@ func (j sampleOne) when() (component, executionTime) {
 func (j sampleOne) identify() jobName {
 	return jobName("sampleOne")
 }
-func (j sampleOne) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
+func (j sampleOne) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
 	// testLogger.Debug("sampleOne triggered")
 	return nil
 }
@@ -169,7 +172,7 @@ func (j sampleTwo) when() (component, executionTime) {
 func (j sampleTwo) identify() jobName {
 	return jobName("sampleTwo")
 }
-func (j sampleTwo) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
+func (j sampleTwo) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
 	// testLogger.Debug("sampleTwo triggered")
 	return nil
 }
@@ -184,7 +187,7 @@ func (j sampleThree) when() (component, executionTime) {
 func (j sampleThree) identify() jobName {
 	return jobName("sampleThree")
 }
-func (j sampleThree) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
+func (j sampleThree) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
 	// testLogger.Debug("sampleThree triggered")
 	return nil
 }
@@ -199,7 +202,7 @@ func (j sampleFour) when() (component, executionTime) {
 func (j sampleFour) identify() jobName {
 	return jobName("sampleFour")
 }
-func (j sampleFour) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
+func (j sampleFour) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
 	// testLogger.Debug("sampleFour triggered")
 	return nil
 }
@@ -214,7 +217,7 @@ func (j sampleFive) when() (component, executionTime) {
 func (j sampleFive) identify() jobName {
 	return jobName("sampleFive")
 }
-func (j sampleFive) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
+func (j sampleFive) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
 	// testLogger.Debug("sampleFive triggered")
 	return errors.New("JobFiveError")
 }

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	istio "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,7 +31,7 @@ func (j increaseLoggingPvcSize) identify() jobName {
 
 // This job increases the PVC-size of the logging component to 30GB.
 // This will be triggered before the deployment of its corresponding component.
-func (j increaseLoggingPvcSize) execute(cfg *config.Config, kubeClient kubernetes.Interface, ctx context.Context) error {
+func (j increaseLoggingPvcSize) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
 	log.Infof("Start of %s", j.identify())
 
 	namespace := "kyma-system"

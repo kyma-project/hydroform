@@ -8,6 +8,7 @@ import (
 	installConfig "github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
+	versioned "istio.io/client-go/pkg/clientset/versioned/fake"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -52,11 +53,12 @@ func TestLoggingJobs(t *testing.T) {
 				Spec:   appsv1.StatefulSetSpec{},
 				Status: appsv1.StatefulSetStatus{},
 			})
+		ic := versioned.NewSimpleClientset()
 
 		config := &installConfig.Config{
 			WorkersCount: 1,
 		}
-		patchErr := increaseLoggingPvcSize{}.execute(config, kubeClient, context.TODO())
+		patchErr := increaseLoggingPvcSize{}.execute(config, kubeClient, ic, context.TODO())
 
 		pvcReturn, _ := kubeClient.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), pvc, metav1.GetOptions{})
 		pvcStorageSize := pvcReturn.Spec.Resources.Requests.Storage().String()
@@ -85,12 +87,13 @@ func TestLoggingJobs(t *testing.T) {
 					Phase: v1.ClaimBound,
 				},
 			})
+		ic := versioned.NewSimpleClientset()
 
 		config := &installConfig.Config{
 			WorkersCount: 1,
 		}
 
-		err := increaseLoggingPvcSize{}.execute(config, kubeClient, context.TODO())
+		err := increaseLoggingPvcSize{}.execute(config, kubeClient, ic, context.TODO())
 
 		require.Error(t, errors.New("statefulsets.apps \"logging-loki\" not found"), err)
 	})
@@ -111,12 +114,13 @@ func TestLoggingJobs(t *testing.T) {
 				Spec:   appsv1.StatefulSetSpec{},
 				Status: appsv1.StatefulSetStatus{},
 			})
+		ic := versioned.NewSimpleClientset()
 
 		config := &installConfig.Config{
 			WorkersCount: 1,
 		}
 
-		err := increaseLoggingPvcSize{}.execute(config, kubeClient, context.TODO())
+		err := increaseLoggingPvcSize{}.execute(config, kubeClient, ic, context.TODO())
 
 		require.Error(t, errors.New("persistentvolumeclaims \"storage-logging-loki-0\" not found"), err)
 	})
