@@ -98,11 +98,6 @@ func (d *Deployment) startKymaDeployment(overridesProvider overrides.Provider, p
 
 	d.cfg.Log.Info("Kyma prerequisites deployment")
 
-	err := overridesProvider.ReadOverridesFromCluster()
-	if err != nil {
-		return fmt.Errorf("error while reading overrides: %v", err)
-	}
-
 	isK3s, err := k3d.IsK3dCluster(d.kubeClient)
 	if err != nil {
 		return err

@@ -70,6 +70,3 @@ type mockOverridesProvider struct{}
 func (o *mockOverridesProvider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {
 	return nil
 }
-func (o *mockOverridesProvider) ReadOverridesFromCluster() error {
-	return nil
-}
