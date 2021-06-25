@@ -7,7 +7,7 @@ The `jobManager` implements a `job` interface which is used to enable a clean au
 ### Features of this package
 
 - Supports only single linear upgrade: A &#8594; B && B &#8594; C; NOT A &#8594; C. This is due to the fact that Kyma only supports single linear upgrades.
-- Inside the job we need "smart checks" to determine whether the job should run its main logic, because implementing an interface that covers all possible scenarios would be overengineering. &#8594; The cluster state, not the target Kyma version is decisive whether logic of jobs should run.
+- Jobs themself cover the checks to determine if they should be triggered. &#8594; They should be triggered if the cluster is not in the wanted state.
 - Deprecation of jobs is annotated.
 - The jobManager only supports Kyma `deploy` and not `uninstall`, to prevent that developers misuse jobs to clean up dirty left-overs from `kyma uninstall`.
 - When the deploy of Kyma fails, the global post-jobs do not run.
