@@ -125,11 +125,11 @@ func execute(ctx context.Context, c string, executionMap map[component][]job) {
 func worker(ctx context.Context, statusChan chan<- jobStatus, wg *sync.WaitGroup, j job) {
 	defer wg.Done()
 	if err := j.execute(cfg, kubeClient, istioClient, ctx); err != nil {
-		j := jobStatus{j.identify(), false, err}
-		statusChan <- j
+		status := jobStatus{j.identify(), false, err}
+		statusChan <- status
 	} else {
-		j := jobStatus{j.identify(), true, nil}
-		statusChan <- j
+		status := jobStatus{j.identify(), true, nil}
+		statusChan <- status
 	}
 }
 
