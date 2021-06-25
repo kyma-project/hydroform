@@ -7,20 +7,17 @@ import (
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
-	installConfig "github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
 	istio "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/rest"
 )
 
 func TestJobManager(t *testing.T) {
 	t.Run("concurrent pre-jobs sampleOne and sampleTwo should be triggered", func(t *testing.T) {
 		// Init test setup
 		resetFinishedJobsMap()
-		SetLogger(logger.NewLogger(false))
+		setLogger(logger.NewLogger(false))
 
 		// Test the execution func
 		jobMap := initJobMap()
@@ -38,7 +35,7 @@ func TestJobManager(t *testing.T) {
 	t.Run("single pre-job sampleThree should be triggered", func(t *testing.T) {
 		// Init test setup
 		resetFinishedJobsMap()
-		SetLogger(logger.NewLogger(false))
+		setLogger(logger.NewLogger(false))
 
 		// Test the execution func
 		jobMap := initJobMap()
@@ -56,7 +53,7 @@ func TestJobManager(t *testing.T) {
 	t.Run("no jobs should be triggered", func(t *testing.T) {
 		// Init test setup
 		resetFinishedJobsMap()
-		SetLogger(logger.NewLogger(false))
+		setLogger(logger.NewLogger(false))
 
 		// Test the execution func
 		jobMap := initJobMap()
@@ -74,7 +71,7 @@ func TestJobManager(t *testing.T) {
 	t.Run("job error should be catched and user be informed", func(t *testing.T) {
 		// Init test setup
 		resetFinishedJobsMap()
-		SetLogger(logger.NewLogger(false))
+		setLogger(logger.NewLogger(false))
 
 		// Test the execution func
 		jobMap := make(map[component][]job)
@@ -123,17 +120,6 @@ func TestJobManager(t *testing.T) {
 }
 
 // ######## Helper Funcs #######
-
-func initJobManager() {
-	// Empty cluster, to check basic function og jobManager
-	kubeClient := fake.NewSimpleClientset()
-	restConfig := &rest.Config{}
-	installationCfg := &installConfig.Config{
-		WorkersCount: 1,
-	}
-	// Set fake Kubernetes Client and empty installation config
-	RegisterJobManager(installationCfg, kubeClient, restConfig)
-}
 
 func initJobMap() map[component][]job {
 	// Register jobs to corresponding component

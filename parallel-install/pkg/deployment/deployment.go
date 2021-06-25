@@ -45,7 +45,7 @@ func NewDeployment(cfg *config.Config, ob *overrides.Builder, processUpdates fun
 
 	core := newCore(cfg, ob, kubeClient, processUpdates)
 
-	jobmanager.RegisterJobManager(cfg, kubeClient, restConfig)
+	jobmanager.RegisterJobManager(cfg, kubeClient, restConfig, cfg.Log)
 
 	return &Deployment{core}, nil
 }
@@ -78,8 +78,6 @@ func (d *Deployment) StartKymaDeployment() error {
 		KubeconfigSource:         d.cfg.KubeconfigSource,
 		RetryOptions:             retryOpts,
 	}
-
-	jobmanager.SetLogger(d.cfg.Log)
 
 	preInstaller, err := newPreInstaller(preInstallerCfg)
 	if err != nil {

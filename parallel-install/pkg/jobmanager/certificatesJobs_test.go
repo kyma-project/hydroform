@@ -20,7 +20,7 @@ import (
 func TestCertificatesJobs(t *testing.T) {
 	t.Run("should annotate Gateway", func(t *testing.T) {
 		resetFinishedJobsMap()
-		SetLogger(logger.NewLogger(false))
+		setLogger(logger.NewLogger(false))
 
 		namespace := "kyma-system"
 		gateway := "kyma-gateway"
@@ -63,7 +63,7 @@ func TestCertificatesJobs(t *testing.T) {
 
 	t.Run("should annotate Gateway", func(t *testing.T) {
 		resetFinishedJobsMap()
-		SetLogger(logger.NewLogger(false))
+		setLogger(logger.NewLogger(false))
 
 		gateway := "kyma-gateway"
 

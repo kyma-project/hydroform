@@ -60,15 +60,16 @@ func register(j job) int {
 }
 
 // Sets Installation Config and KubeClient at package level
-func RegisterJobManager(config *config.Config, kc kubernetes.Interface, rc *rest.Config) {
+func RegisterJobManager(config *config.Config, kc kubernetes.Interface, rc *rest.Config, logClient logger.Interface) {
 	cfg = config
 	kubeClient = kc
 	restConfig = rc
 	istioClient, _ = istio.NewForConfig(restConfig)
+	log = logClient
 }
 
 // Sets Logger at package level
-func SetLogger(logClient logger.Interface) {
+func setLogger(logClient logger.Interface) {
 	log = logClient
 }
 

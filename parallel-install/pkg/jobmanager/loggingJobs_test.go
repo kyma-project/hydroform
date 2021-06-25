@@ -19,7 +19,7 @@ import (
 func TestLoggingJobs(t *testing.T) {
 	t.Run("should increase PVC size", func(t *testing.T) {
 		resetFinishedJobsMap()
-		SetLogger(logger.NewLogger(false))
+		setLogger(logger.NewLogger(false))
 
 		requestedBytes := 100
 		namespace := "kyma-system"
@@ -69,7 +69,7 @@ func TestLoggingJobs(t *testing.T) {
 
 	t.Run("should catch StatefulSet does not exists", func(t *testing.T) {
 		resetFinishedJobsMap()
-		SetLogger(logger.NewLogger(false))
+		setLogger(logger.NewLogger(false))
 
 		namespace := "kyma-system"
 		pvc := "storage-logging-loki-0"
@@ -100,7 +100,7 @@ func TestLoggingJobs(t *testing.T) {
 
 	t.Run("should catch PVC does not exists", func(t *testing.T) {
 		resetFinishedJobsMap()
-		SetLogger(logger.NewLogger(false))
+		setLogger(logger.NewLogger(false))
 
 		namespace := "kyma-system"
 		statefuleset := "logging-loki"
