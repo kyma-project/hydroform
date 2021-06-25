@@ -45,8 +45,7 @@ func NewDeployment(cfg *config.Config, ob *overrides.Builder, processUpdates fun
 
 	core := newCore(cfg, ob, kubeClient, processUpdates)
 
-	jobmanager.SetConfig(cfg)
-	jobmanager.SetKubeClient(kubeClient)
+	jobmanager.RegisterJobManager(cfg, kubeClient)
 
 	return &Deployment{core}, nil
 }

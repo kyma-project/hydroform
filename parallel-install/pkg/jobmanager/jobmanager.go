@@ -54,13 +54,9 @@ func register(j job) int {
 	return 0
 }
 
-// Sets Installation Config at package level
-func SetConfig(config *config.Config) {
+// Sets Installation Config and KubeClient at package level
+func RegisterJobManager(config *config.Config, kc kubernetes.Interface) {
 	cfg = config
-}
-
-// Sets Kubernetes Cleint at package level
-func SetKubeClient(kc kubernetes.Interface) {
 	kubeClient = kc
 }
 

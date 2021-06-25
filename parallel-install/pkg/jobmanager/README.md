@@ -4,25 +4,25 @@ The `jobManager` implements a `job` interface which is used to enable a clean au
 
 ## Workflow / General mechanism
 
-### Requirements of this package
+### Features of this package
 
 - Supports only single linear upgrade: A &#8594; B && B &#8594; C; NOT A &#8594; C. This is due to the fact that Kyma only supports single linear upgrades.
 - Inside the job we need "smart checks" to determine whether the job should run its main logic, because implementing an interface that covers all possible scenarios would be overengineering. &#8594; The cluster state, not the target Kyma version is decisive whether logic of jobs should run.
-- It should be easy to tag a job at which certain point it should be deprecated. Written "by hand" or using some techonology to let pipelines fail, if some jobs exist which should be deprecated.
+- Deprecation of jobs is annotated.
 - The jobManager only supports Kyma `deploy` and not `uninstall`, to prevent that developers misuse jobs to clean up dirty left-overs from `kyma uninstall`.
-- When the deploy of Kyma fails, the global post-jobs should not run.
-- When the deploy of a component fails, the component-based post-jobs should not run.
-- Jobs should run async to each other.
-- CancelContext should be propagated to give developers the opportunity to cancel deploy.
+- When the deploy of Kyma fails, the global post-jobs do not run.
+- When the deploy of a component fails, the component-based post-jobs do not run.
+- Jobs do run async to each other.
+- CancelContext are being propagated to give developers the opportunity to cancel deploy.
 
 
 - This mechanism supports jobs for two different use cases: The __component-based__ jobs and the __global/component-independent__ jobs
   - __Component-based__:
     - Check whether the component is installed on the cluster or must be newly installed; and only trigger if it must be installed.
-    - It should be possible to trigger jobs before and after a deployment of a component.
+    - It is possible to trigger jobs before and after a deployment of a component.
   - __Global / Component-independent__:
     - Always trigger the job when installing or upgrading Kyma.
-    - It should be possible to trigger jobs before and after the deployment of Kyma.
+    - It is to trigger jobs before and after the deployment of Kyma.
     - Call component-independent jobs `global` jobs to stick to the naming convention of our helm charts.
 
 ### How does it work?

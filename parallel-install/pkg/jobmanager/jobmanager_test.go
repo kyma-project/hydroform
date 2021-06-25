@@ -129,8 +129,7 @@ func initJobManager() {
 		WorkersCount: 1,
 	}
 	// Set fake Kubernetes Client and empty installation config
-	SetKubeClient(kubeClient)
-	SetConfig(installationCfg)
+	RegisterJobManager(installationCfg, kubeClient)
 }
 
 func initJobMap() map[component][]job {
