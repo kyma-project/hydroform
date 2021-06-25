@@ -16,6 +16,10 @@ const (
 	Python38Path          = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.8/site-packages:$(KUBELESS_INSTALL_VOLUME)"
 	Python38HotDeploy     = "CHERRYPY_RELOADED=true"
 	Python38DebugEndpoint = `5678`
+
+	Python39Path          = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.9/site-packages:$(KUBELESS_INSTALL_VOLUME)"
+	Python39HotDeploy     = "CHERRYPY_RELOADED=true"
+	Python39DebugEndpoint = `5678`
 )
 
 func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
@@ -38,6 +42,12 @@ func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 			envs = append(envs, Python38HotDeploy)
 		}
 		return envs
+	case types.Python39:
+		envs := []string{Python39Path}
+		if hotDeploy {
+			envs = append(envs, Python39HotDeploy)
+		}
+		return envs
 	default:
 		return []string{NodejsPath}
 	}
@@ -49,6 +59,8 @@ func RuntimeDebugPort(runtime types.Runtime) string {
 		return NodejsDebugEndpoint
 	case types.Python38:
 		return Python38DebugEndpoint
+	case types.Python39:
+		return Python39DebugEndpoint
 	default:
 		return NodejsDebugEndpoint
 	}
@@ -73,6 +85,11 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py"}
 		}
 		return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py"}
+	case types.Python39:
+		if debug {
+			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py"}
+		}
+		return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py"}
 
 	default:
 		if hotDeploy {
@@ -90,6 +107,8 @@ func ContainerImage(runtime types.Runtime) string {
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11121"
 	case types.Python38:
 		return "eu.gcr.io/kyma-project/function-runtime-python38:PR-11121"
+	case types.Python39:
+		return "eu.gcr.io/kyma-project/function-runtime-python39:PR-11498"
 	default:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11121"
 	}
@@ -101,7 +120,7 @@ func ContainerUser(runtime types.Runtime) string {
 		return "1000"
 	case types.Nodejs14:
 		return "1000"
-	case types.Python38:
+	case types.Python38, types.Python39:
 		return "root"
 	default:
 		return "1000"

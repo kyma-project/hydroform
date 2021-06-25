@@ -166,6 +166,14 @@ func Test_fromRuntime(t *testing.T) {
 			want:    workspacePython,
 			wantErr: false,
 		},
+		{
+			name: "python39",
+			args: args{
+				runtime: types.Python39,
+			},
+			want:    workspacePython,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -627,6 +635,19 @@ func Test_fromSources(t *testing.T) {
 			name: "python38",
 			args: args{
 				runtime: types.Python38,
+				source:  handlerPython,
+				deps:    "deps",
+			},
+			want: workspace{
+				newTemplatedFile(handlerPython, FileNameHandlerPy),
+				newTemplatedFile("deps", FileNameRequirementsTxt),
+			},
+			wantErr: false,
+		},
+		{
+			name: "python39",
+			args: args{
+				runtime: types.Python39,
 				source:  handlerPython,
 				deps:    "deps",
 			},
