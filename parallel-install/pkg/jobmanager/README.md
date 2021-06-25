@@ -1,12 +1,12 @@
 # `jobManager` Package
 
-This package, called `jobManager`, implements a `job` interface which is used to enable a clean automated Kyma deployment in regards of configuring the cluster and the components/resources/etc. of Kyma. The terms "Deployment" and "Deploy" are used in the context of installing Kyma on an empty cluster, or to upgrade Kyma from an older to a newer version.
+The `jobManager` implements a `job` interface which is used to enable a clean automated Kyma deployment in regards of configuring the cluster and the components/resources/etc. of Kyma. The terms "Deployment" and "Deploy" are used in the context of installing Kyma on an empty cluster, or to upgrade Kyma from an older to a newer version.
 
 ## Workflow / General mechanism
 
 ### Requirements of this package
 
-- Only support single linear upgrade: A &#8594; B && B &#8594; C; NOT A &#8594; C. This is due to the fact that Kyma only supports single linear upgrades.
+- Supports only single linear upgrade: A &#8594; B && B &#8594; C; NOT A &#8594; C. This is due to the fact that Kyma only supports single linear upgrades.
 - Inside the job we need "smart checks" to determine whether the job should run its main logic, because implementing an interface that covers all possible scenarios would be overengineering. &#8594; The cluster state, not the target Kyma version is decisive whether logic of jobs should run.
 - It should be easy to tag a job at which certain point it should be deprecated. Written "by hand" or using some techonology to let pipelines fail, if some jobs exist which should be deprecated.
 - The jobManager only supports Kyma `deploy` and not `uninstall`, to prevent that developers misuse jobs to clean up dirty left-overs from `kyma uninstall`.
