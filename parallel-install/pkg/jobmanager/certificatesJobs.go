@@ -56,7 +56,7 @@ func (j annotateCertificatesGateway) execute(cfg *config.Config, kubeClient kube
 
 	gw, err = ic.NetworkingV1beta1().Gateways(namespace).Update(context.TODO(), gw, metav1.UpdateOptions{})
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not fetch Gateway: %s", gateway))
+		return errors.New(fmt.Sprintf("Could not update Gateway after Annotation has been applied: %s", gateway))
 	}
 
 	gwAnnotations = gw.GetAnnotations()

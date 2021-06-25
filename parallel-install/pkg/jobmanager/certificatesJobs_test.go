@@ -2,6 +2,7 @@ package jobmanager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -50,15 +51,30 @@ func TestCertificatesJobs(t *testing.T) {
 		}
 		err = annotateCertificatesGateway{}.execute(config, kubeClient, ic, context.TODO())
 		if err != nil {
-			fmt.Println(err)
+			t.Log(err)
 		}
 		gw, err := ic.NetworkingV1beta1().Gateways(namespace).Get(context.TODO(), gateway, metav1.GetOptions{})
-		fmt.Println("AFTER GW GET")
 		if err != nil {
-			fmt.Println(err)
+			t.Log(err)
 		}
 		annomap := gw.GetAnnotations()
 		require.Equal(t, newAnnotations, annomap)
+	})
+
+	t.Run("should annotate Gateway", func(t *testing.T) {
+		resetFinishedJobsMap()
+		SetLogger(logger.NewLogger(false))
+
+		gateway := "kyma-gateway"
+
+		kubeClient := fake.NewSimpleClientset()
+		ic := versioned.NewSimpleClientset()
+
+		config := &installConfig.Config{
+			WorkersCount: 1,
+		}
+		err := annotateCertificatesGateway{}.execute(config, kubeClient, ic, context.TODO())
+		require.Error(t, errors.New(fmt.Sprintf("Could not fetch Gateway `%s` with error: %s", gateway, err)), err)
 	})
 
 }
