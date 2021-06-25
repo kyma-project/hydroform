@@ -158,7 +158,6 @@ func (j sampleOne) identify() jobName {
 	return jobName("sampleOne")
 }
 func (j sampleOne) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
-	// testLogger.Debug("sampleOne triggered")
 	return nil
 }
 
@@ -173,7 +172,6 @@ func (j sampleTwo) identify() jobName {
 	return jobName("sampleTwo")
 }
 func (j sampleTwo) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
-	// testLogger.Debug("sampleTwo triggered")
 	return nil
 }
 
@@ -188,7 +186,6 @@ func (j sampleThree) identify() jobName {
 	return jobName("sampleThree")
 }
 func (j sampleThree) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
-	// testLogger.Debug("sampleThree triggered")
 	return nil
 }
 
@@ -203,7 +200,6 @@ func (j sampleFour) identify() jobName {
 	return jobName("sampleFour")
 }
 func (j sampleFour) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
-	// testLogger.Debug("sampleFour triggered")
 	return nil
 }
 
@@ -218,6 +214,5 @@ func (j sampleFive) identify() jobName {
 	return jobName("sampleFive")
 }
 func (j sampleFive) execute(cfg *config.Config, kubeClient kubernetes.Interface, ic istio.Interface, ctx context.Context) error {
-	// testLogger.Debug("sampleFive triggered")
 	return errors.New("JobFiveError")
 }
