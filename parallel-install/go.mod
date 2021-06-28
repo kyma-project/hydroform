@@ -29,8 +29,8 @@ require (
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 	helm.sh/helm/v3 v3.5.3 //Before upgrading: please see TODO comment in replace() section on top!
-	istio.io/api v0.0.0-20210520012029-891c0c12abfd // indirect
-	istio.io/client-go v1.10.1 // indirect
+	istio.io/api v0.0.0-20210520012029-891c0c12abfd
+	istio.io/client-go v1.10.1
 	k8s.io/api v0.20.2
 	k8s.io/apiextensions-apiserver v0.20.2
 	k8s.io/apimachinery v0.20.2
