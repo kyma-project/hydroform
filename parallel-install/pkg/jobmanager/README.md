@@ -9,7 +9,7 @@ The `jobManager` implements a `job` interface, which enables a clean automated K
 - Supports only single linear upgrade: A &#8594; B && B &#8594; C; NOT A &#8594; C. This is due to the fact that Kyma only supports single linear upgrades.
 - Jobs themselves cover the checks to determine if they should be triggered. &#8594; They should be triggered if the cluster is not in the wanted state.
 - Deprecation of jobs is annotated.
-- The jobManager only supports Kyma `deploy` and not `uninstall`, to prevent that developers misuse jobs to clean up dirty left-overs from `kyma uninstall`.
+- The jobManager only supports Kyma `deploy` and not `delete`, to prevent that developers misuse jobs to clean up dirty left-overs from `kyma alpha delete`.
 - When the deploy of Kyma fails, the global post-jobs do not run.
 - When the deploy of a component fails, the component-based post-jobs do not run.
 - Jobs do run async to each other.
