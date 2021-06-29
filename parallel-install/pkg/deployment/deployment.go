@@ -14,6 +14,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/k3d"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/jobmanager"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"k8s.io/client-go/kubernetes"
@@ -43,6 +44,8 @@ func NewDeployment(cfg *config.Config, ob *overrides.Builder, processUpdates fun
 	registerOverridesInterceptors(ob, kubeClient, cfg.Log)
 
 	core := newCore(cfg, ob, kubeClient, processUpdates)
+
+	jobmanager.RegisterJobManager(cfg, kubeClient, restConfig, cfg.Log)
 
 	return &Deployment{core}, nil
 }
@@ -75,6 +78,7 @@ func (d *Deployment) StartKymaDeployment() error {
 		KubeconfigSource:         d.cfg.KubeconfigSource,
 		RetryOptions:             retryOpts,
 	}
+
 	preInstaller, err := newPreInstaller(preInstallerCfg)
 	if err != nil {
 		d.cfg.Log.Fatalf("Failed to create Kyma pre-installer: %v", err)
@@ -139,11 +143,13 @@ func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.Ca
 	statusMap := map[string]string{}
 	errCount := 0
 
+	if phase == InstallPreRequisites {
+		jobmanager.ExecutePre(ctx, "global")
+	}
 	statusChan, err := eng.Deploy(ctx)
 	if err != nil {
 		return fmt.Errorf("Kyma deployment failed. Error: %v", err)
 	}
-
 	i.processUpdate(phase, ProcessStart, nil)
 
 	//Await completion
@@ -192,6 +198,12 @@ InstallLoop:
 			return err
 		}
 	}
+	// Only will be executed if Kyma deploy was successfull
+	if phase == InstallComponents {
+		jobmanager.ExecutePost(ctx, "global")
+		i.cfg.Log.Infof("Jobs for deployment took %v seconds", jobmanager.GetDuration().Seconds())
+	}
+
 	i.processUpdate(phase, ProcessFinished, nil)
 	return nil
 }
