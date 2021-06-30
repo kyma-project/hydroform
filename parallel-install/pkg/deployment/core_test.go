@@ -29,12 +29,16 @@ func (c *mockHelmClient) UninstallRelease(ctx context.Context, namespace, name s
 	return nil
 }
 
+func (c *mockHelmClient) Template(chartDir, namespace, name string, overrides map[string]interface{}, profile string) (string, error) {
+	return "Templating is not supported by this mock", nil
+}
+
 //mockProvider is used in test-cases of core extending objects, like Deletion an Deployment tests
 type mockProvider struct {
 	hc *mockHelmClient
 }
 
-func (p *mockProvider) GetComponents() []components.KymaComponent {
+func (p *mockProvider) GetComponents(reversed bool) []components.KymaComponent {
 	return []components.KymaComponent{
 		{
 			Name:            "test1",
@@ -64,8 +68,5 @@ func (p *mockProvider) GetComponents() []components.KymaComponent {
 type mockOverridesProvider struct{}
 
 func (o *mockOverridesProvider) OverridesGetterFunctionFor(name string) func() map[string]interface{} {
-	return nil
-}
-func (o *mockOverridesProvider) ReadOverridesFromCluster() error {
 	return nil
 }

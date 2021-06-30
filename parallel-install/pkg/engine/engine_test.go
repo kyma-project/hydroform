@@ -135,7 +135,7 @@ func TestSuccessScenario(t *testing.T) {
 
 	componentsProvider := &mockComponentsProvider{t, helmClient}
 
-	componentsToBeProcessed := componentsProvider.GetComponents()
+	componentsToBeProcessed := componentsProvider.GetComponents(false)
 
 	engineCfg := Config{
 		WorkersCount: defualtWorkersCount,
@@ -174,7 +174,7 @@ func TestErrorScenario(t *testing.T) {
 
 	componentsProvider := &mockComponentsProvider{t, helmClient}
 
-	componentsToBeProcessed := componentsProvider.GetComponents()
+	componentsToBeProcessed := componentsProvider.GetComponents(false)
 
 	engineCfg := Config{
 		WorkersCount: defualtWorkersCount,
@@ -281,12 +281,16 @@ func (c *mockHelmClientWithSemaphore) UninstallRelease(ctx context.Context, name
 	return nil
 }
 
+func (c *mockHelmClientWithSemaphore) Template(chartDir, namespace, name string, overrides map[string]interface{}, profile string) (string, error) {
+	return "Templating is not supported by this mock", nil
+}
+
 type mockComponentsProvider struct {
 	t  *testing.T
 	hc helm.ClientInterface
 }
 
-func (p *mockComponentsProvider) GetComponents() []components.KymaComponent {
+func (p *mockComponentsProvider) GetComponents(reversed bool) []components.KymaComponent {
 	var comps []components.KymaComponent
 	for _, name := range testComponentsNames {
 		component := components.KymaComponent{
@@ -323,6 +327,10 @@ func (c *mockSimpleHelmClient) UninstallRelease(ctx context.Context, namespace, 
 		}
 	}
 	return nil
+}
+
+func (c *mockSimpleHelmClient) Template(chartDir, namespace, name string, overrides map[string]interface{}, profile string) (string, error) {
+	return "Templating is not supported by this mock", nil
 }
 
 type mockOverridesProvider struct{}

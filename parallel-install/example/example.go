@@ -3,17 +3,25 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 	"time"
+
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/helm"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller"
+)
+
+const (
+	actionDeployAndDelete = "deploy+delete"
+	actionTemplate        = "template"
 )
 
 var log *logger.Logger
@@ -25,6 +33,9 @@ func main() {
 	profile := flag.String("profile", "", "Deployment profile")
 	version := flag.String("version", "latest", "Kyma version")
 	verbose := flag.Bool("verbose", false, "Verbose mode")
+	action := flag.String("action", actionDeployAndDelete,
+		fmt.Sprintf("Which action to apply. Supported are: %s (default: %s)",
+			strings.Join([]string{actionDeployAndDelete, actionTemplate}, ", "), actionDeployAndDelete))
 
 	flag.Parse()
 
@@ -44,7 +55,7 @@ func main() {
 		log.Fatal("Please set GOPATH")
 	}
 
-	builder := &deployment.OverridesBuilder{}
+	builder := &overrides.Builder{}
 	if err := builder.AddFile("./overrides.yaml"); err != nil {
 		log.Error("Failed to add overrides file. Exiting...")
 		os.Exit(1)
@@ -61,7 +72,7 @@ func main() {
 		log.Fatalf("Cannot read component list: %s", err)
 	}
 
-	installationCfg := &config.Config{
+	cfg := &config.Config{
 		WorkersCount:                  4,
 		CancelTimeout:                 20 * time.Minute,
 		QuitTimeout:                   25 * time.Minute,
@@ -81,43 +92,25 @@ func main() {
 		Version: *version,
 	}
 
+	switch *action {
+	case actionDeployAndDelete:
+		deployAndDelete(cfg, builder)
+	case actionTemplate:
+		template(cfg, builder)
+	default:
+		log.Errorf("Action '%s' is not supported", *action)
+	}
+}
+
+func deployAndDelete(cfg *config.Config, builder *overrides.Builder) {
 	commonRetryOpts := []retry.Option{
-		retry.Delay(time.Duration(installationCfg.BackoffInitialIntervalSeconds) * time.Second),
-		retry.Attempts(uint(installationCfg.BackoffMaxElapsedTimeSeconds / installationCfg.BackoffInitialIntervalSeconds)),
+		retry.Delay(time.Duration(cfg.BackoffInitialIntervalSeconds) * time.Second),
+		retry.Attempts(uint(cfg.BackoffMaxElapsedTimeSeconds / cfg.BackoffInitialIntervalSeconds)),
 		retry.DelayType(retry.FixedDelay),
 	}
 
-	//Prepare cluster before Kyma installation
-	preInstallerCfg := preinstaller.Config{
-		InstallationResourcePath: installationCfg.InstallationResourcePath,
-		Log:                      installationCfg.Log,
-		KubeconfigSource:         installationCfg.KubeconfigSource,
-	}
-
-	resourceParser := &preinstaller.GenericResourceParser{}
-	resourceManager, err := preinstaller.NewDefaultResourceManager(installationCfg.KubeconfigSource, preInstallerCfg.Log, commonRetryOpts)
-	if err != nil {
-		log.Fatalf("Failed to create Kyma default resource manager: %v", err)
-	}
-
-	resourceApplier := preinstaller.NewGenericResourceApplier(installationCfg.Log, resourceManager)
-	preInstaller, err := preinstaller.NewPreInstaller(resourceApplier, resourceParser, preInstallerCfg, commonRetryOpts)
-	if err != nil {
-		log.Fatalf("Failed to create Kyma pre-installer: %v", err)
-	}
-
-	result, err := preInstaller.InstallCRDs()
-	if err != nil || len(result.NotInstalled) > 0 {
-		log.Fatalf("Failed to install CRDs: %s", err)
-	}
-
-	result, err = preInstaller.CreateNamespaces()
-	if err != nil || len(result.NotInstalled) > 0 {
-		log.Fatalf("Failed to create namespaces: %s", err)
-	}
-
 	//Deploy Kyma
-	deployer, err := deployment.NewDeployment(installationCfg, builder, callbackUpdate)
+	deployer, err := deployment.NewDeployment(cfg, builder, callbackUpdate)
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
@@ -129,7 +122,7 @@ func main() {
 		log.Info("Kyma deployed!")
 	}
 
-	metadataProvider, err := helm.NewKymaMetadataProvider(installationCfg.KubeconfigSource)
+	metadataProvider, err := helm.NewKymaMetadataProvider(cfg.KubeconfigSource)
 	if err != nil {
 		log.Fatalf("Failed to create Kyma metadata provider: %v", err)
 	}
@@ -142,7 +135,7 @@ func main() {
 	}
 
 	//Delete Kyma
-	deleter, err := deployment.NewDeletion(installationCfg, builder, callbackUpdate, commonRetryOpts)
+	deleter, err := deployment.NewDeletion(cfg, builder, callbackUpdate, commonRetryOpts)
 	if err != nil {
 		log.Fatalf("Failed to create deleter: %v", err)
 	}
@@ -150,7 +143,37 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to uninstall Kyma: %v", err)
 	}
+
 	log.Info("Kyma uninstalled!")
+}
+
+func template(cfg *config.Config, builder *overrides.Builder) {
+	//Deploy Kyma
+	templating, err := deployment.NewTemplating(cfg, builder)
+	if err != nil {
+		log.Fatalf("Failed to create installer: %v", err)
+	}
+	manifests, err := templating.Render()
+	if err != nil {
+		log.Fatalf("Failed to render Helm charts: %v", err)
+	}
+	for _, manifest := range manifests {
+		var filename string
+		if manifest.Type == components.CRD {
+			filename = path.Join("template", manifest.Name)
+		} else {
+			filename = path.Join("template", fmt.Sprintf("%s.yaml", manifest.Name))
+		}
+
+		err := os.MkdirAll("template", os.ModePerm)
+		if err != nil {
+			log.Fatalf("Failed to create template folder: %v", err)
+		}
+
+		if err := ioutil.WriteFile(filename, []byte(manifest.Manifest), 0600); err != nil {
+			log.Errorf("Failed to write manifest '%s': %v", manifest.Name, err)
+		}
+	}
 }
 
 func callbackUpdate(update deployment.ProcessUpdate) {

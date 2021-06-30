@@ -5,15 +5,15 @@
 # For more details, read the following article on GitHub: https://help.github.com/articles/about-codeowners/.
 
 # These are the default owners for the whole content of the `hydroform` repository. The default owners are automatically added as reviewers when you open a pull request, unless different owners are specified in the file.
-* @a-thaler @hisarbalik @lilitgh @suleymanakbas91 @clebs
+* @a-thaler @lilitgh @suleymanakbas91 @clebs @jeremyharisch
 
-/provision @a-thaler @hisarbalik @lilitgh @suleymanakbas91 @clebs
+/provision @a-thaler @lilitgh @suleymanakbas91 @clebs
 
 /install @akgalwas @janmedrek @Szymongib @franpog859 @Maladie
 
-/parallel-install @tobiscr @strekm @Tomasz-Smelcerz-SAP @werdes72 @a-thaler @hisarbalik @lilitgh @suleymanakbas91 @clebs @rakesh-garimella @mjakobczyk
+/parallel-install @tobiscr @strekm @Tomasz-Smelcerz-SAP @werdes72 @a-thaler @lilitgh @suleymanakbas91 @clebs @rakesh-garimella @mjakobczyk @jeremyharisch
 
-/function @m00g3n @aerfio @pPrecel @magicmatatjahu @dbadura @tgorgol @kfurgol
+/function @m00g3n @pPrecel @dbadura @tgorgol @rJankowski93
 
 # All .md files
 *.md @kazydek @klaudiagrz @mmitoraj @majakurcius @alexandra-simeonova

@@ -1,4 +1,4 @@
-package deployment
+package overrides
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/k3d"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -81,7 +82,7 @@ func (roi *undefinedOverrideInterceptor) Undefined(overrides map[string]interfac
 
 func Test_InterceptValue(t *testing.T) {
 	t.Run("Test interceptor without failures", func(t *testing.T) {
-		builder := OverridesBuilder{}
+		builder := Builder{}
 		err := builder.AddFile("../test/data/deployment-overrides-intercepted.yaml")
 		require.NoError(t, err)
 		builder.AddInterceptor([]string{"chart.key2.key2-1", "chart.key4"}, &replaceOverrideInterceptor{})
@@ -100,7 +101,7 @@ func Test_InterceptValue(t *testing.T) {
 	})
 
 	t.Run("Test interceptor with failure", func(t *testing.T) {
-		builder := OverridesBuilder{}
+		builder := Builder{}
 		err := builder.AddFile("../test/data/deployment-overrides-intercepted.yaml")
 		require.NoError(t, err)
 		builder.AddInterceptor([]string{"chart.key1"}, &failingOverrideInterceptor{})
@@ -111,7 +112,7 @@ func Test_InterceptValue(t *testing.T) {
 }
 
 func Test_InterceptStringer(t *testing.T) {
-	builder := OverridesBuilder{}
+	builder := Builder{}
 	err := builder.AddFile("../test/data/deployment-overrides-intercepted.yaml")
 	require.NoError(t, err)
 	builder.AddInterceptor([]string{"chart.key1", "chart.key3"}, &stringerOverrideInterceptor{})
@@ -123,7 +124,7 @@ func Test_InterceptStringer(t *testing.T) {
 }
 
 func Test_InterceptUndefined(t *testing.T) {
-	builder := OverridesBuilder{}
+	builder := Builder{}
 	err := builder.AddFile("../test/data/deployment-overrides-intercepted.yaml")
 	require.NoError(t, err)
 	builder.AddInterceptor([]string{"I.dont.exist"}, &undefinedOverrideInterceptor{})
@@ -134,7 +135,7 @@ func Test_InterceptUndefined(t *testing.T) {
 }
 
 func Test_FallbackInterceptor(t *testing.T) {
-	builder := OverridesBuilder{}
+	builder := Builder{}
 	err := builder.AddFile("../test/data/deployment-overrides-intercepted.yaml")
 	require.NoError(t, err)
 
@@ -155,7 +156,7 @@ func Test_FallbackInterceptor(t *testing.T) {
 }
 
 func Test_GlobalOverridesInterceptionForLocalCluster(t *testing.T) {
-	ob := OverridesBuilder{}
+	ob := Builder{}
 	kubeClient := fake.NewSimpleClientset()
 	log := logger.NewLogger(true)
 
@@ -184,7 +185,7 @@ func Test_GlobalOverridesInterceptionForLocalCluster(t *testing.T) {
 }
 
 func Test_GlobalOverridesInterceptionForNonGardenerCluster(t *testing.T) {
-	ob := OverridesBuilder{}
+	ob := Builder{}
 	kubeClient := fake.NewSimpleClientset()
 	log := logger.NewLogger(true)
 
@@ -222,7 +223,7 @@ func Test_GlobalOverridesInterceptionForNonGardenerCluster(t *testing.T) {
 }
 
 func Test_DomainNameOverrideInterceptor(t *testing.T) {
-	ob := OverridesBuilder{}
+	ob := Builder{}
 	log := logger.NewLogger(true)
 
 	gardenerCM := fakeGardenerCM()
@@ -282,7 +283,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		// given
 		kubeClient := fake.NewSimpleClientset(gardenerCM)
 
-		ob := OverridesBuilder{}
+		ob := Builder{}
 		domainNameOverrides := make(map[string]interface{})
 		domainNameOverrides["domainName"] = "user.domain"
 		err := ob.AddOverrides("global", domainNameOverrides)
@@ -304,7 +305,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		// given
 		kubeClient := fake.NewSimpleClientset()
 
-		ob := OverridesBuilder{}
+		ob := Builder{}
 		domainNameOverrides := make(map[string]interface{})
 		domainNameOverrides["domainName"] = "user.domain"
 		err := ob.AddOverrides("global", domainNameOverrides)
@@ -326,7 +327,7 @@ func Test_DomainNameOverrideInterceptor(t *testing.T) {
 		// given
 		kubeClient := fake.NewSimpleClientset()
 
-		ob := OverridesBuilder{}
+		ob := Builder{}
 		domainNameOverrides := make(map[string]interface{})
 		domainNameOverrides["domainName"] = "user.domain"
 		err := ob.AddOverrides("global", domainNameOverrides)
@@ -358,7 +359,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
 		interceptor.isLocalCluster = isLocalClusterFunc(true)
 
-		ob := OverridesBuilder{}
+		ob := Builder{}
 
 		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
 
@@ -379,7 +380,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
 		interceptor.isLocalCluster = isLocalClusterFunc(false)
 
-		ob := OverridesBuilder{}
+		ob := Builder{}
 
 		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
 
@@ -401,7 +402,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
 		interceptor.isLocalCluster = isLocalClusterFunc(true)
 
-		ob := OverridesBuilder{}
+		ob := Builder{}
 
 		ob.AddInterceptor([]string{"global.tlsCrt", "global.tlsKey"}, interceptor)
 
@@ -419,7 +420,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
 		interceptor.isLocalCluster = isLocalClusterFunc(true)
 
-		ob := OverridesBuilder{}
+		ob := Builder{}
 
 		tlsOverrides := make(map[string]interface{})
 		tlsOverrides["tlsCrt"] = defaultLocalTLSCrtEnc
@@ -447,7 +448,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		interceptor := NewCertificateOverrideInterceptor("global.tlsCrt", "global.tlsKey", kubeClient)
 		interceptor.isLocalCluster = isLocalClusterFunc(true)
 
-		ob := OverridesBuilder{}
+		ob := Builder{}
 
 		tlsOverrides := make(map[string]interface{})
 		tlsOverrides["tlsCrt"] = testFakeCrt
@@ -480,7 +481,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		tlsOverrides := make(map[string]interface{})
 		tlsOverrides["tlsCrt"] = testFakeCrt
 		tlsOverrides["tlsKey"] = testFakeKey
-		ob := OverridesBuilder{}
+		ob := Builder{}
 		err := ob.AddOverrides("global", tlsOverrides)
 		require.NoError(t, err)
 
@@ -509,7 +510,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		tlsOverrides := make(map[string]interface{})
 		tlsOverrides["tlsCrt"] = testFakeCrt
 		tlsOverrides["tlsKey"] = defaultLocalTLSKeyEnc
-		ob := OverridesBuilder{}
+		ob := Builder{}
 		err := ob.AddOverrides("global", tlsOverrides)
 		require.NoError(t, err)
 
@@ -532,7 +533,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 		tlsOverrides := make(map[string]interface{})
 		tlsOverrides["tlsCrt"] = testFakeCrt
 		tlsOverrides["tlsKey"] = "V2VkIEFwciAyMSAxNzoyNTowOCBDRVNUIDIwMjEK"
-		ob := OverridesBuilder{}
+		ob := Builder{}
 		err := ob.AddOverrides("global", tlsOverrides)
 		require.NoError(t, err)
 
@@ -548,7 +549,7 @@ func Test_CertificateOverridesInterception(t *testing.T) {
 }
 
 func Test_RegistryEnableOverrideInterception(t *testing.T) {
-	k3dNode := fakeK3dNode()
+	k3dNode := k3d.FakeK3dNode()
 	generalNode := fakeNode()
 
 	t.Run("test disable internal registry for k3d cluster", func(t *testing.T) {
@@ -557,7 +558,7 @@ func Test_RegistryEnableOverrideInterception(t *testing.T) {
 		dockerRegistryOverrides["enableInternal"] = "true"
 		serverlessOverrides := make(map[string]interface{})
 		serverlessOverrides["dockerRegistry"] = dockerRegistryOverrides
-		ob := OverridesBuilder{}
+		ob := Builder{}
 		err := ob.AddOverrides("serverless", serverlessOverrides)
 		require.NoError(t, err)
 
@@ -578,7 +579,7 @@ func Test_RegistryEnableOverrideInterception(t *testing.T) {
 		dockerRegistryOverrides["enableInternal"] = "true"
 		serverlessOverrides := make(map[string]interface{})
 		serverlessOverrides["dockerRegistry"] = dockerRegistryOverrides
-		ob := OverridesBuilder{}
+		ob := Builder{}
 		err := ob.AddOverrides("serverless", serverlessOverrides)
 		require.NoError(t, err)
 
@@ -596,7 +597,7 @@ func Test_RegistryEnableOverrideInterception(t *testing.T) {
 }
 
 func Test_RegistryOverridesInterception(t *testing.T) {
-	k3dNode := fakeK3dNode()
+	k3dNode := k3d.FakeK3dNode()
 	generalNode := fakeNode()
 
 	t.Run("test getting k3d cluster name", func(t *testing.T) {
@@ -604,14 +605,38 @@ func Test_RegistryOverridesInterception(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset(k3dNode)
 
 		// when
-		clusterName, err := getK3dClusterName(kubeClient)
+		clusterName, err := k3d.K3dClusterName(kubeClient)
 
 		// then
 		require.NoError(t, err)
 		require.Equal(t, "kyma", clusterName)
 	})
 
-	t.Run("test registry address for k3d cluster", func(t *testing.T) {
+	t.Run("test registry address for k3d cluster if undefined", func(t *testing.T) {
+		// given
+		dockerRegistryOverrides := make(map[string]interface{})
+		dockerRegistryOverrides["enableInternal"] = "true"
+		serverlessOverrides := make(map[string]interface{})
+		serverlessOverrides["dockerRegistry"] = dockerRegistryOverrides
+		ob := Builder{}
+		err := ob.AddOverrides("serverless", serverlessOverrides)
+		require.NoError(t, err)
+
+		kubeClient := fake.NewSimpleClientset(k3dNode)
+		ob.AddInterceptor([]string{"serverless.dockerRegistry.internalServerAddress", "serverless.dockerRegistry.serverAddress", "serverless.dockerRegistry.registryAddress"}, NewRegistryInterceptor(kubeClient))
+		// when
+		overrides, err := ob.Build()
+		require.NoError(t, err)
+
+		// then
+		require.NoError(t, err)
+		require.NotEmpty(t, overrides.Map())
+		require.Equal(t, "k3d-kyma-registry:5000", getOverride(overrides.Map(), "serverless.dockerRegistry.serverAddress"))
+		require.Equal(t, "k3d-kyma-registry:5000", getOverride(overrides.Map(), "serverless.dockerRegistry.internalServerAddress"))
+		require.Equal(t, "k3d-kyma-registry:5000", getOverride(overrides.Map(), "serverless.dockerRegistry.registryAddress"))
+	})
+
+	t.Run("test registry address for k3d cluster if overriden", func(t *testing.T) {
 		// given
 		dockerRegistryOverrides := make(map[string]interface{})
 		dockerRegistryOverrides["enableInternal"] = "true"
@@ -620,7 +645,7 @@ func Test_RegistryOverridesInterception(t *testing.T) {
 		dockerRegistryOverrides["registryAddress"] = "registryAddress"
 		serverlessOverrides := make(map[string]interface{})
 		serverlessOverrides["dockerRegistry"] = dockerRegistryOverrides
-		ob := OverridesBuilder{}
+		ob := Builder{}
 		err := ob.AddOverrides("serverless", serverlessOverrides)
 		require.NoError(t, err)
 
@@ -628,13 +653,14 @@ func Test_RegistryOverridesInterception(t *testing.T) {
 		ob.AddInterceptor([]string{"serverless.dockerRegistry.internalServerAddress", "serverless.dockerRegistry.serverAddress", "serverless.dockerRegistry.registryAddress"}, NewRegistryInterceptor(kubeClient))
 		// when
 		overrides, err := ob.Build()
+		require.NoError(t, err)
 
 		// then
 		require.NoError(t, err)
 		require.NotEmpty(t, overrides.Map())
-		require.Equal(t, "k3d-kyma-registry:5000", getOverride(overrides.Map(), "serverless.dockerRegistry.serverAddress"))
-		require.Equal(t, "k3d-kyma-registry:5000", getOverride(overrides.Map(), "serverless.dockerRegistry.internalServerAddress"))
-		require.Equal(t, "k3d-kyma-registry:5000", getOverride(overrides.Map(), "serverless.dockerRegistry.registryAddress"))
+		require.Equal(t, "serverAddress", getOverride(overrides.Map(), "serverless.dockerRegistry.serverAddress"))
+		require.Equal(t, "internalServerAddress", getOverride(overrides.Map(), "serverless.dockerRegistry.internalServerAddress"))
+		require.Equal(t, "registryAddress", getOverride(overrides.Map(), "serverless.dockerRegistry.registryAddress"))
 	})
 
 	t.Run("test preserve registry address for non k3d cluster", func(t *testing.T) {
@@ -646,7 +672,7 @@ func Test_RegistryOverridesInterception(t *testing.T) {
 		dockerRegistryOverrides["registryAddress"] = "registryAddress"
 		serverlessOverrides := make(map[string]interface{})
 		serverlessOverrides["dockerRegistry"] = dockerRegistryOverrides
-		ob := OverridesBuilder{}
+		ob := Builder{}
 		err := ob.AddOverrides("serverless", serverlessOverrides)
 		require.NoError(t, err)
 
@@ -672,17 +698,6 @@ func fakeNode() *v1.Node {
 	}
 
 	return node
-}
-
-func fakeK3dNode() *v1.Node {
-	k3dNode := &v1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "k3d-kyma-server-0",
-			Labels: map[string]string{"node-role.kubernetes.io/master": "true"},
-		},
-	}
-
-	return k3dNode
 }
 
 func fakeGardenerCM() *v1.ConfigMap {

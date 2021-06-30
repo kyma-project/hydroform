@@ -8,6 +8,15 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 )
 
+const (
+	//LABEL_KEY_ORIGIN is used for marking where resource comes from.
+	LABEL_KEY_ORIGIN = "origin"
+
+	//LABEL_VALUE_KYMA indicates that resource is managed by Kyma.
+	//Used for marking CRDs, so they can be deleted during uninstallation.
+	LABEL_VALUE_KYMA = "kyma"
+)
+
 //Configures various install/uninstall operation parameters.
 //There are no different parameters for the "install" and "delete" operations.
 //If you need different configurations, just use two different Installation instances.
@@ -42,8 +51,14 @@ type Config struct {
 	KubeconfigSource KubeconfigSource
 	//Kyma version
 	Version string
-	//Atomic deployment
+	// Reuse Helm chart values for upgrade
+	ReuseHelmValues bool
+	// Atomic deployment
 	Atomic bool
+	// Keep Kyma CRDs during deletion
+	KeepCRDs bool
+	// Silence deprecation warnings for K8s API
+	Verbose bool
 }
 
 // KubeconfigSource aggregates kubeconfig in a form of either a path or a raw content.

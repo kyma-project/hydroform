@@ -1,18 +1,15 @@
-package deployment
+package overrides
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/avast/retry-go"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/gardener"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/k3d"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 	"github.com/pkg/errors"
-	apierr "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -50,7 +47,7 @@ func NewDomainNameOverrideInterceptor(kubeClient kubernetes.Interface, log logge
 		kubeClient: kubeClient,
 		log:        log,
 		isLocalCluster: func() (bool, error) {
-			return isK3dCluster(kubeClient)
+			return k3d.IsK3dCluster(kubeClient)
 		},
 	}
 }
@@ -61,7 +58,7 @@ func (i *DomainNameOverrideInterceptor) String(value interface{}, key string) st
 
 func (i *DomainNameOverrideInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
 	// On gardener, domain provided by user should be ignored
-	domainName, err := findGardenerDomain(i.kubeClient)
+	domainName, err := gardener.Domain(i.kubeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +83,7 @@ func (i *DomainNameOverrideInterceptor) Undefined(overrides map[string]interface
 func (i *DomainNameOverrideInterceptor) getDomainName() (domainName string, err error) {
 
 	// On gardener always return gardener domain
-	domainName, err = findGardenerDomain(i.kubeClient)
+	domainName, err = gardener.Domain(i.kubeClient)
 	if err != nil {
 		return "", err
 	}
@@ -136,11 +133,11 @@ func NewCertificateOverrideInterceptor(tlsCrtOverrideKey, tlsKeyOverrideKey stri
 	}
 
 	res.isLocalCluster = func() (bool, error) {
-		return isK3dCluster(kubeClient)
+		return k3d.IsK3dCluster(kubeClient)
 	}
 
 	res.isGardenerCluster = func() (bool, error) {
-		gardenerDomain, err := findGardenerDomain(kubeClient)
+		gardenerDomain, err := gardener.Domain(kubeClient)
 		if err != nil {
 			return false, err
 		}
@@ -290,84 +287,6 @@ func NewFallbackOverrideInterceptor(fallback interface{}) *FallbackOverrideInter
 	}
 }
 
-// This struct is introduced to ensure backward compatibility of Kyma 2.0 with 1.x
-// It can be removed when Kyma 2.0 is released
-type InstallLegacyCRDsInterceptor struct{}
-
-func (i *InstallLegacyCRDsInterceptor) String(value interface{}, key string) string {
-	return fmt.Sprintf("%v", value)
-}
-
-func (i *InstallLegacyCRDsInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	// We should never install CRDs in the legacy way with Kyma 2.0
-	return false, nil
-}
-
-func (i *InstallLegacyCRDsInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	// We should never install CRDs in the legacy way with Kyma 2.0
-	return NewFallbackOverrideInterceptor(false).Undefined(overrides, key)
-}
-
-func NewInstallLegacyCRDsInterceptor() *InstallLegacyCRDsInterceptor {
-	return &InstallLegacyCRDsInterceptor{}
-}
-
-func findGardenerDomain(kubeClient kubernetes.Interface) (domainName string, err error) {
-	err = retry.Do(func() error {
-		configMap, err := kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), "shoot-info", metav1.GetOptions{})
-
-		if err != nil {
-			if apierr.IsNotFound(err) {
-				return nil
-			}
-			return err
-		}
-
-		domainName = configMap.Data["domain"]
-		if domainName == "" {
-			return fmt.Errorf("domain is empty in %s configmap", "shoot-info")
-		}
-
-		return nil
-	}, defaultRetryOptions()...)
-
-	if err != nil {
-		return "", err
-	}
-
-	return domainName, nil
-}
-
-// This struct is introduced to ensure kcproxy gets disabled on kiali and tracing component
-// It can be removed when kcproxy si removed
-type DisableKCProxyInterceptor struct{}
-
-func (i *DisableKCProxyInterceptor) String(value interface{}, key string) string {
-	return "false"
-}
-
-func (i *DisableKCProxyInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	// We should not enable kcproxy and tracing with alpha deploy
-	return false, nil
-}
-
-func (i *DisableKCProxyInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	// We should not enable kcproxy with alpha deploy
-	return NewFallbackOverrideInterceptor(false).Undefined(overrides, key)
-}
-
-func NewDisableKCProxyInterceptor() *DisableKCProxyInterceptor {
-	return &DisableKCProxyInterceptor{}
-}
-
-func defaultRetryOptions() []retry.Option {
-	return []retry.Option{
-		retry.Delay(2 * time.Second),
-		retry.Attempts(3),
-		retry.DelayType(retry.FixedDelay),
-	}
-}
-
 type RegistryDisableInterceptor struct {
 	kubeClient kubernetes.Interface
 }
@@ -386,7 +305,7 @@ func (i *RegistryDisableInterceptor) String(value interface{}, key string) strin
 }
 
 func (i *RegistryDisableInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	k3dCluster, err := isK3dCluster(i.kubeClient)
+	k3dCluster, err := k3d.IsK3dCluster(i.kubeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -397,7 +316,7 @@ func (i *RegistryDisableInterceptor) Intercept(value interface{}, key string) (i
 }
 
 func (i *RegistryDisableInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	k3dCluster, err := isK3dCluster(i.kubeClient)
+	k3dCluster, err := k3d.IsK3dCluster(i.kubeClient)
 	if err != nil {
 		return err
 	}
@@ -426,27 +345,16 @@ func (i *RegistryInterceptor) String(value interface{}, key string) string {
 }
 
 func (i *RegistryInterceptor) Intercept(value interface{}, key string) (interface{}, error) {
-	k3dCluster, err := isK3dCluster(i.kubeClient)
-	if err != nil {
-		return nil, err
-	}
-	if k3dCluster {
-		k3dClusterName, err := getK3dClusterName(i.kubeClient)
-		if err != nil {
-			return nil, err
-		}
-		return fmt.Sprintf("k3d-%s-registry:5000", k3dClusterName), nil
-	}
 	return value, nil
 }
 
 func (i *RegistryInterceptor) Undefined(overrides map[string]interface{}, key string) error {
-	k3dCluster, err := isK3dCluster(i.kubeClient)
+	k3dCluster, err := k3d.IsK3dCluster(i.kubeClient)
 	if err != nil {
 		return err
 	}
 	if k3dCluster {
-		k3dClusterName, err := getK3dClusterName(i.kubeClient)
+		k3dClusterName, err := k3d.K3dClusterName(i.kubeClient)
 		if err != nil {
 			return err
 		}

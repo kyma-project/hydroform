@@ -1,4 +1,4 @@
-package preinstaller
+package deployment
 
 import (
 	"fmt"
@@ -6,13 +6,14 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/mocks"
+	"github.com/stretchr/testify/require"
+
 	"github.com/avast/retry-go"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
-	"github.com/kyma-incubator/hydroform/parallel-install/pkg/preinstaller/mocks"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/test"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
@@ -23,9 +24,8 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions()
 	resourceName := "name"
-	crdResource := fixCrdResourceWith(resourceName)
+	crdResource := fixCrdResourceWithGivenName(resourceName)
 
 	t.Run("should install CRDs", func(t *testing.T) {
 		// given
@@ -33,7 +33,7 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 		resourceApplier := &mocks.ResourceApplier{}
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		cfg.InstallationResourcePath = resourcePath
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		cfg.InstallationResourcePath = resourcePath
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -44,58 +44,12 @@ func TestPreInstaller_InstallCRDs(t *testing.T) {
 		resourceApplier.On("Apply", crdResource).Return(nil)
 
 		// when
-		output, err := i.InstallCRDs()
+		err := i.InstallCRDs()
 
 		// then
-		assert.NoError(t, err)
-		assert.Equal(t, 2, len(output.Installed))
-		assert.Zero(t, len(output.NotInstalled))
-
-		expectedFirstComponent := "comp1"
-		assert.True(t, containsFileWithDetails(output.Installed, expectedFirstComponent, pathToFirstResource))
-
-		expectedSecondComponent := "comp2"
-		assert.True(t, containsFileWithDetails(output.Installed, expectedSecondComponent, pathToSecondResource))
-	})
-
-}
-
-func TestPreInstaller_CreateNamespaces(t *testing.T) {
-	scheme := runtime.NewScheme()
-	dynamicClient := fake.NewSimpleDynamicClient(scheme)
-	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions()
-	resourceName := "name"
-	namespaceResource := fixNamespaceResourceWith(resourceName)
-
-	t.Run("should create namespaces", func(t *testing.T) {
-		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
-		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
-		cfg.InstallationResourcePath = resourcePath
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
-
-		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
-		resourceParser.On("ParseFile", pathToFirstResource).Return(namespaceResource, nil)
-		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
-		resourceParser.On("ParseFile", pathToSecondResource).Return(namespaceResource, nil)
-
-		resourceApplier.On("Apply", namespaceResource).Return(nil)
-
-		// when
-		output, err := i.CreateNamespaces()
-
-		// then
-		assert.NoError(t, err)
-		assert.Equal(t, 2, len(output.Installed))
-		assert.Zero(t, len(output.NotInstalled))
-
-		expectedFirstComponent := "comp1"
-		assert.True(t, containsFileWithDetails(output.Installed, expectedFirstComponent, pathToFirstResource))
-
-		expectedSecondComponent := "comp2"
-		assert.True(t, containsFileWithDetails(output.Installed, expectedSecondComponent, pathToSecondResource))
+		require.NoError(t, err)
+		resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
+		resourceApplier.AssertNumberOfCalls(t, "Apply", 2)
 	})
 
 }
@@ -104,16 +58,15 @@ func TestPreInstaller_install(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynamicClient := fake.NewSimpleDynamicClient(scheme)
 	cfg := getTestingConfig()
-	retryOptions := getTestingRetryOptions()
 	resourceName := "name"
-	crdResource := fixCrdResourceWith(resourceName)
-	namespaceResource := fixNamespaceResourceWith(resourceName)
+	crdResource := fixCrdResourceWithGivenName(resourceName)
+	namespaceResource := fixNamespaceResourceWithGivenName(resourceName)
 
 	t.Run("should install CRDs", func(t *testing.T) {
 		// given
 		resourceParser := &mocks.ResourceParser{}
 		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -133,22 +86,21 @@ func TestPreInstaller_install(t *testing.T) {
 		output, err := i.install(input)
 
 		// then
-		assert.NoError(t, err)
-		assert.Equal(t, 2, len(output.Installed))
-		assert.Zero(t, len(output.NotInstalled))
+		require.NoError(t, err)
+		resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
+		resourceApplier.AssertNumberOfCalls(t, "Apply", 2)
 
-		expectedFirstComponent := "comp1"
-		assert.True(t, containsFileWithDetails(output.Installed, expectedFirstComponent, pathToFirstResource))
-
-		expectedSecondComponent := "comp2"
-		assert.True(t, containsFileWithDetails(output.Installed, expectedSecondComponent, pathToSecondResource))
+		require.Equal(t, 2, len(output.Installed))
+		require.Zero(t, len(output.NotInstalled))
+		require.True(t, containsFileWithDetails(output.Installed, "comp1", pathToFirstResource))
+		require.True(t, containsFileWithDetails(output.Installed, "comp2", pathToSecondResource))
 	})
 
 	t.Run("should not install CRDs due to incorrect input resource type", func(t *testing.T) {
 		// given
 		resourceParser := &mocks.ResourceParser{}
 		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -168,92 +120,21 @@ func TestPreInstaller_install(t *testing.T) {
 		output, err := i.install(input)
 
 		// then
-		assert.NoError(t, err)
-		assert.Zero(t, len(output.Installed))
-		assert.Equal(t, 2, len(output.NotInstalled))
+		require.Error(t, err)
+		resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
+		resourceApplier.AssertNumberOfCalls(t, "Apply", 0)
 
-		expectedFirstComponent := "comp1"
-		assert.True(t, containsFileWithDetails(output.NotInstalled, expectedFirstComponent, pathToFirstResource))
-
-		expectedSecondComponent := "comp2"
-		assert.True(t, containsFileWithDetails(output.NotInstalled, expectedSecondComponent, pathToSecondResource))
-	})
-
-	t.Run("should create namespaces", func(t *testing.T) {
-		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
-
-		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
-		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
-		resourceParser.On("ParseFile", pathToFirstResource).Return(namespaceResource, nil)
-		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
-		resourceParser.On("ParseFile", pathToSecondResource).Return(namespaceResource, nil)
-
-		resourceApplier.On("Apply", namespaceResource).Return(nil)
-
-		input := resourceInfoInput{
-			resourceType:             "Namespace",
-			dirSuffix:                "namespaces",
-			installationResourcePath: resourcePath,
-		}
-
-		// when
-		output, err := i.install(input)
-
-		// then
-		assert.NoError(t, err)
-		assert.Equal(t, 2, len(output.Installed))
-		assert.Zero(t, len(output.NotInstalled))
-
-		expectedFirstComponent := "comp1"
-		assert.True(t, containsFileWithDetails(output.Installed, expectedFirstComponent, pathToFirstResource))
-
-		expectedSecondComponent := "comp2"
-		assert.True(t, containsFileWithDetails(output.Installed, expectedSecondComponent, pathToSecondResource))
-	})
-
-	t.Run("should not create namespaces due to incorrect input resource type", func(t *testing.T) {
-		// given
-		resourceParser := &mocks.ResourceParser{}
-		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
-
-		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
-		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp1/ns.yaml")
-		resourceParser.On("ParseFile", pathToFirstResource).Return(namespaceResource, nil)
-		pathToSecondResource := fmt.Sprintf("%s%s", resourcePath, "/namespaces/comp2/ns.yaml")
-		resourceParser.On("ParseFile", pathToSecondResource).Return(namespaceResource, nil)
-
-		resourceApplier.On("Apply", namespaceResource).Return(nil)
-
-		input := resourceInfoInput{
-			resourceType:             "typeDifferentThanNamespace",
-			dirSuffix:                "namespaces",
-			installationResourcePath: resourcePath,
-		}
-
-		// when
-		output, err := i.install(input)
-
-		// then
-		assert.NoError(t, err)
-		assert.Zero(t, len(output.Installed))
-		assert.Equal(t, 2, len(output.NotInstalled))
-
-		expectedFirstComponent := "comp1"
-		assert.True(t, containsFileWithDetails(output.NotInstalled, expectedFirstComponent, pathToFirstResource))
-
-		expectedSecondComponent := "comp2"
-		assert.True(t, containsFileWithDetails(output.NotInstalled, expectedSecondComponent, pathToSecondResource))
+		require.Zero(t, len(output.Installed))
+		require.Equal(t, 2, len(output.NotInstalled))
+		require.True(t, containsFileWithDetails(output.NotInstalled, "comp1", pathToFirstResource))
+		require.True(t, containsFileWithDetails(output.NotInstalled, "comp2", pathToSecondResource))
 	})
 
 	t.Run("should partially install resources due to incorrect resource format and resource type different than input info", func(t *testing.T) {
 		// given
 		resourceParser := &mocks.ResourceParser{}
 		resourceApplier := &mocks.ResourceApplier{}
-		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+		i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 		resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/partiallycorrect")
 		pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -281,24 +162,17 @@ func TestPreInstaller_install(t *testing.T) {
 		output, err := i.install(input)
 
 		// then
-		assert.NoError(t, err)
-		assert.Equal(t, 2, len(output.Installed))
-		assert.Equal(t, 3, len(output.NotInstalled))
+		require.Error(t, err)
+		resourceParser.AssertNumberOfCalls(t, "ParseFile", 5)
+		resourceApplier.AssertNumberOfCalls(t, "Apply", 2)
 
-		expectedFirstComponent := "comp1"
-		assert.True(t, containsFileWithDetails(output.Installed, expectedFirstComponent, pathToFirstResource))
-
-		expectedSecondComponent := "comp2"
-		assert.True(t, containsFileWithDetails(output.Installed, expectedSecondComponent, pathToSecondResource))
-
-		expectedThirdComponent := "comp3"
-		assert.True(t, containsFileWithDetails(output.NotInstalled, expectedThirdComponent, pathToThirdResource))
-
-		expectedFourthComponent := "comp4"
-		assert.True(t, containsFileWithDetails(output.NotInstalled, expectedFourthComponent, pathToFourthResource))
-
-		expectedFifthComponent := "comp5"
-		assert.True(t, containsFileWithDetails(output.NotInstalled, expectedFifthComponent, pathToFifthResource))
+		require.Equal(t, 2, len(output.Installed))
+		require.Equal(t, 3, len(output.NotInstalled))
+		require.True(t, containsFileWithDetails(output.Installed, "comp1", pathToFirstResource))
+		require.True(t, containsFileWithDetails(output.Installed, "comp2", pathToSecondResource))
+		require.True(t, containsFileWithDetails(output.NotInstalled, "comp3", pathToThirdResource))
+		require.True(t, containsFileWithDetails(output.NotInstalled, "comp4", pathToFourthResource))
+		require.True(t, containsFileWithDetails(output.NotInstalled, "comp5", pathToFifthResource))
 	})
 
 	t.Run("should fail to install resources", func(t *testing.T) {
@@ -306,7 +180,7 @@ func TestPreInstaller_install(t *testing.T) {
 			// given
 			resourceParser := &mocks.ResourceParser{}
 			resourceApplier := &mocks.ResourceApplier{}
-			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/correct")
 			pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -326,19 +200,22 @@ func TestPreInstaller_install(t *testing.T) {
 			output, err := i.install(input)
 
 			// then
-			assert.Error(t, err)
+			require.Error(t, err)
+			resourceParser.AssertNumberOfCalls(t, "ParseFile", 0)
+			resourceApplier.AssertNumberOfCalls(t, "Apply", 0)
+
 			expectedError := "no such file or directory"
 			receivedError := err.Error()
 			matched, err := regexp.MatchString(expectedError, receivedError)
-			assert.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
-			assert.Zero(t, len(output.Installed))
+			require.True(t, matched, fmt.Sprintf("Expected error message: %s but got: %s", expectedError, receivedError))
+			require.Zero(t, len(output.Installed))
 		})
 
 		t.Run("due to no components detected in installation resources path", func(t *testing.T) {
 			// given
 			resourceParser := &mocks.ResourceParser{}
 			resourceApplier := &mocks.ResourceApplier{}
-			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/nocomponents")
 
 			input := resourceInfoInput{
@@ -351,16 +228,19 @@ func TestPreInstaller_install(t *testing.T) {
 			output, err := i.install(input)
 
 			// then
-			assert.NoError(t, err)
-			assert.Zero(t, len(output.Installed))
-			assert.Zero(t, len(output.NotInstalled))
+			require.NoError(t, err)
+			resourceParser.AssertNumberOfCalls(t, "ParseFile", 0)
+			resourceApplier.AssertNumberOfCalls(t, "Apply", 0)
+
+			require.Zero(t, len(output.Installed))
+			require.Zero(t, len(output.NotInstalled))
 		})
 
 		t.Run("due to parser error", func(t *testing.T) {
 			// given
 			resourceParser := &mocks.ResourceParser{}
 			resourceApplier := &mocks.ResourceApplier{}
-			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
 			pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -378,22 +258,21 @@ func TestPreInstaller_install(t *testing.T) {
 			output, err := i.install(input)
 
 			// then
-			assert.NoError(t, err)
-			assert.Zero(t, len(output.Installed))
-			assert.Equal(t, 2, len(output.NotInstalled))
+			require.Error(t, err)
+			resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
+			resourceApplier.AssertNumberOfCalls(t, "Apply", 0)
 
-			expectedFirstComponent := "comp1"
-			assert.True(t, containsFileWithDetails(output.NotInstalled, expectedFirstComponent, pathToFirstResource))
-
-			expectedSecondComponent := "comp2"
-			assert.True(t, containsFileWithDetails(output.NotInstalled, expectedSecondComponent, pathToSecondResource))
+			require.Zero(t, len(output.Installed))
+			require.Equal(t, 2, len(output.NotInstalled))
+			require.True(t, containsFileWithDetails(output.NotInstalled, "comp1", pathToFirstResource))
+			require.True(t, containsFileWithDetails(output.NotInstalled, "comp2", pathToSecondResource))
 		})
 
 		t.Run("due to applier error", func(t *testing.T) {
 			// given
 			resourceParser := &mocks.ResourceParser{}
 			resourceApplier := &mocks.ResourceApplier{}
-			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient, retryOptions)
+			i := getPreInstaller(resourceApplier, resourceParser, cfg, dynamicClient)
 
 			resourcePath := fmt.Sprintf("%s%s", getTestingResourcesDirectory(), "/incorrect")
 			pathToFirstResource := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
@@ -413,17 +292,14 @@ func TestPreInstaller_install(t *testing.T) {
 			output, err := i.install(input)
 
 			// then
-			assert.NoError(t, err)
-			assert.Zero(t, len(output.Installed))
-			assert.Equal(t, 2, len(output.NotInstalled))
+			require.Error(t, err)
+			resourceParser.AssertNumberOfCalls(t, "ParseFile", 2)
+			resourceApplier.AssertNumberOfCalls(t, "Apply", 2)
 
-			expectedFirstComponent := "comp1"
-			expectedFirstPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp1/crd.yaml")
-			assert.True(t, containsFileWithDetails(output.NotInstalled, expectedFirstComponent, expectedFirstPath))
-
-			expectedSecondComponent := "comp2"
-			expectedSecondPath := fmt.Sprintf("%s%s", resourcePath, "/crds/comp2/crd.yaml")
-			assert.True(t, containsFileWithDetails(output.NotInstalled, expectedSecondComponent, expectedSecondPath))
+			require.Zero(t, len(output.Installed))
+			require.Equal(t, 2, len(output.NotInstalled))
+			require.True(t, containsFileWithDetails(output.NotInstalled, "comp1", pathToFirstResource))
+			require.True(t, containsFileWithDetails(output.NotInstalled, "comp2", pathToSecondResource))
 		})
 	})
 }
@@ -440,7 +316,7 @@ func Test_addLabel(t *testing.T) {
 
 		// then
 		labels := obj.GetLabels()
-		assert.Nil(t, labels)
+		require.Nil(t, labels)
 	})
 
 	t.Run("should add label when label is not empty and object had no labels", func(t *testing.T) {
@@ -454,18 +330,18 @@ func Test_addLabel(t *testing.T) {
 
 		// then
 		labels := obj.GetLabels()
-		assert.NotNil(t, labels)
-		assert.Equal(t, 1, len(labels))
+		require.NotNil(t, labels)
+		require.Equal(t, 1, len(labels))
 
 		// and then
 		value, ok := labels[label]
-		assert.True(t, ok)
-		assert.Equal(t, value, "value")
+		require.True(t, ok)
+		require.Equal(t, value, "value")
 	})
 
 	t.Run("should add label when label is not empty and object had any label", func(t *testing.T) {
 		// given
-		obj := fixResourceWithLabel("label1")
+		obj := fixResourceWithGivenLabel("label1")
 		label := "label"
 		value := "value"
 
@@ -474,18 +350,18 @@ func Test_addLabel(t *testing.T) {
 
 		// then
 		labels := obj.GetLabels()
-		assert.NotNil(t, labels)
-		assert.Equal(t, 2, len(labels))
+		require.NotNil(t, labels)
+		require.Equal(t, 2, len(labels))
 
 		// and then
 		value, ok := labels[label]
-		assert.True(t, ok)
-		assert.Equal(t, value, "value")
+		require.True(t, ok)
+		require.Equal(t, value, "value")
 	})
 
 	t.Run("should override label when label is not empty and object had given label", func(t *testing.T) {
 		// given
-		obj := fixResourceWithLabel("label")
+		obj := fixResourceWithGivenLabel("label")
 		label := "label"
 		value := "newValue"
 
@@ -494,18 +370,18 @@ func Test_addLabel(t *testing.T) {
 
 		// then
 		labels := obj.GetLabels()
-		assert.NotNil(t, labels)
-		assert.Equal(t, 1, len(labels))
+		require.NotNil(t, labels)
+		require.Equal(t, 1, len(labels))
 
 		// and then
 		value, ok := labels[label]
-		assert.True(t, ok)
-		assert.Equal(t, value, "newValue")
+		require.True(t, ok)
+		require.Equal(t, value, "newValue")
 	})
 }
 
-func getTestingConfig() Config {
-	return Config{
+func getTestingConfig() inputConfig {
+	return inputConfig{
 		Log:                      logger.NewLogger(true),
 		InstallationResourcePath: "installationResourcePath",
 		KubeconfigSource: config.KubeconfigSource{
@@ -527,7 +403,7 @@ func getTestingResourcesDirectory() string {
 	return path.Join(test.GetTestDataDirectory(), "resources")
 }
 
-func containsFileWithDetails(files []File, component string, path string) bool {
+func containsFileWithDetails(files []file, component string, path string) bool {
 	for _, file := range files {
 		if file.component == component && file.path == path {
 			return true
@@ -537,7 +413,7 @@ func containsFileWithDetails(files []File, component string, path string) bool {
 	return false
 }
 
-func fixCrdResourceWith(name string) *unstructured.Unstructured {
+func fixCrdResourceWithGivenName(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "apiextensions.k8s.io/v1",
@@ -552,7 +428,7 @@ func fixCrdResourceWith(name string) *unstructured.Unstructured {
 	}
 }
 
-func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
+func fixNamespaceResourceWithGivenName(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "v1",
@@ -564,7 +440,7 @@ func fixNamespaceResourceWith(name string) *unstructured.Unstructured {
 	}
 }
 
-func fixResourceWithLabel(label string) *unstructured.Unstructured {
+func fixResourceWithGivenLabel(label string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "v1",
@@ -578,12 +454,11 @@ func fixResourceWithLabel(label string) *unstructured.Unstructured {
 	}
 }
 
-func getPreInstaller(applier ResourceApplier, parser ResourceParser, cfg Config, dynamicClient dynamic.Interface, retryOptions []retry.Option) *PreInstaller {
-	return &PreInstaller{
+func getPreInstaller(applier ResourceApplier, parser ResourceParser, cfg inputConfig, dynamicClient dynamic.Interface) *preInstaller {
+	return &preInstaller{
 		applier:       applier,
 		parser:        parser,
 		cfg:           cfg,
 		dynamicClient: dynamicClient,
-		retryOptions:  retryOptions,
 	}
 }

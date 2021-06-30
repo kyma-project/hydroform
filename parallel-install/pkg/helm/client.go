@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/debug"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
@@ -20,6 +21,7 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -39,6 +41,7 @@ type Config struct {
 	Atomic                        bool
 	KymaComponentMetadataTemplate *KymaComponentMetadataTemplate
 	KubeconfigSource              config.KubeconfigSource
+	ReuseValues                   bool //Reuse values for component upgrade
 }
 
 //Client implements the ClientInterface.
@@ -68,6 +71,9 @@ type ClientInterface interface {
 	//When the operation is re-tried, it is not guaranteed that the cancellation is handled immediately due to the blocking nature of Helm client calls.
 	//However, once the underlying Helm operation ends, the cancel condition is detected and the operation's result is returned without further retries.
 	UninstallRelease(ctx context.Context, namespace, name string) error
+
+	//Returns the rendered Helm template
+	Template(chartDir, namespace, name string, overrides map[string]interface{}, profile string) (string, error)
 }
 
 //NewClient returns a new Client instance.
@@ -77,6 +83,61 @@ func NewClient(cfg Config) *Client {
 	return &Client{
 		cfg: cfg,
 	}
+}
+
+func (c *Client) Template(chartDir, namespace, name string, overridesValues map[string]interface{}, profile string) (string, error) {
+	path, _, err := config.Path(c.cfg.KubeconfigSource)
+	if err != nil {
+		return "", err
+	}
+
+	cfg, err := c.newActionConfig(namespace, path)
+	if err != nil {
+		return "", err
+	}
+
+	chart, err := loader.Load(chartDir)
+	if err != nil {
+		return "", err
+	}
+
+	profileValues, err := getProfileValues(*chart, profile)
+	if err != nil {
+		return "", err
+	}
+
+	comboValues := overrides.MergeMaps(profileValues, overridesValues)
+
+	return c.templateRelease(name, namespace, comboValues, cfg, chart)
+}
+
+func (c *Client) templateRelease(name, namespace string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) (string, error) {
+	install := action.NewInstall(cfg)
+
+	install.ReleaseName = name
+	install.Namespace = namespace
+	install.Atomic = c.cfg.Atomic
+	install.Wait = true
+	install.CreateNamespace = true
+	install.DryRun = true
+	install.Replace = true      // Skip the name check
+	install.IncludeCRDs = false //include CRDs in the templated output
+	install.ClientOnly = true   //if false, it will validate the manifests against the Kubernetes cluster the kubeclient is currently pointing at
+
+	rel, err := install.Run(chart, overrides)
+
+	if err != nil {
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
+		return "", err
+	}
+
+	if rel == nil || rel.Info == nil {
+		err = fmt.Errorf("Failed to render release %s. Status: %v", name, "Unknown")
+		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
+		return "", err
+	}
+
+	return rel.Manifest, nil
 }
 
 func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) error {
@@ -137,18 +198,34 @@ func (c *Client) UninstallRelease(ctx context.Context, namespace, name string) e
 	return nil
 }
 
-func (c *Client) upgradeRelease(namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
+func (c *Client) newUpgrade(cfg *action.Configuration) *action.Upgrade {
 	upgrade := action.NewUpgrade(cfg)
 	upgrade.Atomic = c.cfg.Atomic
 	upgrade.CleanupOnFail = true
 	upgrade.Wait = true
-	upgrade.ReuseValues = true
+	upgrade.ReuseValues = c.cfg.ReuseValues
 	upgrade.Recreate = false
 	upgrade.MaxHistory = c.cfg.MaxHistory
 	upgrade.Timeout = time.Duration(c.cfg.HelmTimeoutSeconds) * time.Second
+	return upgrade
+}
 
+func (c *Client) upgradeRelease(namespace, name string, overrides map[string]interface{}, cfg *action.Configuration, chart *chart.Chart) error {
+	upgrade := c.newUpgrade(cfg)
 	c.cfg.Log.Infof("%s Starting upgrade for release %s in namespace %s", logPrefix, name, namespace)
 	rel, err := upgrade.Run(name, chart, overrides)
+	if rel != nil {
+		if err := debug.NewManifestDumper().DumpHelmRelease(rel); err != nil {
+			return err
+		}
+		if errUpdateMeta := c.updateKymaMetadata(cfg, rel); errUpdateMeta != nil {
+			if err != nil {
+				return errors.Wrap(err, errUpdateMeta.Error())
+			}
+			return errUpdateMeta
+		}
+	}
+
 	if err != nil {
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 		return err
@@ -157,10 +234,6 @@ func (c *Client) upgradeRelease(namespace, name string, overrides map[string]int
 	if rel == nil || rel.Info == nil {
 		err = fmt.Errorf("Failed to upgrade %s. Status: %v", name, "Unknown")
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
-		return err
-	}
-
-	if err := c.updateKymaMetadata(cfg, rel); err != nil {
 		return err
 	}
 
@@ -184,6 +257,18 @@ func (c *Client) installRelease(namespace, name string, overrides map[string]int
 
 	c.cfg.Log.Infof("%s Starting install for release %s in namespace %s", logPrefix, name, namespace)
 	rel, err := install.Run(chart, overrides)
+	if rel != nil {
+		if err := debug.NewManifestDumper().DumpHelmRelease(rel); err != nil {
+			return err
+		}
+		if errUpdateMeta := c.updateKymaMetadata(cfg, rel); errUpdateMeta != nil {
+			if err != nil {
+				return errors.Wrap(err, errUpdateMeta.Error())
+			}
+			return errUpdateMeta
+		}
+	}
+
 	if err != nil {
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
 		return err
@@ -192,10 +277,6 @@ func (c *Client) installRelease(namespace, name string, overrides map[string]int
 	if rel == nil || rel.Info == nil {
 		err = fmt.Errorf("Failed to install %s. Status: %v", name, "Unknown")
 		c.cfg.Log.Errorf("%s Error: %v", logPrefix, err)
-		return err
-	}
-
-	if err := c.updateKymaMetadata(cfg, rel); err != nil {
 		return err
 	}
 

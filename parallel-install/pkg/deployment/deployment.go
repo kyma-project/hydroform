@@ -4,11 +4,17 @@ package deployment
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
+
+	"github.com/avast/retry-go"
+	"github.com/pkg/errors"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/config"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/deployment/k3d"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/engine"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/jobmanager"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/namespace"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 	"k8s.io/client-go/kubernetes"
@@ -20,7 +26,7 @@ type Deployment struct {
 }
 
 //NewDeployment creates a new Deployment instance for deploying Kyma on a cluster.
-func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func(ProcessUpdate)) (*Deployment, error) {
+func NewDeployment(cfg *config.Config, ob *overrides.Builder, processUpdates func(ProcessUpdate)) (*Deployment, error) {
 	if err := cfg.ValidateDeployment(); err != nil {
 		return nil, err
 	}
@@ -39,17 +45,55 @@ func NewDeployment(cfg *config.Config, ob *OverridesBuilder, processUpdates func
 
 	core := newCore(cfg, ob, kubeClient, processUpdates)
 
+	jobmanager.RegisterJobManager(cfg, kubeClient, restConfig, cfg.Log)
+
 	return &Deployment{core}, nil
+}
+
+type funcReturnErr func() error
+
+func silenceStderr(isVerbose bool, f funcReturnErr) error {
+	stderr := os.Stderr
+	if !isVerbose {
+		os.Stderr = nil
+	}
+	defer func() {
+		os.Stderr = stderr
+	}()
+	return f()
 }
 
 //StartKymaDeployment deploys Kyma to a cluster
 func (d *Deployment) StartKymaDeployment() error {
+	//Prepare cluster before Kyma installation
+	retryOpts := []retry.Option{
+		retry.Delay(time.Duration(d.cfg.BackoffInitialIntervalSeconds) * time.Second),
+		retry.Attempts(uint(d.cfg.BackoffMaxElapsedTimeSeconds / d.cfg.BackoffInitialIntervalSeconds)),
+		retry.DelayType(retry.FixedDelay),
+	}
+
+	preInstallerCfg := inputConfig{
+		InstallationResourcePath: d.cfg.InstallationResourcePath,
+		Log:                      d.cfg.Log,
+		KubeconfigSource:         d.cfg.KubeconfigSource,
+		RetryOptions:             retryOpts,
+	}
+
+	preInstaller, err := newPreInstaller(preInstallerCfg)
+	if err != nil {
+		d.cfg.Log.Fatalf("Failed to create Kyma pre-installer: %v", err)
+	}
+	err = silenceStderr(d.cfg.Verbose, preInstaller.InstallCRDs)
+	if err != nil {
+		return err
+	}
+
 	overridesProvider, prerequisitesEng, componentsEng, err := d.getConfig()
 	if err != nil {
 		return err
 	}
 
-	return d.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng)
+	return silenceStderr(d.cfg.Verbose, func() error { return d.startKymaDeployment(overridesProvider, prerequisitesEng, componentsEng) })
 }
 
 func (d *Deployment) startKymaDeployment(overridesProvider overrides.Provider, prerequisitesEng *engine.Engine, componentsEng *engine.Engine) error {
@@ -58,12 +102,7 @@ func (d *Deployment) startKymaDeployment(overridesProvider overrides.Provider, p
 
 	d.cfg.Log.Info("Kyma prerequisites deployment")
 
-	err := overridesProvider.ReadOverridesFromCluster()
-	if err != nil {
-		return fmt.Errorf("error while reading overrides: %v", err)
-	}
-
-	isK3s, err := isK3dCluster(d.kubeClient)
+	isK3s, err := k3d.IsK3dCluster(d.kubeClient)
 	if err != nil {
 		return err
 	}
@@ -104,11 +143,13 @@ func (i *Deployment) deployComponents(ctx context.Context, cancelFunc context.Ca
 	statusMap := map[string]string{}
 	errCount := 0
 
+	if phase == InstallPreRequisites {
+		jobmanager.ExecutePre(ctx, "global")
+	}
 	statusChan, err := eng.Deploy(ctx)
 	if err != nil {
 		return fmt.Errorf("Kyma deployment failed. Error: %v", err)
 	}
-
 	i.processUpdate(phase, ProcessStart, nil)
 
 	//Await completion
@@ -120,6 +161,13 @@ InstallLoop:
 				i.processUpdateComponent(phase, cmp)
 				//Received a status update
 				if cmp.Status == components.StatusError {
+					// prerequisites fail fast
+					if phase == InstallPreRequisites {
+						err := errors.Wrapf(cmp.Error, "Error deploying prerequisite: %s", cmp.Name)
+						i.processUpdate(phase, ProcessExecutionFailure, err)
+						i.logStatuses(statusMap)
+						return err
+					}
 					errCount++
 				}
 				statusMap[cmp.Name] = cmp.Status
@@ -150,6 +198,12 @@ InstallLoop:
 			return err
 		}
 	}
+	// Only will be executed if Kyma deploy was successfull
+	if phase == InstallComponents {
+		jobmanager.ExecutePost(ctx, "global")
+		i.cfg.Log.Infof("Jobs for deployment took %v seconds", jobmanager.GetDuration().Seconds())
+	}
+
 	i.processUpdate(phase, ProcessFinished, nil)
 	return nil
 }

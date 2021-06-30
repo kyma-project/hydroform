@@ -14,6 +14,7 @@ import (
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/logger"
 
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/components"
+	"github.com/kyma-incubator/hydroform/parallel-install/pkg/jobmanager"
 	"github.com/kyma-incubator/hydroform/parallel-install/pkg/overrides"
 )
 
@@ -72,10 +73,53 @@ type Installation interface {
 	//All remaining components are not processed then.
 	//
 	Uninstall(ctx context.Context) (<-chan components.KymaComponent, error)
+
+	//Returns the rendered Kubernetes manifests of Kyma components.
+	Manifests() ([]*components.Manifest, error)
+}
+
+type manifestResult struct {
+	manifest *components.Manifest
+	err      error
+}
+
+func (e *Engine) Manifests(isPrerequisite bool) ([]*components.Manifest, error) {
+	cmps := e.componentsProvider.GetComponents(false)
+	manifests := make(chan manifestResult, len(cmps))
+
+	//run templating in parallel
+	var wg sync.WaitGroup
+
+	sem := make(chan int, e.cfg.WorkersCount)
+	for _, cmp := range cmps {
+		wg.Add(1)
+		sem <- 1 // will block if there is the limit defined in e.cfg.WorkersCount reached
+		go func(cmp components.KymaComponent, manifests chan manifestResult, wg *sync.WaitGroup) {
+			manifest, err := cmp.Manifest(isPrerequisite)
+			manifests <- manifestResult{
+				manifest: manifest,
+				err:      err,
+			}
+			<-sem
+			wg.Done()
+		}(cmp, manifests, &wg)
+	}
+	wg.Wait()
+	close(manifests)
+
+	//extract manifests and check for errors
+	result := []*components.Manifest{}
+	for manifestResult := range manifests {
+		if manifestResult.err != nil { //rendering of one of the components failed
+			return nil, manifestResult.err
+		}
+		result = append(result, manifestResult.manifest)
+	}
+	return result, nil
 }
 
 func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, error) {
-	cmps := e.componentsProvider.GetComponents()
+	cmps := e.componentsProvider.GetComponents(false)
 
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
@@ -84,12 +128,6 @@ func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, e
 	go func() {
 		defer close(statusChan)
 
-		err := e.overridesProvider.ReadOverridesFromCluster()
-		if err != nil {
-			e.cfg.Log.Errorf("%s error while reading overrides: %v", logPrefix, err)
-			return
-		}
-
 		e.run(ctx, statusChan, cmps, deploy)
 	}()
 
@@ -97,7 +135,7 @@ func (e *Engine) Deploy(ctx context.Context) (<-chan components.KymaComponent, e
 }
 
 func (e *Engine) Uninstall(ctx context.Context) (<-chan components.KymaComponent, error) {
-	cmps := e.componentsProvider.GetComponents()
+	cmps := e.componentsProvider.GetComponents(true)
 
 	//TODO: Size dependent on number of components?
 	statusChan := make(chan components.KymaComponent, 30)
@@ -162,11 +200,13 @@ func (e *Engine) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-chan 
 			}
 			if ok {
 				if installType == deploy {
+					jobmanager.ExecutePre(ctx, component.Name)
 					if err := component.Deploy(ctx); err != nil {
 						component.Status = components.StatusError
 						component.Error = err
 					} else {
 						component.Status = components.StatusInstalled
+						jobmanager.ExecutePost(ctx, component.Name)
 					}
 					statusChan <- component
 				} else if installType == uninstall {
