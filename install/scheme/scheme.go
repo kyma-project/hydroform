@@ -3,7 +3,7 @@ package scheme
 import (
 	"github.com/kyma-project/kyma/components/kyma-operator/pkg/apis/installer/v1alpha1"
 	"github.com/pkg/errors"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -14,7 +14,7 @@ func DefaultScheme() (*runtime.Scheme, error) {
 
 	var addToSchemes = []func(*runtime.Scheme) error{
 		scheme.AddToScheme,
-		apiextensionsv1beta1.AddToScheme,
+		apiextensionsv1.AddToScheme,
 		v1alpha1.AddToScheme,
 	}
 
