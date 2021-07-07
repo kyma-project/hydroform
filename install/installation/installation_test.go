@@ -48,7 +48,7 @@ var (
 	roleBindingGVR          = schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "rolebindings"}
 	roleGVR                 = schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "roles"}
 	jobGVR                  = schema.GroupVersionResource{Group: "batch", Version: "v1", Resource: "jobs"}
-	crdGVR                  = schema.GroupVersionResource{Group: "apiextensions.k8s.io", Version: "v1beta1", Resource: "customresourcedefinitions"}
+	crdGVR                  = schema.GroupVersionResource{Group: "apiextensions.k8s.io", Version: "v1", Resource: "customresourcedefinitions"}
 )
 
 func TestKymaInstaller_PrepareInstallation(t *testing.T) {
