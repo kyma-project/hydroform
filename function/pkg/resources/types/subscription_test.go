@@ -35,7 +35,7 @@ func Test_subscription(t *testing.T) {
 				},
 			},
 			Protocol: "tcp",
-			ProtocolSettings: ProtocolSettings{
+			ProtocolSettings: &ProtocolSettings{
 				ContentMode:     "lol",
 				ExemptHandshake: false,
 				Qos:             "lol",
