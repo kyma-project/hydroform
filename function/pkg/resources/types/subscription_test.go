@@ -35,11 +35,11 @@ func Test_subscription(t *testing.T) {
 				},
 			},
 			Protocol: "tcp",
-			ProtocolSettings: &ProtocolSettings{
+			ProtocolSettings: ProtocolSettings{
 				ContentMode:     "lol",
 				ExemptHandshake: false,
 				Qos:             "lol",
-				WebhookAuth: WebhookAuth{
+				WebhookAuth: &WebhookAuth{
 					ClientID:     "123",
 					ClientSecret: "test",
 					GrantType:    "lol",
