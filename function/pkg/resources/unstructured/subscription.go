@@ -60,12 +60,7 @@ func newSubscriptions(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstr
 			Spec: types.SubscriptionSpec{
 				Protocol: subscriptionInfo.Protocol,
 				Sink:     sink,
-				ProtocolSettings: types.ProtocolSettings{
-					ExemptHandshake: true,
-					Qos:             "AT-LEAST-ONCE",
-					WebhookAuth:     types.WebhookAuth{},
-				},
-				Filter: filter,
+				Filter:   filter,
 			},
 		}
 

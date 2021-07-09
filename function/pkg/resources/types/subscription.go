@@ -13,11 +13,11 @@ type Subscription struct {
 }
 
 type SubscriptionSpec struct {
-	Filter           Filter           `json:"filter"`
-	ID               string           `json:"id,omitempty"`
-	Protocol         string           `json:"protocol"`
-	ProtocolSettings ProtocolSettings `json:"protocolsettings,omitempty"`
-	Sink             string           `json:"sink"`
+	Filter           Filter            `json:"filter"`
+	ID               string            `json:"id,omitempty"`
+	Protocol         string            `json:"protocol"`
+	ProtocolSettings *ProtocolSettings `json:"protocolsettings"`
+	Sink             string            `json:"sink"`
 }
 
 type Filter struct {
@@ -37,10 +37,10 @@ type EventFilterProperty struct {
 }
 
 type ProtocolSettings struct {
-	ContentMode     string      `json:"contentMode,omitempty"`
-	ExemptHandshake bool        `json:"exemptHandshake,omitempty"`
-	Qos             string      `json:"qos,omitempty"`
-	WebhookAuth     WebhookAuth `json:"webhookAuth,omitempty"`
+	ContentMode     string       `json:"contentMode,omitempty"`
+	ExemptHandshake bool         `json:"exemptHandshake,omitempty"`
+	Qos             string       `json:"qos,omitempty"`
+	WebhookAuth     *WebhookAuth `json:"webhookAuth,omitempty"`
 }
 
 type WebhookAuth struct {
