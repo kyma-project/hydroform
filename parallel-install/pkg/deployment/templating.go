@@ -37,7 +37,7 @@ func NewTemplating(cfg *config.Config, ob *overrides.Builder) (*Templating, erro
 }
 
 //Render renders the Kyma component templates
-func (t *Templating) Render() ([]*components.Manifest, error) {
+func (t *Templating) Render(includeCRD bool) ([]*components.Manifest, error) {
 	//Prepare cluster before Kyma installation
 	preInstallerCfg := inputConfig{
 		InstallationResourcePath: t.cfg.InstallationResourcePath,
@@ -45,14 +45,19 @@ func (t *Templating) Render() ([]*components.Manifest, error) {
 		KubeconfigSource:         t.cfg.KubeconfigSource,
 	}
 
-	preInstaller, err := newPreInstaller(preInstallerCfg)
-	if err != nil {
-		t.cfg.Log.Fatalf("Failed to create Kyma pre-installer: %v", err)
-	}
+	var result []*components.Manifest
 
-	result, err := preInstaller.Manifests()
-	if err != nil {
-		return nil, err
+	if includeCRD {
+		preInstaller, err := newPreInstaller(preInstallerCfg)
+		if err != nil {
+			t.cfg.Log.Fatalf("Failed to create Kyma pre-installer: %v", err)
+		}
+
+		crds, err := preInstaller.Manifests()
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, crds...)
 	}
 
 	_, prerequisitesEng, componentsEng, err := t.getConfig()
