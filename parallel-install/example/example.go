@@ -153,7 +153,7 @@ func template(cfg *config.Config, builder *overrides.Builder) {
 	if err != nil {
 		log.Fatalf("Failed to create installer: %v", err)
 	}
-	manifests, err := templating.Render()
+	manifests, err := templating.Render(true)
 	if err != nil {
 		log.Fatalf("Failed to render Helm charts: %v", err)
 	}
