@@ -118,7 +118,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	config.Labels = function.Spec.Labels
 	config.Env = toWorkspaceEnvVar(function.Spec.Env)
 
-	ul, err := build("", operator.GVRSubscription).List(ctx, v1.ListOptions{})
+	ul, err := build(config.Namespace, operator.GVRSubscription).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
