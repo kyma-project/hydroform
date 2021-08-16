@@ -58,9 +58,10 @@ func newSubscriptions(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstr
 				Labels:    cfg.Labels,
 			},
 			Spec: types.SubscriptionSpec{
-				Protocol: subscriptionInfo.Protocol,
-				Sink:     sink,
-				Filter:   filter,
+				ProtocolSettings: types.ProtocolSettings{},
+				Protocol:         subscriptionInfo.Protocol,
+				Sink:             sink,
+				Filter:           filter,
 			},
 		}
 
