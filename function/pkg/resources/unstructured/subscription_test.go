@@ -210,7 +210,7 @@ func TestNewSubscriptions(t *testing.T) {
 									},
 								},
 							},
-							"protocolsettings": nil,
+							"protocolsettings": map[string]interface{}{},
 							"sink":             "http://test-name.test-namespace.svc.cluster.local",
 						},
 					},
