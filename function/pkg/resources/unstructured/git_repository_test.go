@@ -28,8 +28,10 @@ func TestNewPublicGitRepository(t *testing.T) {
 					Source: workspace.Source{
 						Type: workspace.SourceTypeGit,
 						SourceGit: workspace.SourceGit{
-							URL:        "test-url",
-							Repository: "test-repository",
+							URL:                   "test-url",
+							Repository:            "test-repository",
+							CredentialsType:       "key",
+							CredentialsSecretName: "test-secretname",
 						},
 					},
 				},
@@ -45,6 +47,10 @@ func TestNewPublicGitRepository(t *testing.T) {
 					},
 					"spec": map[string]interface{}{
 						"url": "test-url",
+						"auth": map[string]interface{}{
+							"type":       "key",
+							"secretName": "test-secretname",
+						},
 					},
 				},
 			},
