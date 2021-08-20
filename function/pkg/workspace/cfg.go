@@ -129,6 +129,7 @@ type SourceGit struct {
 	Reference             string `yaml:"reference,omitempty"`
 	BaseDir               string `yaml:"baseDir,omitempty"`
 	CredentialsSecretName string `yaml:"credentialsSecretName,omitempty"`
+	CredentialsType       string `yaml:"credentialsType,omitempty"`
 }
 
 func (s SourceGit) Type() SourceType {

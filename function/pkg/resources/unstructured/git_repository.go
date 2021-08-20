@@ -16,6 +16,19 @@ func NewPublicGitRepository(cfg workspace.Cfg) (out unstructured.Unstructured, e
 		name = cfg.Source.Repository
 	}
 
+	credentialsType := "basic"
+	if cfg.Source.CredentialsType != "" {
+		credentialsType = cfg.Source.CredentialsType
+	}
+
+	var auth *types.RepositoryAuth
+	if cfg.Source.CredentialsSecretName != "" {
+		auth = &types.RepositoryAuth{
+			Type:       credentialsType,
+			SecretName: cfg.Source.CredentialsSecretName,
+		}
+	}
+
 	gitRepo := types.GitRepository{
 		APIVersion: functionAPIVersion,
 		Kind:       "GitRepository",
@@ -25,7 +38,7 @@ func NewPublicGitRepository(cfg workspace.Cfg) (out unstructured.Unstructured, e
 		},
 		Spec: types.GitRepositorySpec{
 			URL:  cfg.Source.URL,
-			Auth: nil,
+			Auth: auth,
 		},
 	}
 
