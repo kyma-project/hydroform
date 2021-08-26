@@ -15,10 +15,12 @@ const (
 
 	Python38Path          = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.8/site-packages:$(KUBELESS_INSTALL_VOLUME)"
 	Python38HotDeploy     = "CHERRYPY_RELOADED=true"
+	Python38Unbuffered    = "PYTHONUNBUFFERED=TRUE"
 	Python38DebugEndpoint = `5678`
 
 	Python39Path          = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.9/site-packages:$(KUBELESS_INSTALL_VOLUME)"
 	Python39HotDeploy     = "CHERRYPY_RELOADED=true"
+	Python39Unbuffered    = "PYTHONUNBUFFERED=TRUE"
 	Python39DebugEndpoint = `5678`
 )
 
@@ -37,13 +39,13 @@ func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	case types.Nodejs12, types.Nodejs14:
 		return []string{NodejsPath}
 	case types.Python38:
-		envs := []string{Python38Path}
+		envs := []string{Python38Path, Python38Unbuffered}
 		if hotDeploy {
 			envs = append(envs, Python38HotDeploy)
 		}
 		return envs
 	case types.Python39:
-		envs := []string{Python39Path}
+		envs := []string{Python39Path, Python39Unbuffered}
 		if hotDeploy {
 			envs = append(envs, Python39HotDeploy)
 		}
