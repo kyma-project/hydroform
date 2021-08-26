@@ -105,6 +105,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				Python38Path,
+				"PYTHONUNBUFFERED=TRUE",
 			},
 		},
 		{
@@ -120,6 +121,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				Python38Path,
+				"PYTHONUNBUFFERED=TRUE",
 			},
 		},
 		{
@@ -135,6 +137,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				Python38Path,
+				"PYTHONUNBUFFERED=TRUE",
 				"CHERRYPY_RELOADED=true",
 			},
 		},
@@ -151,6 +154,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				Python39Path,
+				"PYTHONUNBUFFERED=TRUE",
 			},
 		},
 		{
@@ -166,6 +170,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				Python39Path,
+				"PYTHONUNBUFFERED=TRUE",
 			},
 		},
 		{
@@ -181,6 +186,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				Python39Path,
+				"PYTHONUNBUFFERED=TRUE",
 				"CHERRYPY_RELOADED=true",
 			},
 		},
