@@ -1,6 +1,8 @@
 package overrides
 
 import (
+	"errors"
+	"io/fs"
 	"io/ioutil"
 	"testing"
 
@@ -46,6 +48,12 @@ func Test_AddFile(t *testing.T) {
 	require.NoError(t, err)
 	err = builder.AddFile("../test/data/overrides.xml") // unsupported format
 	require.Error(t, err)
+
+	t.Run("detect missing file", func(t *testing.T) {
+		err = builder.AddFile("../test/data/nofile.yaml")
+		require.Equal(t, true, errors.Is(err, fs.ErrNotExist))
+		require.NoError(t, err)
+	})
 }
 
 func Test_AddOverrides(t *testing.T) {
