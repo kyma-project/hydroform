@@ -52,7 +52,7 @@ func Test_AddFile(t *testing.T) {
 	t.Run("detect missing file", func(t *testing.T) {
 		err = builder.AddFile("../test/data/nofile.yaml")
 		require.Equal(t, true, errors.Is(err, fs.ErrNotExist))
-		require.NoError(t, err)
+		require.Error(t, err)
 	})
 }
 
