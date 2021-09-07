@@ -85,7 +85,8 @@ func buildMatchRemovedSubscriptionsPredicate(fnRef functionReference, items []un
 			return false, err
 		}
 		isRef := subscription.IsReference(fnRef.name, fnRef.namespace)
-		if !isRef {
+		if !isRef ||
+			(!isOwnerReference(subscription.GetOwnerReferences(), fnRef.name) && len(subscription.OwnerReferences) != 0) {
 			return false, nil
 		}
 

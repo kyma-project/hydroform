@@ -9,6 +9,7 @@ import (
 	"github.com/kyma-incubator/hydroform/function/pkg/client"
 	mock_client "github.com/kyma-incubator/hydroform/function/pkg/client/automock"
 	"github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -16,8 +17,8 @@ func Test_buildMatchRemovedApiRulePredicate(t *testing.T) {
 	g := gomega.NewWithT(t)
 	apiRules := []unstructured.Unstructured{
 		fixRawAPIRule("test-name-1", "fn-name"),
-		fixRawAPIRule("test-name-2", "fn-name"),
-		fixRawAPIRule("test-name-3", "fn-name"),
+		fixRawAPIRuleWithOwnerRef("test-name-2", "fn-name", fixOwnerRef("fn-name")),
+		fixRawAPIRuleWithOwnerRef("test-name-3", "fn-name", fixOwnerRef("fn-name")),
 	}
 
 	tests := []struct {
@@ -47,6 +48,13 @@ func Test_buildMatchRemovedApiRulePredicate(t *testing.T) {
 			givenObj: fixRawAPIRule("test-name-4", "fn-name-2"),
 			wantErr:  gomega.BeNil(),
 			wantBool: false,
+		},
+		{
+			name:     "should return false because owner reference",
+			fnName:   "fn-name",
+			givenObj: fixRawAPIRuleWithOwnerRef("test-name-4", "fn-name", fixOwnerRef("fn-name")),
+			wantErr:  gomega.BeNil(),
+			wantBool: true,
 		},
 	}
 
@@ -184,5 +192,21 @@ func fixRawAPIRule(name, fnName string) unstructured.Unstructured {
 				"gateway": "kyma-gateway.kyma-system.svc.cluster.local",
 			},
 		},
+	}
+}
+
+func fixRawAPIRuleWithOwnerRef(name, fnName string, ref metav1.OwnerReference) unstructured.Unstructured {
+	obj := fixRawAPIRule(name, fnName)
+	obj.SetOwnerReferences([]metav1.OwnerReference{ref})
+
+	return obj
+}
+
+func fixOwnerRef(name string) metav1.OwnerReference {
+	return metav1.OwnerReference{
+		APIVersion: "serverless.kyma-project.io/v1alpha1",
+		Kind:       "Function",
+		Name:       name,
+		UID:        "1092378129381283128738189",
 	}
 }

@@ -178,3 +178,14 @@ func fireCallbacks(v interface{}, err error, cbs ...Callback) error {
 	}
 	return err
 }
+
+func isOwnerReference(refs []metav1.OwnerReference, ownerName string) bool {
+	for i := range refs {
+		if refs[i].Kind == "Function" &&
+			refs[i].Name == ownerName {
+			return true
+		}
+	}
+
+	return false
+}

@@ -11,15 +11,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	coretypes "k8s.io/apimachinery/pkg/types"
 )
 
 const (
-	APIRuleGateway     = "kyma-gateway.kyma-system.svc.cluster.local"
-	APIRulePath        = "/.*"
-	APIRuleHandler     = "allow"
-	APIRulePort        = int64(80)
-	functionApiVersion = "serverless.kyma-project.io/v1alpha1"
-	functionKind       = "Function"
+	APIRuleGateway = "kyma-gateway.kyma-system.svc.cluster.local"
+	APIRulePath    = "/.*"
+	APIRuleHandler = "allow"
+	APIRulePort    = int64(80)
 )
 
 func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build) error {
@@ -62,7 +61,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			}
 
 			if !subscription.IsReference(function.Name, function.Namespace) ||
-				(!isOwnerReference(subscription.OwnerReferences, config.Name) && len(subscription.OwnerReferences) != 0) {
+				(!isOwnerReference(subscription.OwnerReferences, u.GetUID()) && len(subscription.OwnerReferences) != 0) {
 				continue
 			}
 
@@ -101,7 +100,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			}
 
 			if !apiRule.IsReference(function.Name) ||
-				(!isOwnerReference(apiRule.OwnerReferences, config.Name) && len(apiRule.OwnerReferences) != 0) {
+				(!isOwnerReference(apiRule.OwnerReferences, u.GetUID()) && len(apiRule.OwnerReferences) != 0) {
 				continue
 			}
 
@@ -243,11 +242,9 @@ func setIfNotEqual(val, defVal string) string {
 	return ""
 }
 
-func isOwnerReference(references []v1.OwnerReference, owner string) bool {
+func isOwnerReference(references []v1.OwnerReference, ownerUID coretypes.UID) bool {
 	for _, ref := range references {
-		if ref.APIVersion == functionApiVersion &&
-			ref.Kind == functionKind &&
-			ref.Name == owner {
+		if ref.UID == ownerUID {
 			return true
 		}
 	}

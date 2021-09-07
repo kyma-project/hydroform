@@ -32,7 +32,8 @@ func buildMatchRemovedAPIRulePredicate(fnName string, items []unstructured.Unstr
 			return false, err
 		}
 
-		if !apiRule.IsReference(fnName) {
+		if !apiRule.IsReference(fnName) ||
+			(!isOwnerReference(apiRule.GetOwnerReferences(), fnName) && len(apiRule.OwnerReferences) != 0) {
 			return false, nil
 		}
 
