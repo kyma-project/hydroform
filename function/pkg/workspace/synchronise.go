@@ -14,10 +14,12 @@ import (
 )
 
 const (
-	APIRuleGateway = "kyma-gateway.kyma-system.svc.cluster.local"
-	APIRulePath    = "/.*"
-	APIRuleHandler = "allow"
-	APIRulePort    = int64(80)
+	APIRuleGateway     = "kyma-gateway.kyma-system.svc.cluster.local"
+	APIRulePath        = "/.*"
+	APIRuleHandler     = "allow"
+	APIRulePort        = int64(80)
+	functionApiVersion = "serverless.kyma-project.io/v1alpha1"
+	functionKind       = "Function"
 )
 
 func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build) error {
@@ -59,7 +61,8 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				return err
 			}
 
-			if !subscription.IsReference(function.Name, function.Namespace) {
+			if !subscription.IsReference(function.Name, function.Namespace) ||
+				(!isOwnerReference(subscription.OwnerReferences, config.Name) && len(subscription.OwnerReferences) != 0) {
 				continue
 			}
 
@@ -97,7 +100,8 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				return err
 			}
 
-			if !apiRule.IsReference(function.Name) {
+			if !apiRule.IsReference(function.Name) ||
+				(!isOwnerReference(apiRule.OwnerReferences, config.Name) && len(apiRule.OwnerReferences) != 0) {
 				continue
 			}
 
@@ -237,4 +241,16 @@ func setIfNotEqual(val, defVal string) string {
 		return val
 	}
 	return ""
+}
+
+func isOwnerReference(references []v1.OwnerReference, owner string) bool {
+	for _, ref := range references {
+		if ref.APIVersion == functionApiVersion &&
+			ref.Kind == functionKind &&
+			ref.Name == owner {
+			return true
+		}
+	}
+
+	return false
 }
