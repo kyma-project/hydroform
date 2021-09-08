@@ -60,8 +60,9 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				return err
 			}
 
-			if !subscription.IsReference(function.Name, function.Namespace) ||
-				(!isOwnerReference(subscription.OwnerReferences, u.GetUID()) && len(subscription.OwnerReferences) != 0) {
+			isRef := subscription.IsReference(function.Name, function.Namespace)
+			isOwnerRef := (len(subscription.OwnerReferences) == 0 || isOwnerReference(subscription.OwnerReferences, u.GetUID()))
+			if !isRef || !isOwnerRef {
 				continue
 			}
 
@@ -99,8 +100,9 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				return err
 			}
 
-			if !apiRule.IsReference(function.Name) ||
-				(!isOwnerReference(apiRule.OwnerReferences, u.GetUID()) && len(apiRule.OwnerReferences) != 0) {
+			isRef := apiRule.IsReference(function.Name)
+			isOwnerRef := (len(apiRule.OwnerReferences) == 0 || isOwnerReference(apiRule.OwnerReferences, u.GetUID()))
+			if !isRef || !isOwnerRef {
 				continue
 			}
 
