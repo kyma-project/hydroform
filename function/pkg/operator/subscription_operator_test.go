@@ -637,9 +637,10 @@ func newTestSubscription(name, namespace string) (unstructured.Unstructured, err
 func Test_buildMatchRemovedSubscriptionsPredicate(t *testing.T) {
 	var subscription1 unstructured.Unstructured
 	var subscription2 unstructured.Unstructured
+	var subscription3 unstructured.Unstructured
 
 	for i, s := range []*unstructured.Unstructured{
-		&subscription1, &subscription2,
+		&subscription1, &subscription2, &subscription3,
 	} {
 		var err error
 		(*s), err = newTestSubscription(fmt.Sprintf("test-%d", i+1), "test-namespace")
@@ -647,6 +648,10 @@ func Test_buildMatchRemovedSubscriptionsPredicate(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	subscription3.SetOwnerReferences([]v1.OwnerReference{
+		fixOwnerRef("test-me"),
+	})
 
 	type args struct {
 		fnRef        functionReference
@@ -682,6 +687,30 @@ func Test_buildMatchRemovedSubscriptionsPredicate(t *testing.T) {
 				subscription: subscription1,
 			},
 			want: false,
+		},
+		{
+			name: "no match 3",
+			args: args{
+				items: []unstructured.Unstructured{subscription2},
+				fnRef: functionReference{
+					name:      "test-3",
+					namespace: "test-namespace",
+				},
+				subscription: subscription3,
+			},
+			want: false,
+		},
+		{
+			name: "match",
+			args: args{
+				items: []unstructured.Unstructured{subscription2},
+				fnRef: functionReference{
+					name:      "test-1",
+					namespace: "test-namespace",
+				},
+				subscription: subscription1,
+			},
+			want: true,
 		},
 		{
 			name: "match",
