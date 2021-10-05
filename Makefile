@@ -5,7 +5,6 @@ mkfile_dir := $(dir $(mkfile_path))
 build:
 	./provision/before-commit.sh ci
 	./install/before-commit.sh ci
-	./parallel-install/before-commit.sh ci
 	./function/before-commit.sh ci
 
 .PHONY: ci-pr
@@ -29,12 +28,8 @@ lint-provision:
 lint-install:
 	./hack/verify-lint.sh $(mkfile_dir)/install
 
-.PHONY: lint-parallel-install
-lint-parallel-install:
-	./hack/verify-lint.sh $(mkfile_dir)/parallel-install
-
 .PHONY: lint
-lint: lint-function lint-provision lint-install lint-parallel-install
+lint: lint-function lint-provision lint-install
 
 .PHONY: test-provision
 test-provision:
@@ -54,14 +49,5 @@ test-install:
 	rm cover.out ; \
 	cd ..;
 
-.PHONY: test-parallel-install
-test-parallel-install:
-	@cd parallel-install; \
-	echo "Running tests for parallel-install"; \
-	go test -coverprofile=cover.out ./... ;\
-	echo "Total test coverage: $$(go tool cover -func=cover.out | grep total | awk '{print $$3}')" ;\
-	rm cover.out ; \
-	cd ..;
-
 .PHONY: test
-test: test-provision test-install test-parallel-install
+test: test-provision test-install
