@@ -50,7 +50,7 @@ func TestFollowRun(t *testing.T) {
 	id := "test-id"
 
 	t.Run("should follow buffer", func(t *testing.T) {
-		reader := bufio.NewReader(strings.NewReader("1\n2\n2\n3\n4\n"))
+		reader := bufio.NewReader(bytes.NewReader([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}))
 		conn := mock_docker.NewMockConn(ctrl)
 		conn.EXPECT().Close().Times(1)
 
@@ -59,17 +59,13 @@ func TestFollowRun(t *testing.T) {
 			Stdout: true, Stderr: true, Stream: true,
 		}).Return(types.HijackedResponse{Reader: reader, Conn: conn}, nil).Times(1)
 
-		counter := 0
-		log := func(i ...interface{}) { counter++ }
-
-		err := FollowRun(ctx, mock, id, log)
+		err := FollowRun(ctx, mock, id)
 
 		require.Equal(t, nil, err)
-		require.Equal(t, 5, counter)
 	})
 
 	t.Run("should return error during read from buffer", func(t *testing.T) {
-		reader := bufio.NewReader(newReader())
+		reader := bufio.NewReader(bytes.NewReader([]byte{9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9}))
 		conn := mock_docker.NewMockConn(ctrl)
 		conn.EXPECT().Close().Times(1)
 
@@ -78,13 +74,9 @@ func TestFollowRun(t *testing.T) {
 			Stdout: true, Stderr: true, Stream: true,
 		}).Return(types.HijackedResponse{Reader: reader, Conn: conn}, nil).Times(1)
 
-		counter := 0
-		log := func(i ...interface{}) { counter++ }
+		err := FollowRun(ctx, mock, id)
 
-		err := FollowRun(ctx, mock, id, log)
-
-		require.Equal(t, errors.New("reading error"), err)
-		require.Equal(t, 0, counter)
+		require.NotEqual(t, nil, err)
 	})
 
 	t.Run("should return error during container attach", func(t *testing.T) {
@@ -93,13 +85,9 @@ func TestFollowRun(t *testing.T) {
 			Stdout: true, Stderr: true, Stream: true,
 		}).Return(types.HijackedResponse{}, errors.New("attach: error")).Times(1)
 
-		counter := 0
-		log := func(i ...interface{}) { counter++ }
-
-		err := FollowRun(ctx, mock, id, log)
+		err := FollowRun(ctx, mock, id)
 
 		require.Equal(t, errors.New("attach: error"), err)
-		require.Equal(t, 0, counter)
 	})
 }
 

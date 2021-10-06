@@ -94,7 +94,19 @@ func pullAndRun(ctx context.Context, c Client, config *container.Config, hostCon
 	return body, err
 }
 
-func FollowRun(ctx context.Context, c Client, ID string, log func(...interface{})) error {
+// TODO: do przemyslenia
+// type test struct {
+// 	stderr io.Writer
+// 	stdout io.Writer
+// }
+
+// func NewTest() *test {
+// 	return &test{
+// 		stderr: os.Stderr,
+// 	}
+// }
+
+func FollowRun(ctx context.Context, c Client, ID string) error {
 	buf, err := c.ContainerAttach(ctx, ID, types.ContainerAttachOptions{
 		Stdout: true,
 		Stderr: true,
