@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/kyma-incubator/hydroform/function/pkg/docker/runtimes"
 	"github.com/moby/moby/pkg/jsonmessage"
+	"github.com/moby/moby/pkg/stdcopy"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -104,18 +105,7 @@ func FollowRun(ctx context.Context, c Client, ID string, log func(...interface{}
 	}
 	defer buf.Close()
 
-	for {
-		line, e := buf.Reader.ReadBytes('\n')
-		if e == io.EOF {
-			break
-		}
-		if e != nil {
-			err = e
-			break
-		}
-
-		log(string(line))
-	}
+	_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, buf.Reader)
 
 	return err
 }
