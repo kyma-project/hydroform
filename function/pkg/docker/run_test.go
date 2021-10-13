@@ -76,7 +76,7 @@ func TestFollowRun(t *testing.T) {
 
 		err := FollowRun(ctx, mock, id)
 
-		require.NotEqual(t, nil, err)
+		require.NotNil(t, err)
 	})
 
 	t.Run("should return error during container attach", func(t *testing.T) {
