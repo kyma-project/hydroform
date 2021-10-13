@@ -50,7 +50,7 @@ func TestFollowRun(t *testing.T) {
 	id := "test-id"
 
 	t.Run("should follow buffer", func(t *testing.T) {
-		reader := bufio.NewReader(bytes.NewReader([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}))
+		reader := bufio.NewReader(bytes.NewReader([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})) // Bytes stdcopy.Stdcopy can recognize
 		conn := mock_docker.NewMockConn(ctrl)
 		conn.EXPECT().Close().Times(1)
 
@@ -65,7 +65,7 @@ func TestFollowRun(t *testing.T) {
 	})
 
 	t.Run("should return error during read from buffer", func(t *testing.T) {
-		reader := bufio.NewReader(bytes.NewReader([]byte{9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9}))
+		reader := bufio.NewReader(bytes.NewReader([]byte{9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9})) // Bytes unrecognized by the stdcopy.Stdcopy
 		conn := mock_docker.NewMockConn(ctrl)
 		conn.EXPECT().Close().Times(1)
 
