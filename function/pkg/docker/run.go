@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/kyma-incubator/hydroform/function/pkg/docker/runtimes"
 	"github.com/moby/moby/pkg/jsonmessage"
+	"github.com/moby/moby/pkg/stdcopy"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -93,7 +94,7 @@ func pullAndRun(ctx context.Context, c Client, config *container.Config, hostCon
 	return body, err
 }
 
-func FollowRun(ctx context.Context, c Client, ID string, log func(...interface{})) error {
+func FollowRun(ctx context.Context, c Client, ID string) error {
 	buf, err := c.ContainerAttach(ctx, ID, types.ContainerAttachOptions{
 		Stdout: true,
 		Stderr: true,
@@ -104,18 +105,7 @@ func FollowRun(ctx context.Context, c Client, ID string, log func(...interface{}
 	}
 	defer buf.Close()
 
-	for {
-		line, e := buf.Reader.ReadBytes('\n')
-		if e == io.EOF {
-			break
-		}
-		if e != nil {
-			err = e
-			break
-		}
-
-		log(string(line))
-	}
+	_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, buf.Reader)
 
 	return err
 }
