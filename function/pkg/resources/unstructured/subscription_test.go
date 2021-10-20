@@ -2,6 +2,7 @@ package unstructured
 
 import (
 	"fmt"
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"reflect"
 	"testing"
 
@@ -153,7 +154,7 @@ func TestNewSubscriptions(t *testing.T) {
 					Labels: map[string]string{
 						"test": "me",
 					},
-					Runtime: "python38",
+					Runtime: types.Python39,
 					Subscriptions: []workspace.Subscription{
 						{
 							Protocol: "NATS",

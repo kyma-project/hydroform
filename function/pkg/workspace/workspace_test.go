@@ -82,7 +82,7 @@ func Test_initialize(t *testing.T) {
 			wantErr: false,
 			args: args{
 				cfg: Cfg{
-					Runtime: types.Python38,
+					Runtime: types.Python39,
 					Subscriptions: []Subscription{
 						{
 							Name:     "fixme",
@@ -153,14 +153,6 @@ func Test_fromRuntime(t *testing.T) {
 				runtime: types.Nodejs12,
 			},
 			want:    workspaceNodeJs,
-			wantErr: false,
-		},
-		{
-			name: "python38",
-			args: args{
-				runtime: types.Python38,
-			},
-			want:    workspacePython,
 			wantErr: false,
 		},
 		{
@@ -235,19 +227,6 @@ func Test_fromSources(t *testing.T) {
 				deps:    packageJSON,
 			},
 			want:    workspaceNodeJs,
-			wantErr: false,
-		},
-		{
-			name: "python38",
-			args: args{
-				runtime: types.Python38,
-				source:  handlerPython,
-				deps:    "deps",
-			},
-			want: workspace{
-				newTemplatedFile(handlerPython, FileNameHandlerPy),
-				newTemplatedFile("deps", FileNameRequirementsTxt),
-			},
 			wantErr: false,
 		},
 		{

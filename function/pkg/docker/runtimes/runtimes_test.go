@@ -93,55 +93,6 @@ func TestContainerEnvs(t *testing.T) {
 			},
 		},
 		{
-			name: "should return envs for python38",
-			args: args{
-				runtime:   types.Python38,
-				hotDeploy: false,
-			},
-			want: []string{
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=python38",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				Python38Path,
-				"PYTHONUNBUFFERED=TRUE",
-			},
-		},
-		{
-			name: "should return envs for python38 with debug",
-			args: args{
-				runtime:   types.Python38,
-				hotDeploy: false,
-			},
-			want: []string{
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=python38",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				Python38Path,
-				"PYTHONUNBUFFERED=TRUE",
-			},
-		},
-		{
-			name: "should return envs for python38 with hotDeploy",
-			args: args{
-				runtime:   types.Python38,
-				hotDeploy: true,
-			},
-			want: []string{
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=python38",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				Python38Path,
-				"PYTHONUNBUFFERED=TRUE",
-				"CHERRYPY_RELOADED=true",
-			},
-		},
-		{
 			name: "should return envs for python39",
 			args: args{
 				runtime:   types.Python39,
@@ -220,11 +171,6 @@ func TestRuntimeDebugPort(t *testing.T) {
 			name:    "should return nodejs14 debug port",
 			runtime: types.Nodejs14,
 			want:    NodejsDebugEndpoint,
-		},
-		{
-			name:    "should return python38 debug port",
-			runtime: types.Python38,
-			want:    Python38DebugEndpoint,
 		},
 		{
 			name:    "should return python39 debug port",
@@ -340,57 +286,6 @@ func TestContainerCommands(t *testing.T) {
 			},
 		},
 		{
-			name: "should return commands for Python38",
-			args: args{
-				runtime: types.Python38,
-			},
-			want: []string{
-				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
-			},
-		},
-		{
-			name: "should return commands for Python38 with hotDeploy",
-			args: args{
-				runtime:   types.Python38,
-				hotDeploy: true,
-			},
-			want: []string{
-				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
-			},
-		},
-		{
-			name: "should return commands for Python38 with hotDeploy",
-			args: args{
-				runtime:   types.Python38,
-				hotDeploy: true,
-			},
-			want: []string{
-				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
-			},
-		},
-		{
-			name: "should return commands for Python38 with debug",
-			args: args{
-				runtime: types.Python38,
-				debug:   true,
-			},
-			want: []string{
-				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
-			},
-		},
-		{
-			name: "should return commands for Python38 with hotDeploy and debug",
-			args: args{
-				runtime:   types.Python38,
-				hotDeploy: true,
-				debug:     true,
-			},
-			want: []string{
-				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
-			},
-		},
-
-		{
 			name: "should return commands for Python39",
 			args: args{
 				runtime: types.Python39,
@@ -464,35 +359,28 @@ func TestContainerImage(t *testing.T) {
 			args: args{
 				runtime: "",
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11121",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-12416",
 		},
 		{
 			name: "should return image for Nodejs12",
 			args: args{
 				runtime: types.Nodejs12,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:PR-11121",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:PR-12416",
 		},
 		{
 			name: "should return image for Nodejs14",
 			args: args{
 				runtime: types.Nodejs14,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-11121",
-		},
-		{
-			name: "should return image for Python38",
-			args: args{
-				runtime: types.Python38,
-			},
-			want: "eu.gcr.io/kyma-project/function-runtime-python38:PR-11121",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-12416",
 		},
 		{
 			name: "should return image for Python39",
 			args: args{
 				runtime: types.Python39,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-python39:PR-11498",
+			want: "eu.gcr.io/kyma-project/function-runtime-python39:PR-12416",
 		},
 	}
 	for _, tt := range tests {
@@ -533,13 +421,6 @@ func TestContainerUser(t *testing.T) {
 				runtime: types.Nodejs14,
 			},
 			want: "1000",
-		},
-		{
-			name: "should return user for Python38",
-			args: args{
-				runtime: types.Python38,
-			},
-			want: "root",
 		},
 		{
 			name: "should return user for Python39",

@@ -50,7 +50,7 @@ func Test_newFunction(t *testing.T) {
 							workspace.ResourceNameMemory: "10M",
 						},
 					},
-					Runtime: types.Python38,
+					Runtime: types.Python39,
 					Source: workspace.Source{
 						Type: workspace.SourceTypeGit,
 						SourceInline: workspace.SourceInline{
@@ -95,7 +95,7 @@ func Test_newFunction(t *testing.T) {
 						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
-						"runtime": "python38",
+						"runtime": "python39",
 						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
@@ -166,7 +166,7 @@ func Test_newFunction(t *testing.T) {
 							workspace.ResourceNameMemory: "10M",
 						},
 					},
-					Runtime: types.Python38,
+					Runtime: types.Python39,
 					Source: workspace.Source{
 						Type: workspace.SourceTypeGit,
 						SourceInline: workspace.SourceInline{
@@ -229,7 +229,7 @@ func Test_newFunction(t *testing.T) {
 						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
-						"runtime": "python38",
+						"runtime": "python39",
 						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
@@ -264,7 +264,7 @@ func Test_newFunction(t *testing.T) {
 				cfg: workspace.Cfg{
 					Name:      "test-name",
 					Namespace: "test-ns",
-					Runtime:   types.Python38,
+					Runtime:   types.Python39,
 					Source: workspace.Source{
 						Type: workspace.SourceTypeGit,
 						SourceInline: workspace.SourceInline{
@@ -285,7 +285,7 @@ func Test_newFunction(t *testing.T) {
 						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
-						"runtime": "python38",
+						"runtime": "python39",
 						"source":  "test-source-content",
 						"deps":    "test-deps-content",
 					},
@@ -364,7 +364,7 @@ func Test_newFunction(t *testing.T) {
 				cfg: workspace.Cfg{
 					Name:      "test-name",
 					Namespace: "test-ns",
-					Runtime:   types.Python38,
+					Runtime:   types.Python39,
 					Source: workspace.Source{
 						Type: workspace.SourceTypeGit,
 						SourceInline: workspace.SourceInline{
@@ -391,7 +391,7 @@ func Test_newFunction(t *testing.T) {
 						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
-						"runtime": "python38",
+						"runtime": "python39",
 						"source":  "test-source-content",
 						"deps":    "test-deps-content",
 						"resources": map[string]interface{}{
@@ -476,7 +476,7 @@ func Test_newFunction(t *testing.T) {
 					Labels: map[string]string{
 						"test": "me",
 					},
-					Runtime: types.Python38,
+					Runtime: types.Python39,
 					Source: workspace.Source{
 						Type: workspace.SourceTypeGit,
 						SourceInline: workspace.SourceInline{
@@ -615,7 +615,7 @@ func Test_newGitFunction(t *testing.T) {
 							workspace.ResourceNameMemory: "10M",
 						},
 					},
-					Runtime: types.Python38,
+					Runtime: types.Python39,
 					Source: workspace.Source{
 						Type: workspace.SourceTypeGit,
 						SourceGit: workspace.SourceGit{
@@ -703,7 +703,7 @@ func Test_newGitFunction(t *testing.T) {
 						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
-						"runtime": "python38",
+						"runtime": "python39",
 						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
@@ -768,7 +768,7 @@ func Test_newGitFunction(t *testing.T) {
 							workspace.ResourceNameMemory: "10M",
 						},
 					},
-					Runtime: types.Python38,
+					Runtime: types.Python39,
 					Source: workspace.Source{
 						Type: workspace.SourceTypeGit,
 						SourceGit: workspace.SourceGit{
@@ -833,7 +833,7 @@ func Test_newGitFunction(t *testing.T) {
 						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
-						"runtime": "python38",
+						"runtime": "python39",
 						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
