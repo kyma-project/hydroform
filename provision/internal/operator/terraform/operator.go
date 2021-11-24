@@ -105,7 +105,7 @@ func (t *Terraform) Delete(sf *statefile.File, p types.ProviderType, cfg map[str
 
 	// silence stdErr during terraform execution, plugins send debug and trace entries there
 	stderr := os.Stderr
-	var err error = nil
+	var err error
 	os.Stderr, err = os.Open(os.DevNull)
 	if err != nil {
 		return err
