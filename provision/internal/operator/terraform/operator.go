@@ -36,7 +36,11 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 	// silence stdErr during terraform execution, plugins send debug and trace entries there
 	if !t.ops.Verbose {
 		stderr := os.Stderr
-		os.Stderr, _ = os.Open(os.DevNull)
+		var err error = nil
+		os.Stderr, err = os.Open(os.DevNull)
+		if err != nil {
+			return nil, err
+		}
 		defer func() { os.Stderr = stderr }()
 	}
 
@@ -101,7 +105,11 @@ func (t *Terraform) Delete(sf *statefile.File, p types.ProviderType, cfg map[str
 
 	// silence stdErr during terraform execution, plugins send debug and trace entries there
 	stderr := os.Stderr
-	os.Stderr, _ = os.Open(os.DevNull)
+	var err error = nil
+	os.Stderr, err = os.Open(os.DevNull)
+	if err != nil {
+		return err
+	}
 	defer func() { os.Stderr = stderr }()
 
 	// init cluster files
