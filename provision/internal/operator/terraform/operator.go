@@ -36,7 +36,7 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 	// silence stdErr during terraform execution, plugins send debug and trace entries there
 	if !t.ops.Verbose {
 		stderr := os.Stderr
-		var err error = nil
+		var err error
 		os.Stderr, err = os.Open(os.DevNull)
 		if err != nil {
 			return nil, err
