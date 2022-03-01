@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/Microsoft/go-winio v0.4.16-0.20201130162521-d1ffc52c7331 // indirect
+	github.com/alecthomas/jsonschema v0.0.0-20220216202328-9eeeec9d044b
 	github.com/containerd/containerd v1.4.3 // indirect
 	github.com/docker/cli v20.10.3+incompatible
 	github.com/docker/distribution v2.7.1+incompatible // indirect

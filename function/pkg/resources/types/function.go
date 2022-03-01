@@ -10,10 +10,10 @@ type SourceType string
 type FunctionSpec struct {
 	Source     string                       `json:"source"`
 	Deps       string                       `json:"deps,omitempty"`
-	Runtime    Runtime                      `json:"runtime,omitempty"`
+	Runtime    Runtime                      `json:"runtime,omitempty" jsonschema:"enum=nodejs12,enum=nodejs14,enum=python39"`
 	Resources  *corev1.ResourceRequirements `json:"resources,omitempty"`
 	Labels     map[string]string            `json:"labels,omitempty"`
-	Type       SourceType                   `json:"type,omitempty"`
+	Type       SourceType                   `json:"type,omitempty" jsonschema:"enum=inline,enum=git"`
 	Repository `json:",inline,omitempty"`
 	Env        []corev1.EnvVar `json:"env,omitempty"`
 }
