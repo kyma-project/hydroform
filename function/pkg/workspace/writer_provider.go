@@ -9,8 +9,8 @@ type Cancel = func() error
 
 type WriterProvider func(path string) (io.Writer, Cancel, error)
 
-func (p WriterProvider) write(destinationDirPath string, fileTemplate file, cfg Cfg) error {
-	outFilePath := path.Join(destinationDirPath, fileTemplate.fileName())
+func (p WriterProvider) Write(destinationDirPath string, fileTemplate File, cfg interface{}) error {
+	outFilePath := path.Join(destinationDirPath, fileTemplate.FileName())
 	writer, closeFn, err := p(outFilePath)
 	if err != nil {
 		return err
@@ -22,7 +22,7 @@ func (p WriterProvider) write(destinationDirPath string, fileTemplate file, cfg 
 		_ = closeFn()
 	}()
 
-	err = fileTemplate.write(writer, cfg)
+	err = fileTemplate.Write(writer, cfg)
 	if err != nil {
 		return err
 	}

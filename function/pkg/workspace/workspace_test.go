@@ -237,8 +237,8 @@ func Test_fromSources(t *testing.T) {
 				deps:    "deps",
 			},
 			want: workspace{
-				newTemplatedFile(handlerPython, FileNameHandlerPy),
-				newTemplatedFile("deps", FileNameRequirementsTxt),
+				NewTemplatedFile(handlerPython, FileNameHandlerPy),
+				NewTemplatedFile("deps", FileNameRequirementsTxt),
 			},
 			wantErr: false,
 		},

@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var _ file = &Cfg{}
+var _ File = &Cfg{}
 
 type SourceType string
 
@@ -145,10 +145,10 @@ const (
 	ResourceNameMemory ResourceName = "memory"
 )
 
-func (cfg Cfg) write(writer io.Writer, _ interface{}) error {
+func (cfg Cfg) Write(writer io.Writer, _ interface{}) error {
 	return yaml.NewEncoder(writer).Encode(&cfg)
 }
 
-func (cfg Cfg) fileName() string {
+func (cfg Cfg) FileName() string {
 	return CfgFilename
 }
