@@ -22,7 +22,7 @@ func (ws workspace) build(cfg Cfg, dirPath string, writerProvider WriterProvider
 	return nil
 }
 
-var defaultWriterProvider = func(outFilePath string) (io.Writer, func() error, error) {
+var DefaultWriterProvider = func(outFilePath string) (io.Writer, func() error, error) {
 	file, err := os.Create(outFilePath)
 	if err != nil {
 		return nil, nil, err
@@ -33,7 +33,7 @@ var defaultWriterProvider = func(outFilePath string) (io.Writer, func() error, e
 var errUnsupportedRuntime = errors.New("unsupported runtime")
 
 func Initialize(cfg Cfg, dirPath string) error {
-	return initialize(cfg, dirPath, defaultWriterProvider)
+	return initialize(cfg, dirPath, DefaultWriterProvider)
 }
 
 func initialize(cfg Cfg, dirPath string, writerProvider WriterProvider) (err error) {

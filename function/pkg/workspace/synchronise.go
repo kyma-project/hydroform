@@ -22,7 +22,7 @@ const (
 )
 
 func Synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build) error {
-	return synchronise(ctx, config, outputPath, build, defaultWriterProvider)
+	return synchronise(ctx, config, outputPath, build, DefaultWriterProvider)
 }
 
 func synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, writerProvider WriterProvider) error {
