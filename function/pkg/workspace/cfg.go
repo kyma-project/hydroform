@@ -19,9 +19,9 @@ const (
 const CfgFilename = "config.yaml"
 
 type EventFilterProperty struct {
-	Property string `yaml:"property"`
-	Type     string `yaml:"type,omitempty"`
-	Value    string `yaml:"value"`
+	Property string `yaml:"property" jsonschema:"default=source"`
+	Type     string `yaml:"type" jsonschema:"default=exact"`
+	Value    string `yaml:"value" jsonschema:"default="`
 }
 
 type EventFilter struct {
@@ -35,7 +35,7 @@ type Filter struct {
 }
 
 type Subscription struct {
-	Name     string `yaml:"name"`
+	Name     string `yaml:"name,omitempty"`
 	Protocol string `yaml:"protocol"`
 	Filter   Filter `yaml:"filter"`
 }
@@ -86,7 +86,7 @@ type Rule struct {
 
 type AccessStrategie struct {
 	Config  AccessStrategieConfig `yaml:"config,omitempty"`
-	Handler string                `yaml:"handler"  jsonschema:"enum=oauth2_introspection,enum=jwt,enum=noop,enum=allow"`
+	Handler string                `yaml:"handler" jsonschema:"enum=oauth2_introspection,enum=jwt,enum=noop,enum=allow,default=allow"`
 }
 
 type AccessStrategieConfig struct {
