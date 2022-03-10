@@ -86,7 +86,7 @@ type Rule struct {
 
 type AccessStrategie struct {
 	Config  AccessStrategieConfig `yaml:"config,omitempty"`
-	Handler string                `yaml:"handler"`
+	Handler string                `yaml:"handler"  jsonschema:"enum=oauth2_introspection,enum=jwt,enum=noop,enum=allow"`
 }
 
 type AccessStrategieConfig struct {
@@ -99,7 +99,7 @@ type Cfg struct {
 	Name          string            `yaml:"name"`
 	Namespace     string            `yaml:"namespace"`
 	Labels        map[string]string `yaml:"labels,omitempty"`
-	Runtime       types.Runtime     `yaml:"runtime"`
+	Runtime       types.Runtime     `yaml:"runtime" jsonschema:"enum=nodejs12,enum=nodejs14,enum=python39"`
 	Source        Source            `yaml:"source"`
 	Resources     Resources         `yaml:"resource,omitempty"`
 	Subscriptions []Subscription    `yaml:"subscriptions,omitempty"`
@@ -108,7 +108,7 @@ type Cfg struct {
 }
 
 type Source struct {
-	Type         SourceType `yaml:"sourceType"`
+	Type         SourceType `yaml:"sourceType" jsonschema:"enum=inline,enum=git"`
 	SourceInline `yaml:",inline"`
 	SourceGit    `yaml:",inline"`
 }

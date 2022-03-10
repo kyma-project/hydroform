@@ -13,6 +13,7 @@ require (
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/invopop/jsonschema v0.2.0
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/moby/moby v20.10.3+incompatible
