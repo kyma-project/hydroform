@@ -42,7 +42,7 @@ type Filter struct {
 
 type Subscription struct {
 	Name     string `yaml:"name,omitempty"`
-	Protocol string `yaml:"protocol"`
+	Protocol string `yaml:"protocol" jsonschema:"default=\"\""`
 	Filter   Filter `yaml:"filter"`
 }
 
