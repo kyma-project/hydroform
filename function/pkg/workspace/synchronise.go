@@ -194,12 +194,12 @@ func toWorkspaceEnvVar(envs []corev1.EnvVar) []EnvVar {
 
 func toWorkspaceEnvFilter(filter types.EventFilter) EventFilter {
 	return EventFilter{
-		EventSource: EventFilterProperty{
+		EventSource: EventSource{
 			Property: filter.EventSource.Property,
 			Type:     filter.EventSource.Type,
 			Value:    filter.EventSource.Value,
 		},
-		EventType: EventFilterProperty{
+		EventType: EventType{
 			Property: filter.EventType.Property,
 			Type:     filter.EventType.Type,
 			Value:    filter.EventType.Value,

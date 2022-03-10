@@ -18,15 +18,21 @@ const (
 
 const CfgFilename = "config.yaml"
 
-type EventFilterProperty struct {
+type EventType struct {
+	Property string `yaml:"property" jsonschema:"default=type"`
+	Type     string `yaml:"type" jsonschema:"default=exact"`
+	Value    string `yaml:"value"`
+}
+
+type EventSource struct {
 	Property string `yaml:"property" jsonschema:"default=source"`
 	Type     string `yaml:"type" jsonschema:"default=exact"`
-	Value    string `yaml:"value" jsonschema:"default="`
+	Value    string `yaml:"value" jsonschema:"default=\"\""`
 }
 
 type EventFilter struct {
-	EventSource EventFilterProperty `yaml:"eventSource"`
-	EventType   EventFilterProperty `yaml:"eventType"`
+	EventSource EventSource `yaml:"eventSource"`
+	EventType   EventType   `yaml:"eventType"`
 }
 
 type Filter struct {

@@ -182,12 +182,12 @@ func Test_newFunction(t *testing.T) {
 							Filter: workspace.Filter{
 								Filters: []workspace.EventFilter{
 									{
-										EventSource: workspace.EventFilterProperty{
+										EventSource: workspace.EventSource{
 											Property: "type",
 											Type:     "exact",
 											Value:    "test-subscription-type.test-subscription-etv",
 										},
-										EventType: workspace.EventFilterProperty{
+										EventType: workspace.EventType{
 											Property: "source",
 											Type:     "exact",
 											Value:    "test-subscription-source",
@@ -632,12 +632,12 @@ func Test_newGitFunction(t *testing.T) {
 								Dialect: "fixme",
 								Filters: []workspace.EventFilter{
 									{
-										EventSource: workspace.EventFilterProperty{
+										EventSource: workspace.EventSource{
 											Property: "source",
 											Type:     "exact",
 											Value:    "test-subscription-source",
 										},
-										EventType: workspace.EventFilterProperty{
+										EventType: workspace.EventType{
 											Property: "type",
 											Type:     "exact",
 											Value:    "test-subscription-type.test-subscription-etv",
@@ -786,12 +786,12 @@ func Test_newGitFunction(t *testing.T) {
 								Dialect: "fixme",
 								Filters: []workspace.EventFilter{
 									{
-										EventSource: workspace.EventFilterProperty{
+										EventSource: workspace.EventSource{
 											Property: "source",
 											Type:     "exact",
 											Value:    "test-subscription-source",
 										},
-										EventType: workspace.EventFilterProperty{
+										EventType: workspace.EventType{
 											Property: "type",
 											Type:     "exact",
 											Value:    "test-subscription-type.test-subscription-etv",

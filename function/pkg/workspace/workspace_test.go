@@ -91,12 +91,12 @@ func Test_initialize(t *testing.T) {
 								Dialect: "fixme",
 								Filters: []EventFilter{
 									{
-										EventSource: EventFilterProperty{
+										EventSource: EventSource{
 											Property: "source",
 											Type:     "exact",
 											Value:    "test-source",
 										},
-										EventType: EventFilterProperty{
+										EventType: EventType{
 											Property: "type",
 											Type:     "exact",
 											Value:    "test-type.test-version",
