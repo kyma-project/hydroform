@@ -9,6 +9,6 @@ const (
 )
 
 var workspacePython = workspace{
-	newTemplatedFile(handlerPython, FileNameHandlerPy),
+	NewTemplatedFile(handlerPython, FileNameHandlerPy),
 	newEmptyFile(FileNameRequirementsTxt),
 }

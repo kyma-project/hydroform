@@ -91,12 +91,12 @@ func Test_initialize(t *testing.T) {
 								Dialect: "fixme",
 								Filters: []EventFilter{
 									{
-										EventSource: EventFilterProperty{
+										EventSource: EventSource{
 											Property: "source",
 											Type:     "exact",
 											Value:    "test-source",
 										},
-										EventType: EventFilterProperty{
+										EventType: EventType{
 											Property: "type",
 											Type:     "exact",
 											Value:    "test-type.test-version",
@@ -237,8 +237,8 @@ func Test_fromSources(t *testing.T) {
 				deps:    "deps",
 			},
 			want: workspace{
-				newTemplatedFile(handlerPython, FileNameHandlerPy),
-				newTemplatedFile("deps", FileNameRequirementsTxt),
+				NewTemplatedFile(handlerPython, FileNameHandlerPy),
+				NewTemplatedFile("deps", FileNameRequirementsTxt),
 			},
 			wantErr: false,
 		},

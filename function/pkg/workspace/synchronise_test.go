@@ -131,12 +131,12 @@ func Test_Synchronise(t *testing.T) {
 								Dialect: "fixme",
 								Filters: []EventFilter{
 									{
-										EventSource: EventFilterProperty{
+										EventSource: EventSource{
 											Property: "source",
 											Type:     "exact",
 											Value:    "the-source",
 										},
-										EventType: EventFilterProperty{
+										EventType: EventType{
 											Property: "type",
 											Type:     "exact",
 											Value:    "t1.v1.0.0",
@@ -209,12 +209,12 @@ func Test_Synchronise(t *testing.T) {
 								Dialect: "fixme",
 								Filters: []EventFilter{
 									{
-										EventSource: EventFilterProperty{
+										EventSource: EventSource{
 											Property: "source",
 											Type:     "exact",
 											Value:    "the-source",
 										},
-										EventType: EventFilterProperty{
+										EventType: EventType{
 											Property: "type",
 											Type:     "exact",
 											Value:    "t1.v1.0.0",
@@ -343,12 +343,12 @@ func Test_Synchronise(t *testing.T) {
 								Dialect: "fixme",
 								Filters: []EventFilter{
 									{
-										EventSource: EventFilterProperty{
+										EventSource: EventSource{
 											Property: "source",
 											Type:     "exact",
 											Value:    "the-source",
 										},
-										EventType: EventFilterProperty{
+										EventType: EventType{
 											Property: "type",
 											Type:     "exact",
 											Value:    "t1.v1.0.0",

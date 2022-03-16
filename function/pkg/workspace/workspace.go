@@ -10,19 +10,19 @@ import (
 
 type FileName string
 
-type workspace []file
+type workspace []File
 
 func (ws workspace) build(cfg Cfg, dirPath string, writerProvider WriterProvider) error {
 	workspaceFiles := append(ws, cfg)
 	for _, fileTemplate := range workspaceFiles {
-		if err := writerProvider.write(dirPath, fileTemplate, cfg); err != nil {
+		if err := writerProvider.Write(dirPath, fileTemplate, cfg); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-var defaultWriterProvider = func(outFilePath string) (io.Writer, func() error, error) {
+var DefaultWriterProvider = func(outFilePath string) (io.Writer, func() error, error) {
 	file, err := os.Create(outFilePath)
 	if err != nil {
 		return nil, nil, err
@@ -33,7 +33,7 @@ var defaultWriterProvider = func(outFilePath string) (io.Writer, func() error, e
 var errUnsupportedRuntime = errors.New("unsupported runtime")
 
 func Initialize(cfg Cfg, dirPath string) error {
-	return initialize(cfg, dirPath, defaultWriterProvider)
+	return initialize(cfg, dirPath, DefaultWriterProvider)
 }
 
 func initialize(cfg Cfg, dirPath string, writerProvider WriterProvider) (err error) {
@@ -51,13 +51,13 @@ func fromSources(runtime string, source, deps string) (workspace, error) {
 	switch runtime {
 	case types.Nodejs14, types.Nodejs12:
 		return workspace{
-			newTemplatedFile(source, FileNameHandlerJs),
-			newTemplatedFile(deps, FileNamePackageJSON),
+			NewTemplatedFile(source, FileNameHandlerJs),
+			NewTemplatedFile(deps, FileNamePackageJSON),
 		}, nil
 	case types.Python39:
 		return workspace{
-			newTemplatedFile(source, FileNameHandlerPy),
-			newTemplatedFile(deps, FileNameRequirementsTxt),
+			NewTemplatedFile(source, FileNameHandlerPy),
+			NewTemplatedFile(deps, FileNameRequirementsTxt),
 		}, nil
 	default:
 		return workspace{}, errUnsupportedRuntime

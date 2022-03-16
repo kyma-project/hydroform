@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var _ file = &Cfg{}
+var _ File = &Cfg{}
 
 type SourceType string
 
@@ -18,15 +18,21 @@ const (
 
 const CfgFilename = "config.yaml"
 
-type EventFilterProperty struct {
-	Property string `yaml:"property"`
-	Type     string `yaml:"type,omitempty"`
+type EventType struct {
+	Property string `yaml:"property" jsonschema:"default=type"`
+	Type     string `yaml:"type" jsonschema:"default=exact"`
 	Value    string `yaml:"value"`
 }
 
+type EventSource struct {
+	Property string `yaml:"property" jsonschema:"default=source"`
+	Type     string `yaml:"type" jsonschema:"default=exact"`
+	Value    string `yaml:"value" jsonschema:"default=\"\""`
+}
+
 type EventFilter struct {
-	EventSource EventFilterProperty `yaml:"eventSource"`
-	EventType   EventFilterProperty `yaml:"eventType"`
+	EventSource EventSource `yaml:"eventSource"`
+	EventType   EventType   `yaml:"eventType"`
 }
 
 type Filter struct {
@@ -35,8 +41,8 @@ type Filter struct {
 }
 
 type Subscription struct {
-	Name     string `yaml:"name"`
-	Protocol string `yaml:"protocol"`
+	Name     string `yaml:"name,omitempty"`
+	Protocol string `yaml:"protocol" jsonschema:"default=\"\""`
 	Filter   Filter `yaml:"filter"`
 }
 
@@ -86,7 +92,7 @@ type Rule struct {
 
 type AccessStrategie struct {
 	Config  AccessStrategieConfig `yaml:"config,omitempty"`
-	Handler string                `yaml:"handler"  jsonschema:"enum=oauth2_introspection,enum=jwt,enum=noop,enum=allow"`
+	Handler string                `yaml:"handler" jsonschema:"enum=oauth2_introspection,enum=jwt,enum=noop,enum=allow,default=allow"`
 }
 
 type AccessStrategieConfig struct {
@@ -145,10 +151,10 @@ const (
 	ResourceNameMemory ResourceName = "memory"
 )
 
-func (cfg Cfg) write(writer io.Writer, _ interface{}) error {
+func (cfg Cfg) Write(writer io.Writer, _ interface{}) error {
 	return yaml.NewEncoder(writer).Encode(&cfg)
 }
 
-func (cfg Cfg) fileName() string {
+func (cfg Cfg) FileName() string {
 	return CfgFilename
 }

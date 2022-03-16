@@ -6,15 +6,15 @@ type emptyFile struct {
 	name FileName
 }
 
-func (e emptyFile) write(_ io.Writer, _ interface{}) error {
+func (e emptyFile) Write(_ io.Writer, _ interface{}) error {
 	return nil
 }
 
-func (e emptyFile) fileName() string {
+func (e emptyFile) FileName() string {
 	return string(e.name)
 }
 
-func newEmptyFile(name FileName) file {
+func newEmptyFile(name FileName) File {
 	return emptyFile{
 		name: name,
 	}

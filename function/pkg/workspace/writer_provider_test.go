@@ -18,7 +18,7 @@ func (w *errWriter) Write(p []byte) (n int, err error) {
 func TestWriterProvider_write(t *testing.T) {
 	type args struct {
 		destinationDirPath string
-		fileTemplate       file
+		fileTemplate       File
 		cfg                Cfg
 	}
 	tests := []struct {
@@ -35,7 +35,7 @@ func TestWriterProvider_write(t *testing.T) {
 			wantErr: true,
 			args: args{
 				destinationDirPath: "/testme",
-				fileTemplate:       newTemplatedFile("test", "test"),
+				fileTemplate:       NewTemplatedFile("test", "test"),
 				cfg: Cfg{
 					Name:          "test-name",
 					Labels:        map[string]string{},
@@ -56,7 +56,7 @@ func TestWriterProvider_write(t *testing.T) {
 			wantErr: true,
 			args: args{
 				destinationDirPath: "/testme",
-				fileTemplate:       newTemplatedFile("test", "test"),
+				fileTemplate:       NewTemplatedFile("test", "test"),
 				cfg: Cfg{
 					Name:          "test-name",
 					Labels:        map[string]string{},
@@ -75,7 +75,7 @@ func TestWriterProvider_write(t *testing.T) {
 			wantErr: false,
 			args: args{
 				destinationDirPath: "/testme",
-				fileTemplate:       newTemplatedFile("test", "test"),
+				fileTemplate:       NewTemplatedFile("test", "test"),
 				cfg: Cfg{
 					Name:          "test-name",
 					Labels:        map[string]string{},
@@ -89,7 +89,7 @@ func TestWriterProvider_write(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.p.write(tt.args.destinationDirPath, tt.args.fileTemplate, tt.args.cfg); (err != nil) != tt.wantErr {
+			if err := tt.p.Write(tt.args.destinationDirPath, tt.args.fileTemplate, tt.args.cfg); (err != nil) != tt.wantErr {
 				t.Errorf("WriterProvider.write() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

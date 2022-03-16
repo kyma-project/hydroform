@@ -2,9 +2,10 @@ package unstructured
 
 import (
 	"fmt"
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 	"reflect"
 	"testing"
+
+	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"github.com/onsi/gomega"
@@ -39,12 +40,12 @@ func Test_newSubscriptions(t *testing.T) {
 								Dialect: "fixme",
 								Filters: []workspace.EventFilter{
 									{
-										EventSource: workspace.EventFilterProperty{
+										EventSource: workspace.EventSource{
 											Property: "source",
 											Type:     "exact",
 											Value:    "b",
 										},
-										EventType: workspace.EventFilterProperty{
+										EventType: workspace.EventType{
 											Property: "type",
 											Type:     "exact",
 											Value:    "c.a",
@@ -162,12 +163,12 @@ func TestNewSubscriptions(t *testing.T) {
 								Dialect: "klingon",
 								Filters: []workspace.EventFilter{
 									{
-										EventSource: workspace.EventFilterProperty{
+										EventSource: workspace.EventSource{
 											Property: "source",
 											Type:     "exact",
 											Value:    "b",
 										},
-										EventType: workspace.EventFilterProperty{
+										EventType: workspace.EventType{
 											Property: "type",
 											Type:     "exact",
 											Value:    "c",

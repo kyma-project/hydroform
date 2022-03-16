@@ -18,6 +18,6 @@ const (
 )
 
 var workspaceNodeJs = workspace{
-	newTemplatedFile(handlerJs, FileNameHandlerJs),
-	newTemplatedFile(packageJSON, FileNamePackageJSON),
+	NewTemplatedFile(handlerJs, FileNameHandlerJs),
+	NewTemplatedFile(packageJSON, FileNamePackageJSON),
 }
