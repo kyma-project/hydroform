@@ -47,7 +47,7 @@ func main() {
 			"worker_maximum":         4,
 			"worker_minimum":         2,
 			"machine_image_name":     "gardenlinux",
-			"machine_image_version":  "184.0.0",
+			"machine_image_version":  "576.5.0",
 			"networking_type":        "calico",
 			//"privileged_containers":  "true",
 		},

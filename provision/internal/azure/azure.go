@@ -6,11 +6,9 @@ import (
 	"io/ioutil"
 	"regexp"
 
-	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/provision/internal/errs"
-	terraform_operator "github.com/kyma-incubator/hydroform/provision/internal/operator/terraform"
-
 	"github.com/kyma-incubator/hydroform/provision/internal/operator"
+	"github.com/kyma-incubator/hydroform/provision/internal/operator/native"
 	"github.com/kyma-incubator/hydroform/provision/types"
 	"github.com/pkg/errors"
 )
@@ -18,6 +16,27 @@ import (
 // azureProvisioner implements Provisioner
 type azureProvisioner struct {
 	provisionOperator operator.Operator
+}
+
+// New creates a new instance of azureProvisioner.
+func New(operatorType operator.Type, ops ...types.Option) *azureProvisioner {
+	// parse config
+	os := &types.Options{}
+	for _, o := range ops {
+		o(os)
+	}
+
+	var op operator.Operator
+	switch operatorType {
+	case operator.NativeOperator:
+		op = native.New(os)
+	default:
+		op = &operator.Unknown{}
+	}
+
+	return &azureProvisioner{
+		provisionOperator: op,
+	}
 }
 
 // Provision requests provisioning of a new Kubernetes cluster on Azure with the given configurations.
@@ -42,11 +61,6 @@ func (a *azureProvisioner) Provision(cluster *types.Cluster, provider *types.Pro
 
 // Status returns the ClusterStatus for the requested cluster.
 func (a *azureProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
-	var state *statefile.File
-	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
-		state = cluster.ClusterInfo.InternalState.TerraformState
-	}
-
 	if err := a.validateInputs(cluster, p); err != nil {
 		return nil, err
 	}
@@ -56,22 +70,12 @@ func (a *azureProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*t
 		return nil, err
 	}
 
-	return a.provisionOperator.Status(state, p.Type, cfg)
+	return a.provisionOperator.Status(cluster.ClusterInfo, p.Type, cfg)
 }
 
 // Credentials returns the Kubeconfig file as a byte array for the requested cluster.
 func (a *azureProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) ([]byte, error) {
-	if err := a.validateInputs(cluster, p); err != nil {
-		return nil, err
-	}
-	if cluster.ClusterInfo == nil || cluster.ClusterInfo.InternalState == nil || cluster.ClusterInfo.InternalState.TerraformState == nil {
-		// TODO add a way to get the kubeconfig from the state file if possible
-		return nil, errors.New(errs.EmptyClusterInfo)
-	}
-
-	kubeconfig := cluster.ClusterInfo.InternalState.TerraformState.State.Modules[""].OutputValues["kube_config"].Value.AsString()
-
-	return []byte(kubeconfig), nil
+	return nil, errors.New("Not supported")
 }
 
 // Deprovision requests deprovisioning of an existing cluster on Azure with the given configurations.
@@ -85,38 +89,11 @@ func (a *azureProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider
 		return err
 	}
 
-	var state *statefile.File
-	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
-		state = cluster.ClusterInfo.InternalState.TerraformState
-	}
-
-	if err = a.provisionOperator.Delete(state, p.Type, config); err != nil {
+	if err = a.provisionOperator.Delete(cluster.ClusterInfo, p.Type, config); err != nil {
 		return errors.Wrap(err, "unable to deprovision azure cluster")
 	}
 
 	return nil
-}
-
-// New creates a new instance of azureProvisioner.
-func New(operatorType operator.Type, ops ...types.Option) *azureProvisioner {
-	// parse config
-	os := &types.Options{}
-	for _, o := range ops {
-		o(os)
-	}
-
-	var op operator.Operator
-	switch operatorType {
-	case operator.TerraformOperator:
-		tfOps := terraform_operator.ToTerraformOptions(os)
-		op = terraform_operator.New(tfOps...)
-	default:
-		op = &operator.Unknown{}
-	}
-
-	return &azureProvisioner{
-		provisionOperator: op,
-	}
 }
 
 func (a *azureProvisioner) validateInputs(cluster *types.Cluster, provider *types.Provider) error {

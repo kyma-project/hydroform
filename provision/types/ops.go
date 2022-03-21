@@ -8,7 +8,7 @@ type Options struct {
 	DataDir    string
 	Persistent bool
 	Timeouts   *Timeouts
-	Verbose    bool // Print terraform log for debugging
+	Verbose    bool
 }
 
 // Timeouts specifies timeouts on various operation
