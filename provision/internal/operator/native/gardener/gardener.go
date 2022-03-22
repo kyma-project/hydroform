@@ -167,6 +167,7 @@ func shootSpec(cfg map[string]interface{}) gardenerTypes.ShootSpec {
 	o.Kubernetes = shootK8s(cfg)
 	o.Networking = shootNetworking(cfg)
 	o.Maintenance = shootMaintenance()
+	o.Hibernation = shootHibernation(cfg)
 	return o
 }
 
@@ -246,6 +247,26 @@ func shootMaintenance() *gardenerTypes.Maintenance {
 			End:   "040000+0000",
 		},
 	}
+}
+
+func shootHibernation(cfg map[string]interface{}) *gardenerTypes.Hibernation {
+	h := gardenerTypes.Hibernation{}
+
+	if v, ok := cfg["hibernation_start"].(string); ok && len(v) > 0 {
+		enabled := true
+		h.Enabled = &enabled
+		h.Schedules = append(h.Schedules, gardenerTypes.HibernationSchedule{
+			Start: &v,
+		})
+		if v, ok := cfg["hibernation_end"].(string); ok && len(v) > 0 {
+			h.Schedules[0].End = &v
+		}
+		if v, ok := cfg["hibernation_location"].(string); ok && len(v) > 0 {
+			h.Schedules[0].Location = &v
+		}
+	}
+
+	return &h
 }
 
 //injectProvider adds the provider config to the given shoot.
