@@ -89,9 +89,7 @@ func waitForShoot(ctx context.Context, client *gardenerApi.CoreV1beta1Client, na
 			if err != nil {
 				return err
 			}
-			// TODO refactor hacky readiness check
 			if sh.Status.LastOperation.Progress == 100 && sh.Status.LastOperation.State == gardenerTypes.LastOperationStateSucceeded {
-				fmt.Println("I got to status success!")
 				return nil
 			}
 		case <-ctx.Done():
