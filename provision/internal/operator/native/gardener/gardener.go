@@ -253,8 +253,6 @@ func shootHibernation(cfg map[string]interface{}) *gardenerTypes.Hibernation {
 	h := gardenerTypes.Hibernation{}
 
 	if v, ok := cfg["hibernation_start"].(string); ok && len(v) > 0 {
-		enabled := true
-		h.Enabled = &enabled
 		h.Schedules = append(h.Schedules, gardenerTypes.HibernationSchedule{
 			Start: &v,
 		})
