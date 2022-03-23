@@ -76,7 +76,7 @@ func (t *Terraform) Create(p types.ProviderType, cfg map[string]interface{}) (*t
 }
 
 // Status checks the current state of the cluster from the file
-func (t *Terraform) Status(sf *statefile.File, p types.ProviderType, cfg map[string]interface{}) (*types.ClusterStatus, error) {
+func (t *Terraform) Status(info *types.ClusterInfo, p types.ProviderType, cfg map[string]interface{}) (*types.ClusterStatus, error) {
 	applyTimeouts(cfg, t.ops.Timeouts)
 
 	cs := &types.ClusterStatus{
@@ -85,6 +85,7 @@ func (t *Terraform) Status(sf *statefile.File, p types.ProviderType, cfg map[str
 	var err error
 
 	// if no state given, try the file system
+	sf := safeStateFile(info)
 	if sf == nil {
 		sf, err = stateFromFile(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
 		if err != nil {
@@ -100,7 +101,7 @@ func (t *Terraform) Status(sf *statefile.File, p types.ProviderType, cfg map[str
 }
 
 // Delete removes an existing cluster or returns an error if removing the cluster is not possible.
-func (t *Terraform) Delete(sf *statefile.File, p types.ProviderType, cfg map[string]interface{}) error {
+func (t *Terraform) Delete(info *types.ClusterInfo, p types.ProviderType, cfg map[string]interface{}) error {
 	applyTimeouts(cfg, t.ops.Timeouts)
 
 	// silence stdErr during terraform execution, plugins send debug and trace entries there
@@ -137,6 +138,7 @@ func (t *Terraform) Delete(sf *statefile.File, p types.ProviderType, cfg map[str
 	}
 
 	// if no state given, check if it is already in the file system
+	sf := safeStateFile(info)
 	if sf == nil {
 		_, err := stateFromFile(t.ops.DataDir(), cfg["project"].(string), cfg["cluster_name"].(string), p)
 		if err != nil {
@@ -152,6 +154,13 @@ func (t *Terraform) Delete(sf *statefile.File, p types.ProviderType, cfg map[str
 	// APPLY
 	if err := tfDestroy(t.ops, p, cfg, clusterDir); err != nil {
 		return err
+	}
+	return nil
+}
+
+func safeStateFile(info *types.ClusterInfo) *statefile.File {
+	if info != nil && info.InternalState != nil {
+		return info.InternalState.TerraformState
 	}
 	return nil
 }

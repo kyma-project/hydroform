@@ -1,7 +1,5 @@
 package types
 
-import "github.com/hashicorp/terraform/states/statefile"
-
 // Cluster contains detailed cluster specification and properties.
 type Cluster struct {
 	// Name specifies the unique name used to identify the cluster.
@@ -26,10 +24,8 @@ type ClusterInfo struct {
 	// Endpoint specifies the URL at which you can reach the cluster.
 	Endpoint string `json:"endpoint"`
 	// CertificateAuthorityData contains certificates required to access the cluster.
-	CertificateAuthorityData []byte `json:"certificateAuthorityData"`
-	// InternalState contains the Hydroform-specific information used to manage the cluster.
-	InternalState *InternalState `json:"internalState"`
-	Status        *ClusterStatus `json:"status"`
+	CertificateAuthorityData []byte         `json:"certificateAuthorityData"`
+	Status                   *ClusterStatus `json:"status"`
 }
 
 // ClusterStatus contains possible values used to indicate the current cluster status.
@@ -48,8 +44,3 @@ const (
 	// Unknown indicates that the cluster status is not known.
 	Unknown Phase = "Unknown"
 )
-
-// InternalState holds the state information of the internal operator which is currently in use. Hydroform uses this information for internal purposes only.
-type InternalState struct {
-	TerraformState *statefile.File
-}

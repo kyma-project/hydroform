@@ -3,7 +3,6 @@ package operator
 import (
 	"errors"
 
-	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/provision/types"
 )
 
@@ -16,11 +15,11 @@ func (u *Unknown) Create(p types.ProviderType, cfg map[string]interface{}) (*typ
 	return nil, errors.New("unknown operator")
 }
 
-func (u *Unknown) Status(state *statefile.File, p types.ProviderType, cfg map[string]interface{}) (*types.ClusterStatus, error) {
+func (u *Unknown) Status(info *types.ClusterInfo, p types.ProviderType, cfg map[string]interface{}) (*types.ClusterStatus, error) {
 	return nil, errors.New("unknown operator")
 }
 
 // Delete returns an error if the operator is unknown.
-func (u *Unknown) Delete(state *statefile.File, p types.ProviderType, cfg map[string]interface{}) error {
+func (u *Unknown) Delete(info *types.ClusterInfo, p types.ProviderType, cfg map[string]interface{}) error {
 	return errors.New("unknown operator")
 }

@@ -17,7 +17,8 @@ import (
 	"github.com/kyma-incubator/hydroform/provision/types"
 )
 
-const provisioningOperator = operator.TerraformOperator
+// Currently the operator can not be changed at runtime, but the lib is designed so that it might be changed in the future
+const provisioningOperator = operator.NativeOperator
 
 // Provisioner is the Hydroform interface that groups Provision, Status, Credentials, and Deprovision functions used to create and manage a cluster.
 type Provisioner interface {

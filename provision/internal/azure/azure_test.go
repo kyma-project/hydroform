@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/provision/internal/operator/mocks"
 	"github.com/pkg/errors"
 
@@ -194,9 +193,6 @@ func TestProvision(t *testing.T) {
 		Status: &types.ClusterStatus{
 			Phase: types.Provisioned,
 		},
-		InternalState: &types.InternalState{
-			TerraformState: nil,
-		},
 	}
 
 	cfg, err := g.loadConfigurations(cluster, provider)
@@ -256,8 +252,7 @@ func TestDeprovision(t *testing.T) {
 	cfg, err := g.loadConfigurations(cluster, provider)
 	require.NoError(t, err)
 
-	var state *statefile.File
-	mockOp.On("Delete", state, types.Azure, cfg).Return(nil)
+	mockOp.On("Delete", cluster.ClusterInfo, types.Azure, cfg).Return(nil)
 
 	err = g.Deprovision(cluster, provider)
 	require.NoError(t, err, "Deprovision should succeed")
@@ -266,7 +261,7 @@ func TestDeprovision(t *testing.T) {
 	cfg, err = g.loadConfigurations(cluster, provider)
 	require.NoError(t, err)
 
-	mockOp.On("Delete", state, types.Azure, cfg).Return(errors.New("Unable to deprovision cluster"))
+	mockOp.On("Delete", cluster.ClusterInfo, types.Azure, cfg).Return(errors.New("Unable to deprovision cluster"))
 
 	err = g.Deprovision(cluster, provider)
 	require.Error(t, err, "Deprovision should fail")

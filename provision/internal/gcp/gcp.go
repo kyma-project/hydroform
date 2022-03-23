@@ -4,20 +4,37 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/kyma-incubator/hydroform/provision/internal/errs"
-	terraform_operator "github.com/kyma-incubator/hydroform/provision/internal/operator/terraform"
-
 	"github.com/kyma-incubator/hydroform/provision/internal/operator"
+	"github.com/kyma-incubator/hydroform/provision/internal/operator/native"
 	"github.com/kyma-incubator/hydroform/provision/types"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 // gcpProvisioner implements Provisioner
 type gcpProvisioner struct {
 	provisionOperator operator.Operator
+}
+
+// New creates a new instance of gcpProvisioner.
+func New(operatorType operator.Type, ops ...types.Option) *gcpProvisioner {
+	// parse config
+	os := &types.Options{}
+	for _, o := range ops {
+		o(os)
+	}
+
+	var op operator.Operator
+	switch operatorType {
+	case operator.NativeOperator:
+		op = native.New(os)
+	default:
+		op = &operator.Unknown{}
+	}
+
+	return &gcpProvisioner{
+		provisionOperator: op,
+	}
 }
 
 // Provision requests provisioning of a new Kubernetes cluster on GCP with the given configurations.
@@ -39,52 +56,18 @@ func (g *gcpProvisioner) Provision(cluster *types.Cluster, provider *types.Provi
 
 // Status returns the ClusterStatus for the requested cluster.
 func (g *gcpProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
-	var state *statefile.File
-	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
-		state = cluster.ClusterInfo.InternalState.TerraformState
-	}
-
 	if err := g.validateInputs(cluster, p); err != nil {
 		return nil, err
 	}
 
 	cfg := g.loadConfigurations(cluster, p)
 
-	return g.provisionOperator.Status(state, p.Type, cfg)
+	return g.provisionOperator.Status(cluster.ClusterInfo, p.Type, cfg)
 }
 
 // Credentials returns the Kubeconfig file as a byte array for the requested cluster.
 func (g *gcpProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) ([]byte, error) {
-	if err := g.validateInputs(cluster, p); err != nil {
-		return nil, err
-	}
-	if cluster.ClusterInfo == nil || cluster.ClusterInfo.Endpoint == "" || cluster.ClusterInfo.CertificateAuthorityData == nil {
-		// TODO add a way to get endpoint and CA from the state file if possible
-		return nil, errors.New(errs.EmptyClusterInfo)
-	}
-
-	userName := "cluster-user"
-	config := api.NewConfig()
-
-	config.Clusters[cluster.Name] = &api.Cluster{
-		Server:                   fmt.Sprintf("https://%v", cluster.ClusterInfo.Endpoint),
-		CertificateAuthorityData: cluster.ClusterInfo.CertificateAuthorityData,
-	}
-
-	config.Contexts[cluster.Name] = &api.Context{
-		Cluster:  cluster.Name,
-		AuthInfo: userName,
-	}
-
-	config.CurrentContext = cluster.Name
-
-	config.AuthInfos[userName] = &api.AuthInfo{
-		AuthProvider: &api.AuthProviderConfig{
-			Name: "gcp",
-		},
-	}
-
-	return clientcmd.Write(*config)
+	return nil, errors.New("Not supported")
 }
 
 // Deprovision requests deprovisioning of an existing cluster on GCP with the given configurations.
@@ -95,39 +78,12 @@ func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) 
 
 	config := g.loadConfigurations(cluster, p)
 
-	var state *statefile.File
-	if cluster.ClusterInfo != nil && cluster.ClusterInfo.InternalState != nil {
-		state = cluster.ClusterInfo.InternalState.TerraformState
-	}
-
-	err := g.provisionOperator.Delete(state, p.Type, config)
+	err := g.provisionOperator.Delete(cluster.ClusterInfo, p.Type, config)
 	if err != nil {
 		return errors.Wrap(err, "unable to deprovision gcp cluster")
 	}
 
 	return nil
-}
-
-// New creates a new instance of gcpProvisioner.
-func New(operatorType operator.Type, ops ...types.Option) *gcpProvisioner {
-	// parse config
-	os := &types.Options{}
-	for _, o := range ops {
-		o(os)
-	}
-
-	var op operator.Operator
-	switch operatorType {
-	case operator.TerraformOperator:
-		tfOps := terraform_operator.ToTerraformOptions(os)
-		op = terraform_operator.New(tfOps...)
-	default:
-		op = &operator.Unknown{}
-	}
-
-	return &gcpProvisioner{
-		provisionOperator: op,
-	}
 }
 
 func (g *gcpProvisioner) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
