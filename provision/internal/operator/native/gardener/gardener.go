@@ -289,7 +289,6 @@ func injectProvider(spec *gardenerTypes.ShootSpec, cfg map[string]interface{}) e
 		if p.InfrastructureConfig, err = aws.InfraConfig(cfg); err != nil {
 			return err
 		}
-
 	case string(types.GCP):
 		if p.ControlPlaneConfig, err = gcp.ControlPlaneConfig(cfg); err != nil {
 			return err
