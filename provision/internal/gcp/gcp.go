@@ -9,8 +9,6 @@ import (
 	"github.com/kyma-incubator/hydroform/provision/internal/operator/native"
 	"github.com/kyma-incubator/hydroform/provision/types"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 // gcpProvisioner implements Provisioner
@@ -69,36 +67,7 @@ func (g *gcpProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*typ
 
 // Credentials returns the Kubeconfig file as a byte array for the requested cluster.
 func (g *gcpProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) ([]byte, error) {
-	if err := g.validateInputs(cluster, p); err != nil {
-		return nil, err
-	}
-	if cluster.ClusterInfo == nil || cluster.ClusterInfo.Endpoint == "" || cluster.ClusterInfo.CertificateAuthorityData == nil {
-		// TODO add a way to get endpoint and CA from the state file if possible
-		return nil, errors.New(errs.EmptyClusterInfo)
-	}
-
-	userName := "cluster-user"
-	config := api.NewConfig()
-
-	config.Clusters[cluster.Name] = &api.Cluster{
-		Server:                   fmt.Sprintf("https://%v", cluster.ClusterInfo.Endpoint),
-		CertificateAuthorityData: cluster.ClusterInfo.CertificateAuthorityData,
-	}
-
-	config.Contexts[cluster.Name] = &api.Context{
-		Cluster:  cluster.Name,
-		AuthInfo: userName,
-	}
-
-	config.CurrentContext = cluster.Name
-
-	config.AuthInfos[userName] = &api.AuthInfo{
-		AuthProvider: &api.AuthProviderConfig{
-			Name: "gcp",
-		},
-	}
-
-	return clientcmd.Write(*config)
+	return nil, errors.New("Not supported")
 }
 
 // Deprovision requests deprovisioning of an existing cluster on GCP with the given configurations.

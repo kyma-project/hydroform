@@ -17,7 +17,7 @@ type kindProvisioner struct {
 	provisionOperator operator.Operator
 }
 
-// New creates a new instance of gcpProvisioner.
+// New creates a new instance of kindProvisioner.
 func New(operatorType operator.Type, ops ...types.Option) *kindProvisioner {
 	// parse config
 	os := &types.Options{}
