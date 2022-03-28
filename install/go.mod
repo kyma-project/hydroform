@@ -1,6 +1,6 @@
 module github.com/kyma-incubator/hydroform/install
 
-go 1.17
+go go 1.13
 
 require (
 	github.com/kyma-project/kyma/components/kyma-operator v0.0.0-20200817094157-8392259f5be1
