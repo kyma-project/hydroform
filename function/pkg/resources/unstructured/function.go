@@ -127,11 +127,12 @@ func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
 			Namespace: cfg.Namespace,
 		},
 		Spec: types.FunctionSpec{
-			Runtime:    cfg.Runtime,
-			Resources:  resources,
-			Labels:     cfg.Labels,
-			Repository: types.Repository{},
-			Env:        envs,
+			Runtime:            cfg.Runtime,
+			CustomRuntimeImage: cfg.CustomRuntimeImage,
+			Resources:          resources,
+			Labels:             cfg.Labels,
+			Repository:         types.Repository{},
+			Env:                envs,
 		},
 	}
 	return f, nil

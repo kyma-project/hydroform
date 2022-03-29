@@ -8,14 +8,15 @@ import (
 type SourceType string
 
 type FunctionSpec struct {
-	Source     string                       `json:"source"`
-	Deps       string                       `json:"deps,omitempty"`
-	Runtime    Runtime                      `json:"runtime,omitempty"`
-	Resources  *corev1.ResourceRequirements `json:"resources,omitempty"`
-	Labels     map[string]string            `json:"labels,omitempty"`
-	Type       SourceType                   `json:"type,omitempty"`
-	Repository `json:",inline,omitempty"`
-	Env        []corev1.EnvVar `json:"env,omitempty"`
+	Source             string                       `json:"source"`
+	Deps               string                       `json:"deps,omitempty"`
+	Runtime            Runtime                      `json:"runtime,omitempty"`
+	CustomRuntimeImage string                       `json:"customRuntimeImage,omitempty"`
+	Resources          *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Labels             map[string]string            `json:"labels,omitempty"`
+	Type               SourceType                   `json:"type,omitempty"`
+	Repository         `json:",inline,omitempty"`
+	Env                []corev1.EnvVar `json:"env,omitempty"`
 }
 
 func (s FunctionSpec) toMap(l corev1.ResourceList) map[string]interface{} {
