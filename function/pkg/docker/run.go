@@ -57,6 +57,10 @@ func RunContainer(ctx context.Context, c Client, opts RunOpts) (string, error) {
 			{
 				Type:   mount.TypeBind,
 				Source: opts.WorkDir,
+				Target: runtimes.KubelessTmpPath,
+			},
+			{
+				Type:   mount.TypeVolume,
 				Target: runtimes.KubelessPath,
 			},
 		},

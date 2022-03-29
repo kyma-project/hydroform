@@ -2,13 +2,16 @@ package runtimes
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 )
 
 const (
-	ServerPort   = "8080"
-	KubelessPath = "/kubeless"
+	ServerPort      = "8080"
+	KubelessPath    = "/kubeless"
+	KubelessTmpPath = "/tmp/kubeless"
+	ContainerUser   = "root"
 
 	NodejsPath          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
 	NodejsDebugEndpoint = `9229`
@@ -83,6 +86,19 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 	}
 }
 
+func MoveInlineCommand(sourcePath, depsPath string) []string {
+	return []string{
+		fmt.Sprintf("cp %s %s", filepath.Join(KubelessTmpPath, sourcePath), filepath.Join(KubelessPath, filepath.Base(sourcePath))),
+		fmt.Sprintf("cp %s %s", filepath.Join(KubelessTmpPath, depsPath), filepath.Join(KubelessPath, filepath.Base(depsPath))),
+	}
+}
+
+func MoveGitCommand() []string {
+	return []string{
+		fmt.Sprintf("cp -r -p %s/* %s", KubelessTmpPath, KubelessPath),
+	}
+}
+
 func ContainerImage(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
@@ -93,18 +109,5 @@ func ContainerImage(runtime types.Runtime) string {
 		return "eu.gcr.io/kyma-project/function-runtime-python39:245170b1"
 	default:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:245170b1"
-	}
-}
-
-func ContainerUser(runtime types.Runtime) string {
-	switch runtime {
-	case types.Nodejs12:
-		return "1000"
-	case types.Nodejs14:
-		return "1000"
-	case types.Python39:
-		return "root"
-	default:
-		return "1000"
 	}
 }
