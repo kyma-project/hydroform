@@ -10,7 +10,6 @@ import (
 
 	"github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types/mount"
-	"github.com/kyma-incubator/hydroform/function/pkg/docker/runtimes"
 	"github.com/moby/moby/pkg/jsonmessage"
 	"github.com/moby/moby/pkg/stdcopy"
 
@@ -38,9 +37,9 @@ type RunOpts struct {
 	Envs          []string
 	ContainerName string
 	Image         string
-	WorkDir       string
 	Commands      []string
 	User          string
+	Mounts        []mount.Mount
 }
 
 func RunContainer(ctx context.Context, c Client, opts RunOpts) (string, error) {
@@ -53,17 +52,7 @@ func RunContainer(ctx context.Context, c Client, opts RunOpts) (string, error) {
 	}, &container.HostConfig{
 		PortBindings: portMap(opts.Ports),
 		AutoRemove:   true,
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: opts.WorkDir,
-				Target: runtimes.KubelessTmpPath,
-			},
-			{
-				Type:   mount.TypeVolume,
-				Target: runtimes.KubelessPath,
-			},
-		},
+		Mounts:       opts.Mounts,
 	}, opts.ContainerName)
 	if err != nil {
 		return "", err

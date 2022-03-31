@@ -2,6 +2,8 @@ package runtimes
 
 import (
 	"fmt"
+	"github.com/docker/docker/api/types/mount"
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"path/filepath"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
@@ -28,7 +30,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 		fmt.Sprintf("FUNC_RUNTIME=%s", runtime),
 		"FUNC_HANDLER=main",
 		"MOD_NAME=handler",
-		"FUNC_PORT=8080",
+		fmt.Sprintf("FUNC_PORT=%s", ServerPort),
 	}, runtimeEnvs(runtime, hotDeploy)...)
 }
 
@@ -86,16 +88,34 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 	}
 }
 
-func MoveInlineCommand(sourcePath, depsPath string) []string {
-	return []string{
-		fmt.Sprintf("cp %s %s", filepath.Join(KubelessTmpPath, sourcePath), filepath.Join(KubelessPath, filepath.Base(sourcePath))),
-		fmt.Sprintf("cp %s %s", filepath.Join(KubelessTmpPath, depsPath), filepath.Join(KubelessPath, filepath.Base(depsPath))),
+func GetMounts(sourceType workspace.SourceType, workDir string) []mount.Mount {
+	if sourceType == workspace.SourceTypeInline {
+		return []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: workDir,
+				Target: KubelessTmpPath,
+			},
+			{
+				Type:   mount.TypeVolume,
+				Target: KubelessPath,
+			},
+		}
+	} else {
+		return []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: workDir,
+				Target: KubelessPath,
+			},
+		}
 	}
 }
 
-func MoveGitCommand() []string {
+func MoveInlineCommand(sourcePath, depsPath string) []string {
 	return []string{
-		fmt.Sprintf("cp -r -p %s/* %s", KubelessTmpPath, KubelessPath),
+		fmt.Sprintf("ln  %s %s", filepath.Join(KubelessTmpPath, sourcePath), filepath.Join(KubelessPath, filepath.Base(sourcePath))),
+		fmt.Sprintf("ln  %s %s", filepath.Join(KubelessTmpPath, depsPath), filepath.Join(KubelessPath, filepath.Base(depsPath))),
 	}
 }
 
