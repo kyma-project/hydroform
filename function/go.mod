@@ -9,7 +9,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/invopop/jsonschema v0.4.0
 	github.com/moby/moby v20.10.14+incompatible
-	github.com/onsi/gomega v1.19.0
+	github.com/onsi/gomega v1.18.0
 	github.com/opencontainers/image-spec v1.0.2
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.1
