@@ -114,8 +114,8 @@ func GetMounts(sourceType workspace.SourceType, workDir string) []mount.Mount {
 
 func MoveInlineCommand(sourcePath, depsPath string) []string {
 	return []string{
-		fmt.Sprintf("ln  %s %s", filepath.Join(KubelessTmpPath, sourcePath), filepath.Join(KubelessPath, filepath.Base(sourcePath))),
-		fmt.Sprintf("ln  %s %s", filepath.Join(KubelessTmpPath, depsPath), filepath.Join(KubelessPath, filepath.Base(depsPath))),
+		fmt.Sprintf("ln -s %s %s", filepath.Join(KubelessTmpPath, sourcePath), filepath.Join(KubelessPath, filepath.Base(sourcePath))),
+		fmt.Sprintf("ln -s %s %s", filepath.Join(KubelessTmpPath, depsPath), filepath.Join(KubelessPath, filepath.Base(depsPath))),
 	}
 }
 
