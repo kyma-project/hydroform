@@ -45,6 +45,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	}
 
 	config.Runtime = function.Spec.Runtime
+	config.RuntimeImageOverride = function.Spec.RuntimeImageOverride
 	config.Labels = function.Spec.Labels
 	config.Env = toWorkspaceEnvVar(function.Spec.Env)
 

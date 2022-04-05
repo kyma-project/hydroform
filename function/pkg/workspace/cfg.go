@@ -102,15 +102,16 @@ type AccessStrategieConfig struct {
 }
 
 type Cfg struct {
-	Name          string            `yaml:"name"`
-	Namespace     string            `yaml:"namespace"`
-	Labels        map[string]string `yaml:"labels,omitempty"`
-	Runtime       types.Runtime     `yaml:"runtime" jsonschema:"enum=nodejs12,enum=nodejs14,enum=python39"`
-	Source        Source            `yaml:"source"`
-	Resources     Resources         `yaml:"resource,omitempty"`
-	Subscriptions []Subscription    `yaml:"subscriptions,omitempty"`
-	Env           []EnvVar          `yaml:"env,omitempty"`
-	APIRules      []APIRule         `yaml:"apiRules,omitempty"`
+	Name                 string            `yaml:"name"`
+	Namespace            string            `yaml:"namespace"`
+	Labels               map[string]string `yaml:"labels,omitempty"`
+	Runtime              types.Runtime     `yaml:"runtime" jsonschema:"enum=nodejs12,enum=nodejs14,enum=python39"`
+	RuntimeImageOverride string            `yaml:"runtimeImageOverride,omitempty"`
+	Source               Source            `yaml:"source"`
+	Resources            Resources         `yaml:"resource,omitempty"`
+	Subscriptions        []Subscription    `yaml:"subscriptions,omitempty"`
+	Env                  []EnvVar          `yaml:"env,omitempty"`
+	APIRules             []APIRule         `yaml:"apiRules,omitempty"`
 }
 
 type Source struct {
