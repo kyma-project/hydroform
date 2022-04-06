@@ -3,9 +3,17 @@ module github.com/kyma-incubator/hydroform/provision
 go 1.17
 
 replace (
+	// Fix CVE-2022-21698
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.12.1
+	// Fix CVE-2022-27191
+	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220314234659-1baeb1ce4c0b
+	// Fix CVE-2021-32690
+	helm.sh/helm/v3 => k8s.io/helm/v3 v3.7.2
 	// Gardener deps import incompatible k8s APIs and they need to be replaced
 	k8s.io/api => k8s.io/api v0.23.3
 	k8s.io/client-go => k8s.io/client-go v0.23.3
+	// Fix CVE-2019-18658
+	k8s.io/helm => k8s.io/helm v2.16.1+incompatible
 )
 
 require (
@@ -36,7 +44,7 @@ require (
 	github.com/stretchr/objx v0.2.0 // indirect
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
-	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
