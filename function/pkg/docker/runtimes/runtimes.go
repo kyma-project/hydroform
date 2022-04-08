@@ -37,7 +37,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	switch runtime {
 	case types.Nodejs12, types.Nodejs14:
-		return []string{NodejsPath}
+		return []string{NodejsPath, "HOME=/home/node"}
 	case types.Python39:
 		envs := []string{Python39Path, Python39Unbuffered}
 		if hotDeploy {
