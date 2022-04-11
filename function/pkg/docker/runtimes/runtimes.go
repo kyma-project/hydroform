@@ -26,6 +26,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 		"FUNC_HANDLER=main",
 		"MOD_NAME=handler",
 		"FUNC_PORT=8080",
+		"SERVICE_NAMESPACE=default",
 	}, runtimeEnvs(runtime, hotDeploy)...)
 }
 
