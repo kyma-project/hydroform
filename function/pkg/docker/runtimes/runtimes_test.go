@@ -60,6 +60,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				NodejsPath,
+				"HOME=/home/node",
 			},
 		},
 		{
@@ -75,6 +76,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				NodejsPath,
+				"HOME=/home/node",
 			},
 		},
 		{
@@ -90,6 +92,7 @@ func TestContainerEnvs(t *testing.T) {
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
 				NodejsPath,
+				"HOME=/home/node",
 			},
 		},
 		{
@@ -204,7 +207,7 @@ func TestContainerCommands(t *testing.T) {
 				runtime: "",
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "node kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
 			},
 		},
 		{
@@ -214,7 +217,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -224,7 +227,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -233,7 +236,7 @@ func TestContainerCommands(t *testing.T) {
 				runtime: types.Nodejs12,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "node kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
 			},
 		},
 		{
@@ -243,7 +246,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -253,7 +256,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -262,7 +265,7 @@ func TestContainerCommands(t *testing.T) {
 				runtime: types.Nodejs14,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "node kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
 			},
 		},
 		{
@@ -272,7 +275,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -282,7 +285,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -387,53 +390,6 @@ func TestContainerImage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ContainerImage(tt.args.runtime); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ContainerImage() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestContainerUser(t *testing.T) {
-	type args struct {
-		runtime types.Runtime
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "should return user for empty runtime",
-			args: args{
-				runtime: "",
-			},
-			want: "1000",
-		},
-		{
-			name: "should return user for Nodejs12",
-			args: args{
-				runtime: types.Nodejs12,
-			},
-			want: "1000",
-		},
-		{
-			name: "should return user for Nodejs14",
-			args: args{
-				runtime: types.Nodejs14,
-			},
-			want: "1000",
-		},
-		{
-			name: "should return user for Python39",
-			args: args{
-				runtime: types.Python39,
-			},
-			want: "root",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainerUser(tt.args.runtime); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ContainerUser() = %v, want %v", got, tt.want)
 			}
 		})
 	}

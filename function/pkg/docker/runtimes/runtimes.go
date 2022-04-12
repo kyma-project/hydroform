@@ -73,7 +73,7 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 		} else {
 			runCommand = "node kubeless.js"
 		}
-		return []string{"/kubeless-npm-install.sh", runCommand}
+		return []string{"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", runCommand}
 	case types.Python39:
 		if debug {
 			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py"}
@@ -82,9 +82,9 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 
 	default:
 		if hotDeploy {
-			return []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"}
+			return []string{"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"}
 		}
-		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
+		return []string{"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js"}
 	}
 }
 
@@ -114,8 +114,8 @@ func GetMounts(sourceType workspace.SourceType, workDir string) []mount.Mount {
 
 func MoveInlineCommand(sourcePath, depsPath string) []string {
 	return []string{
-		fmt.Sprintf("ln -s %s %s", filepath.Join(KubelessTmpPath, sourcePath), filepath.Join(KubelessPath, filepath.Base(sourcePath))),
-		fmt.Sprintf("ln -s %s %s", filepath.Join(KubelessTmpPath, depsPath), filepath.Join(KubelessPath, filepath.Base(depsPath))),
+		fmt.Sprintf("ln -s -f %s %s", filepath.Join(KubelessTmpPath, sourcePath), filepath.Join(KubelessPath, filepath.Base(sourcePath))),
+		fmt.Sprintf("ln -s -f %s %s", filepath.Join(KubelessTmpPath, depsPath), filepath.Join(KubelessPath, filepath.Base(depsPath))),
 	}
 }
 

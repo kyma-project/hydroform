@@ -54,7 +54,7 @@ func TestFollowRun(t *testing.T) {
 		conn := mock_docker.NewMockConn(ctrl)
 		conn.EXPECT().Close().Times(1)
 
-		mock := mock_docker.NewMockDockerClient(ctrl)
+		mock := mock_docker.NewMockClient(ctrl)
 		mock.EXPECT().ContainerAttach(ctx, id, types.ContainerAttachOptions{
 			Stdout: true, Stderr: true, Stream: true,
 		}).Return(types.HijackedResponse{Reader: reader, Conn: conn}, nil).Times(1)
@@ -69,7 +69,7 @@ func TestFollowRun(t *testing.T) {
 		conn := mock_docker.NewMockConn(ctrl)
 		conn.EXPECT().Close().Times(1)
 
-		mock := mock_docker.NewMockDockerClient(ctrl)
+		mock := mock_docker.NewMockClient(ctrl)
 		mock.EXPECT().ContainerAttach(ctx, id, types.ContainerAttachOptions{
 			Stdout: true, Stderr: true, Stream: true,
 		}).Return(types.HijackedResponse{Reader: reader, Conn: conn}, nil).Times(1)
@@ -80,7 +80,7 @@ func TestFollowRun(t *testing.T) {
 	})
 
 	t.Run("should return error during container attach", func(t *testing.T) {
-		mock := mock_docker.NewMockDockerClient(ctrl)
+		mock := mock_docker.NewMockClient(ctrl)
 		mock.EXPECT().ContainerAttach(ctx, id, types.ContainerAttachOptions{
 			Stdout: true, Stderr: true, Stream: true,
 		}).Return(types.HijackedResponse{}, errors.New("attach: error")).Times(1)
@@ -112,7 +112,7 @@ func TestRunContainer(t *testing.T) {
 			name: "should run container and return nil",
 			args: args{
 				c: func() Client {
-					mock := mock_docker.NewMockDockerClient(ctrl)
+					mock := mock_docker.NewMockClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
@@ -132,7 +132,7 @@ func TestRunContainer(t *testing.T) {
 			name: "should return an error during creating a container",
 			args: args{
 				c: func() Client {
-					mock := mock_docker.NewMockDockerClient(ctrl)
+					mock := mock_docker.NewMockClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
@@ -148,7 +148,7 @@ func TestRunContainer(t *testing.T) {
 			name: "should create container and return error during start",
 			args: args{
 				c: func() Client {
-					mock := mock_docker.NewMockDockerClient(ctrl)
+					mock := mock_docker.NewMockClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
@@ -167,7 +167,7 @@ func TestRunContainer(t *testing.T) {
 			name: "should run a container with right options and return nil",
 			args: args{
 				c: func() Client {
-					mock := mock_docker.NewMockDockerClient(ctrl)
+					mock := mock_docker.NewMockClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, &container.Config{
 						Env: []string{"env1=test1", "env2=test2"},
@@ -176,7 +176,7 @@ func TestRunContainer(t *testing.T) {
 							"9229": {},
 						},
 						Image: "test-iname",
-						Cmd:   []string{"/bin/sh", "-c", "/kubeless-npm-install.sh;npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"},
+						Cmd:   []string{"/bin/sh", "-c", "npm install --production --prefix=$KUBELESS_INSTALL_VOLUME;npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"},
 					},
 						&container.HostConfig{
 							PortBindings: nat.PortMap{
@@ -210,6 +210,17 @@ func TestRunContainer(t *testing.T) {
 					ContainerName: "test-cname",
 					Image:         "test-iname",
 					Commands:      []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"},
+					Mounts: []mount.Mount{
+						{
+							Type:   mount.TypeBind,
+							Source: "",
+							Target: "/tmp/kubeless",
+						},
+						{
+							Type:   mount.TypeVolume,
+							Target: "/kubeless",
+						},
+					},
 				},
 			},
 			want:    id,
@@ -219,7 +230,7 @@ func TestRunContainer(t *testing.T) {
 			name: "should pull image if don't exists",
 			args: args{
 				c: func() Client {
-					mock := mock_docker.NewMockDockerClient(ctrl)
+					mock := mock_docker.NewMockClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, &container.Config{
 						Env: []string{"env1=test1", "env2=test2"},
@@ -278,7 +289,7 @@ func TestRunContainer(t *testing.T) {
 			name: "should return error during the image pull",
 			args: args{
 				c: func() Client {
-					mock := mock_docker.NewMockDockerClient(ctrl)
+					mock := mock_docker.NewMockClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
@@ -297,7 +308,7 @@ func TestRunContainer(t *testing.T) {
 			name: "should return error during the image pull",
 			args: args{
 				c: func() Client {
-					mock := mock_docker.NewMockDockerClient(ctrl)
+					mock := mock_docker.NewMockClient(ctrl)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
@@ -337,7 +348,7 @@ func TestStop(t *testing.T) {
 		counter := 0
 		ctx := context.Background()
 
-		mock := mock_docker.NewMockDockerClient(ctrl)
+		mock := mock_docker.NewMockClient(ctrl)
 		mock.EXPECT().ContainerStop(ctx, id, nil).
 			Return(nil).Times(1)
 
