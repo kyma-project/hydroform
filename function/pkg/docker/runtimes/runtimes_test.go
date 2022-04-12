@@ -207,7 +207,7 @@ func TestContainerCommands(t *testing.T) {
 				runtime: "",
 			},
 			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
+				"/kubeless-npm-install.sh", "node kubeless.js",
 			},
 		},
 		{
@@ -217,7 +217,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -227,7 +227,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -236,7 +236,7 @@ func TestContainerCommands(t *testing.T) {
 				runtime: types.Nodejs12,
 			},
 			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
+				"/kubeless-npm-install.sh", "node kubeless.js",
 			},
 		},
 		{
@@ -246,7 +246,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -256,7 +256,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -265,7 +265,7 @@ func TestContainerCommands(t *testing.T) {
 				runtime: types.Nodejs14,
 			},
 			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
+				"/kubeless-npm-install.sh", "node kubeless.js",
 			},
 		},
 		{
@@ -275,7 +275,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -285,7 +285,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{

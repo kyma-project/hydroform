@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/docker/go-connections/nat"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -12,8 +13,6 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/go-connections/nat"
 	"github.com/golang/mock/gomock"
 	mock_docker "github.com/kyma-incubator/hydroform/function/pkg/docker/automock"
 	"github.com/stretchr/testify/require"
@@ -229,13 +228,6 @@ func TestRunContainer(t *testing.T) {
 								"9229": []nat.PortBinding{{HostPort: "9229"}},
 							},
 							AutoRemove: true,
-							Mounts: []mount.Mount{
-								{
-									Type:   mount.TypeBind,
-									Source: "",
-									Target: "/kubeless",
-								},
-							},
 						},
 						gomock.Nil(), gomock.Nil(), "test-cname").
 						Return(container.ContainerCreateCreatedBody{}, &fakeNotFoundError{}).Times(1)

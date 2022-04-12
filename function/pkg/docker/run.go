@@ -53,7 +53,6 @@ func RunContainer(ctx context.Context, c Client, opts RunOpts) (string, error) {
 		PortBindings: portMap(opts.Ports),
 		AutoRemove:   true,
 		Mounts:       opts.Mounts,
-		Privileged:   true,
 	}, opts.ContainerName)
 	if err != nil {
 		return "", err
