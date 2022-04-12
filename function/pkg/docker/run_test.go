@@ -176,7 +176,7 @@ func TestRunContainer(t *testing.T) {
 							"9229": {},
 						},
 						Image: "test-iname",
-						Cmd:   []string{"/bin/sh", "-c", "npm install --production --prefix=$KUBELESS_INSTALL_VOLUME;npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"},
+						Cmd:   []string{"/bin/sh", "-c", "/kubeless-npm-install.sh;npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"},
 					},
 						&container.HostConfig{
 							PortBindings: nat.PortMap{
@@ -184,13 +184,6 @@ func TestRunContainer(t *testing.T) {
 								"9229": []nat.PortBinding{{HostPort: "9229"}},
 							},
 							AutoRemove: true,
-							Mounts: []mount.Mount{
-								{
-									Type:   mount.TypeBind,
-									Source: "",
-									Target: "/kubeless",
-								},
-							},
 						},
 						gomock.Nil(), gomock.Nil(), "test-cname").
 						Return(container.ContainerCreateCreatedBody{ID: id}, nil).Times(1)
@@ -210,17 +203,6 @@ func TestRunContainer(t *testing.T) {
 					ContainerName: "test-cname",
 					Image:         "test-iname",
 					Commands:      []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"},
-					Mounts: []mount.Mount{
-						{
-							Type:   mount.TypeBind,
-							Source: "",
-							Target: "/tmp/kubeless",
-						},
-						{
-							Type:   mount.TypeVolume,
-							Target: "/kubeless",
-						},
-					},
 				},
 			},
 			want:    id,
