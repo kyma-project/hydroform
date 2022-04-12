@@ -1,6 +1,8 @@
 package runtimes
 
 import (
+	"github.com/docker/docker/api/types/mount"
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"reflect"
 	"testing"
 
@@ -390,6 +392,57 @@ func TestContainerImage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ContainerImage(tt.args.runtime); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ContainerImage() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetMounts(t *testing.T) {
+	type args struct {
+		sourceType workspace.SourceType
+		workDir    string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []mount.Mount
+	}{
+		{
+			name: "should return mount for source type inline",
+			args: args{
+				sourceType: workspace.SourceTypeInline,
+				workDir:    "/your/work/dir",
+			},
+			want: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: "/your/work/dir",
+					Target: KubelessTmpPath,
+				},
+				{
+					Type:   mount.TypeVolume,
+					Target: KubelessPath,
+				},
+			},
+		},
+		{
+			name: "should return mount for source type git",
+			args: args{
+				sourceType: workspace.SourceTypeGit,
+			},
+			want: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: "",
+					Target: KubelessPath,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := GetMounts(tt.args.sourceType, tt.args.workDir); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetMounts() = %v, want %v", got, tt.want)
 			}
 		})
 	}
