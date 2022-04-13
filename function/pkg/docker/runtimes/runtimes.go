@@ -26,6 +26,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 		"FUNC_HANDLER=main",
 		"MOD_NAME=handler",
 		"FUNC_PORT=8080",
+		"SERVICE_NAMESPACE=default",
 	}, runtimeEnvs(runtime, hotDeploy)...)
 }
 
@@ -68,7 +69,7 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 		} else {
 			runCommand = "node kubeless.js"
 		}
-		return []string{"/kubeless-npm-install.sh", runCommand}
+		return []string{"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", runCommand}
 	case types.Python39:
 		if debug {
 			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py"}
@@ -77,22 +78,22 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 
 	default:
 		if hotDeploy {
-			return []string{"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"}
+			return []string{"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"}
 		}
-		return []string{"/kubeless-npm-install.sh", "node kubeless.js"}
+		return []string{"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js"}
 	}
 }
 
 func ContainerImage(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:245170b1"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:9e934c09"
 	case types.Nodejs14:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:245170b1"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:9e934c09"
 	case types.Python39:
-		return "eu.gcr.io/kyma-project/function-runtime-python39:245170b1"
+		return "eu.gcr.io/kyma-project/function-runtime-python39:9e934c09"
 	default:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:245170b1"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:9e934c09"
 	}
 }
 
