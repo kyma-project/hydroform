@@ -1,6 +1,8 @@
 package runtimes
 
 import (
+	"github.com/docker/docker/api/types/mount"
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"reflect"
 	"testing"
 
@@ -63,6 +65,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_PORT=8080",
 				"SERVICE_NAMESPACE=default",
 				NodejsPath,
+				"HOME=/home/node",
 			},
 		},
 		{
@@ -79,6 +82,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_PORT=8080",
 				"SERVICE_NAMESPACE=default",
 				NodejsPath,
+				"HOME=/home/node",
 			},
 		},
 		{
@@ -95,6 +99,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_PORT=8080",
 				"SERVICE_NAMESPACE=default",
 				NodejsPath,
+				"HOME=/home/node",
 			},
 		},
 		{
@@ -400,48 +405,52 @@ func TestContainerImage(t *testing.T) {
 	}
 }
 
-func TestContainerUser(t *testing.T) {
+func TestGetMounts(t *testing.T) {
 	type args struct {
-		runtime types.Runtime
+		sourceType workspace.SourceType
+		workDir    string
 	}
 	tests := []struct {
 		name string
 		args args
-		want string
+		want []mount.Mount
 	}{
 		{
-			name: "should return user for empty runtime",
+			name: "should return mount for source type inline",
 			args: args{
-				runtime: "",
+				sourceType: workspace.SourceTypeInline,
+				workDir:    "/your/work/dir",
 			},
-			want: "1000",
+			want: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: "/your/work/dir",
+					Target: KubelessTmpPath,
+				},
+				{
+					Type:   mount.TypeVolume,
+					Target: KubelessPath,
+				},
+			},
 		},
 		{
-			name: "should return user for Nodejs12",
+			name: "should return mount for source type git",
 			args: args{
-				runtime: types.Nodejs12,
+				sourceType: workspace.SourceTypeGit,
 			},
-			want: "1000",
-		},
-		{
-			name: "should return user for Nodejs14",
-			args: args{
-				runtime: types.Nodejs14,
+			want: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: "",
+					Target: KubelessPath,
+				},
 			},
-			want: "1000",
-		},
-		{
-			name: "should return user for Python39",
-			args: args{
-				runtime: types.Python39,
-			},
-			want: "root",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainerUser(tt.args.runtime); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ContainerUser() = %v, want %v", got, tt.want)
+			if got := GetMounts(tt.args.sourceType, tt.args.workDir); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetMounts() = %v, want %v", got, tt.want)
 			}
 		})
 	}

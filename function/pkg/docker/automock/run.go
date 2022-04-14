@@ -6,70 +6,42 @@ package mock_docker
 
 import (
 	context "context"
+	io "io"
+	reflect "reflect"
+	time "time"
+
 	types "github.com/docker/docker/api/types"
 	container "github.com/docker/docker/api/types/container"
 	network "github.com/docker/docker/api/types/network"
 	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	io "io"
-	reflect "reflect"
-	time "time"
 )
 
-// MockDockerClient is a mock of DockerClient interface
-type MockDockerClient struct {
+// MockClient is a mock of Client interface.
+type MockClient struct {
 	ctrl     *gomock.Controller
-	recorder *MockDockerClientMockRecorder
+	recorder *MockClientMockRecorder
 }
 
-// MockDockerClientMockRecorder is the mock recorder for MockDockerClient
-type MockDockerClientMockRecorder struct {
-	mock *MockDockerClient
+// MockClientMockRecorder is the mock recorder for MockClient.
+type MockClientMockRecorder struct {
+	mock *MockClient
 }
 
-// NewMockDockerClient creates a new mock instance
-func NewMockDockerClient(ctrl *gomock.Controller) *MockDockerClient {
-	mock := &MockDockerClient{ctrl: ctrl}
-	mock.recorder = &MockDockerClientMockRecorder{mock}
+// NewMockClient creates a new mock instance.
+func NewMockClient(ctrl *gomock.Controller) *MockClient {
+	mock := &MockClient{ctrl: ctrl}
+	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockDockerClient) EXPECT() *MockDockerClientMockRecorder {
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// ContainerCreate mocks base method
-func (m *MockDockerClient) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *v1.Platform, containerName string) (container.ContainerCreateCreatedBody, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerCreate", ctx, config, hostConfig, networkingConfig, platform, containerName)
-	ret0, _ := ret[0].(container.ContainerCreateCreatedBody)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ContainerCreate indicates an expected call of ContainerCreate
-func (mr *MockDockerClientMockRecorder) ContainerCreate(ctx, config, hostConfig, networkingConfig, platform, containerName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerCreate", reflect.TypeOf((*MockDockerClient)(nil).ContainerCreate), ctx, config, hostConfig, networkingConfig, platform, containerName)
-}
-
-// ContainerStart mocks base method
-func (m *MockDockerClient) ContainerStart(ctx context.Context, containerID string, options types.ContainerStartOptions) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerStart", ctx, containerID, options)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ContainerStart indicates an expected call of ContainerStart
-func (mr *MockDockerClientMockRecorder) ContainerStart(ctx, containerID, options interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStart", reflect.TypeOf((*MockDockerClient)(nil).ContainerStart), ctx, containerID, options)
-}
-
-// ContainerAttach mocks base method
-func (m *MockDockerClient) ContainerAttach(ctx context.Context, container string, options types.ContainerAttachOptions) (types.HijackedResponse, error) {
+// ContainerAttach mocks base method.
+func (m *MockClient) ContainerAttach(ctx context.Context, container string, options types.ContainerAttachOptions) (types.HijackedResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerAttach", ctx, container, options)
 	ret0, _ := ret[0].(types.HijackedResponse)
@@ -77,28 +49,57 @@ func (m *MockDockerClient) ContainerAttach(ctx context.Context, container string
 	return ret0, ret1
 }
 
-// ContainerAttach indicates an expected call of ContainerAttach
-func (mr *MockDockerClientMockRecorder) ContainerAttach(ctx, container, options interface{}) *gomock.Call {
+// ContainerAttach indicates an expected call of ContainerAttach.
+func (mr *MockClientMockRecorder) ContainerAttach(ctx, container, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerAttach", reflect.TypeOf((*MockDockerClient)(nil).ContainerAttach), ctx, container, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerAttach", reflect.TypeOf((*MockClient)(nil).ContainerAttach), ctx, container, options)
 }
 
-// ContainerStop mocks base method
-func (m *MockDockerClient) ContainerStop(ctx context.Context, containerID string, timeout *time.Duration) error {
+// ContainerCreate mocks base method.
+func (m *MockClient) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *v1.Platform, containerName string) (container.ContainerCreateCreatedBody, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ContainerCreate", ctx, config, hostConfig, networkingConfig, platform, containerName)
+	ret0, _ := ret[0].(container.ContainerCreateCreatedBody)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ContainerCreate indicates an expected call of ContainerCreate.
+func (mr *MockClientMockRecorder) ContainerCreate(ctx, config, hostConfig, networkingConfig, platform, containerName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerCreate", reflect.TypeOf((*MockClient)(nil).ContainerCreate), ctx, config, hostConfig, networkingConfig, platform, containerName)
+}
+
+// ContainerStart mocks base method.
+func (m *MockClient) ContainerStart(ctx context.Context, containerID string, options types.ContainerStartOptions) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ContainerStart", ctx, containerID, options)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ContainerStart indicates an expected call of ContainerStart.
+func (mr *MockClientMockRecorder) ContainerStart(ctx, containerID, options interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStart", reflect.TypeOf((*MockClient)(nil).ContainerStart), ctx, containerID, options)
+}
+
+// ContainerStop mocks base method.
+func (m *MockClient) ContainerStop(ctx context.Context, containerID string, timeout *time.Duration) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerStop", ctx, containerID, timeout)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ContainerStop indicates an expected call of ContainerStop
-func (mr *MockDockerClientMockRecorder) ContainerStop(ctx, containerID, timeout interface{}) *gomock.Call {
+// ContainerStop indicates an expected call of ContainerStop.
+func (mr *MockClientMockRecorder) ContainerStop(ctx, containerID, timeout interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStop", reflect.TypeOf((*MockDockerClient)(nil).ContainerStop), ctx, containerID, timeout)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStop", reflect.TypeOf((*MockClient)(nil).ContainerStop), ctx, containerID, timeout)
 }
 
-// ImagePull mocks base method
-func (m *MockDockerClient) ImagePull(ctx context.Context, refStr string, options types.ImagePullOptions) (io.ReadCloser, error) {
+// ImagePull mocks base method.
+func (m *MockClient) ImagePull(ctx context.Context, refStr string, options types.ImagePullOptions) (io.ReadCloser, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ImagePull", ctx, refStr, options)
 	ret0, _ := ret[0].(io.ReadCloser)
@@ -106,8 +107,8 @@ func (m *MockDockerClient) ImagePull(ctx context.Context, refStr string, options
 	return ret0, ret1
 }
 
-// ImagePull indicates an expected call of ImagePull
-func (mr *MockDockerClientMockRecorder) ImagePull(ctx, refStr, options interface{}) *gomock.Call {
+// ImagePull indicates an expected call of ImagePull.
+func (mr *MockClientMockRecorder) ImagePull(ctx, refStr, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagePull", reflect.TypeOf((*MockDockerClient)(nil).ImagePull), ctx, refStr, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagePull", reflect.TypeOf((*MockClient)(nil).ImagePull), ctx, refStr, options)
 }

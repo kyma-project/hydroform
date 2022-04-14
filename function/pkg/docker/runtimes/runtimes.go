@@ -2,13 +2,18 @@ package runtimes
 
 import (
 	"fmt"
+	"github.com/docker/docker/api/types/mount"
+	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	"path/filepath"
 
 	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
 )
 
 const (
-	ServerPort   = "8080"
-	KubelessPath = "/kubeless"
+	ServerPort      = "8080"
+	KubelessPath    = "/kubeless"
+	KubelessTmpPath = "/tmp/kubeless"
+	ContainerUser   = "root"
 
 	NodejsPath          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
 	NodejsDebugEndpoint = `9229`
@@ -25,7 +30,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 		fmt.Sprintf("FUNC_RUNTIME=%s", runtime),
 		"FUNC_HANDLER=main",
 		"MOD_NAME=handler",
-		"FUNC_PORT=8080",
+		fmt.Sprintf("FUNC_PORT=%s", ServerPort),
 		"SERVICE_NAMESPACE=default",
 	}, runtimeEnvs(runtime, hotDeploy)...)
 }
@@ -33,7 +38,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	switch runtime {
 	case types.Nodejs12, types.Nodejs14:
-		return []string{NodejsPath}
+		return []string{NodejsPath, "HOME=/home/node"}
 	case types.Python39:
 		envs := []string{Python39Path, Python39Unbuffered}
 		if hotDeploy {
@@ -84,6 +89,44 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 	}
 }
 
+func GetMounts(sourceType workspace.SourceType, workDir string) []mount.Mount {
+	if sourceType == workspace.SourceTypeInline {
+		return []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: workDir,
+				Target: KubelessTmpPath,
+			},
+			{
+				Type:   mount.TypeVolume,
+				Target: KubelessPath,
+			},
+		}
+	} else {
+		return []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: workDir,
+				Target: KubelessPath,
+			},
+		}
+	}
+}
+
+func MoveInlineCommand(sourcePath, depsPath string) []string {
+	sourcePathFull := filepath.Join(KubelessTmpPath, sourcePath)
+	sourceDestFull := filepath.Join(KubelessPath, filepath.Base(sourcePath))
+
+	depsPathFull := filepath.Join(KubelessTmpPath, depsPath)
+	depsDestFull := filepath.Join(KubelessPath, filepath.Base(depsPath))
+
+	linkedPaths := []string{
+		fmt.Sprintf("ln -s -f %s %s", sourcePathFull, sourceDestFull),
+		fmt.Sprintf("ln -s -f %s %s", depsPathFull, depsDestFull),
+	}
+	return linkedPaths
+}
+
 func ContainerImage(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
@@ -94,18 +137,5 @@ func ContainerImage(runtime types.Runtime) string {
 		return "eu.gcr.io/kyma-project/function-runtime-python39:9e934c09"
 	default:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:9e934c09"
-	}
-}
-
-func ContainerUser(runtime types.Runtime) string {
-	switch runtime {
-	case types.Nodejs12:
-		return "1000"
-	case types.Nodejs14:
-		return "1000"
-	case types.Python39:
-		return "root"
-	default:
-		return "1000"
 	}
 }
