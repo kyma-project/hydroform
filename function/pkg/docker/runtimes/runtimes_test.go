@@ -31,6 +31,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
 				NodejsPath,
 			},
 		},
@@ -46,6 +47,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
 				NodejsPath,
 			},
 		},
@@ -61,6 +63,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
 				NodejsPath,
 				"HOME=/home/node",
 			},
@@ -77,6 +80,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
 				NodejsPath,
 				"HOME=/home/node",
 			},
@@ -93,6 +97,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
 				NodejsPath,
 				"HOME=/home/node",
 			},
@@ -109,6 +114,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
 				Python39Path,
 				"PYTHONUNBUFFERED=TRUE",
 			},
@@ -125,6 +131,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
 				Python39Path,
 				"PYTHONUNBUFFERED=TRUE",
 			},
@@ -141,6 +148,7 @@ func TestContainerEnvs(t *testing.T) {
 				"FUNC_HANDLER=main",
 				"MOD_NAME=handler",
 				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
 				Python39Path,
 				"PYTHONUNBUFFERED=TRUE",
 				"CHERRYPY_RELOADED=true",
@@ -209,7 +217,7 @@ func TestContainerCommands(t *testing.T) {
 				runtime: "",
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "node kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
 			},
 		},
 		{
@@ -219,7 +227,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -229,7 +237,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -238,7 +246,7 @@ func TestContainerCommands(t *testing.T) {
 				runtime: types.Nodejs12,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "node kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
 			},
 		},
 		{
@@ -248,7 +256,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -258,7 +266,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -267,7 +275,7 @@ func TestContainerCommands(t *testing.T) {
 				runtime: types.Nodejs14,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "node kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
 			},
 		},
 		{
@@ -277,7 +285,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -287,7 +295,7 @@ func TestContainerCommands(t *testing.T) {
 				hotDeploy: true,
 			},
 			want: []string{
-				"/kubeless-npm-install.sh", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
 			},
 		},
 		{
@@ -364,28 +372,28 @@ func TestContainerImage(t *testing.T) {
 			args: args{
 				runtime: "",
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:245170b1",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:9e934c09",
 		},
 		{
 			name: "should return image for Nodejs12",
 			args: args{
 				runtime: types.Nodejs12,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:245170b1",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:9e934c09",
 		},
 		{
 			name: "should return image for Nodejs14",
 			args: args{
 				runtime: types.Nodejs14,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:245170b1",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:9e934c09",
 		},
 		{
 			name: "should return image for Python39",
 			args: args{
 				runtime: types.Python39,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-python39:245170b1",
+			want: "eu.gcr.io/kyma-project/function-runtime-python39:9e934c09",
 		},
 	}
 	for _, tt := range tests {
