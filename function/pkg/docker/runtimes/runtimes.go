@@ -113,10 +113,17 @@ func GetMounts(sourceType workspace.SourceType, workDir string) []mount.Mount {
 }
 
 func MoveInlineCommand(sourcePath, depsPath string) []string {
-	return []string{
-		fmt.Sprintf("ln -s -f %s %s", filepath.Join(KubelessTmpPath, sourcePath), filepath.Join(KubelessPath, filepath.Base(sourcePath))),
-		fmt.Sprintf("ln -s -f %s %s", filepath.Join(KubelessTmpPath, depsPath), filepath.Join(KubelessPath, filepath.Base(depsPath))),
+	sourcePathFull := filepath.Join(KubelessTmpPath, sourcePath)
+	sourceDestFull := filepath.Join(KubelessPath, filepath.Base(sourcePath))
+
+	depsPathFull := filepath.Join(KubelessTmpPath, depsPath)
+	depsDestFull := filepath.Join(KubelessPath, filepath.Base(depsPath))
+
+	linkedPaths := []string{
+		fmt.Sprintf("ln -s -f %s %s", sourcePathFull, sourceDestFull),
+		fmt.Sprintf("ln -s -f %s %s", depsPathFull, depsDestFull),
 	}
+	return linkedPaths
 }
 
 func ContainerImage(runtime types.Runtime) string {
