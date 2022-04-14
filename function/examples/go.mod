@@ -1,4 +1,4 @@
-module github.com/kyma-incubator/hydroform/function-examples
+module github.com/kyma-project/project/function-examples
 
 go 1.14
 

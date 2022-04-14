@@ -1,4 +1,4 @@
-module github.com/kyma-incubator/hydroform/install
+module github.com/kyma-project/hydroform/install
 
 go 1.13
 
