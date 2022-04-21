@@ -4,7 +4,6 @@ mkfile_dir := $(dir $(mkfile_path))
 .PHONY: build
 build:
 	./provision/before-commit.sh ci
-	./install/before-commit.sh ci
 	./function/before-commit.sh ci
 
 .PHONY: ci-pr
@@ -24,12 +23,8 @@ lint-function:
 lint-provision:
 	./hack/verify-lint.sh $(mkfile_dir)/provision
 
-.PHONY: lint-install
-lint-install:
-	./hack/verify-lint.sh $(mkfile_dir)/install
-
 .PHONY: lint
-lint: lint-function lint-provision lint-install
+lint: lint-function lint-provision
 
 .PHONY: test-provision
 test-provision:
@@ -40,14 +35,5 @@ test-provision:
 	rm cover.out ; \
 	cd ..;
 
-.PHONY: test-install
-test-install:
-	@cd install; \
-	echo "Running tests for install"; \
-	go test -coverprofile=cover.out ./... ;\
-	echo "Total test coverage: $$(go tool cover -func=cover.out | grep total | awk '{print $$3}')" ;\
-	rm cover.out ; \
-	cd ..;
-
 .PHONY: test
-test: test-provision test-install
+test: test-provision
