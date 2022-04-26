@@ -1,4 +1,4 @@
-module github.com/kyma-incubator/hydroform/provision
+module github.com/kyma-project/hydroform/provision
 
 go 1.17
 

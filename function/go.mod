@@ -1,4 +1,4 @@
-module github.com/kyma-incubator/hydroform/function
+module github.com/kyma-project/hydroform/function
 
 go 1.18
 

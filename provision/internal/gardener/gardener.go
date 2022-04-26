@@ -8,10 +8,10 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/kyma-incubator/hydroform/provision/internal/errs"
-	"github.com/kyma-incubator/hydroform/provision/internal/operator"
-	"github.com/kyma-incubator/hydroform/provision/internal/operator/native"
-	"github.com/kyma-incubator/hydroform/provision/types"
+	"github.com/kyma-project/hydroform/provision/internal/errs"
+	"github.com/kyma-project/hydroform/provision/internal/operator"
+	"github.com/kyma-project/hydroform/provision/internal/operator/native"
+	"github.com/kyma-project/hydroform/provision/types"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

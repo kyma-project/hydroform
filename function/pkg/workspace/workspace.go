@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
 )
 

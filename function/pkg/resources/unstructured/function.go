@@ -7,13 +7,13 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	"github.com/kyma-project/hydroform/function/pkg/workspace"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

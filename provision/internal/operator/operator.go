@@ -1,7 +1,7 @@
 package operator
 
 import (
-	"github.com/kyma-incubator/hydroform/provision/types"
+	"github.com/kyma-project/hydroform/provision/types"
 )
 
 //go:generate mockery --name=Operator --case=snake

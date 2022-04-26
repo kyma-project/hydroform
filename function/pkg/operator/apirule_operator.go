@@ -3,8 +3,8 @@ package operator
 import (
 	"context"
 
-	"github.com/kyma-incubator/hydroform/function/pkg/client"
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/kyma-project/hydroform/function/pkg/client"
+	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )

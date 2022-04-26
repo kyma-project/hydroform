@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/kyma-incubator/hydroform/function/pkg/client"
-	mockclient "github.com/kyma-incubator/hydroform/function/pkg/client/automock"
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/kyma-project/hydroform/function/pkg/client"
+	mockclient "github.com/kyma-project/hydroform/function/pkg/client/automock"
+	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

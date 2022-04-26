@@ -2,7 +2,7 @@
 
 ## Overview
 
-The [`provision`](https://godoc.org/github.com/kyma-incubator/hydroform/provision) package provided in this module allows you to create and manage clusters.
+The [`provision`](https://godoc.org/github.com/kyma-project/hydroform/provision) package provided in this module allows you to create and manage clusters.
 
 ## Usage
 

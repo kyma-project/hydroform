@@ -3,9 +3,9 @@ package workspace
 import (
 	"context"
 
-	"github.com/kyma-incubator/hydroform/function/pkg/client"
-	"github.com/kyma-incubator/hydroform/function/pkg/operator"
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/kyma-project/hydroform/function/pkg/client"
+	"github.com/kyma-project/hydroform/function/pkg/operator"
+	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
