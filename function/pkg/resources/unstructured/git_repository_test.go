@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	"github.com/kyma-project/hydroform/function/pkg/workspace"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

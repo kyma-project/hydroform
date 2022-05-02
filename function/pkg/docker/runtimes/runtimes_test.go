@@ -1,12 +1,13 @@
 package runtimes
 
 import (
-	"github.com/docker/docker/api/types/mount"
-	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"reflect"
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/docker/docker/api/types/mount"
+	"github.com/kyma-project/hydroform/function/pkg/workspace"
+
+	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 )
 
 func TestContainerEnvs(t *testing.T) {

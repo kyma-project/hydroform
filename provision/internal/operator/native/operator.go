@@ -1,8 +1,8 @@
 package native
 
 import (
-	"github.com/kyma-incubator/hydroform/provision/internal/operator/native/gardener"
-	"github.com/kyma-incubator/hydroform/provision/types"
+	"github.com/kyma-project/hydroform/provision/internal/operator/native/gardener"
+	"github.com/kyma-project/hydroform/provision/types"
 	"github.com/pkg/errors"
 )
 

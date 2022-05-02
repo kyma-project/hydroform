@@ -7,7 +7,7 @@ package mock_operator
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	operator "github.com/kyma-incubator/hydroform/function/pkg/operator"
+	operator "github.com/kyma-project/hydroform/function/pkg/operator"
 	reflect "reflect"
 )
 

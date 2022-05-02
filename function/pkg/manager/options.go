@@ -1,6 +1,6 @@
 package manager
 
-import "github.com/kyma-incubator/hydroform/function/pkg/operator"
+import "github.com/kyma-project/hydroform/function/pkg/operator"
 
 type OnError int
 

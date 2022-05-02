@@ -6,11 +6,11 @@ import (
 	"io/ioutil"
 	"log"
 
-	hf "github.com/kyma-incubator/hydroform/provision"
+	hf "github.com/kyma-project/hydroform/provision"
 
-	"github.com/kyma-incubator/hydroform/provision/action"
+	"github.com/kyma-project/hydroform/provision/action"
 
-	"github.com/kyma-incubator/hydroform/provision/types"
+	"github.com/kyma-project/hydroform/provision/types"
 )
 
 func main() {

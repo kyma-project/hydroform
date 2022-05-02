@@ -2,7 +2,7 @@
 
 ## Overview
 
-The [`function`](https://godoc.org/github.com/kyma-incubator/hydroform/function) package provided in this module allows you to generate code for serverless Functions.
+The [`function`](https://godoc.org/github.com/kyma-project/hydroform/function) package provided in this module allows you to generate code for serverless Functions.
 
 ### Examples
 

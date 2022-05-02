@@ -3,7 +3,7 @@ package unstructured
 import (
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	"github.com/kyma-project/hydroform/function/pkg/workspace"
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )

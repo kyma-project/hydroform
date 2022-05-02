@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/kyma-incubator/hydroform/provision/internal/errs"
-	"github.com/kyma-incubator/hydroform/provision/internal/operator"
-	"github.com/kyma-incubator/hydroform/provision/internal/operator/native"
-	"github.com/kyma-incubator/hydroform/provision/types"
+	"github.com/kyma-project/hydroform/provision/internal/errs"
+	"github.com/kyma-project/hydroform/provision/internal/operator"
+	"github.com/kyma-project/hydroform/provision/internal/operator/native"
+	"github.com/kyma-project/hydroform/provision/types"
 
 	"github.com/pkg/errors"
 )

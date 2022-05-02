@@ -5,16 +5,17 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/docker/go-connections/nat"
 	"io"
 	"io/ioutil"
 	"strings"
 	"testing"
 
+	"github.com/docker/go-connections/nat"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/golang/mock/gomock"
-	mock_docker "github.com/kyma-incubator/hydroform/function/pkg/docker/automock"
+	mock_docker "github.com/kyma-project/hydroform/function/pkg/docker/automock"
 	"github.com/stretchr/testify/require"
 )
 

@@ -6,15 +6,15 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kyma-incubator/hydroform/provision/action"
+	"github.com/kyma-project/hydroform/provision/action"
 
-	"github.com/kyma-incubator/hydroform/provision/internal/azure"
-	"github.com/kyma-incubator/hydroform/provision/internal/gardener"
-	"github.com/kyma-incubator/hydroform/provision/internal/kind"
+	"github.com/kyma-project/hydroform/provision/internal/azure"
+	"github.com/kyma-project/hydroform/provision/internal/gardener"
+	"github.com/kyma-project/hydroform/provision/internal/kind"
 
-	"github.com/kyma-incubator/hydroform/provision/internal/gcp"
-	"github.com/kyma-incubator/hydroform/provision/internal/operator"
-	"github.com/kyma-incubator/hydroform/provision/types"
+	"github.com/kyma-project/hydroform/provision/internal/gcp"
+	"github.com/kyma-project/hydroform/provision/internal/operator"
+	"github.com/kyma-project/hydroform/provision/types"
 )
 
 // Currently the operator can not be changed at runtime, but the lib is designed so that it might be changed in the future

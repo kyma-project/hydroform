@@ -2,11 +2,12 @@ package runtimes
 
 import (
 	"fmt"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
 	"path/filepath"
 
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
+	"github.com/docker/docker/api/types/mount"
+	"github.com/kyma-project/hydroform/function/pkg/workspace"
+
+	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 )
 
 const (

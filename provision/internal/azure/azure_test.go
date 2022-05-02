@@ -6,10 +6,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kyma-incubator/hydroform/provision/internal/operator/mocks"
+	"github.com/kyma-project/hydroform/provision/internal/operator/mocks"
 	"github.com/pkg/errors"
 
-	"github.com/kyma-incubator/hydroform/provision/types"
+	"github.com/kyma-project/hydroform/provision/types"
 	"github.com/stretchr/testify/require"
 )
 

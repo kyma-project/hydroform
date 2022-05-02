@@ -35,5 +35,14 @@ test-provision:
 	rm cover.out ; \
 	cd ..;
 
+.PHONY: test-function
+test-function:
+	@cd function; \
+	echo "Running tests for function"; \
+	go test -coverprofile=cover.out ./... ;\
+	echo "Total test coverage: $$(go tool cover -func=cover.out | grep total | awk '{print $$3}')" ;\
+	rm cover.out ; \
+	cd ..;
+
 .PHONY: test
-test: test-provision
+test: test-provision test-function

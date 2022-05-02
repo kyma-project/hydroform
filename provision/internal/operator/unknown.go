@@ -3,7 +3,7 @@ package operator
 import (
 	"errors"
 
-	"github.com/kyma-incubator/hydroform/provision/types"
+	"github.com/kyma-project/hydroform/provision/types"
 )
 
 // Unknown represents an invalid operator.

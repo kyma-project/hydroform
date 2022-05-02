@@ -2,8 +2,9 @@ package manager
 
 import (
 	"context"
-	"github.com/kyma-incubator/hydroform/function/pkg/client"
-	"github.com/kyma-incubator/hydroform/function/pkg/operator"
+
+	"github.com/kyma-project/hydroform/function/pkg/client"
+	"github.com/kyma-project/hydroform/function/pkg/operator"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
