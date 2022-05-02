@@ -6,9 +6,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/kyma-incubator/hydroform/function-examples/internal/client"
-	xunstruct "github.com/kyma-incubator/hydroform/function-examples/internal/unstructured"
-	"github.com/kyma-incubator/hydroform/function/pkg/operator"
+	"github.com/kyma-project/hydroform/function-examples/internal/client"
+	xunstruct "github.com/kyma-project/hydroform/function-examples/internal/unstructured"
+	"github.com/kyma-project/hydroform/function/pkg/operator"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
