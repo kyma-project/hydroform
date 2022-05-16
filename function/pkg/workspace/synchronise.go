@@ -46,7 +46,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 	config.Runtime = function.Spec.Runtime
 	config.RuntimeImageOverride = function.Spec.RuntimeImageOverride
-	config.Labels = function.Spec.Labels
+	config.Labels = function.ObjectMeta.Labels
 	config.Env = toWorkspaceEnvVar(function.Spec.Env)
 
 	ul, err := build(config.Namespace, operator.GVRSubscription).List(ctx, v1.ListOptions{})

@@ -93,6 +93,9 @@ func Test_newFunction(t *testing.T) {
 						"name":              "test-name",
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
@@ -108,9 +111,6 @@ func Test_newFunction(t *testing.T) {
 						},
 						"source": "test-source-content",
 						"deps":   "test-deps-content",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
 						"env": []interface{}{
 							map[string]interface{}{
 								"name":  "TEST_ENV",
@@ -227,6 +227,9 @@ func Test_newFunction(t *testing.T) {
 						"name":              "test-name",
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
@@ -241,9 +244,6 @@ func Test_newFunction(t *testing.T) {
 							},
 						},
 						"source": "test-source-content",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
 					},
 				},
 			},
@@ -701,6 +701,9 @@ func Test_newGitFunction(t *testing.T) {
 						"name":              "test-name",
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
@@ -718,9 +721,6 @@ func Test_newGitFunction(t *testing.T) {
 						"baseDir":   "test-base-dir",
 						"reference": "test-reference",
 						"type":      "git",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
 						"env": []interface{}{
 							map[string]interface{}{
 								"name":  "TEST_ENV",
@@ -828,8 +828,11 @@ func Test_newGitFunction(t *testing.T) {
 					"apiVersion": functionAPIVersion,
 					"kind":       "Function",
 					"metadata": map[string]interface{}{
-						"name":              "test-name",
-						"namespace":         "test-ns",
+						"name":      "test-name",
+						"namespace": "test-ns",
+						"labels": map[string]interface{}{
+							"test": "me",
+						},
 						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
@@ -848,9 +851,6 @@ func Test_newGitFunction(t *testing.T) {
 						"baseDir":   "test-base-dir",
 						"reference": "test-reference",
 						"type":      "git",
-						"labels": map[string]interface{}{
-							"test": "me",
-						},
 					},
 				},
 			},

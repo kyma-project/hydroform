@@ -81,7 +81,7 @@ fi
 ##
 # GO Linters
 ##
-# Currently linting will run but not fail even if errors happen. Remove || true once linting issues are fixed per module
+# TODO: Currently linting will run but not fail even if errors happen. Remove || true once linting issues are fixed per module
 if [[ "$1" == "$CI_FLAG" ]]; then
   SKIP_VERIFY="true" ../hack/verify-lint.sh $(pwd) || true
 else

@@ -125,12 +125,12 @@ func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cfg.Name,
 			Namespace: cfg.Namespace,
+			Labels:    cfg.Labels,
 		},
 		Spec: types.FunctionSpec{
 			Runtime:              cfg.Runtime,
 			RuntimeImageOverride: cfg.RuntimeImageOverride,
 			Resources:            resources,
-			Labels:               cfg.Labels,
 			Repository:           types.Repository{},
 			Env:                  envs,
 		},
