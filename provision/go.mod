@@ -12,12 +12,10 @@ replace (
 	// Gardener deps import incompatible k8s APIs and they need to be replaced
 	k8s.io/api => k8s.io/api v0.23.5
 	k8s.io/client-go => k8s.io/client-go v0.23.5
-	// Fix CVE-2019-18658
-	k8s.io/helm => k8s.io/helm v2.16.1+incompatible
 )
 
 require (
-	github.com/gardener/gardener v1.45.0
+	github.com/gardener/gardener v1.46.2
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.1
 	k8s.io/apimachinery v0.23.5
