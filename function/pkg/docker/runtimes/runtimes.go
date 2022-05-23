@@ -103,14 +103,13 @@ func GetMounts(sourceType workspace.SourceType, workDir string) []mount.Mount {
 				Target: KubelessPath,
 			},
 		}
-	} else {
-		return []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: workDir,
-				Target: KubelessPath,
-			},
-		}
+	}
+	return []mount.Mount{
+		{
+			Type:   mount.TypeBind,
+			Source: workDir,
+			Target: KubelessPath,
+		},
 	}
 }
 
