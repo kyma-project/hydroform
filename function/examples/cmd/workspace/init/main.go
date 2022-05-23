@@ -9,7 +9,7 @@ import (
 	"path"
 
 	"github.com/docopt/docopt-go"
-	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	"github.com/kyma-project/hydroform/function/pkg/workspace"
 
 	log "github.com/sirupsen/logrus"
 )

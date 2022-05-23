@@ -8,15 +8,15 @@ import (
 	"context"
 	"fmt"
 
-	xunstruct "github.com/kyma-incubator/hydroform/function-examples/internal/unstructured"
+	xunstruct "github.com/kyma-project/hydroform/function-examples/internal/unstructured"
 
 	"time"
 
-	xclint "github.com/kyma-incubator/hydroform/function-examples/internal/client"
-	"github.com/kyma-incubator/hydroform/function/pkg/client"
+	xclint "github.com/kyma-project/hydroform/function-examples/internal/client"
+	"github.com/kyma-project/hydroform/function/pkg/client"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/kyma-incubator/hydroform/function/pkg/workspace"
+	"github.com/kyma-project/hydroform/function/pkg/workspace"
 	log "github.com/sirupsen/logrus"
 )
 

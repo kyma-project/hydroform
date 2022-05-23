@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
-	"github.com/kyma-incubator/hydroform/function-examples/internal/client"
-	xunstruct "github.com/kyma-incubator/hydroform/function-examples/internal/unstructured"
-	"github.com/kyma-incubator/hydroform/function/pkg/operator"
+	"github.com/kyma-project/hydroform/function-examples/internal/client"
+	xunstruct "github.com/kyma-project/hydroform/function-examples/internal/unstructured"
+	"github.com/kyma-project/hydroform/function/pkg/operator"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/client"
-	"github.com/kyma-incubator/hydroform/function/pkg/docker"
-	"github.com/kyma-incubator/hydroform/function/pkg/docker/runtimes"
-	"github.com/kyma-incubator/hydroform/function/pkg/resources/types"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"os"
+
+	"github.com/docker/docker/client"
+	"github.com/kyma-project/hydroform/function/pkg/docker"
+	"github.com/kyma-project/hydroform/function/pkg/docker/runtimes"
+	"github.com/kyma-project/hydroform/function/pkg/resources/types"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 func main() {
