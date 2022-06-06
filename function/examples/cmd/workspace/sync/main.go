@@ -7,6 +7,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	xunstruct "github.com/kyma-project/hydroform/function-examples/internal/unstructured"
 
@@ -46,7 +48,14 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	err = workspace.Synchronise(ctx, configuration, "/tmp/test", buildClient)
+	dirName, err := ioutil.TempDir(os.TempDir(), "fn-example")
+	if err != nil {
+		log.Fatalln("error while creating temp file: ", err)
+	}
+
+	log.Println("project created in temp directory:", dirName)
+
+	err = workspace.Synchronise(ctx, configuration, dirName, buildClient)
 	if err != nil {
 		panic(err.Error())
 	}

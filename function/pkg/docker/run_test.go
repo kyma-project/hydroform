@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -20,10 +19,6 @@ import (
 )
 
 type fakeReader struct {
-}
-
-func newReader() io.Reader {
-	return &fakeReader{}
 }
 
 func (fr *fakeReader) Read(_ []byte) (n int, err error) {
