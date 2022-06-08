@@ -20,6 +20,7 @@ import (
 type ReadFile = func(filename string) ([]byte, error)
 
 const functionAPIVersion = "serverless.kyma-project.io/v1alpha1"
+const appKubernetesLabel = "app.kubernetes.io/name"
 
 var errUnsupportedSource = fmt.Errorf("unsupported source")
 
@@ -117,6 +118,7 @@ func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
 		return types.Function{}, err
 	}
 
+	labels := prepareLabels(cfg)
 	envs := prepareEnvVars(cfg.Env)
 
 	f := types.Function{
@@ -125,7 +127,7 @@ func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cfg.Name,
 			Namespace: cfg.Namespace,
-			Labels:    cfg.Labels,
+			Labels:    labels,
 		},
 		Spec: types.FunctionSpec{
 			Runtime:              cfg.Runtime,
@@ -206,6 +208,16 @@ func prepareFunctionResources(cfg workspace.Cfg) (*v1.ResourceRequirements, erro
 	}
 
 	return &resources, nil
+}
+
+func prepareLabels(cfg workspace.Cfg) map[string]string {
+	labels := make(map[string]string)
+	for k, v := range cfg.Labels {
+		labels[k] = v
+	}
+	labels[appKubernetesLabel] = cfg.Name
+
+	return labels
 }
 
 func prepareEnvVars(envs []workspace.EnvVar) []v1.EnvVar {
