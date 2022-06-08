@@ -70,6 +70,22 @@ func TestContainerEnvs(t *testing.T) {
 			},
 		},
 		{
+			name: "should return envs for nodejs16",
+			args: args{
+				runtime:   types.Nodejs16,
+				hotDeploy: false,
+			},
+			want: []string{
+				"FUNC_RUNTIME=nodejs16",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
+				NodejsPath,
+				"HOME=/home/node",
+			},
+		},
+		{
 			name: "should return envs for nodejs14",
 			args: args{
 				runtime:   types.Nodejs14,
@@ -187,6 +203,11 @@ func TestRuntimeDebugPort(t *testing.T) {
 			want:    NodejsDebugEndpoint,
 		},
 		{
+			name:    "should return nodejs16 debug port",
+			runtime: types.Nodejs16,
+			want:    NodejsDebugEndpoint,
+		},
+		{
 			name:    "should return python39 debug port",
 			runtime: types.Python39,
 			want:    Python39DebugEndpoint,
@@ -290,13 +311,23 @@ func TestContainerCommands(t *testing.T) {
 			},
 		},
 		{
-			name: "should return commands for Nodejs14 with hotDeploy",
+			name: "should return commands for Nodejs16",
 			args: args{
-				runtime:   types.Nodejs14,
+				runtime:   types.Nodejs16,
+				hotDeploy: false,
+			},
+			want: []string{
+				"npm install --production", "node server.js",
+			},
+		},
+		{
+			name: "should return commands for Nodejs16 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs16,
 				hotDeploy: true,
 			},
 			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
+				"npm install --production", "npx nodemon --watch /usr/src/app/function/*.js /usr/src/app/server.js",
 			},
 		},
 		{
@@ -373,28 +404,35 @@ func TestContainerImage(t *testing.T) {
 			args: args{
 				runtime: "",
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:9e934c09",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:e1491c46",
 		},
 		{
 			name: "should return image for Nodejs12",
 			args: args{
 				runtime: types.Nodejs12,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:9e934c09",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:e1491c46",
 		},
 		{
 			name: "should return image for Nodejs14",
 			args: args{
 				runtime: types.Nodejs14,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:9e934c09",
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:e1491c46",
+		},
+		{
+			name: "should return image for Nodejs16",
+			args: args{
+				runtime: types.Nodejs16,
+			},
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs16:e1491c46",
 		},
 		{
 			name: "should return image for Python39",
 			args: args{
 				runtime: types.Python39,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-python39:9e934c09",
+			want: "eu.gcr.io/kyma-project/function-runtime-python39:e1491c46",
 		},
 	}
 	for _, tt := range tests {
@@ -408,6 +446,7 @@ func TestContainerImage(t *testing.T) {
 
 func TestGetMounts(t *testing.T) {
 	type args struct {
+		runtime    types.Runtime
 		sourceType workspace.SourceType
 		workDir    string
 	}
@@ -419,6 +458,7 @@ func TestGetMounts(t *testing.T) {
 		{
 			name: "should return mount for source type inline",
 			args: args{
+				runtime:    types.Nodejs14,
 				sourceType: workspace.SourceTypeInline,
 				workDir:    "/your/work/dir",
 			},
@@ -437,6 +477,7 @@ func TestGetMounts(t *testing.T) {
 		{
 			name: "should return mount for source type git",
 			args: args{
+				runtime:    types.Nodejs14,
 				sourceType: workspace.SourceTypeGit,
 			},
 			want: []mount.Mount{
@@ -447,10 +488,29 @@ func TestGetMounts(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "should return mount for nodejs16",
+			args: args{
+				runtime:    types.Nodejs16,
+				sourceType: workspace.SourceTypeInline,
+				workDir:    "/your/work/dir",
+			},
+			want: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: "/your/work/dir",
+					Target: KubelessTmpPath,
+				},
+				{
+					Type:   mount.TypeVolume,
+					Target: FunctionMountPath,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetMounts(tt.args.sourceType, tt.args.workDir); !reflect.DeepEqual(got, tt.want) {
+			if got := GetMounts(tt.args.runtime, tt.args.sourceType, tt.args.workDir); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetMounts() = %v, want %v", got, tt.want)
 			}
 		})
