@@ -2,7 +2,7 @@ package unstructured
 
 import (
 	"fmt"
-	"reflect"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
@@ -38,7 +38,8 @@ func Test_newFunction(t *testing.T) {
 					Name:      "test-name",
 					Namespace: "test-ns",
 					Labels: map[string]string{
-						"test": "me",
+						"test":             "me",
+						appKubernetesLabel: "test-name",
 					},
 					Resources: workspace.Resources{
 						Limits: workspace.ResourceList{
@@ -94,7 +95,8 @@ func Test_newFunction(t *testing.T) {
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
 						"labels": map[string]interface{}{
-							"test": "me",
+							"test":             "me",
+							appKubernetesLabel: "test-name",
 						},
 					},
 					"spec": map[string]interface{}{
@@ -154,7 +156,8 @@ func Test_newFunction(t *testing.T) {
 					Name:      "test-name",
 					Namespace: "test-ns",
 					Labels: map[string]string{
-						"test": "me",
+						"test":             "me",
+						appKubernetesLabel: "test-name",
 					},
 					Resources: workspace.Resources{
 						Limits: workspace.ResourceList{
@@ -228,7 +231,8 @@ func Test_newFunction(t *testing.T) {
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
 						"labels": map[string]interface{}{
-							"test": "me",
+							"test":             "me",
+							appKubernetesLabel: "test-name",
 						},
 					},
 					"spec": map[string]interface{}{
@@ -283,6 +287,9 @@ func Test_newFunction(t *testing.T) {
 						"name":              "test-name",
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
+						"labels": map[string]interface{}{
+							appKubernetesLabel: "test-name",
+						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
@@ -333,6 +340,9 @@ func Test_newFunction(t *testing.T) {
 						"name":              "test-name",
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
+						"labels": map[string]interface{}{
+							appKubernetesLabel: "test-name",
+						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
@@ -389,6 +399,9 @@ func Test_newFunction(t *testing.T) {
 						"name":              "test-name",
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
+						"labels": map[string]interface{}{
+							appKubernetesLabel: "test-name",
+						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
@@ -447,6 +460,9 @@ func Test_newFunction(t *testing.T) {
 						"name":              "test-name",
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
+						"labels": map[string]interface{}{
+							appKubernetesLabel: "test-name",
+						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
@@ -532,6 +548,9 @@ func Test_newFunction(t *testing.T) {
 						"name":              "test-name",
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
+						"labels": map[string]interface{}{
+							appKubernetesLabel: "test-name",
+						},
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
@@ -579,9 +598,7 @@ func Test_newFunction(t *testing.T) {
 				t.Errorf("newFunction() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gotOut, tt.wantOut) {
-				t.Errorf("newFunction() gotOut = %v, want %v", gotOut, tt.wantOut)
-			}
+			require.Equal(t, tt.wantOut, gotOut)
 		})
 	}
 }
@@ -702,7 +719,8 @@ func Test_newGitFunction(t *testing.T) {
 						"namespace":         "test-ns",
 						"creationTimestamp": nil,
 						"labels": map[string]interface{}{
-							"test": "me",
+							"test":             "me",
+							appKubernetesLabel: "test-name",
 						},
 					},
 					"spec": map[string]interface{}{
@@ -831,7 +849,8 @@ func Test_newGitFunction(t *testing.T) {
 						"name":      "test-name",
 						"namespace": "test-ns",
 						"labels": map[string]interface{}{
-							"test": "me",
+							"test":             "me",
+							appKubernetesLabel: "test-name",
 						},
 						"creationTimestamp": nil,
 					},
@@ -863,9 +882,7 @@ func Test_newGitFunction(t *testing.T) {
 				t.Errorf("newGitFunction() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gotOut, tt.wantOut) {
-				t.Errorf("newGitFunction() gotOut = %v, want %v", gotOut, tt.wantOut)
-			}
+			require.Equal(t, tt.wantOut, gotOut)
 		})
 	}
 }
