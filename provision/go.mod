@@ -15,7 +15,7 @@ replace (
 )
 
 require (
-	github.com/gardener/gardener v1.48.0
+	github.com/gardener/gardener v1.49.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.1
 	k8s.io/apimachinery v0.23.5
