@@ -4,6 +4,7 @@ import (
 	"context"
 	errs "errors"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 	"time"
@@ -59,6 +60,20 @@ var (
 func Test_applyObject(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	testObjWithLabelsAndAnnotations := *(testObj.DeepCopy())
+	testObjWithLabelsAndAnnotations.Object["metadata"] = map[string]interface{}{
+		"name":      "test-obj",
+		"namespace": "test-namespace",
+		"labels": map[string]interface{}{
+			"aa": "bb",
+			"cc": "dd",
+		},
+		"annotations": map[string]interface{}{
+			"aa": "bb",
+			"cc": "dd",
+		},
+	}
 
 	type args struct {
 		ctx    context.Context
@@ -236,6 +251,31 @@ func Test_applyObject(t *testing.T) {
 			want1:   client.NewStatusEntryCreated(testObj),
 			wantErr: false,
 		},
+		{
+			name: "updated with labels and annotations",
+			args: args{
+				c: func() client.Client {
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						Get(gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(testObj.DeepCopy(), nil).
+						Times(1)
+
+					result.EXPECT().
+						Update(gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(testObjWithLabelsAndAnnotations.DeepCopy(), nil).
+						AnyTimes()
+
+					return result
+				}(),
+				u:      testObjWithLabelsAndAnnotations,
+				stages: []string{},
+			},
+			want:    &testObjWithLabelsAndAnnotations,
+			want1:   client.NewPostStatusEntryUpdated(testObjWithLabelsAndAnnotations),
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -244,12 +284,8 @@ func Test_applyObject(t *testing.T) {
 				t.Errorf("applyObject() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("applyObject() got = %v, want %v", got, tt.want)
-			}
-			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("applyObject() got1 = %v, want %v", got1, tt.want1)
-			}
+			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.want1, got1)
 		})
 	}
 }
@@ -479,6 +515,202 @@ func Test_waitForObject(t *testing.T) {
 			if err := waitForObject(tt.args.ctx, tt.args.c, tt.args.u); (err != nil) != tt.wantErr {
 				t.Errorf("waitForObject() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+func Test_configurationObjectsAreEquivalent(t *testing.T) {
+	defaultConfigurationObject := unstructured.Unstructured{Object: map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"labels": map[string]interface{}{
+				"aa": "bb",
+				"cc": "dd",
+			},
+			"annotations": map[string]interface{}{
+				"vv": "ww",
+				"xx": "yy",
+			},
+			"ommited": "xx",
+		},
+		"spec": map[string]interface{}{
+			"test": "me",
+			"subscriber": map[string]interface{}{
+				"ref": map[string]interface{}{
+					"kind":      "Service",
+					"name":      "test-function-name",
+					"namespace": "test-namespace",
+				},
+			},
+		},
+		"ommited": "xx",
+	}}
+
+	similarConfigurationObjectWithChangedOmmitedPartOfMetadata := (*(defaultConfigurationObject.DeepCopy()))
+	similarConfigurationObjectWithChangedOmmitedPartOfMetadata.Object["metadata"].(map[string]interface{})["ommited"] = "abcd"
+
+	similarConfigurationObjectWithChangedOmmitedPartOfConfiguration := *(defaultConfigurationObject.DeepCopy())
+	similarConfigurationObjectWithChangedOmmitedPartOfConfiguration.Object["ommited"] = "abcd"
+
+	configurationObjectWithChangedElementOfMetadataLabels := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithChangedElementOfMetadataLabels.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["aa"] = "abcd"
+
+	configurationObjectWithChangedElementOfMetadataAnnotations := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithChangedElementOfMetadataAnnotations.Object["metadata"].(map[string]interface{})["annotations"].(map[string]interface{})["xx"] = "abcd"
+
+	configurationObjectWithChangedElementOfSpec := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithChangedElementOfSpec.Object["spec"].(map[string]interface{})["test"] = "abcd"
+
+	configurationObjectWithAddedElementOfMetadataLabels := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithAddedElementOfMetadataLabels.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["new"] = "abcd"
+
+	configurationObjectWithAddedElementOfMetadataAnnotations := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithAddedElementOfMetadataAnnotations.Object["metadata"].(map[string]interface{})["annotations"].(map[string]interface{})["new"] = "abcd"
+
+	configurationObjectWithAddedElementOfSpec := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithAddedElementOfSpec.Object["spec"].(map[string]interface{})["new"] = "abcd"
+
+	configurationObjectWithRemovedElementOfMetadataLabels := (*(defaultConfigurationObject.DeepCopy()))
+	delete(configurationObjectWithRemovedElementOfMetadataLabels.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{}), "cc")
+
+	configurationObjectWithRemovedElementOfMetadataAnnotations := (*(defaultConfigurationObject.DeepCopy()))
+	delete(configurationObjectWithRemovedElementOfMetadataAnnotations.Object["metadata"].(map[string]interface{})["annotations"].(map[string]interface{}), "vv")
+
+	configurationObjectWithRemovedElementOfSpec := (*(defaultConfigurationObject.DeepCopy()))
+	delete(configurationObjectWithRemovedElementOfSpec.Object["spec"].(map[string]interface{})["subscriber"].(map[string]interface{})["ref"].(map[string]interface{}), "kind")
+
+	configurationObjectWithNilMetadataLabels := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithNilMetadataLabels.Object["metadata"].(map[string]interface{})["labels"] = nil
+
+	configurationObjectWithNilMetadataAnnotations := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithNilMetadataAnnotations.Object["metadata"].(map[string]interface{})["annotations"] = nil
+
+	type args struct {
+		first  unstructured.Unstructured
+		second unstructured.Unstructured
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "the same configuration objects",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: defaultConfigurationObject,
+			},
+			want: true,
+		},
+		{
+			name: "similar configuration objects - changed metadata/^(labels|annotations)/*",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: similarConfigurationObjectWithChangedOmmitedPartOfMetadata,
+			},
+			want: true,
+		},
+		{
+			name: "similar configuration objects - changed ^(spec|metadata)",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: similarConfigurationObjectWithChangedOmmitedPartOfConfiguration,
+			},
+			want: true,
+		},
+		{
+			name: "configuration object with changed element metadata/labels/*",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithChangedElementOfMetadataLabels,
+			},
+			want: false,
+		},
+		{
+			name: "configuration object with changed element metadata/annotations/*",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithChangedElementOfMetadataAnnotations,
+			},
+			want: false,
+		},
+		{
+			name: "configuration object with changed element spec/*",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithChangedElementOfSpec,
+			},
+			want: false,
+		},
+		{
+			name: "configuration object with added element metadata/labels/*",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithAddedElementOfMetadataLabels,
+			},
+			want: false,
+		},
+		{
+			name: "configuration object with added element metadata/annotations/*",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithAddedElementOfMetadataAnnotations,
+			},
+			want: false,
+		},
+		{
+			name: "configuration object with added element spec/*",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithAddedElementOfSpec,
+			},
+			want: false,
+		},
+		{
+			name: "configuration object with removed element metadata/labels/*",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithRemovedElementOfMetadataLabels,
+			},
+			want: false,
+		},
+		{
+			name: "configuration object with removed element metadata/annotations/*",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithRemovedElementOfMetadataAnnotations,
+			},
+			want: false,
+		},
+		{
+			name: "configuration object with removed element spec/*",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithRemovedElementOfSpec,
+			},
+			want: false,
+		},
+		{
+			name: "configuration object with nil element metadata/labels",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithNilMetadataLabels,
+			},
+			want: false,
+		},
+		{
+			name: "configuration object with nil element metadata/annotations",
+			args: args{
+				first:  defaultConfigurationObject,
+				second: configurationObjectWithNilMetadataAnnotations,
+			},
+			want: false,
+		},
+		// nil
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := configurationObjectsAreEquivalent(tt.args.first, tt.args.second)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }

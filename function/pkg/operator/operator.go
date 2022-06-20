@@ -37,8 +37,7 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	// If object is up to date return
 	var equal bool
 	if objFound {
-		//FIXME this fails for function unstructured - investigate
-		equal = equality.Semantic.DeepDerivative(u.Object["spec"], response.Object["spec"])
+		equal = configurationObjectsAreEquivalent(u, *response)
 	}
 
 	if objFound && equal {
@@ -49,6 +48,7 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	// If object needs update
 	if objFound && !equal {
 		response.Object["spec"] = u.Object["spec"]
+		//TODO: add copy of metadata/labels and metadata/annotations
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() (err error) {
 			response, err = c.Update(ctx, response, metav1.UpdateOptions{
 				DryRun: stages,
@@ -75,6 +75,46 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 
 	statusEntryCreated := client.NewStatusEntryCreated(*response)
 	return response, statusEntryCreated, nil
+}
+
+// configurationObjectsAreEquivalent compares two structures that represent configuration. Checks that the elements:
+//  * spec,
+//  * metadata/labels,
+//  * metadata/annotations
+// are equal (semantically). The rest are ignored.
+func configurationObjectsAreEquivalent(first unstructured.Unstructured, second unstructured.Unstructured) bool {
+	specAreEqual := equality.Semantic.DeepEqual(first.Object["spec"], second.Object["spec"])
+	firstMetadata, ok := first.Object["metadata"].(map[string]interface{})
+	if !ok {
+		panic("can't cast object for equality checking")
+	}
+	secondMetadata, ok := second.Object["metadata"].(map[string]interface{})
+	if !ok {
+		panic("can't cast object for equality checking")
+	}
+
+	labelsAreEqual := configurationElementsAreEqual(firstMetadata, secondMetadata, "labels")
+	annotationsAreEqual := configurationElementsAreEqual(firstMetadata, secondMetadata, "annotations")
+	return specAreEqual && labelsAreEqual && annotationsAreEqual
+}
+
+func configurationElementsAreEqual(firstMap map[string]interface{}, secondMap map[string]interface{}, elementName string) bool {
+	firstElement, ok := firstMap[elementName]
+	if !ok {
+		firstElement = map[string]interface{}{}
+	}
+	secondElement, ok := secondMap[elementName]
+	if !ok {
+		secondElement = map[string]interface{}{}
+	}
+
+	if firstElement == nil && secondElement == nil {
+		return true
+	} else if firstElement == nil || secondElement == nil {
+		return false
+	}
+	equal := equality.Semantic.DeepEqual(firstElement, secondElement)
+	return equal
 }
 
 func waitForObject(ctx context.Context, c client.Client, u unstructured.Unstructured) error {
