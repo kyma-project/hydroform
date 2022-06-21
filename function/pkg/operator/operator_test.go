@@ -545,43 +545,43 @@ func Test_configurationObjectsAreEquivalent(t *testing.T) {
 		"ommited": "xx",
 	}}
 
-	similarConfigurationObjectWithChangedOmmitedPartOfMetadata := (*(defaultConfigurationObject.DeepCopy()))
+	similarConfigurationObjectWithChangedOmmitedPartOfMetadata := *(defaultConfigurationObject.DeepCopy())
 	similarConfigurationObjectWithChangedOmmitedPartOfMetadata.Object["metadata"].(map[string]interface{})["ommited"] = "abcd"
 
 	similarConfigurationObjectWithChangedOmmitedPartOfConfiguration := *(defaultConfigurationObject.DeepCopy())
 	similarConfigurationObjectWithChangedOmmitedPartOfConfiguration.Object["ommited"] = "abcd"
 
-	configurationObjectWithChangedElementOfMetadataLabels := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithChangedElementOfMetadataLabels := *(defaultConfigurationObject.DeepCopy())
 	configurationObjectWithChangedElementOfMetadataLabels.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["aa"] = "abcd"
 
-	configurationObjectWithChangedElementOfMetadataAnnotations := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithChangedElementOfMetadataAnnotations := *(defaultConfigurationObject.DeepCopy())
 	configurationObjectWithChangedElementOfMetadataAnnotations.Object["metadata"].(map[string]interface{})["annotations"].(map[string]interface{})["xx"] = "abcd"
 
-	configurationObjectWithChangedElementOfSpec := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithChangedElementOfSpec := *(defaultConfigurationObject.DeepCopy())
 	configurationObjectWithChangedElementOfSpec.Object["spec"].(map[string]interface{})["test"] = "abcd"
 
-	configurationObjectWithAddedElementOfMetadataLabels := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithAddedElementOfMetadataLabels := *(defaultConfigurationObject.DeepCopy())
 	configurationObjectWithAddedElementOfMetadataLabels.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["new"] = "abcd"
 
-	configurationObjectWithAddedElementOfMetadataAnnotations := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithAddedElementOfMetadataAnnotations := *(defaultConfigurationObject.DeepCopy())
 	configurationObjectWithAddedElementOfMetadataAnnotations.Object["metadata"].(map[string]interface{})["annotations"].(map[string]interface{})["new"] = "abcd"
 
-	configurationObjectWithAddedElementOfSpec := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithAddedElementOfSpec := *(defaultConfigurationObject.DeepCopy())
 	configurationObjectWithAddedElementOfSpec.Object["spec"].(map[string]interface{})["new"] = "abcd"
 
-	configurationObjectWithRemovedElementOfMetadataLabels := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithRemovedElementOfMetadataLabels := *(defaultConfigurationObject.DeepCopy())
 	delete(configurationObjectWithRemovedElementOfMetadataLabels.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{}), "cc")
 
-	configurationObjectWithRemovedElementOfMetadataAnnotations := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithRemovedElementOfMetadataAnnotations := *(defaultConfigurationObject.DeepCopy())
 	delete(configurationObjectWithRemovedElementOfMetadataAnnotations.Object["metadata"].(map[string]interface{})["annotations"].(map[string]interface{}), "vv")
 
-	configurationObjectWithRemovedElementOfSpec := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithRemovedElementOfSpec := *(defaultConfigurationObject.DeepCopy())
 	delete(configurationObjectWithRemovedElementOfSpec.Object["spec"].(map[string]interface{})["subscriber"].(map[string]interface{})["ref"].(map[string]interface{}), "kind")
 
-	configurationObjectWithNilMetadataLabels := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithNilMetadataLabels := *(defaultConfigurationObject.DeepCopy())
 	configurationObjectWithNilMetadataLabels.Object["metadata"].(map[string]interface{})["labels"] = nil
 
-	configurationObjectWithNilMetadataAnnotations := (*(defaultConfigurationObject.DeepCopy()))
+	configurationObjectWithNilMetadataAnnotations := *(defaultConfigurationObject.DeepCopy())
 	configurationObjectWithNilMetadataAnnotations.Object["metadata"].(map[string]interface{})["annotations"] = nil
 
 	type args struct {
@@ -705,12 +705,178 @@ func Test_configurationObjectsAreEquivalent(t *testing.T) {
 			},
 			want: false,
 		},
-		// nil
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := configurationObjectsAreEquivalent(tt.args.first, tt.args.second)
 			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_updateConfigurationObject(t *testing.T) {
+	defaultDestinationConfigurationObject := unstructured.Unstructured{Object: map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"labels": map[string]interface{}{
+				"destLabel1": "destLabelValue1",
+				"destLabel2": "destLabelValue2",
+			},
+			"annotations": map[string]interface{}{
+				"destAnnotation1": "destAnnotationValue1",
+				"destAnnotation2": "destAnnotationValue2",
+			},
+			"destOtherMetadata": "destOtherMetadataValue",
+		},
+		"spec": map[string]interface{}{
+			"destSpec1": "destSpecValue1",
+			"destSpec2": map[string]interface{}{
+				"destSomeSpec21": map[string]interface{}{
+					"destSpec211": "destSpecValue211",
+					"destSpec212": "destSpecValue212",
+					"destSpec213": "destSpecValue213",
+				},
+			},
+			"destSpec3": "destSpecValue3",
+		},
+		"destOther": "destOtherValue",
+	}}
+	defaultSourceConfigurationObject := unstructured.Unstructured{Object: map[string]interface{}{
+		"srcOther1": "srcOtherValue1",
+		"metadata": map[string]interface{}{
+			"labels": map[string]interface{}{
+				"srcLabel1": "srcLabelValue1",
+				"srcLabel2": "srcLabelValue2",
+			},
+			"annotations": map[string]interface{}{
+				"srcAnnotation1": "srcAnnotationValue1",
+				"srcAnnotation2": "srcAnnotationValue2",
+			},
+			"srcOtherMetadata1": "srcOtherMetadataValue1",
+			"srcOtherMetadata2": "srcOtherMetadataValue2",
+		},
+		"srcOther2": "srcOtherValue2",
+		"spec": map[string]interface{}{
+			"srcSpec1": "srcSpecValue1",
+			"srcSpec2": "srcSpecValue2",
+			"srcSpec3": map[string]interface{}{
+				"srcSpec31": map[string]interface{}{
+					"srcSpec311": "srcSpecValue311",
+				},
+			},
+		},
+		"srcOther3": "srcOtherValue3",
+	}}
+	defaultUpdatedConfigurationObject := unstructured.Unstructured{Object: map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"labels": map[string]interface{}{
+				"srcLabel1": "srcLabelValue1",
+				"srcLabel2": "srcLabelValue2",
+			},
+			"annotations": map[string]interface{}{
+				"srcAnnotation1": "srcAnnotationValue1",
+				"srcAnnotation2": "srcAnnotationValue2",
+			},
+			"destOtherMetadata": "destOtherMetadataValue",
+		},
+		"spec": map[string]interface{}{
+			"srcSpec1": "srcSpecValue1",
+			"srcSpec2": "srcSpecValue2",
+			"srcSpec3": map[string]interface{}{
+				"srcSpec31": map[string]interface{}{
+					"srcSpec311": "srcSpecValue311",
+				},
+			},
+		},
+		"destOther": "destOtherValue",
+	}}
+
+	destinationConfigurationObjectWithoutLabelsAndAnnotations := *(defaultDestinationConfigurationObject.DeepCopy())
+	delete(destinationConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "labels")
+	delete(destinationConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "annotations")
+
+	sourceConfigurationObjectWithoutLabelsAndAnnotations := *(defaultSourceConfigurationObject.DeepCopy())
+	delete(sourceConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "labels")
+	delete(sourceConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "annotations")
+
+	updatedConfigurationObjectWithoutLabelsAndAnnotations := *(defaultUpdatedConfigurationObject.DeepCopy())
+	delete(updatedConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "labels")
+	delete(updatedConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "annotations")
+
+	destinationConfigurationObjectWithNilLabelsAndAnnotations := *(defaultDestinationConfigurationObject.DeepCopy())
+	destinationConfigurationObjectWithNilLabelsAndAnnotations.Object["metadata"].(map[string]interface{})["labels"] = nil
+	destinationConfigurationObjectWithNilLabelsAndAnnotations.Object["metadata"].(map[string]interface{})["annotations"] = nil
+
+	sourceConfigurationObjectWithNilLabelsAndAnnotations := *(defaultSourceConfigurationObject.DeepCopy())
+	sourceConfigurationObjectWithNilLabelsAndAnnotations.Object["metadata"].(map[string]interface{})["labels"] = nil
+	sourceConfigurationObjectWithNilLabelsAndAnnotations.Object["metadata"].(map[string]interface{})["annotations"] = nil
+
+	updatedConfigurationObjectWithNilLabelsAndAnnotations := *(defaultUpdatedConfigurationObject.DeepCopy())
+	updatedConfigurationObjectWithNilLabelsAndAnnotations.Object["metadata"].(map[string]interface{})["labels"] = nil
+	updatedConfigurationObjectWithNilLabelsAndAnnotations.Object["metadata"].(map[string]interface{})["annotations"] = nil
+
+	type args struct {
+		destination unstructured.Unstructured
+		source      unstructured.Unstructured
+	}
+	tests := []struct {
+		name string
+		args args
+		want unstructured.Unstructured
+	}{
+		{
+			name: "should copy `spec`, `metadata/labels`, `metadata/annotations` and not touch other content",
+			args: args{
+				destination: defaultDestinationConfigurationObject,
+				source:      defaultSourceConfigurationObject,
+			},
+			want: defaultUpdatedConfigurationObject,
+		},
+		{
+			name: "should copy `metadata/labels`, `metadata/annotations` when destination doesn't contain these elements",
+			args: args{
+				destination: destinationConfigurationObjectWithoutLabelsAndAnnotations,
+				source:      defaultSourceConfigurationObject,
+			},
+			want: defaultUpdatedConfigurationObject,
+		},
+		{
+			name: "should remove `metadata/labels`, `metadata/annotations` when source doesn't contain these elements",
+			args: args{
+				destination: defaultDestinationConfigurationObject,
+				source:      sourceConfigurationObjectWithoutLabelsAndAnnotations,
+			},
+			want: updatedConfigurationObjectWithoutLabelsAndAnnotations,
+		},
+		{
+			name: "should not copy `metadata/labels`, `metadata/annotations` when destination and source doesn't contain these elements",
+			args: args{
+				destination: destinationConfigurationObjectWithoutLabelsAndAnnotations,
+				source:      sourceConfigurationObjectWithoutLabelsAndAnnotations,
+			},
+			want: updatedConfigurationObjectWithoutLabelsAndAnnotations,
+		},
+		{
+			name: "should copy `metadata/labels`, `metadata/annotations` when destination contain these elements with nil value",
+			args: args{
+				destination: destinationConfigurationObjectWithNilLabelsAndAnnotations,
+				source:      defaultSourceConfigurationObject,
+			},
+			want: defaultUpdatedConfigurationObject,
+		},
+		{
+			name: "should copy `metadata/labels`, `metadata/annotations` when source contain these elements with nil value",
+			args: args{
+				destination: defaultDestinationConfigurationObject,
+				source:      sourceConfigurationObjectWithNilLabelsAndAnnotations,
+			},
+			want: updatedConfigurationObjectWithNilLabelsAndAnnotations,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			destination := *(tt.args.destination.DeepCopy())
+			updateConfigurationObject(&destination, tt.args.source)
+			require.Equal(t, tt.want, destination)
 		})
 	}
 }
