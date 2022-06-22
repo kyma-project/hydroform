@@ -76,13 +76,8 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	return response, statusEntryCreated, nil
 }
 
-// updateConfigurationObject copies some elements from the source configuration to the destination configuration.
-// The following items are copied:
-//  * spec,
-//  * metadata/labels,
-//  * metadata/annotations.
-// The rest is unchanged.
 func updateConfigurationObject(destination *unstructured.Unstructured, source unstructured.Unstructured) *unstructured.Unstructured {
+	// Copies elements: `spec`, `metadata/labels`, `metadata/annotations` from source to destination. The rest is unchanged.
 	destination.Object["spec"] = source.Object["spec"]
 
 	destinationMetadata := getMetadataFromConfigurationObject(*destination)
@@ -103,12 +98,8 @@ func updateConfigurationElement(destination *map[string]interface{}, source map[
 	}
 }
 
-// configurationObjectsAreEquivalent compares two structures that represent configuration. Checks that the elements:
-//  * spec,
-//  * metadata/labels,
-//  * metadata/annotations
-// are equal (semantically). The rest are ignored.
 func configurationObjectsAreEquivalent(first unstructured.Unstructured, second unstructured.Unstructured) bool {
+	// Checks that the elements: `spec`, `metadata/labels`, `metadata/annotations` are equal (semantically).
 	specAreEqual := equality.Semantic.DeepEqual(first.Object["spec"], second.Object["spec"])
 
 	firstMetadata := getMetadataFromConfigurationObject(first)
