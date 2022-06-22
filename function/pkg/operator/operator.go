@@ -48,8 +48,6 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	// If object needs update
 	if objFound && !equal {
 		response = updateConfigurationObject(response, u)
-		//response.Object["spec"] = u.Object["spec"]
-		//TODO: add copy of metadata/labels and metadata/annotations
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() (err error) {
 			response, err = c.Update(ctx, response, metav1.UpdateOptions{
 				DryRun: stages,
