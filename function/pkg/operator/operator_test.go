@@ -263,9 +263,9 @@ func Test_applyObject(t *testing.T) {
 						Times(1)
 
 					result.EXPECT().
-						Update(gomock.Any(), gomock.Any(), gomock.Any()).
+						Update(gomock.Any(), gomock.Eq(&testObjWithLabelsAndAnnotations), gomock.Any()).
 						Return(testObjWithLabelsAndAnnotations.DeepCopy(), nil).
-						AnyTimes()
+						Times(1)
 
 					return result
 				}(),
