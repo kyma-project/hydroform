@@ -803,18 +803,6 @@ func Test_updateConfigurationObject(t *testing.T) {
 		"destOther": "destOtherValue",
 	}}
 
-	destinationConfigurationObjectWithoutLabelsAndAnnotations := *(defaultDestinationConfigurationObject.DeepCopy())
-	delete(destinationConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "labels")
-	delete(destinationConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "annotations")
-
-	sourceConfigurationObjectWithoutLabelsAndAnnotations := *(defaultSourceConfigurationObject.DeepCopy())
-	delete(sourceConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "labels")
-	delete(sourceConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "annotations")
-
-	updatedConfigurationObjectWithoutLabelsAndAnnotations := *(defaultUpdatedConfigurationObject.DeepCopy())
-	delete(updatedConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "labels")
-	delete(updatedConfigurationObjectWithoutLabelsAndAnnotations.Object["metadata"].(map[string]interface{}), "annotations")
-
 	type args struct {
 		destination unstructured.Unstructured
 		source      unstructured.Unstructured
@@ -835,8 +823,13 @@ func Test_updateConfigurationObject(t *testing.T) {
 		{
 			name: "should copy `metadata/labels`, `metadata/annotations` when destination doesn't contain these elements",
 			args: args{
-				destination: destinationConfigurationObjectWithoutLabelsAndAnnotations,
-				source:      defaultSourceConfigurationObject,
+				destination: func() unstructured.Unstructured {
+					u := *(defaultDestinationConfigurationObject.DeepCopy())
+					delete(u.Object["metadata"].(map[string]interface{}), "labels")
+					delete(u.Object["metadata"].(map[string]interface{}), "annotations")
+					return u
+				}(),
+				source: defaultSourceConfigurationObject,
 			},
 			want: defaultUpdatedConfigurationObject,
 		},
@@ -844,17 +837,42 @@ func Test_updateConfigurationObject(t *testing.T) {
 			name: "should remove `metadata/labels`, `metadata/annotations` when source doesn't contain these elements",
 			args: args{
 				destination: defaultDestinationConfigurationObject,
-				source:      sourceConfigurationObjectWithoutLabelsAndAnnotations,
+				source: func() unstructured.Unstructured {
+					u := *(defaultSourceConfigurationObject.DeepCopy())
+					delete(u.Object["metadata"].(map[string]interface{}), "labels")
+					delete(u.Object["metadata"].(map[string]interface{}), "annotations")
+					return u
+				}(),
 			},
-			want: updatedConfigurationObjectWithoutLabelsAndAnnotations,
+			want: func() unstructured.Unstructured {
+				u := *(defaultUpdatedConfigurationObject.DeepCopy())
+				delete(u.Object["metadata"].(map[string]interface{}), "labels")
+				delete(u.Object["metadata"].(map[string]interface{}), "annotations")
+				return u
+			}(),
 		},
 		{
 			name: "should not copy `metadata/labels`, `metadata/annotations` when destination and source doesn't contain these elements",
 			args: args{
-				destination: destinationConfigurationObjectWithoutLabelsAndAnnotations,
-				source:      sourceConfigurationObjectWithoutLabelsAndAnnotations,
+				destination: func() unstructured.Unstructured {
+					u := *(defaultDestinationConfigurationObject.DeepCopy())
+					delete(u.Object["metadata"].(map[string]interface{}), "labels")
+					delete(u.Object["metadata"].(map[string]interface{}), "annotations")
+					return u
+				}(),
+				source: func() unstructured.Unstructured {
+					u := *(defaultSourceConfigurationObject.DeepCopy())
+					delete(u.Object["metadata"].(map[string]interface{}), "labels")
+					delete(u.Object["metadata"].(map[string]interface{}), "annotations")
+					return u
+				}(),
 			},
-			want: updatedConfigurationObjectWithoutLabelsAndAnnotations,
+			want: func() unstructured.Unstructured {
+				u := *(defaultUpdatedConfigurationObject.DeepCopy())
+				delete(u.Object["metadata"].(map[string]interface{}), "labels")
+				delete(u.Object["metadata"].(map[string]interface{}), "annotations")
+				return u
+			}(),
 		},
 		{
 			name: "should copy `metadata/labels`, `metadata/annotations` when destination contain these elements with nil value",
