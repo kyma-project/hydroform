@@ -37,8 +37,7 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	// If object is up to date return
 	var equal bool
 	if objFound {
-		//FIXME this fails for function unstructured - investigate
-		equal = equality.Semantic.DeepDerivative(u.Object["spec"], response.Object["spec"])
+		equal = configurationObjectsAreEquivalent(u, *response)
 	}
 
 	if objFound && equal {
@@ -48,7 +47,7 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 
 	// If object needs update
 	if objFound && !equal {
-		response.Object["spec"] = u.Object["spec"]
+		response = updateConfigurationObject(response, u)
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() (err error) {
 			response, err = c.Update(ctx, response, metav1.UpdateOptions{
 				DryRun: stages,
@@ -75,6 +74,68 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 
 	statusEntryCreated := client.NewStatusEntryCreated(*response)
 	return response, statusEntryCreated, nil
+}
+
+func updateConfigurationObject(destination *unstructured.Unstructured, source unstructured.Unstructured) *unstructured.Unstructured {
+	// Copies elements: `spec`, `metadata/labels`, `metadata/annotations` from source to destination. The rest is unchanged.
+	destination.Object["spec"] = source.Object["spec"]
+
+	destinationMetadata := getMetadataFromConfigurationObject(*destination)
+	sourceMetadata := getMetadataFromConfigurationObject(source)
+
+	updateConfigurationElement(&destinationMetadata, sourceMetadata, "labels")
+	updateConfigurationElement(&destinationMetadata, sourceMetadata, "annotations")
+
+	return destination
+}
+
+func updateConfigurationElement(destination *map[string]interface{}, source map[string]interface{}, elementName string) {
+	sourceElement, ok := source[elementName]
+	if ok {
+		(*destination)[elementName] = sourceElement
+	} else {
+		delete(*destination, elementName)
+	}
+}
+
+func configurationObjectsAreEquivalent(first unstructured.Unstructured, second unstructured.Unstructured) bool {
+	// Checks that the elements: `spec`, `metadata/labels`, `metadata/annotations` are equal (semantically).
+	specAreEqual := equality.Semantic.DeepEqual(first.Object["spec"], second.Object["spec"])
+
+	firstMetadata := getMetadataFromConfigurationObject(first)
+	secondMetadata := getMetadataFromConfigurationObject(second)
+
+	labelsAreEqual := configurationElementsAreEqual(firstMetadata, secondMetadata, "labels")
+	annotationsAreEqual := configurationElementsAreEqual(firstMetadata, secondMetadata, "annotations")
+
+	return specAreEqual && labelsAreEqual && annotationsAreEqual
+}
+
+func getMetadataFromConfigurationObject(configurationObject unstructured.Unstructured) map[string]interface{} {
+	metadata, ok := configurationObject.Object["metadata"].(map[string]interface{})
+	if !ok {
+		panic("can't cast object for equality checking")
+	}
+	return metadata
+}
+
+func configurationElementsAreEqual(firstMap map[string]interface{}, secondMap map[string]interface{}, elementName string) bool {
+	firstElement, ok := firstMap[elementName]
+	if !ok {
+		firstElement = map[string]interface{}{}
+	}
+	secondElement, ok := secondMap[elementName]
+	if !ok {
+		secondElement = map[string]interface{}{}
+	}
+
+	if firstElement == nil && secondElement == nil {
+		return true
+	} else if firstElement == nil || secondElement == nil {
+		return false
+	}
+	equal := equality.Semantic.DeepEqual(firstElement, secondElement)
+	return equal
 }
 
 func waitForObject(ctx context.Context, c client.Client, u unstructured.Unstructured) error {
