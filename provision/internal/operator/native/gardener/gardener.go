@@ -266,7 +266,7 @@ func shootHibernation(cfg map[string]interface{}) *gardenerTypes.Hibernation {
 	return &h
 }
 
-//injectProvider adds the provider config to the given shoot.
+// injectProvider adds the provider config to the given shoot.
 // It is done after building the shoot to minimize error propagation
 func injectProvider(spec *gardenerTypes.ShootSpec, cfg map[string]interface{}) error {
 	p := gardenerTypes.Provider{}

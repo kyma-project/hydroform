@@ -93,7 +93,6 @@ type VPC struct {
 	CIDR *string `json:"cidr,omitempty"`
 }
 
-//
 func generateGardenerAWSSubnets(baseNet string, zoneCount int) (workerNets, publicNets, internalNets []string, err error) {
 	_, cidr, err := net.ParseCIDR(baseNet)
 	if err != nil {
