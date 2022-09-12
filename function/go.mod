@@ -1,6 +1,6 @@
 module github.com/kyma-project/hydroform/function
 
-go 1.18
+go 1.19
 
 require (
 	github.com/docker/cli v20.10.14+incompatible
