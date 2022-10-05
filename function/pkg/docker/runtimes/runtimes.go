@@ -156,14 +156,14 @@ func MoveInlineCommand(runtime types.Runtime, sourcePath, depsPath string) []str
 func ContainerImage(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs12:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:e1491c46"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:PR-15671"
 	case types.Nodejs14:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:e1491c46"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-15671"
 	case types.Nodejs16:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs16:e1491c46"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs16:PR-15671"
 	case types.Python39:
-		return "eu.gcr.io/kyma-project/function-runtime-python39:e1491c46"
+		return "eu.gcr.io/kyma-project/function-runtime-python39:PR-15671"
 	default:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:e1491c46"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:PR-15671"
 	}
 }
