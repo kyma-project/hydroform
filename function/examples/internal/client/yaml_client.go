@@ -27,7 +27,7 @@ func (c *MapClient) groupResource() schema.GroupResource {
 	}
 }
 
-//TODO add dry run support and done support
+// TODO add dry run support and done support
 func (c *MapClient) Create(ctx context.Context, obj *unstructured.Unstructured, options metav1.CreateOptions, subresources ...string) (*unstructured.Unstructured, error) {
 	u, err := c.Get(ctx, obj.GetName(), metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
