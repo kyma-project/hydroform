@@ -530,7 +530,7 @@ func Test_configurationObjectsAreEquivalent(t *testing.T) {
 				"vv": "ww",
 				"xx": "yy",
 			},
-			"ommited": "xx",
+			"omitted": "xx",
 		},
 		"spec": map[string]interface{}{
 			"test": "me",
@@ -542,7 +542,7 @@ func Test_configurationObjectsAreEquivalent(t *testing.T) {
 				},
 			},
 		},
-		"ommited": "xx",
+		"omitted": "xx",
 	}}
 
 	type args struct {
@@ -568,7 +568,7 @@ func Test_configurationObjectsAreEquivalent(t *testing.T) {
 				first: defaultConfigurationObject,
 				second: func() unstructured.Unstructured {
 					u := *(defaultConfigurationObject.DeepCopy())
-					u.Object["metadata"].(map[string]interface{})["ommited"] = "abcd"
+					u.Object["metadata"].(map[string]interface{})["omitted"] = "abcd"
 					return u
 				}(),
 			},
@@ -580,7 +580,7 @@ func Test_configurationObjectsAreEquivalent(t *testing.T) {
 				first: defaultConfigurationObject,
 				second: func() unstructured.Unstructured {
 					u := *(defaultConfigurationObject.DeepCopy())
-					u.Object["ommited"] = "abcd"
+					u.Object["omitted"] = "abcd"
 					return u
 				}(),
 			},
