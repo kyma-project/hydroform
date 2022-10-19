@@ -105,7 +105,7 @@ type Cfg struct {
 	Name                 string            `yaml:"name"`
 	Namespace            string            `yaml:"namespace"`
 	Labels               map[string]string `yaml:"labels,omitempty"`
-	Runtime              types.Runtime     `yaml:"runtime" jsonschema:"enum=nodejs12,enum=nodejs14,enum=nodejs16,enum=python39"`
+	Runtime              types.Runtime     `yaml:"runtime" jsonschema:"enum=nodejs14,enum=nodejs16,enum=python39"`
 	RuntimeImageOverride string            `yaml:"runtimeImageOverride,omitempty"`
 	Source               Source            `yaml:"source"`
 	Resources            Resources         `yaml:"resource,omitempty"`

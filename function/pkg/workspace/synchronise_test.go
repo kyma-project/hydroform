@@ -86,7 +86,7 @@ func Test_Synchronise(t *testing.T) {
 				cfg: Cfg{
 					Name:      name,
 					Namespace: namespace,
-					Runtime:   types.Nodejs12,
+					Runtime:   types.Nodejs16,
 					Source: Source{
 						Type: SourceTypeInline,
 						SourceInline: SourceInline{
@@ -188,7 +188,7 @@ func Test_Synchronise(t *testing.T) {
 				cfg: Cfg{
 					Name:      name,
 					Namespace: namespace,
-					Runtime:   types.Nodejs12,
+					Runtime:   types.Nodejs16,
 					Source: Source{
 						Type: SourceTypeGit,
 						SourceGit: SourceGit{
@@ -298,7 +298,7 @@ func Test_Synchronise(t *testing.T) {
 				cfg: Cfg{
 					Name:      name,
 					Namespace: namespace,
-					Runtime:   types.Nodejs12,
+					Runtime:   types.Nodejs16,
 					Source: Source{
 						Type: SourceTypeInline,
 						SourceInline: SourceInline{

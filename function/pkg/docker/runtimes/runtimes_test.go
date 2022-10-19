@@ -53,23 +53,6 @@ func TestContainerEnvs(t *testing.T) {
 			},
 		},
 		{
-			name: "should return envs for nodejs12",
-			args: args{
-				runtime:   types.Nodejs12,
-				hotDeploy: false,
-			},
-			want: []string{
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=nodejs12",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				"SERVICE_NAMESPACE=default",
-				NodejsPath,
-				"HOME=/home/node",
-			},
-		},
-		{
 			name: "should return envs for nodejs16",
 			args: args{
 				runtime:   types.Nodejs16,
@@ -193,11 +176,6 @@ func TestRuntimeDebugPort(t *testing.T) {
 			want:    "9229",
 		},
 		{
-			name:    "should return nodejs12 debug port",
-			runtime: types.Nodejs12,
-			want:    NodejsDebugEndpoint,
-		},
-		{
 			name:    "should return nodejs14 debug port",
 			runtime: types.Nodejs14,
 			want:    NodejsDebugEndpoint,
@@ -256,35 +234,6 @@ func TestContainerCommands(t *testing.T) {
 			name: "should return commands for empty runtime with hotDeploy",
 			args: args{
 				runtime:   "",
-				hotDeploy: true,
-			},
-			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
-			},
-		},
-		{
-			name: "should return commands for Nodejs12",
-			args: args{
-				runtime: types.Nodejs12,
-			},
-			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
-			},
-		},
-		{
-			name: "should return commands for Nodejs12 with hotDeploy",
-			args: args{
-				runtime:   types.Nodejs12,
-				hotDeploy: true,
-			},
-			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
-			},
-		},
-		{
-			name: "should return commands for Nodejs12 with hotDeploy",
-			args: args{
-				runtime:   types.Nodejs12,
 				hotDeploy: true,
 			},
 			want: []string{
@@ -405,13 +354,6 @@ func TestContainerImage(t *testing.T) {
 				runtime: "",
 			},
 			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:e1491c46",
-		},
-		{
-			name: "should return image for Nodejs12",
-			args: args{
-				runtime: types.Nodejs12,
-			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs12:e1491c46",
 		},
 		{
 			name: "should return image for Nodejs14",

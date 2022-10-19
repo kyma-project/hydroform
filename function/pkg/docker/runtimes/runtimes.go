@@ -43,7 +43,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 
 func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	switch runtime {
-	case types.Nodejs12, types.Nodejs14, types.Nodejs16:
+	case types.Nodejs14, types.Nodejs16:
 		return []string{NodejsPath, "HOME=/home/node"}
 	case types.Python39:
 		envs := []string{Python39Path, Python39Unbuffered}
@@ -58,7 +58,7 @@ func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 
 func RuntimeDebugPort(runtime types.Runtime) string {
 	switch runtime {
-	case types.Nodejs12, types.Nodejs14, types.Nodejs16:
+	case types.Nodejs14, types.Nodejs16:
 		return NodejsDebugEndpoint
 	case types.Python39:
 		return Python39DebugEndpoint
@@ -69,7 +69,7 @@ func RuntimeDebugPort(runtime types.Runtime) string {
 
 func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 	switch runtime {
-	case types.Nodejs12, types.Nodejs14:
+	case types.Nodejs14:
 		runCommand := ""
 		if hotDeploy && debug {
 			runCommand = "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 --exitcrash kubeless.js "
@@ -155,8 +155,6 @@ func MoveInlineCommand(runtime types.Runtime, sourcePath, depsPath string) []str
 
 func ContainerImage(runtime types.Runtime) string {
 	switch runtime {
-	case types.Nodejs12:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs12:e1491c46"
 	case types.Nodejs14:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:e1491c46"
 	case types.Nodejs16:

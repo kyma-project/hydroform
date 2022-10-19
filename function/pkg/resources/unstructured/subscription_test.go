@@ -31,7 +31,7 @@ func Test_newSubscriptions(t *testing.T) {
 				cfg: workspace.Cfg{
 					Name:      "should-fail",
 					Namespace: "failed-tests",
-					Runtime:   "nodejs12",
+					Runtime:   "nodejs16",
 					Subscriptions: []workspace.Subscription{
 						{
 							Name:     "fixme",
