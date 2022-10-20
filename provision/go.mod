@@ -1,6 +1,6 @@
 module github.com/kyma-project/hydroform/provision
 
-go 1.19
+go 1.17
 
 replace (
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.12.1
