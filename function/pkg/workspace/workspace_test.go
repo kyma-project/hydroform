@@ -156,14 +156,6 @@ func Test_fromRuntime(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nodejs12",
-			args: args{
-				runtime: types.Nodejs12,
-			},
-			want:    workspaceNodeJs,
-			wantErr: false,
-		},
-		{
 			name: "python39",
 			args: args{
 				runtime: types.Python39,
@@ -228,16 +220,6 @@ func Test_fromSources(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nodejs12",
-			args: args{
-				runtime: types.Nodejs12,
-				source:  handlerJs,
-				deps:    packageJSON,
-			},
-			want:    workspaceNodeJs,
-			wantErr: false,
-		},
-		{
 			name: "python39",
 			args: args{
 				runtime: types.Python39,
@@ -286,7 +268,7 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 						"memory": "128Mi",
 					},
 				},
-				"runtime": "nodejs12",
+				"runtime": "nodejs16",
 				"source":  handlerJs,
 				"deps":    packageJSON,
 				"env": []interface{}{
@@ -407,7 +389,7 @@ func gitClient(ctrl *gomock.Controller, name, namespace string) client.Client {
 						"memory": "128Mi",
 					},
 				},
-				"runtime": "nodejs12",
+				"runtime": "nodejs16",
 				"source":  name,
 				"deps":    packageJSON,
 				"type":    "git",
