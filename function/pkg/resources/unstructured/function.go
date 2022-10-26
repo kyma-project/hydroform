@@ -105,7 +105,7 @@ func prepareInlineFunction(cfg workspace.Cfg, readFile ReadFile, sourceHandlerNa
 		return types.Function{}, err
 	}
 
-	f.Spec.Source.Inlif = string(specSource)
+	f.Spec.Source.Inline.Source = string(specSource)
 	f.Spec.Deps = string(specDeps)
 
 	return f, nil
