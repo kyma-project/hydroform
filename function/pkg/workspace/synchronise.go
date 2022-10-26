@@ -124,10 +124,10 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		}
 	}
 
-	if function.Spec.Type == "git" {
-		gitRepository := types.GitRepository{}
+	if function.Spec.Source.GitRepository != nil {
+		gitRepository := types.FunctionSpec{}
 
-		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, function.Spec.Source, v1.GetOptions{})
+		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, "git", v1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -139,10 +139,10 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		config.Source = Source{
 			Type: SourceTypeGit,
 			SourceGit: SourceGit{
-				URL:        gitRepository.Spec.URL,
-				Repository: function.Spec.Source,
-				Reference:  function.Spec.Reference,
-				BaseDir:    function.Spec.BaseDir,
+				URL: gitRepository.Source.GitRepository.URL,
+				//Repository: function.Spec.Source.GitRepository.Repository, //TODO: Should it be like this? https://github.com/kyma-project/hydroform/blob/87a95b03cbfa32338998eb1377d7af447a6bfbe6/function/pkg/workspace/synchronise.go#L143
+				Reference: function.Spec.Reference,
+				BaseDir:   function.Spec.BaseDir,
 			},
 		}
 		return initialize(config, outputPath, writerProvider)

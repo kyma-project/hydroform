@@ -46,8 +46,7 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 		return unstructured.Unstructured{}, err
 	}
 
-	f.Spec.Type = "git"
-	f.Spec.Source = repository
+	f.Spec.Source.GitRepository.Repository = repository //TODO: Should it be like this? https://github.com/kyma-project/hydroform/blob/87a95b03cbfa32338998eb1377d7af447a6bfbe6/function/pkg/resources/unstructured/function.go#L50
 	f.Spec.Reference = cfg.Source.Reference
 	f.Spec.BaseDir = cfg.Source.BaseDir
 
