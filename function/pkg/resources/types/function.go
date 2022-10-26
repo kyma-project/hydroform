@@ -26,18 +26,6 @@ import (
 ////	SecretName string `json:"secretName"`
 ////}
 
-//type FunctionSpec struct {
-//	Source               string                       `json:"source"`
-//	Deps                 string                       `json:"deps,omitempty"`
-//	Runtime              Runtime                      `json:"runtime,omitempty"`
-//	RuntimeImageOverride string                       `json:"runtimeImageOverride,omitempty"`
-//	Resources            *corev1.ResourceRequirements `json:"resources,omitempty"`
-//	Labels               map[string]string            `json:"labels,omitempty"`
-//	Type                 SourceType                   `json:"type,omitempty"`
-//	Repository           `json:",inline,omitempty"`
-//	Env                  []corev1.EnvVar `json:"env,omitempty"`
-//}
-
 type FunctionSpec struct {
 	Source               Source                       `json:"source"`
 	Deps                 string                       `json:"deps,omitempty"`

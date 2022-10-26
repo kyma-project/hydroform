@@ -127,7 +127,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	if function.Spec.Source.GitRepository != nil {
 		gitRepository := types.FunctionSpec{}
 
-		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, "git", v1.GetOptions{})
+		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, config.Name, v1.GetOptions{}) //function.Spec.Source
 		if err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			SourcePath: outputPath,
 		},
 	}
-	ws, err := fromSources(function.Spec.Runtime, function.Spec.Source, function.Spec.Deps)
+	ws, err := fromSources(function.Spec.Runtime, config.Name, function.Spec.Deps)
 	if err != nil {
 		return err
 	}

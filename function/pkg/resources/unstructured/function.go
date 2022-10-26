@@ -36,9 +36,9 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 }
 
 func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
-	repository := cfg.Name
+	//repository := cfg.Name
 	if cfg.Source.Repository != "" {
-		repository = cfg.Source.Repository
+		//repository = cfg.Source.Repository
 	}
 
 	f, err := prepareBaseFunction(cfg)
@@ -46,7 +46,7 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 		return unstructured.Unstructured{}, err
 	}
 
-	f.Spec.Source.GitRepository.Repository = repository //TODO: Should it be like this? https://github.com/kyma-project/hydroform/blob/87a95b03cbfa32338998eb1377d7af447a6bfbe6/function/pkg/resources/unstructured/function.go#L50
+	//f.Spec.Source.GitRepository.Repository = repository //TODO: Should it be like this? https://github.com/kyma-project/hydroform/blob/87a95b03cbfa32338998eb1377d7af447a6bfbe6/function/pkg/resources/unstructured/function.go#L50
 	f.Spec.Reference = cfg.Source.Reference
 	f.Spec.BaseDir = cfg.Source.BaseDir
 
@@ -105,7 +105,7 @@ func prepareInlineFunction(cfg workspace.Cfg, readFile ReadFile, sourceHandlerNa
 		return types.Function{}, err
 	}
 
-	f.Spec.Source = string(specSource)
+	f.Spec.Source.Inlif = string(specSource)
 	f.Spec.Deps = string(specDeps)
 
 	return f, nil
