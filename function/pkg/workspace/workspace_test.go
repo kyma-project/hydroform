@@ -253,7 +253,7 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 	result.EXPECT().
 		Get(gomock.Any(), name, v1.GetOptions{}).
 		Return(&unstructured.Unstructured{Object: map[string]interface{}{
-			"apiVersion": "serverless.kyma-project.io/v1alpha1",
+			"apiVersion": "serverless.kyma-project.io/v1alpha2",
 			"kind":       "Function",
 			"metadata": map[string]interface{}{
 				"name":      name,
@@ -269,8 +269,13 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 					},
 				},
 				"runtime": "nodejs16",
-				"source":  handlerJs,
-				"deps":    packageJSON,
+				"source": map[string]interface{}{
+					"inline": map[string]interface{}{
+						"source":       handlerJs,
+						"dependencies": packageJSON,
+					},
+				},
+
 				"env": []interface{}{
 					map[string]interface{}{
 						"name":  "TEST_ENV",
@@ -368,16 +373,16 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 	return result
 }
 
-func gitClient(ctrl *gomock.Controller, name, namespace string) client.Client {
+func gitClient(ctrl *gomock.Controller, namespace string) client.Client {
 	result := mockclient.NewMockClient(ctrl)
 
 	result.EXPECT().
-		Get(gomock.Any(), name, v1.GetOptions{}).
+		Get(gomock.Any(), "test", v1.GetOptions{}).
 		Return(&unstructured.Unstructured{Object: map[string]interface{}{
-			"apiVersion": "serverless.kyma-project.io/v1alpha1",
+			"apiVersion": "serverless.kyma-project.io/v1alpha2",
 			"kind":       "Function",
 			"metadata": map[string]interface{}{
-				"name":      name,
+				"name":      "test",
 				"namespace": namespace,
 			},
 			"spec": map[string]interface{}{
@@ -390,9 +395,19 @@ func gitClient(ctrl *gomock.Controller, name, namespace string) client.Client {
 					},
 				},
 				"runtime": "nodejs16",
-				"source":  name,
-				"deps":    packageJSON,
-				"type":    "git",
+				"source": map[string]interface{}{
+					"gitRepository": map[string]interface{}{
+						"url": "https://test.com",
+						"auth": map[string]interface{}{
+							"type":       "testType",
+							"secretName": "testSecret",
+						},
+						"repository": map[string]interface{}{
+							"baseDir":   "/",
+							"reference": "master",
+						},
+					},
+				},
 				"env": []interface{}{
 					map[string]interface{}{
 						"name":  "TEST_ENV",
@@ -428,7 +443,7 @@ func gitClient(ctrl *gomock.Controller, name, namespace string) client.Client {
 	result.EXPECT().List(gomock.Any(), gomock.Any()).
 		Return(&unstructured.UnstructuredList{}, nil).Times(1)
 
-	result.EXPECT().Get(gomock.Any(), name, v1.GetOptions{}).Return(&unstructured.Unstructured{
+	result.EXPECT().Get(gomock.Any(), "test", v1.GetOptions{}).Return(&unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"gitrepository": map[string]interface{}{
 				"spec": map[string]interface{}{

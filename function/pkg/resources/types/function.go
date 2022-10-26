@@ -5,27 +5,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//package types
-//
-//import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-//
-//type GitRepository struct {
-//	metav1.ObjectMeta `json:"metadata,omitempty"`
-//	APIVersion        string `json:"apiVersion"`
-//	Kind              string
-//	Spec              GitRepositorySpec `json:"spec,omitempty"`
-//}
-//
-//type GitRepositorySpec struct {
-//	URL  string          `json:"url"`
-//	Auth *RepositoryAuth `json:"auth,omitempty"`
-//}
-//
-////type RepositoryAuth struct {
-////	Type       string `json:"type"`
-////	SecretName string `json:"secretName"`
-////}
-
 type FunctionSpec struct {
 	Source               Source                       `json:"source"`
 	Deps                 string                       `json:"deps,omitempty"`
@@ -63,13 +42,6 @@ type RepositoryAuthType string
 const (
 	RepositoryAuthBasic  RepositoryAuthType = "basic"
 	RepositoryAuthSSHKey RepositoryAuthType = "key"
-)
-
-type FunctionType string
-
-const (
-	FunctionTypeInline FunctionType = "inline"
-	FunctionTypeGit    FunctionType = "git"
 )
 
 func (s FunctionSpec) toMap(l corev1.ResourceList) map[string]interface{} {

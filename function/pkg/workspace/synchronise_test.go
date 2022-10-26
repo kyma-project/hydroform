@@ -190,7 +190,6 @@ func Test_Synchronise(t *testing.T) {
 					Namespace: namespace,
 					Runtime:   types.Nodejs16,
 					Source: Source{
-						Type: SourceTypeGit,
 						SourceGit: SourceGit{
 							URL:       "https://test.com",
 							Reference: "master",
@@ -252,7 +251,7 @@ func Test_Synchronise(t *testing.T) {
 					},
 				},
 				build: func() client.Build {
-					c := gitClient(ctrl, name, namespace)
+					c := gitClient(ctrl, namespace)
 					return func(_ string, _ schema.GroupVersionResource) client.Client {
 						return c
 					}
@@ -331,10 +330,10 @@ func Test_Synchronise(t *testing.T) {
 							},
 						},
 					},
-					Resources: Resources{
-						Limits:   nil,
-						Requests: nil,
-					},
+					//Resources: Resources{
+					//	Limits:   nil,
+					//	Requests: nil,
+					//},
 					Subscriptions: []Subscription{
 						{
 							Name:     "fixme",
