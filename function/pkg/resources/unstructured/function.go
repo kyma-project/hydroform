@@ -19,7 +19,7 @@ import (
 
 type ReadFile = func(filename string) ([]byte, error)
 
-const functionAPIVersion = "serverless.kyma-project.io/v1alpha1"
+const functionAPIVersion = "serverless.kyma-project.io/v1alpha2"
 const appKubernetesLabel = "app.kubernetes.io/name"
 
 var errUnsupportedSource = fmt.Errorf("unsupported source")
@@ -44,8 +44,8 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 		return unstructured.Unstructured{}, err
 	}
 
-	f.Spec.Reference = cfg.Source.Reference
-	f.Spec.BaseDir = cfg.Source.BaseDir
+	f.Spec.Source.GitRepository.Reference = cfg.Source.Reference
+	f.Spec.Source.GitRepository.BaseDir = cfg.Source.BaseDir
 	f.Name = cfg.Name
 	unstructuredFunction, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&f)
 	out = unstructured.Unstructured{Object: unstructuredFunction}
@@ -129,7 +129,6 @@ func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
 			Runtime:              cfg.Runtime,
 			RuntimeImageOverride: cfg.RuntimeImageOverride,
 			Resources:            resources,
-			Repository:           types.Repository{},
 			Env:                  envs,
 		},
 	}

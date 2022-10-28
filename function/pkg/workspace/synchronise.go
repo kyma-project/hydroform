@@ -140,8 +140,8 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			SourceGit: SourceGit{
 				URL:        function.Spec.Source.GitRepository.URL,
 				Repository: config.Name,
-				Reference:  function.Spec.Reference,
-				BaseDir:    function.Spec.BaseDir,
+				Reference:  function.Spec.Source.GitRepository.Reference,
+				BaseDir:    function.Spec.Source.GitRepository.BaseDir,
 			},
 		}
 		return initialize(config, outputPath, writerProvider)
