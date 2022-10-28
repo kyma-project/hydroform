@@ -139,7 +139,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			Type: SourceTypeGit,
 			SourceGit: SourceGit{
 				URL:        function.Spec.Source.GitRepository.URL,
-				Repository: config.Name, //TODO: Should it be like this? https://github.com/kyma-project/hydroform/blob/87a95b03cbfa32338998eb1377d7af447a6bfbe6/function/pkg/workspace/synchronise.go#L143
+				Repository: config.Name,
 				Reference:  function.Spec.Reference,
 				BaseDir:    function.Spec.BaseDir,
 			},

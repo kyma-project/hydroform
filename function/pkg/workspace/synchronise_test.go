@@ -330,10 +330,6 @@ func Test_Synchronise(t *testing.T) {
 							},
 						},
 					},
-					//Resources: Resources{
-					//	Limits:   nil,
-					//	Requests: nil,
-					//},
 					Subscriptions: []Subscription{
 						{
 							Name:     "fixme",

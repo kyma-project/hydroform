@@ -36,9 +36,7 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 }
 
 func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
-	//repository := cfg.Name
 	if cfg.Source.Repository != "" {
-		//repository = cfg.Source.Repository
 	}
 
 	f, err := prepareBaseFunction(cfg)
@@ -46,10 +44,9 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 		return unstructured.Unstructured{}, err
 	}
 
-	//f.Spec.Source.GitRepository.Repository = repository //TODO: Should it be like this? https://github.com/kyma-project/hydroform/blob/87a95b03cbfa32338998eb1377d7af447a6bfbe6/function/pkg/resources/unstructured/function.go#L50
 	f.Spec.Reference = cfg.Source.Reference
 	f.Spec.BaseDir = cfg.Source.BaseDir
-
+	f.Name = cfg.Name
 	unstructuredFunction, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&f)
 	out = unstructured.Unstructured{Object: unstructuredFunction}
 	if err != nil {
