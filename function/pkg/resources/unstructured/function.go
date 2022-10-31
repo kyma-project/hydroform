@@ -44,8 +44,12 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 		return unstructured.Unstructured{}, err
 	}
 
-	f.Spec.Source.GitRepository.Reference = cfg.Source.Reference
-	f.Spec.Source.GitRepository.BaseDir = cfg.Source.BaseDir
+	f.Spec.Source.GitRepository = &types.GitRepositorySource{
+		Repository: types.Repository{
+			BaseDir:   cfg.Source.BaseDir,
+			Reference: cfg.Source.Reference,
+		},
+	}
 	f.Name = cfg.Name
 	unstructuredFunction, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&f)
 	out = unstructured.Unstructured{Object: unstructuredFunction}
@@ -102,7 +106,9 @@ func prepareInlineFunction(cfg workspace.Cfg, readFile ReadFile, sourceHandlerNa
 		return types.Function{}, err
 	}
 
-	f.Spec.Source.Inline.Source = string(specSource)
+	f.Spec.Source.Inline = &types.InlineSource{
+		Source: string(specSource),
+	}
 	f.Spec.Deps = string(specDeps)
 
 	return f, nil

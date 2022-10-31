@@ -23,7 +23,7 @@ type Source struct {
 type GitRepositorySource struct {
 	URL        string          `json:"url"`
 	Auth       *RepositoryAuth `json:"auth,omitempty"`
-	Repository `json:",inline"`
+	Repository `json:",inline,omitempty"`
 }
 
 type InlineSource struct {
