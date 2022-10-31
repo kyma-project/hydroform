@@ -113,10 +113,10 @@ func Test_newFunction(t *testing.T) {
 						},
 						"source": map[string]interface{}{
 							"inline": map[string]interface{}{
-								"source": "test-source-content",
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
 							},
 						},
-						"deps": "test-deps-content",
 						"env": []interface{}{
 							map[string]interface{}{
 								"name":  "TEST_ENV",
@@ -303,10 +303,10 @@ func Test_newFunction(t *testing.T) {
 						"runtime": "python39",
 						"source": map[string]interface{}{
 							"inline": map[string]interface{}{
-								"source": "test-source-content",
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
 							},
 						},
-						"deps": "test-deps-content",
 					},
 				},
 			},
@@ -360,10 +360,10 @@ func Test_newFunction(t *testing.T) {
 						"runtime": "python39",
 						"source": map[string]interface{}{
 							"inline": map[string]interface{}{
-								"source": "test-source-content",
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
 							},
 						},
-						"deps": "test-deps-content",
 						"resources": map[string]interface{}{
 							"requests": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
@@ -423,10 +423,10 @@ func Test_newFunction(t *testing.T) {
 						"runtime": "python39",
 						"source": map[string]interface{}{
 							"inline": map[string]interface{}{
-								"source": "test-source-content",
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
 							},
 						},
-						"deps": "test-deps-content",
 						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
@@ -488,10 +488,10 @@ func Test_newFunction(t *testing.T) {
 						"runtime": "python39",
 						"source": map[string]interface{}{
 							"inline": map[string]interface{}{
-								"source": "test-source-content",
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
 							},
 						},
-						"deps": "test-deps-content",
 						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU: "1",
@@ -580,10 +580,10 @@ func Test_newFunction(t *testing.T) {
 						"runtime": "python39",
 						"source": map[string]interface{}{
 							"inline": map[string]interface{}{
-								"source": "test-source-content",
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
 							},
 						},
-						"deps": "test-deps-content",
 						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameMemory: "10M",
