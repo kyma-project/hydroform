@@ -126,7 +126,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 	if function.Spec.Source.GitRepository != nil {
 
-		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, config.Name, v1.GetOptions{}) //function.Spec.Source
+		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, config.Name, v1.GetOptions{})
 		if err != nil {
 			return err
 		}
