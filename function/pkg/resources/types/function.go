@@ -7,7 +7,6 @@ import (
 
 type FunctionSpec struct {
 	Source               Source                       `json:"source"`
-	Deps                 string                       `json:"deps,omitempty"`
 	Runtime              Runtime                      `json:"runtime,omitempty"`
 	RuntimeImageOverride string                       `json:"runtimeImageOverride,omitempty"`
 	Resources            *corev1.ResourceRequirements `json:"resources,omitempty"`

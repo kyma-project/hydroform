@@ -153,7 +153,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			SourcePath: outputPath,
 		},
 	}
-	ws, err := fromSources(function.Spec.Runtime, config.Name, function.Spec.Deps)
+	ws, err := fromSources(function.Spec.Runtime, config.Name, function.Spec.Source.Inline.Dependencies)
 	if err != nil {
 		return err
 	}
