@@ -46,10 +46,14 @@ func TestNewPublicGitRepository(t *testing.T) {
 						"creationTimestamp": nil,
 					},
 					"spec": map[string]interface{}{
-						"url": "test-url",
-						"auth": map[string]interface{}{
-							"type":       "key",
-							"secretName": "test-secretname",
+						"source": map[string]interface{}{
+							"gitRepository": map[string]interface{}{
+								"auth": map[string]interface{}{
+									"type":       "key",
+									"secretName": "test-secretname",
+								},
+								"url": "test-url",
+							},
 						},
 					},
 				},
