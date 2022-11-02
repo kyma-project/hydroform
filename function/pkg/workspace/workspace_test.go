@@ -373,16 +373,16 @@ func inlineClient(ctrl *gomock.Controller, name, namespace string) client.Client
 	return result
 }
 
-func gitClient(ctrl *gomock.Controller, namespace string) client.Client {
+func gitClient(ctrl *gomock.Controller, name string, namespace string) client.Client {
 	result := mockclient.NewMockClient(ctrl)
 
 	result.EXPECT().
-		Get(gomock.Any(), "test", v1.GetOptions{}).
+		Get(gomock.Any(), name, v1.GetOptions{}).
 		Return(&unstructured.Unstructured{Object: map[string]interface{}{
 			"apiVersion": "serverless.kyma-project.io/v1alpha2",
 			"kind":       "Function",
 			"metadata": map[string]interface{}{
-				"name":      "test",
+				"name":      name,
 				"namespace": namespace,
 			},
 			"spec": map[string]interface{}{

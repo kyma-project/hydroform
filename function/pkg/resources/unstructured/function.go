@@ -36,8 +36,6 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 }
 
 func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
-	if cfg.Source.Repository != "" {
-	}
 
 	f, err := prepareBaseFunction(cfg)
 	if err != nil {
@@ -45,6 +43,8 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 	}
 
 	f.Spec.Source.GitRepository = &types.GitRepositorySource{
+		URL: cfg.Source.URL,
+
 		Repository: types.Repository{
 			BaseDir:   cfg.Source.BaseDir,
 			Reference: cfg.Source.Reference,

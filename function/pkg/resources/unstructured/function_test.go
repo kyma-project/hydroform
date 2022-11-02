@@ -765,7 +765,7 @@ func Test_newGitFunction(t *testing.T) {
 						},
 						"source": map[string]interface{}{
 							"gitRepository": map[string]interface{}{
-								"url":       "",
+								"url":       "test-url",
 								"baseDir":   "test-base-dir",
 								"reference": "test-reference",
 							},
@@ -899,7 +899,7 @@ func Test_newGitFunction(t *testing.T) {
 						},
 						"source": map[string]interface{}{
 							"gitRepository": map[string]interface{}{
-								"url":       "",
+								"url":       "test-url",
 								"baseDir":   "test-base-dir",
 								"reference": "test-reference",
 							},

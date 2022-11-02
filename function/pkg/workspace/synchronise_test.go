@@ -251,7 +251,7 @@ func Test_Synchronise(t *testing.T) {
 					},
 				},
 				build: func() client.Build {
-					c := gitClient(ctrl, namespace)
+					c := gitClient(ctrl, name, namespace)
 					return func(_ string, _ schema.GroupVersionResource) client.Client {
 						return c
 					}
