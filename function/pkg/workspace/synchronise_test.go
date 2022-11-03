@@ -190,7 +190,6 @@ func Test_Synchronise(t *testing.T) {
 					Namespace: namespace,
 					Runtime:   types.Nodejs16,
 					Source: Source{
-						Type: SourceTypeGit,
 						SourceGit: SourceGit{
 							URL:       "https://test.com",
 							Reference: "master",
@@ -330,10 +329,6 @@ func Test_Synchronise(t *testing.T) {
 								},
 							},
 						},
-					},
-					Resources: Resources{
-						Limits:   nil,
-						Requests: nil,
 					},
 					Subscriptions: []Subscription{
 						{

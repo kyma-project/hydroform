@@ -111,8 +111,12 @@ func Test_newFunction(t *testing.T) {
 								workspace.ResourceNameMemory: "10M",
 							},
 						},
-						"source": "test-source-content",
-						"deps":   "test-deps-content",
+						"source": map[string]interface{}{
+							"inline": map[string]interface{}{
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
+							},
+						},
 						"env": []interface{}{
 							map[string]interface{}{
 								"name":  "TEST_ENV",
@@ -247,7 +251,11 @@ func Test_newFunction(t *testing.T) {
 								workspace.ResourceNameMemory: "10M",
 							},
 						},
-						"source": "test-source-content",
+						"source": map[string]interface{}{
+							"inline": map[string]interface{}{
+								"source": "test-source-content",
+							},
+						},
 					},
 				},
 			},
@@ -293,8 +301,12 @@ func Test_newFunction(t *testing.T) {
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
-						"source":  "test-source-content",
-						"deps":    "test-deps-content",
+						"source": map[string]interface{}{
+							"inline": map[string]interface{}{
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
+							},
+						},
 					},
 				},
 			},
@@ -346,8 +358,12 @@ func Test_newFunction(t *testing.T) {
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
-						"source":  "test-source-content",
-						"deps":    "test-deps-content",
+						"source": map[string]interface{}{
+							"inline": map[string]interface{}{
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
+							},
+						},
 						"resources": map[string]interface{}{
 							"requests": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
@@ -405,8 +421,12 @@ func Test_newFunction(t *testing.T) {
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
-						"source":  "test-source-content",
-						"deps":    "test-deps-content",
+						"source": map[string]interface{}{
+							"inline": map[string]interface{}{
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
+							},
+						},
 						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU:    "1",
@@ -466,8 +486,12 @@ func Test_newFunction(t *testing.T) {
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
-						"source":  "test-source-content",
-						"deps":    "test-deps-content",
+						"source": map[string]interface{}{
+							"inline": map[string]interface{}{
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
+							},
+						},
 						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameCPU: "1",
@@ -554,8 +578,12 @@ func Test_newFunction(t *testing.T) {
 					},
 					"spec": map[string]interface{}{
 						"runtime": "python39",
-						"source":  "test-source-content",
-						"deps":    "test-deps-content",
+						"source": map[string]interface{}{
+							"inline": map[string]interface{}{
+								"dependencies": "test-deps-content",
+								"source":       "test-source-content",
+							},
+						},
 						"resources": map[string]interface{}{
 							"limits": workspace.ResourceList{
 								workspace.ResourceNameMemory: "10M",
@@ -735,10 +763,13 @@ func Test_newGitFunction(t *testing.T) {
 								workspace.ResourceNameMemory: "10M",
 							},
 						},
-						"source":    "test-name",
-						"baseDir":   "test-base-dir",
-						"reference": "test-reference",
-						"type":      "git",
+						"source": map[string]interface{}{
+							"gitRepository": map[string]interface{}{
+								"url":       "test-url",
+								"baseDir":   "test-base-dir",
+								"reference": "test-reference",
+							},
+						},
 						"env": []interface{}{
 							map[string]interface{}{
 								"name":  "TEST_ENV",
@@ -866,10 +897,13 @@ func Test_newGitFunction(t *testing.T) {
 								workspace.ResourceNameMemory: "10M",
 							},
 						},
-						"source":    "test-repository",
-						"baseDir":   "test-base-dir",
-						"reference": "test-reference",
-						"type":      "git",
+						"source": map[string]interface{}{
+							"gitRepository": map[string]interface{}{
+								"url":       "test-url",
+								"baseDir":   "test-base-dir",
+								"reference": "test-reference",
+							},
+						},
 					},
 				},
 			},

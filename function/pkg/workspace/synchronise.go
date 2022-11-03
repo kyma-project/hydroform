@@ -124,25 +124,24 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		}
 	}
 
-	if function.Spec.Type == "git" {
-		gitRepository := types.GitRepository{}
+	if function.Spec.Source.GitRepository != nil {
 
-		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, function.Spec.Source, v1.GetOptions{})
+		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, config.Name, v1.GetOptions{})
 		if err != nil {
 			return err
 		}
 
-		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &gitRepository); err != nil {
+		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &function.Spec.Source.GitRepository); err != nil {
 			return err
 		}
 
 		config.Source = Source{
 			Type: SourceTypeGit,
 			SourceGit: SourceGit{
-				URL:        gitRepository.Spec.URL,
-				Repository: function.Spec.Source,
-				Reference:  function.Spec.Reference,
-				BaseDir:    function.Spec.BaseDir,
+				URL:        function.Spec.Source.GitRepository.URL,
+				Repository: config.Name,
+				Reference:  function.Spec.Source.GitRepository.Reference,
+				BaseDir:    function.Spec.Source.GitRepository.BaseDir,
 			},
 		}
 		return initialize(config, outputPath, writerProvider)
@@ -154,7 +153,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			SourcePath: outputPath,
 		},
 	}
-	ws, err := fromSources(function.Spec.Runtime, function.Spec.Source, function.Spec.Deps)
+	ws, err := fromSources(function.Spec.Runtime, config.Name, function.Spec.Source.Inline.Dependencies)
 	if err != nil {
 		return err
 	}

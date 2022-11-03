@@ -11,22 +11,22 @@ import (
 var (
 	GVRFunction = schema.GroupVersionResource{
 		Group:    "serverless.kyma-project.io",
-		Version:  "v1alpha1",
+		Version:  "v1alpha2",
 		Resource: "functions",
 	}
 	GVRGitRepository = schema.GroupVersionResource{
 		Group:    "serverless.kyma-project.io",
-		Version:  "v1alpha1",
+		Version:  "v1alpha2",
 		Resource: "gitrepositories",
 	}
 	GVRSubscription = schema.GroupVersionResource{
 		Group:    "eventing.kyma-project.io",
-		Version:  "v1alpha1",
+		Version:  "v1alpha2",
 		Resource: "subscriptions",
 	}
 	GVRApiRule = schema.GroupVersionResource{
 		Group:    "gateway.kyma-project.io",
-		Version:  "v1alpha1",
+		Version:  "v1beta1",
 		Resource: "apirules",
 	}
 )

@@ -19,7 +19,7 @@ import (
 
 type ReadFile = func(filename string) ([]byte, error)
 
-const functionAPIVersion = "serverless.kyma-project.io/v1alpha1"
+const functionAPIVersion = "serverless.kyma-project.io/v1alpha2"
 const appKubernetesLabel = "app.kubernetes.io/name"
 
 var errUnsupportedSource = fmt.Errorf("unsupported source")
@@ -36,21 +36,21 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 }
 
 func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
-	repository := cfg.Name
-	if cfg.Source.Repository != "" {
-		repository = cfg.Source.Repository
-	}
 
 	f, err := prepareBaseFunction(cfg)
 	if err != nil {
 		return unstructured.Unstructured{}, err
 	}
 
-	f.Spec.Type = "git"
-	f.Spec.Source = repository
-	f.Spec.Reference = cfg.Source.Reference
-	f.Spec.BaseDir = cfg.Source.BaseDir
+	f.Spec.Source.GitRepository = &types.GitRepositorySource{
+		URL: cfg.Source.URL,
 
+		Repository: types.Repository{
+			BaseDir:   cfg.Source.BaseDir,
+			Reference: cfg.Source.Reference,
+		},
+	}
+	f.Name = cfg.Name
 	unstructuredFunction, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&f)
 	out = unstructured.Unstructured{Object: unstructuredFunction}
 	if err != nil {
@@ -106,8 +106,10 @@ func prepareInlineFunction(cfg workspace.Cfg, readFile ReadFile, sourceHandlerNa
 		return types.Function{}, err
 	}
 
-	f.Spec.Source = string(specSource)
-	f.Spec.Deps = string(specDeps)
+	f.Spec.Source.Inline = &types.InlineSource{
+		Source: string(specSource),
+	}
+	f.Spec.Source.Inline.Dependencies = string(specDeps)
 
 	return f, nil
 }
@@ -133,7 +135,6 @@ func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
 			Runtime:              cfg.Runtime,
 			RuntimeImageOverride: cfg.RuntimeImageOverride,
 			Resources:            resources,
-			Repository:           types.Repository{},
 			Env:                  envs,
 		},
 	}

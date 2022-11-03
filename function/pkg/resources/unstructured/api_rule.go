@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	apiRuleAPIVersion = "gateway.kyma-project.io/v1alpha1"
+	apiRuleAPIVersion = "gateway.kyma-project.io/v1beta1"
 	apiRuleKind       = "APIRule"
 )
 

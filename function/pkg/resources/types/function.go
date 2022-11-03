@@ -5,19 +5,42 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type SourceType string
-
 type FunctionSpec struct {
-	Source               string                       `json:"source"`
-	Deps                 string                       `json:"deps,omitempty"`
+	Source               Source                       `json:"source"`
 	Runtime              Runtime                      `json:"runtime,omitempty"`
 	RuntimeImageOverride string                       `json:"runtimeImageOverride,omitempty"`
 	Resources            *corev1.ResourceRequirements `json:"resources,omitempty"`
 	Labels               map[string]string            `json:"labels,omitempty"`
-	Type                 SourceType                   `json:"type,omitempty"`
-	Repository           `json:",inline,omitempty"`
-	Env                  []corev1.EnvVar `json:"env,omitempty"`
+	Env                  []corev1.EnvVar              `json:"env,omitempty"`
 }
+
+type Source struct {
+	GitRepository *GitRepositorySource `json:"gitRepository,omitempty"`
+	Inline        *InlineSource        `json:"inline,omitempty"`
+}
+
+type GitRepositorySource struct {
+	URL        string          `json:"url"`
+	Auth       *RepositoryAuth `json:"auth,omitempty"`
+	Repository `json:",inline,omitempty"`
+}
+
+type InlineSource struct {
+	Source       string `json:"source"`
+	Dependencies string `json:"dependencies,omitempty"`
+}
+
+type RepositoryAuth struct {
+	Type       RepositoryAuthType `json:"type"`
+	SecretName string             `json:"secretName"`
+}
+
+type RepositoryAuthType string
+
+const (
+	RepositoryAuthBasic  RepositoryAuthType = "basic"
+	RepositoryAuthSSHKey RepositoryAuthType = "key"
+)
 
 func (s FunctionSpec) toMap(l corev1.ResourceList) map[string]interface{} {
 	length := len(l)

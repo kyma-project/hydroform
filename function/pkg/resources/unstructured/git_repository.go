@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const gitRepositoryAPIVersion = "serverless.kyma-project.io/v1alpha1"
+const gitRepositoryAPIVersion = "serverless.kyma-project.io/v1alpha2"
 
 func NewPublicGitRepository(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
 	name := cfg.Name
@@ -24,21 +24,25 @@ func NewPublicGitRepository(cfg workspace.Cfg) (out unstructured.Unstructured, e
 	var auth *types.RepositoryAuth
 	if cfg.Source.CredentialsSecretName != "" {
 		auth = &types.RepositoryAuth{
-			Type:       credentialsType,
+			Type:       types.RepositoryAuthType(credentialsType),
 			SecretName: cfg.Source.CredentialsSecretName,
 		}
 	}
 
-	gitRepo := types.GitRepository{
+	gitRepo := types.Function{
 		APIVersion: functionAPIVersion,
 		Kind:       "GitRepository",
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: cfg.Namespace,
 		},
-		Spec: types.GitRepositorySpec{
-			URL:  cfg.Source.URL,
-			Auth: auth,
+		Spec: types.FunctionSpec{
+			Source: types.Source{
+				GitRepository: &types.GitRepositorySource{
+					URL:  cfg.Source.URL,
+					Auth: auth,
+				},
+			},
 		},
 	}
 
