@@ -21,7 +21,7 @@ var (
 	}
 	GVRSubscription = schema.GroupVersionResource{
 		Group:    "eventing.kyma-project.io",
-		Version:  "v1alpha2",
+		Version:  "v1alpha1",
 		Resource: "subscriptions",
 	}
 	GVRApiRule = schema.GroupVersionResource{
