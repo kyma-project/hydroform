@@ -124,29 +124,6 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		}
 	}
 
-	if function.Spec.Source.GitRepository != nil {
-
-		u, err := build(config.Namespace, operator.GVRGitRepository).Get(ctx, config.Name, v1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
-		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &function.Spec.Source.GitRepository); err != nil {
-			return err
-		}
-
-		config.Source = Source{
-			Type: SourceTypeGit,
-			SourceGit: SourceGit{
-				URL:        function.Spec.Source.GitRepository.URL,
-				Repository: config.Name,
-				Reference:  function.Spec.Source.GitRepository.Reference,
-				BaseDir:    function.Spec.Source.GitRepository.BaseDir,
-			},
-		}
-		return initialize(config, outputPath, writerProvider)
-	}
-
 	config.Source = Source{
 		Type: SourceTypeInline,
 		SourceInline: SourceInline{

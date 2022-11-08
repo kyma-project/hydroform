@@ -14,11 +14,6 @@ var (
 		Version:  "v1alpha2",
 		Resource: "functions",
 	}
-	GVRGitRepository = schema.GroupVersionResource{
-		Group:    "serverless.kyma-project.io",
-		Version:  "v1alpha2",
-		Resource: "gitrepositories",
-	}
 	GVRSubscription = schema.GroupVersionResource{
 		Group:    "eventing.kyma-project.io",
 		Version:  "v1alpha1",
