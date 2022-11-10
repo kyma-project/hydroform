@@ -111,7 +111,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 				Name:    setIfNotEqual(apiRule.Name, function.Name),
 				Gateway: setIfNotEqual(apiRule.Spec.Gateway, APIRuleGateway),
 				Service: Service{
-					Host: apiRule.Spec.Service.Host,
+					Host: apiRule.Spec.Host,
 				},
 				Rules: toWorkspaceRules(apiRule.Spec.Rules),
 			}

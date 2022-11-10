@@ -38,18 +38,18 @@ func prepareAPIRule(name, namespace, host string, labels map[string]string, apiR
 		APIVersion: apiRuleAPIVersion,
 		Kind:       apiRuleKind,
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      defaultString(apiRule.Name, name),
-			Namespace: namespace,
-			Labels:    labels,
+			Name:   defaultString(apiRule.Name, name),
+			Labels: labels,
 		},
 		Spec: types.APIRuleSpec{
-			Service: types.Service{
-				Host: defaultString(apiRule.Service.Host, fmt.Sprintf("%s.%s", name, host)),
-				Port: defaultInt64(apiRule.Service.Port, workspace.APIRulePort),
-				Name: name,
-			},
-			Rules:   prepareRules(apiRule.Rules),
 			Gateway: defaultString(apiRule.Gateway, workspace.APIRuleGateway),
+			Host:    defaultString(apiRule.Service.Host, fmt.Sprintf("%s.%s", name, host)),
+			Service: types.Service{
+				Name:      name,
+				Namespace: namespace,
+				Port:      defaultInt64(apiRule.Service.Port, workspace.APIRulePort),
+			},
+			Rules: prepareRules(apiRule.Rules),
 		},
 	}
 }
@@ -58,9 +58,9 @@ func prepareRules(rules []workspace.Rule) []types.Rule {
 	var typesRules []types.Rule
 	for _, rule := range rules {
 		typesRules = append(typesRules, types.Rule{
-			AccessStrategies: prepareAccessStrategies(rule.AccessStrategies),
-			Methods:          rule.Methods,
 			Path:             defaultString(rule.Path, workspace.APIRulePath),
+			Methods:          rule.Methods,
+			AccessStrategies: prepareAccessStrategies(rule.AccessStrategies),
 		})
 	}
 	return typesRules
