@@ -59,14 +59,14 @@ func TestNewApiRule(t *testing.T) {
 						"kind":       apiRuleKind,
 						"metadata": map[string]interface{}{
 							"name":              "test-name",
-							"namespace":         "test-ns",
 							"creationTimestamp": nil,
 						},
 						"spec": map[string]interface{}{
+							"host": "test-name.kyma.local",
 							"service": map[string]interface{}{
-								"host": "test-name.kyma.local",
-								"name": "test-name",
-								"port": int64(80),
+								"name":      "test-name",
+								"namespace": "test-ns",
+								"port":      int64(80),
 							},
 							"rules": []interface{}{
 								map[string]interface{}{
@@ -131,17 +131,17 @@ func TestNewApiRule(t *testing.T) {
 						"kind":       apiRuleKind,
 						"metadata": map[string]interface{}{
 							"name":              "test-name",
-							"namespace":         "test-ns",
 							"creationTimestamp": nil,
 							"labels": map[string]interface{}{
 								"test": "me",
 							},
 						},
 						"spec": map[string]interface{}{
+							"host": "test-host",
 							"service": map[string]interface{}{
-								"host": "test-host",
-								"name": "function-name",
-								"port": int64(9090),
+								"name":      "function-name",
+								"namespace": "test-ns",
+								"port":      int64(9090),
 							},
 							"rules": []interface{}{
 								map[string]interface{}{
