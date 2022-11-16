@@ -1,7 +1,6 @@
 package unstructured
 
 import (
-	"fmt"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +42,7 @@ func prepareAPIRule(name, namespace, host string, labels map[string]string, apiR
 		},
 		Spec: types.APIRuleSpec{
 			Gateway: defaultString(apiRule.Gateway, workspace.APIRuleGateway),
-			Host:    defaultString(apiRule.Service.Host, fmt.Sprintf("%s.%s", name, host)),
+			Host:    apiRule.Service.Host,
 			Service: types.Service{
 				Name:      name,
 				Namespace: namespace,
