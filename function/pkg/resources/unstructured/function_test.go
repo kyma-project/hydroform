@@ -621,7 +621,7 @@ func Test_newFunction(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotOut, err := newFunction(tt.args.cfg, tt.args.readFile)
+			gotOut, err := newFunction(&tt.args.cfg, tt.args.readFile)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newFunction() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -910,7 +910,7 @@ func Test_newGitFunction(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotOut, err := newGitFunction(tt.args.cfg)
+			gotOut, err := newGitFunction(&tt.args.cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newGitFunction() error = %v, wantErr %v", err, tt.wantErr)
 				return
