@@ -23,8 +23,9 @@ type Service struct {
 }
 
 type Rule struct {
-	Path             string            `json:"path"`
-	Methods          []string          `json:"methods"`
+	Path    string   `json:"path"`
+	Methods []string `json:"methods"`
+	//Mutators          []string          `json:"mutators"`     TODO - What about this?
 	AccessStrategies []AccessStrategie `json:"accessStrategies"`
 }
 
