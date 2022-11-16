@@ -821,10 +821,9 @@ func Test_newGitFunction(t *testing.T) {
 					Source: workspace.Source{
 						Type: workspace.SourceTypeGit,
 						SourceGit: workspace.SourceGit{
-							URL:        "test-url",
-							Repository: "test-repository",
-							Reference:  "test-reference",
-							BaseDir:    "test-base-dir",
+							URL:       "test-url",
+							Reference: "test-reference",
+							BaseDir:   "test-base-dir",
 						},
 					},
 					Subscriptions: []workspace.Subscription{
