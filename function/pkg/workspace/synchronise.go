@@ -124,18 +124,42 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		}
 	}
 
+	var ws workspace
+	if function.Spec.Source.Inline != nil {
+		ws, err = createInlineWorkspace(&config, outputPath, function)
+	}
+	if function.Spec.Source.GitRepository != nil {
+		createGitConfig(&config, function)
+	}
+	if err != nil {
+		return err
+	}
+	return ws.build(config, outputPath, writerProvider)
+}
+
+func createGitConfig(config *Cfg, function types.Function) {
+	config.Source = Source{
+		Type: SourceTypeGit,
+		SourceGit: SourceGit{
+			URL:       function.Spec.Source.GitRepository.URL,
+			Reference: function.Spec.Source.GitRepository.Reference,
+			BaseDir:   function.Spec.Source.GitRepository.BaseDir,
+		},
+	}
+	if function.Spec.Source.GitRepository.Auth != nil {
+		config.Source.SourceGit.CredentialsSecretName = function.Spec.Source.GitRepository.Auth.SecretName
+		config.Source.SourceGit.CredentialsType = string(function.Spec.Source.GitRepository.Auth.Type)
+	}
+}
+
+func createInlineWorkspace(config *Cfg, outputPath string, function types.Function) (workspace, error) {
 	config.Source = Source{
 		Type: SourceTypeInline,
 		SourceInline: SourceInline{
 			SourcePath: outputPath,
 		},
 	}
-	ws, err := fromSources(function.Spec.Runtime, config.Name, function.Spec.Source.Inline.Dependencies)
-	if err != nil {
-		return err
-	}
-
-	return ws.build(config, outputPath, writerProvider)
+	return fromSources(function.Spec.Runtime, function.Spec.Source.Inline.Source, function.Spec.Source.Inline.Dependencies)
 }
 
 func toWorkspaceEnvVar(envs []corev1.EnvVar) []EnvVar {
