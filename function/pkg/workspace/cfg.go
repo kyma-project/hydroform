@@ -132,7 +132,6 @@ func (s SourceInline) Type() SourceType {
 
 type SourceGit struct {
 	URL                   string `yaml:"url,omitempty"`
-	Repository            string `yaml:"repository,omitempty"`
 	Reference             string `yaml:"reference,omitempty"`
 	BaseDir               string `yaml:"baseDir,omitempty"`
 	CredentialsSecretName string `yaml:"credentialsSecretName,omitempty"`

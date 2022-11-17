@@ -24,7 +24,7 @@ const appKubernetesLabel = "app.kubernetes.io/name"
 
 var errUnsupportedSource = fmt.Errorf("unsupported source")
 
-func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
+func NewFunction(cfg *workspace.Cfg) (unstructured.Unstructured, error) {
 	switch cfg.Source.Type {
 	case workspace.SourceTypeInline:
 		return newFunction(cfg, ioutil.ReadFile)
@@ -35,7 +35,7 @@ func NewFunction(cfg workspace.Cfg) (unstructured.Unstructured, error) {
 	}
 }
 
-func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error) {
+func newGitFunction(cfg *workspace.Cfg) (out unstructured.Unstructured, err error) {
 
 	f, err := prepareBaseFunction(cfg)
 	if err != nil {
@@ -44,11 +44,17 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 
 	f.Spec.Source.GitRepository = &types.GitRepositorySource{
 		URL: cfg.Source.URL,
-
 		Repository: types.Repository{
 			BaseDir:   cfg.Source.BaseDir,
 			Reference: cfg.Source.Reference,
 		},
+	}
+	if cfg.Source.SourceGit.CredentialsSecretName != "" {
+		f.Spec.Source.GitRepository.Auth =
+			&types.RepositoryAuth{
+				Type:       types.RepositoryAuthType(cfg.Source.SourceGit.CredentialsType),
+				SecretName: cfg.Source.SourceGit.CredentialsSecretName,
+			}
 	}
 	f.Name = cfg.Name
 	unstructuredFunction, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&f)
@@ -60,7 +66,7 @@ func newGitFunction(cfg workspace.Cfg) (out unstructured.Unstructured, err error
 	return
 }
 
-func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstructured, err error) {
+func newFunction(cfg *workspace.Cfg, readFile ReadFile) (out unstructured.Unstructured, err error) {
 	// get default handler names
 	sourceHandlerName, depsHandlerName, found := workspace.InlineFileNames(cfg.Runtime)
 	if !found {
@@ -90,7 +96,7 @@ func newFunction(cfg workspace.Cfg, readFile ReadFile) (out unstructured.Unstruc
 	return
 }
 
-func prepareInlineFunction(cfg workspace.Cfg, readFile ReadFile, sourceHandlerName workspace.SourceFileName, depsHandlerName workspace.DepsFileName) (types.Function, error) {
+func prepareInlineFunction(cfg *workspace.Cfg, readFile ReadFile, sourceHandlerName workspace.SourceFileName, depsHandlerName workspace.DepsFileName) (types.Function, error) {
 	specSource, err := prepareFunctionSource(cfg, readFile, sourceHandlerName)
 	if err != nil {
 		return types.Function{}, err
@@ -114,7 +120,7 @@ func prepareInlineFunction(cfg workspace.Cfg, readFile ReadFile, sourceHandlerNa
 	return f, nil
 }
 
-func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
+func prepareBaseFunction(cfg *workspace.Cfg) (types.Function, error) {
 	resources, err := prepareFunctionResources(cfg)
 	if err != nil {
 		return types.Function{}, err
@@ -141,7 +147,7 @@ func prepareBaseFunction(cfg workspace.Cfg) (types.Function, error) {
 	return f, nil
 }
 
-func prepareFunctionSource(cfg workspace.Cfg, readFile ReadFile, sourceHandlerName workspace.SourceFileName) ([]byte, error) {
+func prepareFunctionSource(cfg *workspace.Cfg, readFile ReadFile, sourceHandlerName workspace.SourceFileName) ([]byte, error) {
 	specSource, err := readFile(path.Join(cfg.Source.SourcePath, sourceHandlerName))
 	if err != nil {
 		return nil, err
@@ -150,7 +156,7 @@ func prepareFunctionSource(cfg workspace.Cfg, readFile ReadFile, sourceHandlerNa
 	return specSource, nil
 }
 
-func prepareFunctionDeps(cfg workspace.Cfg, readFile ReadFile, depsHandlerName workspace.DepsFileName) ([]byte, error) {
+func prepareFunctionDeps(cfg *workspace.Cfg, readFile ReadFile, depsHandlerName workspace.DepsFileName) ([]byte, error) {
 	specDeps, err := readFile(path.Join(cfg.Source.SourcePath, depsHandlerName))
 	if err != nil {
 		return nil, err
@@ -158,7 +164,7 @@ func prepareFunctionDeps(cfg workspace.Cfg, readFile ReadFile, depsHandlerName w
 	return specDeps, nil
 }
 
-func prepareFunctionResources(cfg workspace.Cfg) (*v1.ResourceRequirements, error) {
+func prepareFunctionResources(cfg *workspace.Cfg) (*v1.ResourceRequirements, error) {
 	if cfg.Resources.Limits == nil && cfg.Resources.Requests == nil {
 		return nil, nil
 	}
@@ -211,7 +217,7 @@ func prepareFunctionResources(cfg workspace.Cfg) (*v1.ResourceRequirements, erro
 	return &resources, nil
 }
 
-func prepareLabels(cfg workspace.Cfg) map[string]string {
+func prepareLabels(cfg *workspace.Cfg) map[string]string {
 	labels := make(map[string]string)
 	for k, v := range cfg.Labels {
 		labels[k] = v
