@@ -44,31 +44,33 @@ func TestWaitForShoot(t *testing.T) {
 
 	for _, tst := range tests {
 		func(tcase testCase) {
-			t.Run(tcase.name, func(t *testing.T) {
-				t.Parallel()
-				//given
-				reactor := func(action k8sTesting.Action) (bool, runtime.Object, error) {
-					getAction := action.(k8sTesting.GetActionImpl)
-					testShoot := tcase.shootObject(getAction.Name, getAction.Namespace)
-					return true, testShoot, nil
-				}
+			t.Run(tcase.name,
+				func(t *testing.T) {
+					t.Parallel()
+					//given
+					reactor := func(action k8sTesting.Action) (bool, runtime.Object, error) {
+						getAction := action.(k8sTesting.GetActionImpl)
+						testShoot := tcase.shootObject(getAction.Name, getAction.Namespace)
+						return true, testShoot, nil
+					}
 
-				f := &k8sTesting.Fake{}
-				f.AddReactor("get", "shoots", reactor)
+					f := &k8sTesting.Fake{}
+					f.AddReactor("get", "shoots", reactor)
 
-				ctx, _ := context.WithTimeout(context.Background(), 30*time.Millisecond)
-				fakeShootsGetter := gardenerFake.FakeCoreV1beta1{
-					Fake: f,
-				}
+					ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Millisecond)
+					defer cancelFunc()
+					fakeShootsGetter := gardenerFake.FakeCoreV1beta1{
+						Fake: f,
+					}
 
-				//when
-				err := waitForShoot(ctx, &fakeShootsGetter, testShootsName, testNamespace, 3*time.Millisecond)
+					//when
+					err := waitForShoot(ctx, &fakeShootsGetter, testShootsName, testNamespace, 3*time.Millisecond)
 
-				//then
-				if tcase.assertErr != nil {
-					tcase.assertErr(t, err)
-				}
-			})
+					//then
+					if tcase.assertErr != nil {
+						tcase.assertErr(t, err)
+					}
+				})
 		}(tst)
 	}
 }
