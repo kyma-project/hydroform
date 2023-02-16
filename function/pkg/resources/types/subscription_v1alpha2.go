@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,4 +17,9 @@ type SubscriptionSpecV1alpha2 struct {
 	TypeMatching string   `json:"typeMatching,omitempty"`
 	EventSource  string   `json:"source"`
 	Types        []string `json:"types"`
+}
+
+func (s SubscriptionV1alpha2) IsReference(name, namespace string) bool {
+	expectedSinkName := fmt.Sprintf("http://%s.%s.svc.cluster.local", name, namespace)
+	return expectedSinkName == s.Spec.Sink
 }

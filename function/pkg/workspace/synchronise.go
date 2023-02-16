@@ -2,15 +2,14 @@ package workspace
 
 import (
 	"context"
-
 	"github.com/kyma-project/hydroform/function/pkg/client"
 	"github.com/kyma-project/hydroform/function/pkg/operator"
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apimachinery_types "k8s.io/apimachinery/pkg/types"
 	coretypes "k8s.io/apimachinery/pkg/types"
 )
 
@@ -49,49 +48,9 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	config.Labels = function.ObjectMeta.Labels
 	config.Env = toWorkspaceEnvVar(function.Spec.Env)
 
-	ul, err := build(config.Namespace, operator.GVRSubscription).List(ctx, v1.ListOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return err
-	}
+	config, err = buildSubscriptionV1alpha1(ctx, config, function, build, u.GetUID())
 
-	if ul != nil {
-		for _, item := range ul.Items {
-			var subscription types.SubscriptionV1alpha1
-			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &subscription); err != nil {
-				return err
-			}
-
-			isRef := subscription.IsReference(function.Name, function.Namespace)
-			isOwnerRef := (len(subscription.OwnerReferences) == 0 || isOwnerReference(subscription.OwnerReferences, u.GetUID()))
-			if !isRef || !isOwnerRef {
-				continue
-			}
-
-			filterLen := subscription.Spec.Filter.Filters
-			if len(filterLen) == 0 {
-				continue
-			}
-
-			var filters []EventFilter
-			for _, fromFilter := range subscription.Spec.Filter.Filters {
-				toFilter := toWorkspaceEnvFilter(fromFilter)
-				filters = append(filters, toFilter)
-			}
-
-			config.Subscriptions = append(config.Subscriptions, Subscription{
-				Name: subscription.Name,
-				V0: SubscriptionV0{
-					Protocol: subscription.Spec.Protocol,
-					Filter: Filter{
-						Dialect: subscription.Spec.Filter.Dialect,
-						Filters: filters,
-					},
-				},
-			})
-		}
-	}
-
-	ul, err = build(config.Namespace, operator.GVRApiRule).List(ctx, v1.ListOptions{})
+	ul, err := build(config.Namespace, operator.GVRApiRule).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
@@ -137,6 +96,83 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		return err
 	}
 	return ws.build(config, outputPath, writerProvider)
+}
+
+func buildSubscriptionV1alpha1(ctx context.Context, config Cfg, function types.Function, build client.Build, functionUID apimachinery_types.UID) (Cfg, error) {
+	ul, err := build(config.Namespace, operator.GVRSubscriptionV1alpha1).List(ctx, v1.ListOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return config, err
+	}
+
+	if ul != nil {
+		for _, item := range ul.Items {
+			var subscription types.SubscriptionV1alpha1
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &subscription); err != nil {
+				return config, err
+			}
+
+			isRef := subscription.IsReference(function.Name, function.Namespace)
+			isOwnerRef := (len(subscription.OwnerReferences) == 0 || isOwnerReference(subscription.OwnerReferences, functionUID))
+			if !isRef || !isOwnerRef {
+				continue
+			}
+
+			filterLen := subscription.Spec.Filter.Filters
+			if len(filterLen) == 0 {
+				continue
+			}
+
+			var filters []EventFilter
+			for _, fromFilter := range subscription.Spec.Filter.Filters {
+				toFilter := toWorkspaceEnvFilter(fromFilter)
+				filters = append(filters, toFilter)
+			}
+
+			config.Subscriptions = append(config.Subscriptions, Subscription{
+				Name: subscription.Name,
+				V0: SubscriptionV0{
+					Protocol: subscription.Spec.Protocol,
+					Filter: Filter{
+						Dialect: subscription.Spec.Filter.Dialect,
+						Filters: filters,
+					},
+				},
+			})
+		}
+	}
+	return config, nil
+}
+
+func buildSubscriptionV1alpha2(ctx context.Context, config Cfg, function types.Function, build client.Build, functionUID apimachinery_types.UID) (Cfg, error) {
+	ul, err := build(config.Namespace, operator.GVRSubscriptionV1alpha1).List(ctx, v1.ListOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return config, err
+	}
+
+	if ul != nil {
+		for _, item := range ul.Items {
+			var subscription types.SubscriptionV1alpha2
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &subscription); err != nil {
+				return config, err
+			}
+
+			isRef := subscription.IsReference(function.Name, function.Namespace)
+			isOwnerRef := (len(subscription.OwnerReferences) == 0 || isOwnerReference(subscription.OwnerReferences, functionUID))
+			if !isRef || !isOwnerRef {
+				continue
+			}
+
+			config.Subscriptions = append(config.Subscriptions, Subscription{
+				Name: subscription.Name,
+				V1: SubscriptionV1{
+					TypeMatching: subscription.Spec.TypeMatching,
+					Source:       subscription.Spec.EventSource,
+					Types:        subscription.Spec.Types,
+				},
+			})
+		}
+	}
+	return config, nil
 }
 
 func createGitConfig(config *Cfg, function types.Function) {

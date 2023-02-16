@@ -617,7 +617,7 @@ func newTestSubscription(name, namespace string) (unstructured.Unstructured, err
 	subscription := types.SubscriptionV1alpha1{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "Subscription_v1alpha1",
-			APIVersion: GVRSubscription.Version,
+			APIVersion: GVRSubscriptionV1alpha1.Version,
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      name,
