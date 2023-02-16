@@ -13,18 +13,17 @@ import (
 	k8sTesting "k8s.io/client-go/testing"
 )
 
-const (
-	testNamespace  = "someNamespace"
-	testShootsName = "someCluster"
-)
-
-type testCase struct {
-	name        string
-	shootObject func(name string, namespace string) *gardenerTypes.Shoot
-	assertErr   func(*testing.T, error)
-}
-
 func TestWaitForShoot(t *testing.T) {
+
+	const testNamespace = "someNamespace"
+	const testShootsName = "someCluster"
+
+	type testCase struct {
+		name        string
+		shootObject func(name string, namespace string) *gardenerTypes.Shoot
+		assertErr   func(*testing.T, error)
+	}
+
 	t.Parallel()
 	tests := []testCase{
 		{
