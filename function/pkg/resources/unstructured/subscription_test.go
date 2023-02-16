@@ -14,7 +14,7 @@ import (
 
 var errExpectedError = fmt.Errorf("expected error")
 
-func Test_newSubscriptions(t *testing.T) {
+func Test_newSubscriptionsV1alpha1(t *testing.T) {
 	type args struct {
 		cfg workspace.Cfg
 		f   toUnstructured
@@ -34,21 +34,23 @@ func Test_newSubscriptions(t *testing.T) {
 					Runtime:   "nodejs16",
 					Subscriptions: []workspace.Subscription{
 						{
-							Name:     "fixme",
-							Protocol: "fixme",
-							Filter: workspace.Filter{
-								Dialect: "fixme",
-								Filters: []workspace.EventFilter{
-									{
-										EventSource: workspace.EventSource{
-											Property: "source",
-											Type:     "exact",
-											Value:    "b",
-										},
-										EventType: workspace.EventType{
-											Property: "type",
-											Type:     "exact",
-											Value:    "c.a",
+							Name: "fixme",
+							V0: workspace.SubscriptionV0{
+								Protocol: "fixme",
+								Filter: workspace.Filter{
+									Dialect: "fixme",
+									Filters: []workspace.EventFilter{
+										{
+											EventSource: workspace.EventSource{
+												Property: "source",
+												Type:     "exact",
+												Value:    "b",
+											},
+											EventType: workspace.EventType{
+												Property: "type",
+												Type:     "exact",
+												Value:    "c.a",
+											},
 										},
 									},
 								},
@@ -65,9 +67,58 @@ func Test_newSubscriptions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := newSubscriptions(tt.args.cfg, tt.args.f)
+			got, err := newSubscriptionsV1alpha1(tt.args.cfg, tt.args.f)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("newSubscriptions() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("newSubscriptionsV1alpha1() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			g := gomega.NewWithT(t)
+			g.Expect(got).To(gomega.Equal(tt.want))
+		})
+	}
+}
+
+func Test_newSubscriptionsV1alpha2(t *testing.T) {
+	type args struct {
+		cfg workspace.Cfg
+		f   toUnstructured
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []unstructured.Unstructured
+		wantErr bool
+	}{
+		{
+			name: "Err",
+			args: args{
+				cfg: workspace.Cfg{
+					Name:      "should-fail",
+					Namespace: "failed-tests",
+					Runtime:   "nodejs16",
+					Subscriptions: []workspace.Subscription{
+						{
+							Name: "fixme",
+							V1: workspace.SubscriptionV1{
+								TypeMatching: "matchingType",
+								Source:       "source",
+								Types:        []string{"type1", "type2", "type3"},
+							},
+						},
+					},
+				},
+				f: func(obj interface{}) (map[string]interface{}, error) {
+					return nil, errExpectedError
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := newSubscriptionsV1alpha2(tt.args.cfg, tt.args.f)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("newSubscriptionsV1alpha2() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			g := gomega.NewWithT(t)
@@ -158,20 +209,22 @@ func TestNewSubscriptions(t *testing.T) {
 					Runtime: types.Python39,
 					Subscriptions: []workspace.Subscription{
 						{
-							Protocol: "NATS",
-							Filter: workspace.Filter{
-								Dialect: "klingon",
-								Filters: []workspace.EventFilter{
-									{
-										EventSource: workspace.EventSource{
-											Property: "source",
-											Type:     "exact",
-											Value:    "b",
-										},
-										EventType: workspace.EventType{
-											Property: "type",
-											Type:     "exact",
-											Value:    "c",
+							V0: workspace.SubscriptionV0{
+								Protocol: "NATS",
+								Filter: workspace.Filter{
+									Dialect: "klingon",
+									Filters: []workspace.EventFilter{
+										{
+											EventSource: workspace.EventSource{
+												Property: "source",
+												Type:     "exact",
+												Value:    "b",
+											},
+											EventType: workspace.EventType{
+												Property: "type",
+												Type:     "exact",
+												Value:    "c",
+											},
 										},
 									},
 								},

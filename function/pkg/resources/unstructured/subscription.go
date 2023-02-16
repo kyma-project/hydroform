@@ -10,7 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const apiVersionSubscription = "eventing.kyma-project.io/v1alpha1"
+const apiVersionSubscriptionV1alpha1 = "eventing.kyma-project.io/v1alpha1"
+const apiVersionSubscriptionV1alpha2 = "eventing.kyma-project.io/v1alpha2"
 
 func joinNonEmpty(elems []string, sep string) string {
 	length := len(elems)
@@ -35,21 +36,29 @@ func joinNonEmpty(elems []string, sep string) string {
 type toUnstructured func(obj interface{}) (map[string]interface{}, error)
 
 func NewSubscriptions(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
-	return newSubscriptions(cfg, runtime.DefaultUnstructuredConverter.ToUnstructured)
+	fmt.Sprintf(string(cfg.SchemaVersion))
+	switch cfg.SchemaVersion {
+	case workspace.SchemaVersionV0:
+		return newSubscriptionsV1alpha1(cfg, runtime.DefaultUnstructuredConverter.ToUnstructured)
+	case workspace.SchemaVersionV1:
+		return newSubscriptionsV1alpha2(cfg, runtime.DefaultUnstructuredConverter.ToUnstructured)
+	default:
+		return newSubscriptionsV1alpha1(cfg, runtime.DefaultUnstructuredConverter.ToUnstructured)
+	}
 }
 
-func newSubscriptions(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstructured, error) {
+func newSubscriptionsV1alpha1(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstructured, error) {
 	var list []unstructured.Unstructured
 	//TODO remove http protocol once it will be fixed in eventing
 	sink := fmt.Sprintf("http://%s.%s.svc.cluster.local", cfg.Name, cfg.Namespace)
 
 	for _, subscriptionInfo := range cfg.Subscriptions {
 		name := generateSubscriptionName(cfg.Name, subscriptionInfo)
-		filter := toTypesFilter(subscriptionInfo.Filter)
+		filter := toTypesFilter(subscriptionInfo.V0.Filter)
 
-		subscription := types.Subscription{
+		subscription := types.SubscriptionV1alpha1{
 			TypeMeta: v1.TypeMeta{
-				APIVersion: apiVersionSubscription,
+				APIVersion: apiVersionSubscriptionV1alpha1,
 				Kind:       "Subscription",
 			},
 			ObjectMeta: v1.ObjectMeta{
@@ -57,21 +66,60 @@ func newSubscriptions(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstr
 				Namespace: cfg.Namespace,
 				Labels:    cfg.Labels,
 			},
-			Spec: types.SubscriptionSpec{
+			Spec: types.SubscriptionSpecV1alpha1{
 				ProtocolSettings: &types.ProtocolSettings{},
-				Protocol:         subscriptionInfo.Protocol,
+				Protocol:         subscriptionInfo.V0.Protocol,
 				Sink:             sink,
 				Filter:           filter,
 			},
 		}
 
-		unstructuredStubscription, err := f(&subscription)
+		unstructuredSubscription, err := f(&subscription)
 		if err != nil {
 			return nil, err
 		}
 
 		list = append(list, unstructured.Unstructured{
-			Object: unstructuredStubscription,
+			Object: unstructuredSubscription,
+		})
+	}
+
+	return list, nil
+}
+
+func newSubscriptionsV1alpha2(cfg workspace.Cfg, f toUnstructured) ([]unstructured.Unstructured, error) {
+	var list []unstructured.Unstructured
+	//TODO remove http protocol once it will be fixed in eventing
+	sink := fmt.Sprintf("http://%s.%s.svc.cluster.local", cfg.Name, cfg.Namespace)
+
+	for _, subscriptionInfo := range cfg.Subscriptions {
+		name := generateSubscriptionName(cfg.Name, subscriptionInfo)
+
+		subscription := types.SubscriptionV1alpha2{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: apiVersionSubscriptionV1alpha2,
+				Kind:       "Subscription",
+			},
+			ObjectMeta: v1.ObjectMeta{
+				Name:      name,
+				Namespace: cfg.Namespace,
+				Labels:    cfg.Labels,
+			},
+			Spec: types.SubscriptionSpecV1alpha2{
+				Sink:         sink,
+				TypeMatching: subscriptionInfo.V1.TypeMatching,
+				EventSource:  subscriptionInfo.V1.Source,
+				Types:        subscriptionInfo.V1.Types,
+			},
+		}
+
+		unstructuredSubscription, err := f(&subscription)
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, unstructured.Unstructured{
+			Object: unstructuredSubscription,
 		})
 	}
 
@@ -91,7 +139,7 @@ func generateSubscriptionName(functionName string, s workspace.Subscription) str
 
 func filterSources(s workspace.Subscription) []string {
 	var result []string
-	for _, evtFilter := range s.Filter.Filters {
+	for _, evtFilter := range s.V0.Filter.Filters {
 		result = append(result, evtFilter.EventSource.Value)
 	}
 	return result

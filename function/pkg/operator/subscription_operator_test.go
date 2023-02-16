@@ -614,16 +614,16 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 }
 
 func newTestSubscription(name, namespace string) (unstructured.Unstructured, error) {
-	subscription := types.Subscription{
+	subscription := types.SubscriptionV1alpha1{
 		TypeMeta: v1.TypeMeta{
-			Kind:       "Subscription",
+			Kind:       "Subscription_v1alpha1",
 			APIVersion: GVRSubscription.Version,
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: types.SubscriptionSpec{
+		Spec: types.SubscriptionSpecV1alpha1{
 			Sink: fmt.Sprintf("http://%s.%s.svc.cluster.local", name, namespace),
 		},
 	}

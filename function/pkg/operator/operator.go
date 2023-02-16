@@ -49,10 +49,14 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	if objFound && !equal {
 		response = updateConfigurationObject(response, u)
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() (err error) {
-			response, err = c.Update(ctx, response, metav1.UpdateOptions{
+			res, err := c.Update(ctx, response, metav1.UpdateOptions{
 				DryRun: stages,
 			})
-			return err
+			if err != nil {
+				return err
+			}
+			response = res
+			return nil
 		})
 
 		if err != nil {

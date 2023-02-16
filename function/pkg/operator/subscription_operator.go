@@ -80,7 +80,7 @@ func mergeMap(l map[string]string, r map[string]string) map[string]string {
 // buildMatchRemovedSubscriptionsPredicate - creates a predicate to match the subscriptions that should be deleted
 func buildMatchRemovedSubscriptionsPredicate(fnRef functionReference, items []unstructured.Unstructured) predicate {
 	return func(obj map[string]interface{}) (bool, error) {
-		var subscription types.Subscription
+		var subscription types.SubscriptionV1alpha1
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &subscription); err != nil {
 			return false, err
 		}

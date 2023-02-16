@@ -184,20 +184,22 @@ func Test_newFunction(t *testing.T) {
 					},
 					Subscriptions: []workspace.Subscription{
 						{
-							Name:     "test",
-							Protocol: "",
-							Filter: workspace.Filter{
-								Filters: []workspace.EventFilter{
-									{
-										EventSource: workspace.EventSource{
-											Property: "type",
-											Type:     "exact",
-											Value:    "test-subscription-type.test-subscription-etv",
-										},
-										EventType: workspace.EventType{
-											Property: "source",
-											Type:     "exact",
-											Value:    "test-subscription-source",
+							Name: "test",
+							V0: workspace.SubscriptionV0{
+								Protocol: "",
+								Filter: workspace.Filter{
+									Filters: []workspace.EventFilter{
+										{
+											EventSource: workspace.EventSource{
+												Property: "type",
+												Type:     "exact",
+												Value:    "test-subscription-type.test-subscription-etv",
+											},
+											EventType: workspace.EventType{
+												Property: "source",
+												Type:     "exact",
+												Value:    "test-subscription-source",
+											},
 										},
 									},
 								},
@@ -671,21 +673,23 @@ func Test_newGitFunction(t *testing.T) {
 					},
 					Subscriptions: []workspace.Subscription{
 						{
-							Name:     "fixme",
-							Protocol: "fixme",
-							Filter: workspace.Filter{
-								Dialect: "fixme",
-								Filters: []workspace.EventFilter{
-									{
-										EventSource: workspace.EventSource{
-											Property: "source",
-											Type:     "exact",
-											Value:    "test-subscription-source",
-										},
-										EventType: workspace.EventType{
-											Property: "type",
-											Type:     "exact",
-											Value:    "test-subscription-type.test-subscription-etv",
+							Name: "fixme",
+							V0: workspace.SubscriptionV0{
+								Protocol: "fixme",
+								Filter: workspace.Filter{
+									Dialect: "fixme",
+									Filters: []workspace.EventFilter{
+										{
+											EventSource: workspace.EventSource{
+												Property: "source",
+												Type:     "exact",
+												Value:    "test-subscription-source",
+											},
+											EventType: workspace.EventType{
+												Property: "type",
+												Type:     "exact",
+												Value:    "test-subscription-type.test-subscription-etv",
+											},
 										},
 									},
 								},
@@ -828,21 +832,23 @@ func Test_newGitFunction(t *testing.T) {
 					},
 					Subscriptions: []workspace.Subscription{
 						{
-							Name:     "fixmne",
-							Protocol: "fixme",
-							Filter: workspace.Filter{
-								Dialect: "fixme",
-								Filters: []workspace.EventFilter{
-									{
-										EventSource: workspace.EventSource{
-											Property: "source",
-											Type:     "exact",
-											Value:    "test-subscription-source",
-										},
-										EventType: workspace.EventType{
-											Property: "type",
-											Type:     "exact",
-											Value:    "test-subscription-type.test-subscription-etv",
+							Name: "fixmne",
+							V0: workspace.SubscriptionV0{
+								Protocol: "fixme",
+								Filter: workspace.Filter{
+									Dialect: "fixme",
+									Filters: []workspace.EventFilter{
+										{
+											EventSource: workspace.EventSource{
+												Property: "source",
+												Type:     "exact",
+												Value:    "test-subscription-source",
+											},
+											EventType: workspace.EventType{
+												Property: "type",
+												Type:     "exact",
+												Value:    "test-subscription-type.test-subscription-etv",
+											},
 										},
 									},
 								},

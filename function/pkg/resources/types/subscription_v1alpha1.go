@@ -6,13 +6,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type Subscription struct {
+type SubscriptionV1alpha1 struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              SubscriptionSpec `json:"spec"`
+	Spec              SubscriptionSpecV1alpha1 `json:"spec"`
 }
 
-type SubscriptionSpec struct {
+type SubscriptionSpecV1alpha1 struct {
 	Filter           Filter            `json:"filter"`
 	ID               string            `json:"id,omitempty"`
 	Protocol         string            `json:"protocol"`
@@ -52,7 +52,7 @@ type WebhookAuth struct {
 	Type         string   `json:"type"`
 }
 
-func (s Subscription) IsReference(name, namespace string) bool {
+func (s SubscriptionV1alpha1) IsReference(name, namespace string) bool {
 	expectedSinkName := fmt.Sprintf("http://%s.%s.svc.cluster.local", name, namespace)
 	return expectedSinkName == s.Spec.Sink
 }

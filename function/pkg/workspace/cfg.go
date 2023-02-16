@@ -41,9 +41,20 @@ type Filter struct {
 }
 
 type Subscription struct {
-	Name     string `yaml:"name,omitempty"`
+	Name string         `yaml:"name,omitempty"`
+	V0   SubscriptionV0 `yaml:",inline"`
+	V1   SubscriptionV1 `yaml:",inline"`
+}
+
+type SubscriptionV0 struct {
 	Protocol string `yaml:"protocol" jsonschema:"default=\"\""`
 	Filter   Filter `yaml:"filter"`
+}
+
+type SubscriptionV1 struct {
+	TypeMatching string   `yaml:"typeMatching,omitempty"`
+	Source       string   `yaml:"source"`
+	Types        []string `yaml:"types"`
 }
 
 type Resources struct {
@@ -101,6 +112,14 @@ type AccessStrategieConfig struct {
 	RequiredScope  []string `yaml:"requiredScope,omitempty"`
 }
 
+type SchemaVersion string
+
+const (
+	SchemaVersionV0     SchemaVersion = "v0"
+	SchemaVersionV1     SchemaVersion = "v1"
+	SchemaVersionLatest SchemaVersion = SchemaVersionV1
+)
+
 type Cfg struct {
 	Name                 string            `yaml:"name"`
 	Namespace            string            `yaml:"namespace"`
@@ -112,6 +131,7 @@ type Cfg struct {
 	Subscriptions        []Subscription    `yaml:"subscriptions,omitempty"`
 	Env                  []EnvVar          `yaml:"env,omitempty"`
 	APIRules             []APIRule         `yaml:"apiRules,omitempty"`
+	SchemaVersion        SchemaVersion     `yaml:"schemaVersion"`
 }
 
 type Source struct {

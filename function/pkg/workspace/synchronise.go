@@ -56,7 +56,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 	if ul != nil {
 		for _, item := range ul.Items {
-			var subscription types.Subscription
+			var subscription types.SubscriptionV1alpha1
 			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &subscription); err != nil {
 				return err
 			}
@@ -79,11 +79,13 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			}
 
 			config.Subscriptions = append(config.Subscriptions, Subscription{
-				Name:     subscription.Name,
-				Protocol: subscription.Spec.Protocol,
-				Filter: Filter{
-					Dialect: subscription.Spec.Filter.Dialect,
-					Filters: filters,
+				Name: subscription.Name,
+				V0: SubscriptionV0{
+					Protocol: subscription.Spec.Protocol,
+					Filter: Filter{
+						Dialect: subscription.Spec.Filter.Dialect,
+						Filters: filters,
+					},
 				},
 			})
 		}
