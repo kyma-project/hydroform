@@ -43,7 +43,7 @@ func Create(ops *types.Options, cfg map[string]interface{}) (*types.ClusterInfo,
 		}, err
 	}
 
-	if err := waitForShoot(ctx, client, cfg["cluster_name"].(string), cfg["namespace"].(string)); err != nil {
+	if err := waitForShoot(ctx, client, cfg["cluster_name"].(string), cfg["namespace"].(string), 15*time.Second); err != nil {
 		return nil, err
 	}
 
@@ -79,18 +79,19 @@ func Delete(ops *types.Options, info *types.ClusterInfo, cfg map[string]interfac
 	return client.Shoots(cfg["namespace"].(string)).Delete(context.TODO(), cfg["cluster_name"].(string), v1.DeleteOptions{})
 }
 
-func waitForShoot(ctx context.Context, client *gardenerApi.CoreV1beta1Client, name, namespace string) error {
+func waitForShoot(ctx context.Context, getter gardenerApi.ShootsGetter, name, namespace string, pollingInterval time.Duration) error {
 
-	timer := time.NewTicker(15 * time.Second)
+	timer := time.NewTicker(pollingInterval)
 
 	for {
 		select {
 		case <-timer.C:
-			sh, err := client.Shoots(namespace).Get(context.Background(), name, v1.GetOptions{})
+			sh, err := getter.Shoots(namespace).Get(context.Background(), name, v1.GetOptions{})
 			if err != nil {
 				return err
 			}
-			if sh.Status.LastOperation.Progress == 100 && sh.Status.LastOperation.State == gardenerTypes.LastOperationStateSucceeded {
+
+			if sh.Status.LastOperation != nil && sh.Status.LastOperation.Progress == 100 && sh.Status.LastOperation.State == gardenerTypes.LastOperationStateSucceeded {
 				return nil
 			}
 		case <-ctx.Done():
