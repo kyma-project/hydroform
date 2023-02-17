@@ -41,9 +41,9 @@ type Filter struct {
 }
 
 type Subscription struct {
-	Name string         `yaml:"name,omitempty"`
-	V0   SubscriptionV0 `yaml:",inline"`
-	V1   SubscriptionV1 `yaml:",inline"`
+	Name string          `yaml:"name,omitempty"`
+	V0   *SubscriptionV0 `yaml:",inline,omitempty"`
+	V1   *SubscriptionV1 `yaml:",inline,omitempty"`
 }
 
 type SubscriptionV0 struct {
@@ -115,9 +115,17 @@ type AccessStrategieConfig struct {
 type SchemaVersion string
 
 const (
-	SchemaVersionV0     SchemaVersion = "v0"
-	SchemaVersionV1     SchemaVersion = "v1"
-	SchemaVersionLatest SchemaVersion = SchemaVersionV1
+	SchemaVersionV0      SchemaVersion = "v0"
+	SchemaVersionV1      SchemaVersion = "v1"
+	SchemaVersionDefault SchemaVersion = SchemaVersionV0
+	SchemaVersionLatest  SchemaVersion = SchemaVersionV1
+)
+
+var (
+	AllowedSchemaVersions = []SchemaVersion{
+		SchemaVersionV0,
+		SchemaVersionV1,
+	}
 )
 
 type Cfg struct {

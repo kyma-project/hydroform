@@ -48,43 +48,14 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	config.Labels = function.ObjectMeta.Labels
 	config.Env = toWorkspaceEnvVar(function.Spec.Env)
 
-	config, err = buildSubscriptionV1alpha1(ctx, config, function, build, u.GetUID())
-
-	ul, err := build(config.Namespace, operator.GVRApiRule).List(ctx, v1.ListOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return err
+	switch config.SchemaVersion {
+	case SchemaVersionV0:
+		config, err = buildSubscriptionV1alpha1(ctx, config, function, build, u.GetUID())
+	case SchemaVersionV1:
+		config, err = buildSubscriptionV1alpha2(ctx, config, function, build, u.GetUID())
 	}
 
-	if ul != nil {
-		for _, item := range ul.Items {
-			var apiRule types.APIRule
-			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &apiRule); err != nil {
-				return err
-			}
-
-			isRef := apiRule.IsReference(function.Name)
-			isOwnerRef := (len(apiRule.OwnerReferences) == 0 || isOwnerReference(apiRule.OwnerReferences, u.GetUID()))
-			if !isRef || !isOwnerRef {
-				continue
-			}
-
-			newAPIRule := APIRule{
-				Name:    setIfNotEqual(apiRule.Name, function.Name),
-				Gateway: setIfNotEqual(apiRule.Spec.Gateway, APIRuleGateway),
-				Service: Service{
-					Host: apiRule.Spec.Host,
-				},
-				Rules: toWorkspaceRules(apiRule.Spec.Rules),
-			}
-
-			if apiRule.Spec.Service.Port != APIRulePort {
-				newAPIRule.Service.Port = apiRule.Spec.Service.Port
-			}
-
-			config.APIRules = append(config.APIRules, newAPIRule)
-		}
-	}
-
+	config, err = buildAPIRule(ctx, config, function, build, u.GetUID())
 	var ws workspace
 	if function.Spec.Source.Inline != nil {
 		ws, err = createInlineWorkspace(&config, outputPath, function)
@@ -130,7 +101,7 @@ func buildSubscriptionV1alpha1(ctx context.Context, config Cfg, function types.F
 
 			config.Subscriptions = append(config.Subscriptions, Subscription{
 				Name: subscription.Name,
-				V0: SubscriptionV0{
+				V0: &SubscriptionV0{
 					Protocol: subscription.Spec.Protocol,
 					Filter: Filter{
 						Dialect: subscription.Spec.Filter.Dialect,
@@ -144,7 +115,7 @@ func buildSubscriptionV1alpha1(ctx context.Context, config Cfg, function types.F
 }
 
 func buildSubscriptionV1alpha2(ctx context.Context, config Cfg, function types.Function, build client.Build, functionUID apimachinery_types.UID) (Cfg, error) {
-	ul, err := build(config.Namespace, operator.GVRSubscriptionV1alpha1).List(ctx, v1.ListOptions{})
+	ul, err := build(config.Namespace, operator.GVRSubscriptionV1alpha2).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return config, err
 	}
@@ -164,12 +135,50 @@ func buildSubscriptionV1alpha2(ctx context.Context, config Cfg, function types.F
 
 			config.Subscriptions = append(config.Subscriptions, Subscription{
 				Name: subscription.Name,
-				V1: SubscriptionV1{
+				V1: &SubscriptionV1{
 					TypeMatching: subscription.Spec.TypeMatching,
 					Source:       subscription.Spec.EventSource,
 					Types:        subscription.Spec.Types,
 				},
 			})
+		}
+	}
+	return config, nil
+}
+
+func buildAPIRule(ctx context.Context, config Cfg, function types.Function, build client.Build, functionUID apimachinery_types.UID) (Cfg, error) {
+	ul, err := build(config.Namespace, operator.GVRApiRule).List(ctx, v1.ListOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return config, err
+	}
+
+	if ul != nil {
+		for _, item := range ul.Items {
+			var apiRule types.APIRule
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &apiRule); err != nil {
+				return config, err
+			}
+
+			isRef := apiRule.IsReference(function.Name)
+			isOwnerRef := (len(apiRule.OwnerReferences) == 0 || isOwnerReference(apiRule.OwnerReferences, functionUID))
+			if !isRef || !isOwnerRef {
+				continue
+			}
+
+			newAPIRule := APIRule{
+				Name:    setIfNotEqual(apiRule.Name, function.Name),
+				Gateway: setIfNotEqual(apiRule.Spec.Gateway, APIRuleGateway),
+				Service: Service{
+					Host: apiRule.Spec.Host,
+				},
+				Rules: toWorkspaceRules(apiRule.Spec.Rules),
+			}
+
+			if apiRule.Spec.Service.Port != APIRulePort {
+				newAPIRule.Service.Port = apiRule.Spec.Service.Port
+			}
+
+			config.APIRules = append(config.APIRules, newAPIRule)
 		}
 	}
 	return config, nil
