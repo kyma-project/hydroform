@@ -131,6 +131,7 @@ var (
 		"artur",
 		"karol",
 		"maciej",
+		"andrzej",
 	}
 )
 
