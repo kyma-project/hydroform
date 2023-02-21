@@ -125,21 +125,23 @@ func Test_Synchronise(t *testing.T) {
 					},
 					Subscriptions: []Subscription{
 						{
-							Name:     "fixme",
-							Protocol: "fixme",
-							Filter: Filter{
-								Dialect: "fixme",
-								Filters: []EventFilter{
-									{
-										EventSource: EventSource{
-											Property: "source",
-											Type:     "exact",
-											Value:    "the-source",
-										},
-										EventType: EventType{
-											Property: "type",
-											Type:     "exact",
-											Value:    "t1.v1.0.0",
+							Name: "fixme",
+							V0: &SubscriptionV0{
+								Protocol: "fixme",
+								Filter: Filter{
+									Dialect: "fixme",
+									Filters: []EventFilter{
+										{
+											EventSource: EventSource{
+												Property: "source",
+												Type:     "exact",
+												Value:    "the-source",
+											},
+											EventType: EventType{
+												Property: "type",
+												Type:     "exact",
+												Value:    "t1.v1.0.0",
+											},
 										},
 									},
 								},
@@ -255,21 +257,23 @@ func Test_Synchronise(t *testing.T) {
 					},
 					Subscriptions: []Subscription{
 						{
-							Name:     "fixme",
-							Protocol: "fixme",
-							Filter: Filter{
-								Dialect: "fixme",
-								Filters: []EventFilter{
-									{
-										EventSource: EventSource{
-											Property: "source",
-											Type:     "exact",
-											Value:    "the-source",
-										},
-										EventType: EventType{
-											Property: "type",
-											Type:     "exact",
-											Value:    "t1.v1.0.0",
+							Name: "fixme",
+							V0: &SubscriptionV0{
+								Protocol: "fixme",
+								Filter: Filter{
+									Dialect: "fixme",
+									Filters: []EventFilter{
+										{
+											EventSource: EventSource{
+												Property: "source",
+												Type:     "exact",
+												Value:    "the-source",
+											},
+											EventType: EventType{
+												Property: "type",
+												Type:     "exact",
+												Value:    "t1.v1.0.0",
+											},
 										},
 									},
 								},

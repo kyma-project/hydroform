@@ -85,21 +85,23 @@ func Test_initialize(t *testing.T) {
 					Runtime: types.Python39,
 					Subscriptions: []Subscription{
 						{
-							Name:     "fixme",
-							Protocol: "fixme",
-							Filter: Filter{
-								Dialect: "fixme",
-								Filters: []EventFilter{
-									{
-										EventSource: EventSource{
-											Property: "source",
-											Type:     "exact",
-											Value:    "test-source",
-										},
-										EventType: EventType{
-											Property: "type",
-											Type:     "exact",
-											Value:    "test-type.test-version",
+							Name: "fixme",
+							V0: &SubscriptionV0{
+								Protocol: "fixme",
+								Filter: Filter{
+									Dialect: "fixme",
+									Filters: []EventFilter{
+										{
+											EventSource: EventSource{
+												Property: "source",
+												Type:     "exact",
+												Value:    "test-source",
+											},
+											EventType: EventType{
+												Property: "type",
+												Type:     "exact",
+												Value:    "test-type.test-version",
+											},
 										},
 									},
 								},

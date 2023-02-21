@@ -134,7 +134,7 @@ func Test_applyObject(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 					result.EXPECT().
 						Get(gomock.Any(), gomock.Any(), gomock.Any()).
-						Return(testObj2.DeepCopy(), nil).
+						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
 					result.EXPECT().

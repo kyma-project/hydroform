@@ -185,7 +185,7 @@ func Test_newFunction(t *testing.T) {
 					Subscriptions: []workspace.Subscription{
 						{
 							Name: "test",
-							V0: workspace.SubscriptionV0{
+							V0: &workspace.SubscriptionV0{
 								Protocol: "",
 								Filter: workspace.Filter{
 									Filters: []workspace.EventFilter{
@@ -674,7 +674,7 @@ func Test_newGitFunction(t *testing.T) {
 					Subscriptions: []workspace.Subscription{
 						{
 							Name: "fixme",
-							V0: workspace.SubscriptionV0{
+							V0: &workspace.SubscriptionV0{
 								Protocol: "fixme",
 								Filter: workspace.Filter{
 									Dialect: "fixme",
@@ -833,7 +833,7 @@ func Test_newGitFunction(t *testing.T) {
 					Subscriptions: []workspace.Subscription{
 						{
 							Name: "fixmne",
-							V0: workspace.SubscriptionV0{
+							V0: &workspace.SubscriptionV0{
 								Protocol: "fixme",
 								Filter: workspace.Filter{
 									Dialect: "fixme",

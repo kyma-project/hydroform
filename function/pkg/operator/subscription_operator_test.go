@@ -3,6 +3,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	operator_types "github.com/kyma-project/hydroform/function/pkg/operator/types"
 	"reflect"
 	"testing"
 
@@ -617,7 +618,7 @@ func newTestSubscription(name, namespace string) (unstructured.Unstructured, err
 	subscription := types.SubscriptionV1alpha1{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "Subscription_v1alpha1",
-			APIVersion: GVRSubscriptionV1alpha1.Version,
+			APIVersion: operator_types.GVRSubscriptionV1alpha1.Version,
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      name,

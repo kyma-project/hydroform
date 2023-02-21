@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
-
 	"github.com/kyma-project/hydroform/function/pkg/workspace"
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -35,7 +34,7 @@ func Test_newSubscriptionsV1alpha1(t *testing.T) {
 					Subscriptions: []workspace.Subscription{
 						{
 							Name: "fixme",
-							V0: workspace.SubscriptionV0{
+							V0: &workspace.SubscriptionV0{
 								Protocol: "fixme",
 								Filter: workspace.Filter{
 									Dialect: "fixme",
@@ -99,7 +98,7 @@ func Test_newSubscriptionsV1alpha2(t *testing.T) {
 					Subscriptions: []workspace.Subscription{
 						{
 							Name: "fixme",
-							V1: workspace.SubscriptionV1{
+							V1: &workspace.SubscriptionV1{
 								TypeMatching: "matchingType",
 								Source:       "source",
 								Types:        []string{"type1", "type2", "type3"},
@@ -209,7 +208,7 @@ func TestNewSubscriptions(t *testing.T) {
 					Runtime: types.Python39,
 					Subscriptions: []workspace.Subscription{
 						{
-							V0: workspace.SubscriptionV0{
+							V0: &workspace.SubscriptionV0{
 								Protocol: "NATS",
 								Filter: workspace.Filter{
 									Dialect: "klingon",
@@ -218,7 +217,7 @@ func TestNewSubscriptions(t *testing.T) {
 											EventSource: workspace.EventSource{
 												Property: "source",
 												Type:     "exact",
-												Value:    "b",
+												Value:    "",
 											},
 											EventType: workspace.EventType{
 												Property: "type",
@@ -242,7 +241,7 @@ func TestNewSubscriptions(t *testing.T) {
 							"labels": map[string]interface{}{
 								"test": "me",
 							},
-							"name":              "test-name-b",
+							"name":              "test-name-0",
 							"namespace":         "test-namespace",
 							"creationTimestamp": nil,
 						},
@@ -255,7 +254,7 @@ func TestNewSubscriptions(t *testing.T) {
 										"eventSource": map[string]interface{}{
 											"property": "source",
 											"type":     "exact",
-											"value":    "b",
+											"value":    "",
 										},
 										"eventType": map[string]interface{}{
 											"property": "type",

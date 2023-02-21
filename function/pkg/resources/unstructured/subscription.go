@@ -52,8 +52,8 @@ func newSubscriptionsV1alpha1(cfg workspace.Cfg, f toUnstructured) ([]unstructur
 	//TODO remove http protocol once it will be fixed in eventing
 	sink := fmt.Sprintf("http://%s.%s.svc.cluster.local", cfg.Name, cfg.Namespace)
 
-	for _, subscriptionInfo := range cfg.Subscriptions {
-		name := generateSubscriptionName(cfg.Name, subscriptionInfo)
+	for iterator, subscriptionInfo := range cfg.Subscriptions {
+		name := generateSubscriptionName(cfg.Name, subscriptionInfo, iterator)
 		filter := toTypesFilter(subscriptionInfo.V0.Filter)
 
 		subscription := types.SubscriptionV1alpha1{
@@ -92,8 +92,8 @@ func newSubscriptionsV1alpha2(cfg workspace.Cfg, f toUnstructured) ([]unstructur
 	//TODO remove http protocol once it will be fixed in eventing
 	sink := fmt.Sprintf("http://%s.%s.svc.cluster.local", cfg.Name, cfg.Namespace)
 
-	for _, subscriptionInfo := range cfg.Subscriptions {
-		name := generateSubscriptionName(cfg.Name, subscriptionInfo)
+	for iterator, subscriptionInfo := range cfg.Subscriptions {
+		name := generateSubscriptionName(cfg.Name, subscriptionInfo, iterator)
 
 		subscription := types.SubscriptionV1alpha2{
 			TypeMeta: v1.TypeMeta{
@@ -126,23 +126,13 @@ func newSubscriptionsV1alpha2(cfg workspace.Cfg, f toUnstructured) ([]unstructur
 	return list, nil
 }
 
-func generateSubscriptionName(functionName string, s workspace.Subscription) string {
+func generateSubscriptionName(functionName string, s workspace.Subscription, iterator int) string {
 	subscriptionName := s.Name
-	subscriptionSources := filterSources(s)
 
 	if subscriptionName == "" {
-		elems := append([]string{functionName}, subscriptionSources...)
-		subscriptionName = joinNonEmpty(elems, "-")
+		subscriptionName = joinNonEmpty([]string{functionName, fmt.Sprint(iterator)}, "-")
 	}
 	return subscriptionName
-}
-
-func filterSources(s workspace.Subscription) []string {
-	var result []string
-	for _, evtFilter := range s.V0.Filter.Filters {
-		result = append(result, evtFilter.EventSource.Value)
-	}
-	return result
 }
 
 func toTypesFilter(filter workspace.Filter) types.Filter {

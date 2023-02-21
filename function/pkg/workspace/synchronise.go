@@ -3,7 +3,7 @@ package workspace
 import (
 	"context"
 	"github.com/kyma-project/hydroform/function/pkg/client"
-	"github.com/kyma-project/hydroform/function/pkg/operator"
+	operator_types "github.com/kyma-project/hydroform/function/pkg/operator/types"
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,7 +26,7 @@ func Synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 func synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, writerProvider WriterProvider) error {
 
-	u, err := build(config.Namespace, operator.GVRFunction).Get(ctx, config.Name, v1.GetOptions{})
+	u, err := build(config.Namespace, operator_types.GVRFunction).Get(ctx, config.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 }
 
 func buildSubscriptionV1alpha1(ctx context.Context, config Cfg, function types.Function, build client.Build, functionUID apimachinery_types.UID) (Cfg, error) {
-	ul, err := build(config.Namespace, operator.GVRSubscriptionV1alpha1).List(ctx, v1.ListOptions{})
+	ul, err := build(config.Namespace, operator_types.GVRSubscriptionV1alpha1).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return config, err
 	}
@@ -115,7 +115,7 @@ func buildSubscriptionV1alpha1(ctx context.Context, config Cfg, function types.F
 }
 
 func buildSubscriptionV1alpha2(ctx context.Context, config Cfg, function types.Function, build client.Build, functionUID apimachinery_types.UID) (Cfg, error) {
-	ul, err := build(config.Namespace, operator.GVRSubscriptionV1alpha2).List(ctx, v1.ListOptions{})
+	ul, err := build(config.Namespace, operator_types.GVRSubscriptionV1alpha2).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return config, err
 	}
@@ -147,7 +147,7 @@ func buildSubscriptionV1alpha2(ctx context.Context, config Cfg, function types.F
 }
 
 func buildAPIRule(ctx context.Context, config Cfg, function types.Function, build client.Build, functionUID apimachinery_types.UID) (Cfg, error) {
-	ul, err := build(config.Namespace, operator.GVRApiRule).List(ctx, v1.ListOptions{})
+	ul, err := build(config.Namespace, operator_types.GVRApiRule).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return config, err
 	}
