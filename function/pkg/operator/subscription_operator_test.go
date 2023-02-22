@@ -3,19 +3,18 @@ package operator
 import (
 	"context"
 	"fmt"
-	operator_types "github.com/kyma-project/hydroform/function/pkg/operator/types"
 	"reflect"
 	"testing"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-project/hydroform/function/pkg/client"
 	mockclient "github.com/kyma-project/hydroform/function/pkg/client/automock"
+	operator_types "github.com/kyma-project/hydroform/function/pkg/operator/types"
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 func Test_contains(t *testing.T) {
