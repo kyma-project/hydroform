@@ -9,7 +9,6 @@ import (
 	mockclient "github.com/kyma-project/hydroform/function/pkg/client/automock"
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
