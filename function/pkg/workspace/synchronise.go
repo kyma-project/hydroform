@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+
 	"github.com/kyma-project/hydroform/function/pkg/client"
 	operator_types "github.com/kyma-project/hydroform/function/pkg/operator/types"
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
