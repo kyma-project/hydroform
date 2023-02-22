@@ -53,12 +53,8 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 		config, err = buildSubscriptionV1alpha1(ctx, config, function, build, u.GetUID())
 	case SchemaVersionV1:
 		config, err = buildSubscriptionV1alpha2(ctx, config, function, build, u.GetUID())
-	default:
-		config, err = buildSubscriptionV1alpha1(ctx, config, function, build, u.GetUID())
 	}
-	if err != nil {
-		return err
-	}
+
 	config, err = buildAPIRule(ctx, config, function, build, u.GetUID())
 	var ws workspace
 	if function.Spec.Source.Inline != nil {
