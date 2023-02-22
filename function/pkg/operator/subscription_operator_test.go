@@ -617,7 +617,7 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 func newTestSubscription(name, namespace string) (unstructured.Unstructured, error) {
 	subscription := types.SubscriptionV1alpha1{
 		TypeMeta: v1.TypeMeta{
-			Kind:       "Subscription_v1alpha1",
+			Kind:       "Subscription",
 			APIVersion: operator_types.GVRSubscriptionV1alpha1.Version,
 		},
 		ObjectMeta: v1.ObjectMeta{
