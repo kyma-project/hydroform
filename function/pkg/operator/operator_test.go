@@ -4,20 +4,19 @@ import (
 	"context"
 	errs "errors"
 	"fmt"
-	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"reflect"
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/watch"
-
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-project/hydroform/function/pkg/client"
 	mockclient "github.com/kyma-project/hydroform/function/pkg/client/automock"
+	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 var (
