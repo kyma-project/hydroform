@@ -18,13 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type fakeReader struct {
-}
-
-func (fr *fakeReader) Read(_ []byte) (n int, err error) {
-	return 0, errors.New("reading error")
-}
-
 var _ error = fakeNotFoundError{}
 
 type fakeNotFoundError struct {

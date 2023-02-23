@@ -26,7 +26,7 @@ func (sq Sequence) Run(args ...interface{}) (interface{}, error) {
 		}
 	}
 
-	var err error = nil
+	var err error
 	if errStr.Len() > 0 {
 		err = errors.New(errStr.String())
 	}
@@ -101,7 +101,7 @@ func (p Parallel) Run(args ...interface{}) (interface{}, error) {
 
 	}
 
-	var err error = nil
+	var err error
 	if errStr.Len() > 0 {
 		err = errors.New(errStr.String())
 	}

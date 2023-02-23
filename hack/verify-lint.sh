@@ -51,10 +51,10 @@ golangci::run_checks() {
   shout "Run golangci-lint checks"
   LINTS=(
     # default golangci-lint lints
-    deadcode errcheck gosimple govet ineffassign staticcheck \
-    structcheck typecheck unused varcheck \
+    errcheck gosimple govet ineffassign staticcheck \
+    typecheck unused \
     # additional lints
-    golint gofmt misspell gochecknoinits unparam scopelint gosec
+    revive gofmt misspell gochecknoinits unparam exportloopref gosec
   )
 
   echo "Checks: ${LINTS[*]}"

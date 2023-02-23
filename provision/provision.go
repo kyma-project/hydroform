@@ -43,15 +43,15 @@ func Provision(cluster *types.Cluster, provider *types.Provider, ops ...types.Op
 
 	switch provider.Type {
 	case types.GCP:
-		cl, err = newGCPProvisioner(provisioningOperator, ops...).Provision(cluster, provider)
+		cl, err = gcp.New(provisioningOperator, ops...).Provision(cluster, provider)
 	case types.Gardener:
-		cl, err = newGardenerProvisioner(provisioningOperator, ops...).Provision(cluster, provider)
+		cl, err = gcp.New(provisioningOperator, ops...).Provision(cluster, provider)
 	case types.AWS:
 		err = errors.New("aws not supported yet")
 	case types.Azure:
-		cl, err = newAzureProvisioner(provisioningOperator, ops...).Provision(cluster, provider)
+		cl, err = azure.New(provisioningOperator, ops...).Provision(cluster, provider)
 	case types.Kind:
-		cl, err = newKindProvisioner(provisioningOperator, ops...).Provision(cluster, provider)
+		cl, err = kind.New(provisioningOperator, ops...).Provision(cluster, provider)
 	default:
 		err = errors.New("unknown provider")
 	}
@@ -77,15 +77,15 @@ func Status(cluster *types.Cluster, provider *types.Provider, ops ...types.Optio
 
 	switch provider.Type {
 	case types.GCP:
-		cs, err = newGCPProvisioner(provisioningOperator, ops...).Status(cluster, provider)
+		cs, err = gcp.New(provisioningOperator, ops...).Status(cluster, provider)
 	case types.Gardener:
-		cs, err = newGardenerProvisioner(provisioningOperator, ops...).Status(cluster, provider)
+		cs, err = gardener.New(provisioningOperator, ops...).Status(cluster, provider)
 	case types.AWS:
 		err = errors.New("aws not supported yet")
 	case types.Azure:
-		cs, err = newAzureProvisioner(provisioningOperator, ops...).Status(cluster, provider)
+		cs, err = azure.New(provisioningOperator, ops...).Status(cluster, provider)
 	case types.Kind:
-		cs, err = newKindProvisioner(provisioningOperator, ops...).Status(cluster, provider)
+		cs, err = kind.New(provisioningOperator, ops...).Status(cluster, provider)
 	default:
 		err = errors.New("unknown provider")
 	}
@@ -111,15 +111,15 @@ func Credentials(cluster *types.Cluster, provider *types.Provider, ops ...types.
 
 	switch provider.Type {
 	case types.GCP:
-		cr, err = newGCPProvisioner(provisioningOperator, ops...).Credentials(cluster, provider)
+		cr, err = gcp.New(provisioningOperator, ops...).Credentials(cluster, provider)
 	case types.Gardener:
-		cr, err = newGardenerProvisioner(provisioningOperator, ops...).Credentials(cluster, provider)
+		cr, err = gardener.New(provisioningOperator, ops...).Credentials(cluster, provider)
 	case types.AWS:
 		err = errors.New("aws not supported yet")
 	case types.Azure:
-		cr, err = newAzureProvisioner(provisioningOperator, ops...).Credentials(cluster, provider)
+		cr, err = azure.New(provisioningOperator, ops...).Credentials(cluster, provider)
 	case types.Kind:
-		cr, err = newKindProvisioner(provisioningOperator, ops...).Credentials(cluster, provider)
+		cr, err = kind.New(provisioningOperator, ops...).Credentials(cluster, provider)
 	default:
 		err = errors.New("unknown provider")
 	}
@@ -128,58 +128,6 @@ func Credentials(cluster *types.Cluster, provider *types.Provider, ops ...types.
 		return cr, err
 	}
 	return cr, action.After()
-}
-
-// Deprovision removes an existing cluster along or returns an error if removing the cluster is not possible.
-func Deprovision(cluster *types.Cluster, provider *types.Provider, ops ...types.Option) error {
-	var err error
-
-	if err = action.Before(); err != nil {
-		return err
-	}
-
-	if runtime.GOOS == "windows" {
-		provider.CredentialsFilePath = updateWindowsPath(provider.CredentialsFilePath)
-	}
-
-	switch provider.Type {
-	case types.GCP:
-		err = newGCPProvisioner(provisioningOperator, ops...).Deprovision(cluster, provider)
-	case types.Gardener:
-		err = newGardenerProvisioner(provisioningOperator, ops...).Deprovision(cluster, provider)
-	case types.AWS:
-		err = errors.New("aws not supported yet")
-	case types.Azure:
-		err = newAzureProvisioner(provisioningOperator, ops...).Deprovision(cluster, provider)
-	case types.Kind:
-		err = newKindProvisioner(provisioningOperator, ops...).Deprovision(cluster, provider)
-	default:
-		err = errors.New("unknown provider")
-	}
-	if err != nil {
-		return err
-	}
-	return action.After()
-}
-
-func newGCPProvisioner(operatorType operator.Type, ops ...types.Option) Provisioner {
-	return gcp.New(operatorType, ops...)
-}
-
-func newGardenerProvisioner(operatorType operator.Type, ops ...types.Option) Provisioner {
-	return gardener.New(operatorType, ops...)
-}
-
-func newAWSProvisioner(operatorType operator.Type, ops ...types.Option) Provisioner {
-	return nil
-}
-
-func newAzureProvisioner(operatorType operator.Type, ops ...types.Option) Provisioner {
-	return azure.New(operatorType, ops...)
-}
-
-func newKindProvisioner(operatorType operator.Type, ops ...types.Option) Provisioner {
-	return kind.New(operatorType, ops...)
 }
 
 func updateWindowsPath(windowsPath string) string {

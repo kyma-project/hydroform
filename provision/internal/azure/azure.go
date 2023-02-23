@@ -13,13 +13,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// azureProvisioner implements Provisioner
-type azureProvisioner struct {
+// AzureProvisioner implements Provisioner
+// nolint:revive
+type AzureProvisioner struct {
 	provisionOperator operator.Operator
 }
 
-// New creates a new instance of azureProvisioner.
-func New(operatorType operator.Type, ops ...types.Option) *azureProvisioner {
+// New creates a new instance of AzureProvisioner.
+func New(operatorType operator.Type, ops ...types.Option) *AzureProvisioner {
 	// parse config
 	os := &types.Options{}
 	for _, o := range ops {
@@ -34,13 +35,13 @@ func New(operatorType operator.Type, ops ...types.Option) *azureProvisioner {
 		op = &operator.Unknown{}
 	}
 
-	return &azureProvisioner{
+	return &AzureProvisioner{
 		provisionOperator: op,
 	}
 }
 
 // Provision requests provisioning of a new Kubernetes cluster on Azure with the given configurations.
-func (a *azureProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
+func (a *AzureProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	if err := a.validateInputs(cluster, provider); err != nil {
 		return cluster, err
 	}
@@ -60,7 +61,7 @@ func (a *azureProvisioner) Provision(cluster *types.Cluster, provider *types.Pro
 }
 
 // Status returns the ClusterStatus for the requested cluster.
-func (a *azureProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
+func (a *AzureProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
 	if err := a.validateInputs(cluster, p); err != nil {
 		return nil, err
 	}
@@ -74,12 +75,12 @@ func (a *azureProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*t
 }
 
 // Credentials returns the Kubeconfig file as a byte array for the requested cluster.
-func (a *azureProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) ([]byte, error) {
+func (a *AzureProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) ([]byte, error) {
 	return nil, errors.New("Not supported")
 }
 
 // Deprovision requests deprovisioning of an existing cluster on Azure with the given configurations.
-func (a *azureProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
+func (a *AzureProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
 	if err := a.validateInputs(cluster, p); err != nil {
 		return err
 	}
@@ -96,7 +97,7 @@ func (a *azureProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider
 	return nil
 }
 
-func (a *azureProvisioner) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
+func (a *AzureProvisioner) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
 	var errMessage string
 	if cluster.NodeCount < 1 {
 		errMessage += fmt.Sprintf(errs.CannotBeLess, "Cluster.NodeCount", 1)
@@ -130,7 +131,7 @@ func (a *azureProvisioner) validateInputs(cluster *types.Cluster, provider *type
 	return nil
 }
 
-func (a *azureProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) (map[string]interface{}, error) {
+func (a *AzureProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) (map[string]interface{}, error) {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
 	config["agent_count"] = cluster.NodeCount

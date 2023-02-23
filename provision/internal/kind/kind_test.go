@@ -12,7 +12,7 @@ import (
 
 func TestValidateInputs(t *testing.T) {
 	t.Parallel()
-	k := &kindProvisioner{}
+	k := &KindProvisioner{}
 
 	cluster := &types.Cluster{
 		Name: "test-cluster",
@@ -48,7 +48,7 @@ func TestValidateInputs(t *testing.T) {
 
 func TestLoadConfigurations(t *testing.T) {
 	t.Parallel()
-	k := &kindProvisioner{}
+	k := &KindProvisioner{}
 
 	cluster := &types.Cluster{
 		Name: "test-cluster",
@@ -74,7 +74,7 @@ func TestLoadConfigurations(t *testing.T) {
 func TestProvision(t *testing.T) {
 	t.Parallel()
 	mockOp := &mocks.Operator{}
-	k := kindProvisioner{
+	k := KindProvisioner{
 		provisionOperator: mockOp,
 	}
 
@@ -114,7 +114,7 @@ func TestProvision(t *testing.T) {
 func TestDeprovision(t *testing.T) {
 	t.Parallel()
 	mockOp := &mocks.Operator{}
-	k := kindProvisioner{
+	k := KindProvisioner{
 		provisionOperator: mockOp,
 	}
 

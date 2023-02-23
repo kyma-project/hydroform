@@ -23,11 +23,12 @@ const (
 	azureProfile string = "az"
 )
 
-type gardenerProvisioner struct {
+//nolint:revive
+type GardenerProvisioner struct {
 	operator operator.Operator
 }
 
-func New(operatorType operator.Type, ops ...types.Option) *gardenerProvisioner {
+func New(operatorType operator.Type, ops ...types.Option) *GardenerProvisioner {
 	// parse config
 	os := &types.Options{}
 	for _, o := range ops {
@@ -41,12 +42,12 @@ func New(operatorType operator.Type, ops ...types.Option) *gardenerProvisioner {
 	default:
 		op = &operator.Unknown{}
 	}
-	return &gardenerProvisioner{
+	return &GardenerProvisioner{
 		operator: op,
 	}
 }
 
-func (g *gardenerProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
+func (g *GardenerProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	if err := g.validate(cluster, provider); err != nil {
 		return cluster, err
 	}
@@ -62,7 +63,7 @@ func (g *gardenerProvisioner) Provision(cluster *types.Cluster, provider *types.
 }
 
 // Status returns the ClusterStatus for the requested cluster.
-func (g *gardenerProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
+func (g *GardenerProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
 	if err := g.validate(cluster, p); err != nil {
 		return nil, err
 	}
@@ -72,7 +73,7 @@ func (g *gardenerProvisioner) Status(cluster *types.Cluster, p *types.Provider) 
 	return g.operator.Status(cluster.ClusterInfo, p.Type, cfg)
 }
 
-func (g *gardenerProvisioner) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
+func (g *GardenerProvisioner) Credentials(cluster *types.Cluster, provider *types.Provider) ([]byte, error) {
 	if err := g.validate(cluster, provider); err != nil {
 		return nil, err
 	}
@@ -95,7 +96,7 @@ func (g *gardenerProvisioner) Credentials(cluster *types.Cluster, provider *type
 	return s.Data["kubeconfig"], nil
 }
 
-func (g *gardenerProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
+func (g *GardenerProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
 	if err := g.validate(cluster, p); err != nil {
 		return err
 	}
@@ -110,7 +111,7 @@ func (g *gardenerProvisioner) Deprovision(cluster *types.Cluster, p *types.Provi
 	return nil
 }
 
-func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.Provider) error {
+func (g *GardenerProvisioner) validate(cluster *types.Cluster, provider *types.Provider) error {
 	var errMessage string
 
 	// Cluster
@@ -204,7 +205,7 @@ func (g *gardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	return nil
 }
 
-func (*gardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
+func (*GardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
 	config["credentials_file_path"] = provider.CredentialsFilePath
