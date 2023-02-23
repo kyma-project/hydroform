@@ -3,7 +3,7 @@ package gardener
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	gardenerTypes "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -103,7 +103,7 @@ func waitForShoot(ctx context.Context, getter gardenerApi.ShootsGetter, name, na
 /*-- Gardener client --*/
 
 func seedClient(credentialsFile string) (*gardenerApi.CoreV1beta1Client, error) {
-	kubeBytes, err := ioutil.ReadFile(credentialsFile)
+	kubeBytes, err := os.ReadFile(credentialsFile)
 	if err != nil {
 		return nil, err
 	}
