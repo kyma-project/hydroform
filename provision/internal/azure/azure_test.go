@@ -2,7 +2,6 @@ package azure
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -14,7 +13,7 @@ import (
 )
 
 func TestValidateInputs(t *testing.T) {
-	g := &azureProvisioner{}
+	g := &AzureProvisioner{}
 
 	cluster := &types.Cluster{
 		CPU:               1,
@@ -92,7 +91,7 @@ func TestValidateInputs(t *testing.T) {
 }
 
 func TestLoadConfigurations(t *testing.T) {
-	g := &azureProvisioner{}
+	g := &AzureProvisioner{}
 
 	cluster := &types.Cluster{
 		CPU:               1,
@@ -152,14 +151,14 @@ func fakeCredentials(file string) error {
   "client_id": "fake-client-id",
   "client_secret": "fake-client-secret"
 }`
-
-	return ioutil.WriteFile(file, []byte(fake), 0700)
+	//nolint:gosec
+	return os.WriteFile(file, []byte(fake), 0700)
 }
 
 func TestProvision(t *testing.T) {
 	t.Parallel()
 	mockOp := &mocks.Operator{}
-	g := azureProvisioner{
+	g := AzureProvisioner{
 		provisionOperator: mockOp,
 	}
 
@@ -219,7 +218,7 @@ func TestProvision(t *testing.T) {
 func TestDeprovision(t *testing.T) {
 	t.Parallel()
 	mockOp := &mocks.Operator{}
-	g := azureProvisioner{
+	g := AzureProvisioner{
 		provisionOperator: mockOp,
 	}
 

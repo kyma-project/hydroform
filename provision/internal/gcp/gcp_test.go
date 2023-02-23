@@ -13,7 +13,7 @@ import (
 
 func TestValidateInputs(t *testing.T) {
 	t.Parallel()
-	g := &gcpProvisioner{}
+	g := &GcpProvisioner{}
 
 	cluster := &types.Cluster{
 		CPU:               1,
@@ -93,7 +93,7 @@ func TestValidateInputs(t *testing.T) {
 
 func TestLoadConfigurations(t *testing.T) {
 	t.Parallel()
-	g := &gcpProvisioner{}
+	g := &GcpProvisioner{}
 
 	cluster := &types.Cluster{
 		CPU:               1,
@@ -136,7 +136,7 @@ func TestLoadConfigurations(t *testing.T) {
 func TestProvision(t *testing.T) {
 	t.Parallel()
 	mockOp := &mocks.Operator{}
-	g := gcpProvisioner{
+	g := GcpProvisioner{
 		provisionOperator: mockOp,
 	}
 
@@ -186,7 +186,7 @@ func TestProvision(t *testing.T) {
 func TestDeprovision(t *testing.T) {
 	t.Parallel()
 	mockOp := &mocks.Operator{}
-	g := gcpProvisioner{
+	g := GcpProvisioner{
 		provisionOperator: mockOp,
 	}
 

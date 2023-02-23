@@ -15,7 +15,7 @@ func TestValidate(t *testing.T) {
 	t.Parallel()
 	t.Run("Validate GCP config", func(t *testing.T) {
 		t.Parallel()
-		g := gardenerProvisioner{}
+		g := GardenerProvisioner{}
 
 		cluster := &types.Cluster{
 			CPU:               1,
@@ -65,7 +65,7 @@ func TestValidate(t *testing.T) {
 
 	t.Run("Validate Azure config", func(t *testing.T) {
 		t.Parallel()
-		g := gardenerProvisioner{}
+		g := GardenerProvisioner{}
 
 		cluster := &types.Cluster{
 			CPU:               1,
@@ -117,7 +117,7 @@ func TestValidate(t *testing.T) {
 
 	t.Run("Validate AWS config", func(t *testing.T) {
 		t.Parallel()
-		g := gardenerProvisioner{}
+		g := GardenerProvisioner{}
 
 		cluster := &types.Cluster{
 			CPU:               1,
@@ -166,7 +166,7 @@ func TestValidate(t *testing.T) {
 	})
 }
 
-func performBasicValidation(t *testing.T, g gardenerProvisioner, cluster *types.Cluster, provider *types.Provider) {
+func performBasicValidation(t *testing.T, g GardenerProvisioner, cluster *types.Cluster, provider *types.Provider) {
 	require.NoError(t, g.validate(cluster, provider), "Validation should pass")
 	cluster.NodeCount = -5
 	require.Error(t, g.validate(cluster, provider), "Validation should fail when number of nodes is < 1")
@@ -243,7 +243,7 @@ func performBasicValidation(t *testing.T, g gardenerProvisioner, cluster *types.
 
 func TestLoadConfigurations(t *testing.T) {
 	t.Parallel()
-	g := gardenerProvisioner{}
+	g := GardenerProvisioner{}
 
 	cluster := &types.Cluster{
 		CPU:               1,
@@ -287,7 +287,7 @@ func TestLoadConfigurations(t *testing.T) {
 func TestProvision(t *testing.T) {
 	t.Parallel()
 	mockOp := &mocks.Operator{}
-	g := gardenerProvisioner{
+	g := GardenerProvisioner{
 		operator: mockOp,
 	}
 
@@ -344,7 +344,7 @@ func TestProvision(t *testing.T) {
 func TestDeProvision(t *testing.T) {
 	t.Parallel()
 	mockOp := &mocks.Operator{}
-	g := gardenerProvisioner{
+	g := GardenerProvisioner{
 		operator: mockOp,
 	}
 

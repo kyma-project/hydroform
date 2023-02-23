@@ -11,13 +11,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// gcpProvisioner implements Provisioner
-type gcpProvisioner struct {
+// GcpProvisioner implements Provisioner
+// nolint:revive
+type GcpProvisioner struct {
 	provisionOperator operator.Operator
 }
 
-// New creates a new instance of gcpProvisioner.
-func New(operatorType operator.Type, ops ...types.Option) *gcpProvisioner {
+// New creates a new instance of GcpProvisioner.
+func New(operatorType operator.Type, ops ...types.Option) *GcpProvisioner {
 	// parse config
 	os := &types.Options{}
 	for _, o := range ops {
@@ -32,13 +33,13 @@ func New(operatorType operator.Type, ops ...types.Option) *gcpProvisioner {
 		op = &operator.Unknown{}
 	}
 
-	return &gcpProvisioner{
+	return &GcpProvisioner{
 		provisionOperator: op,
 	}
 }
 
 // Provision requests provisioning of a new Kubernetes cluster on GCP with the given configurations.
-func (g *gcpProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
+func (g *GcpProvisioner) Provision(cluster *types.Cluster, provider *types.Provider) (*types.Cluster, error) {
 	if err := g.validateInputs(cluster, provider); err != nil {
 		return cluster, err
 	}
@@ -55,7 +56,7 @@ func (g *gcpProvisioner) Provision(cluster *types.Cluster, provider *types.Provi
 }
 
 // Status returns the ClusterStatus for the requested cluster.
-func (g *gcpProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
+func (g *GcpProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
 	if err := g.validateInputs(cluster, p); err != nil {
 		return nil, err
 	}
@@ -66,12 +67,12 @@ func (g *gcpProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*typ
 }
 
 // Credentials returns the Kubeconfig file as a byte array for the requested cluster.
-func (g *gcpProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) ([]byte, error) {
+func (g *GcpProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) ([]byte, error) {
 	return nil, errors.New("Not supported")
 }
 
 // Deprovision requests deprovisioning of an existing cluster on GCP with the given configurations.
-func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
+func (g *GcpProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
 	if err := g.validateInputs(cluster, p); err != nil {
 		return err
 	}
@@ -86,7 +87,7 @@ func (g *gcpProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) 
 	return nil
 }
 
-func (g *gcpProvisioner) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
+func (g *GcpProvisioner) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
 	var errMessage string
 	if cluster.NodeCount < 1 {
 		errMessage += fmt.Sprintf(errs.CannotBeLess, "Cluster.NodeCount", 1)
@@ -123,7 +124,7 @@ func (g *gcpProvisioner) validateInputs(cluster *types.Cluster, provider *types.
 	return nil
 }
 
-func (g *gcpProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
+func (g *GcpProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
 	config["node_count"] = cluster.NodeCount

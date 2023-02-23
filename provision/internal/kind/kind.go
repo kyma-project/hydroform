@@ -12,13 +12,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// kindProvisioner implements Provisioner
-type kindProvisioner struct {
+// KindProvisioner implements Provisioner
+// nolint:revive
+type KindProvisioner struct {
 	provisionOperator operator.Operator
 }
 
-// New creates a new instance of kindProvisioner.
-func New(operatorType operator.Type, ops ...types.Option) *kindProvisioner {
+// New creates a new instance of KindProvisioner.
+func New(operatorType operator.Type, ops ...types.Option) *KindProvisioner {
 	// parse config
 	os := &types.Options{}
 	for _, o := range ops {
@@ -33,13 +34,13 @@ func New(operatorType operator.Type, ops ...types.Option) *kindProvisioner {
 		op = &operator.Unknown{}
 	}
 
-	return &kindProvisioner{
+	return &KindProvisioner{
 		provisionOperator: op,
 	}
 }
 
 // Provision requests provisioning of a new Kubernetes cluster on Kind with the given configurations.
-func (k *kindProvisioner) Provision(cluster *types.Cluster, p *types.Provider) (*types.Cluster, error) {
+func (k *KindProvisioner) Provision(cluster *types.Cluster, p *types.Provider) (*types.Cluster, error) {
 	if err := k.validateInputs(cluster, p); err != nil {
 		return nil, err
 	}
@@ -56,7 +57,7 @@ func (k *kindProvisioner) Provision(cluster *types.Cluster, p *types.Provider) (
 }
 
 // Status returns the ClusterStatus for the requested cluster.
-func (k *kindProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
+func (k *KindProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*types.ClusterStatus, error) {
 	if err := k.validateInputs(cluster, p); err != nil {
 		return nil, err
 	}
@@ -67,12 +68,12 @@ func (k *kindProvisioner) Status(cluster *types.Cluster, p *types.Provider) (*ty
 }
 
 // Credentials returns the Kubeconfig file as a byte array for the requested cluster.
-func (k *kindProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) ([]byte, error) {
+func (k *KindProvisioner) Credentials(cluster *types.Cluster, p *types.Provider) ([]byte, error) {
 	return nil, errors.New("Not supported")
 }
 
 // Deprovision requests deprovisioning of an existing cluster on Kind with the given configurations.
-func (k *kindProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
+func (k *KindProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
 	if err := k.validateInputs(cluster, p); err != nil {
 		return err
 	}
@@ -87,7 +88,7 @@ func (k *kindProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider)
 	return nil
 }
 
-func (k *kindProvisioner) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
+func (k *KindProvisioner) validateInputs(cluster *types.Cluster, provider *types.Provider) error {
 
 	var errMessage string
 	// Matches the regex for a GCP cluster name.
@@ -112,7 +113,7 @@ func (k *kindProvisioner) validateInputs(cluster *types.Cluster, provider *types
 	return nil
 }
 
-func (k *kindProvisioner) loadConfigurations(cluster *types.Cluster, p *types.Provider) map[string]interface{} {
+func (k *KindProvisioner) loadConfigurations(cluster *types.Cluster, p *types.Provider) map[string]interface{} {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
 	config["project"] = p.ProjectName

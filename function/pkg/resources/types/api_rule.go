@@ -18,7 +18,7 @@ type APIRuleSpec struct {
 
 type Service struct {
 	Name      string `json:"name"`
-	Namespace string `json:"namespace"'`
+	Namespace string `json:"namespace"`
 	Port      int64  `json:"port"`
 }
 
