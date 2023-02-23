@@ -130,6 +130,38 @@ func Credentials(cluster *types.Cluster, provider *types.Provider, ops ...types.
 	return cr, action.After()
 }
 
+// Deprovision removes an existing cluster along or returns an error if removing the cluster is not possible.
+func Deprovision(cluster *types.Cluster, provider *types.Provider, ops ...types.Option) error {
+	var err error
+
+	if err = action.Before(); err != nil {
+		return err
+	}
+
+	if runtime.GOOS == "windows" {
+		provider.CredentialsFilePath = updateWindowsPath(provider.CredentialsFilePath)
+	}
+
+	switch provider.Type {
+	case types.GCP:
+		err = gcp.New(provisioningOperator, ops...).Deprovision(cluster, provider)
+	case types.Gardener:
+		err = gardener.New(provisioningOperator, ops...).Deprovision(cluster, provider)
+	case types.AWS:
+		err = errors.New("aws not supported yet")
+	case types.Azure:
+		err = azure.New(provisioningOperator, ops...).Deprovision(cluster, provider)
+	case types.Kind:
+		err = kind.New(provisioningOperator, ops...).Deprovision(cluster, provider)
+	default:
+		err = errors.New("unknown provider")
+	}
+	if err != nil {
+		return err
+	}
+	return action.After()
+}
+
 func updateWindowsPath(windowsPath string) string {
 	cleanWindowsPath := filepath.Clean(windowsPath)
 	return strings.Replace(cleanWindowsPath, `\`, `\\`, -1)
