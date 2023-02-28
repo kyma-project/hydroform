@@ -9,7 +9,6 @@ import (
 	mockclient "github.com/kyma-project/hydroform/function/pkg/client/automock"
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 	"github.com/pkg/errors"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -125,21 +124,23 @@ func Test_Synchronise(t *testing.T) {
 					},
 					Subscriptions: []Subscription{
 						{
-							Name:     "fixme",
-							Protocol: "fixme",
-							Filter: Filter{
-								Dialect: "fixme",
-								Filters: []EventFilter{
-									{
-										EventSource: EventSource{
-											Property: "source",
-											Type:     "exact",
-											Value:    "the-source",
-										},
-										EventType: EventType{
-											Property: "type",
-											Type:     "exact",
-											Value:    "t1.v1.0.0",
+							Name: "fixme",
+							V0: &SubscriptionV0{
+								Protocol: "fixme",
+								Filter: Filter{
+									Dialect: "fixme",
+									Filters: []EventFilter{
+										{
+											EventSource: EventSource{
+												Property: "source",
+												Type:     "exact",
+												Value:    "the-source",
+											},
+											EventType: EventType{
+												Property: "type",
+												Type:     "exact",
+												Value:    "t1.v1.0.0",
+											},
 										},
 									},
 								},
@@ -172,6 +173,101 @@ func Test_Synchronise(t *testing.T) {
 							},
 						},
 					},
+					SchemaVersion: SchemaVersionV0,
+				},
+				build: func() client.Build {
+					c := inlineClient(ctrl, name, namespace)
+					return func(_ string, _ schema.GroupVersionResource) client.Client {
+						return c
+					}
+				}(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "inline happy path with subscriptions and apirules for v1alpha2",
+			args: args{
+				cfg: Cfg{
+					Name:      name,
+					Namespace: namespace,
+					Runtime:   types.Nodejs16,
+					Source: Source{
+						Type: SourceTypeInline,
+						SourceInline: SourceInline{
+							SourcePath:        "./testdir/inline",
+							SourceHandlerName: handlerJs,
+							DepsHandlerName:   packageJSON,
+						},
+					},
+					Env: []EnvVar{
+						{
+							Name:  "TEST_ENV",
+							Value: "test",
+						},
+						{
+							Name: "TEST_ENV_SECRET",
+							ValueFrom: &EnvVarSource{
+								SecretKeyRef: &SecretKeySelector{
+									Name: "secretName",
+									Key:  "secretKey",
+								},
+							},
+						},
+						{
+							Name: "TEST_ENV_CM",
+							ValueFrom: &EnvVarSource{
+								ConfigMapKeyRef: &ConfigMapKeySelector{
+									Name: "configMapName",
+									Key:  "configMapKey",
+								},
+							},
+						},
+					},
+					Resources: Resources{
+						Limits:   nil,
+						Requests: nil,
+					},
+					Subscriptions: []Subscription{
+						{
+							Name: "fixme",
+							V1: &SubscriptionV1{
+								TypeMatching: "matchingType",
+								Source:       "source",
+								Types: []string{
+									"type1",
+									"type2",
+									"type3",
+								},
+							},
+						},
+					},
+					APIRules: []APIRule{
+						{
+							Name:    "test-name",
+							Gateway: "test-gateway",
+							Service: Service{
+								Host: "test-host",
+								Port: 9090,
+							},
+							Rules: []Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"test-method"},
+									AccessStrategies: []AccessStrategie{
+										{
+											Config: AccessStrategieConfig{
+												JwksUrls:       []string{"test-jwks"},
+												TrustedIssuers: []string{"test-trusted"},
+												RequiredScope:  []string{"test-required"},
+											},
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
+					},
+					SchemaVersion: SchemaVersionV1,
 				},
 				build: func() client.Build {
 					c := inlineClient(ctrl, name, namespace)
@@ -187,8 +283,42 @@ func Test_Synchronise(t *testing.T) {
 			wantErr: true,
 			args: args{
 				cfg: Cfg{
-					Name:      name,
-					Namespace: namespace,
+					Name:          name,
+					Namespace:     namespace,
+					SchemaVersion: SchemaVersionV0,
+				},
+				build: func() client.Build {
+
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						Get(gomock.Any(), name, v1.GetOptions{}).
+						Return(&unstructured.Unstructured{Object: map[string]interface{}{"test": "test"}}, nil).
+						Times(1)
+
+					result.EXPECT().
+						List(gomock.Any(), v1.ListOptions{}).
+						Return(&unstructured.UnstructuredList{}, nil).
+						Times(1)
+
+					result.EXPECT().List(gomock.Any(), v1.ListOptions{}).
+						Return(&unstructured.UnstructuredList{}, errors.New("the error")).Times(1)
+
+					return func(_ string, _ schema.GroupVersionResource) client.Client {
+						return result
+					}
+				}(),
+				ctx: context.Background(),
+			},
+		},
+		{
+			name:    "getting apirules as unstructured list should fail for v1alpha2",
+			wantErr: true,
+			args: args{
+				cfg: Cfg{
+					Name:          name,
+					Namespace:     namespace,
+					SchemaVersion: SchemaVersionV1,
 				},
 				build: func() client.Build {
 
@@ -255,21 +385,23 @@ func Test_Synchronise(t *testing.T) {
 					},
 					Subscriptions: []Subscription{
 						{
-							Name:     "fixme",
-							Protocol: "fixme",
-							Filter: Filter{
-								Dialect: "fixme",
-								Filters: []EventFilter{
-									{
-										EventSource: EventSource{
-											Property: "source",
-											Type:     "exact",
-											Value:    "the-source",
-										},
-										EventType: EventType{
-											Property: "type",
-											Type:     "exact",
-											Value:    "t1.v1.0.0",
+							Name: "fixme",
+							V0: &SubscriptionV0{
+								Protocol: "fixme",
+								Filter: Filter{
+									Dialect: "fixme",
+									Filters: []EventFilter{
+										{
+											EventSource: EventSource{
+												Property: "source",
+												Type:     "exact",
+												Value:    "the-source",
+											},
+											EventType: EventType{
+												Property: "type",
+												Type:     "exact",
+												Value:    "t1.v1.0.0",
+											},
 										},
 									},
 								},
@@ -302,6 +434,97 @@ func Test_Synchronise(t *testing.T) {
 							},
 						},
 					},
+					SchemaVersion: SchemaVersionV0,
+				},
+				build: func() client.Build {
+					c := inlineClient(ctrl, name, namespace)
+					return func(_ string, _ schema.GroupVersionResource) client.Client {
+						return c
+					}
+				}(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "inline happy path with subscriptions and apirules for v1alpha2",
+			args: args{
+				cfg: Cfg{
+					Name:      name,
+					Namespace: namespace,
+					Runtime:   types.Nodejs16,
+					Source: Source{
+						Type: SourceTypeInline,
+						SourceInline: SourceInline{
+							SourcePath:        "./testdir/inline",
+							SourceHandlerName: handlerJs,
+							DepsHandlerName:   packageJSON,
+						},
+					},
+					Env: []EnvVar{
+						{
+							Name:  "TEST_ENV",
+							Value: "test",
+						},
+						{
+							Name: "TEST_ENV_SECRET",
+							ValueFrom: &EnvVarSource{
+								SecretKeyRef: &SecretKeySelector{
+									Name: "secretName",
+									Key:  "secretKey",
+								},
+							},
+						},
+						{
+							Name: "TEST_ENV_CM",
+							ValueFrom: &EnvVarSource{
+								ConfigMapKeyRef: &ConfigMapKeySelector{
+									Name: "configMapName",
+									Key:  "configMapKey",
+								},
+							},
+						},
+					},
+					Subscriptions: []Subscription{
+						{
+							Name: "fixme",
+							V1: &SubscriptionV1{
+								TypeMatching: "matchingType",
+								Source:       "source",
+								Types: []string{
+									"type1",
+									"type2",
+									"type3",
+								},
+							},
+						},
+					},
+					APIRules: []APIRule{
+						{
+							Name:    "test-name",
+							Gateway: "test-gateway",
+							Service: Service{
+								Host: "test-host",
+								Port: 9090,
+							},
+							Rules: []Rule{
+								{
+									Path:    "test-path",
+									Methods: []string{"test-method"},
+									AccessStrategies: []AccessStrategie{
+										{
+											Config: AccessStrategieConfig{
+												JwksUrls:       []string{"test-jwks"},
+												TrustedIssuers: []string{"test-trusted"},
+												RequiredScope:  []string{"test-required"},
+											},
+											Handler: "test-handler",
+										},
+									},
+								},
+							},
+						},
+					},
+					SchemaVersion: SchemaVersionV1,
 				},
 				build: func() client.Build {
 					c := inlineClient(ctrl, name, namespace)

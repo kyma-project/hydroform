@@ -4,9 +4,12 @@ import (
 	"context"
 
 	"github.com/kyma-project/hydroform/function/pkg/client"
+	operator_types "github.com/kyma-project/hydroform/function/pkg/operator/types"
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
+	"github.com/kyma-project/hydroform/function/pkg/workspace"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type subscriptionOperator struct {
@@ -80,7 +83,7 @@ func mergeMap(l map[string]string, r map[string]string) map[string]string {
 // buildMatchRemovedSubscriptionsPredicate - creates a predicate to match the subscriptions that should be deleted
 func buildMatchRemovedSubscriptionsPredicate(fnRef functionReference, items []unstructured.Unstructured) predicate {
 	return func(obj map[string]interface{}) (bool, error) {
-		var subscription types.Subscription
+		var subscription types.SubscriptionV1alpha1
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, &subscription); err != nil {
 			return false, err
 		}
@@ -117,4 +120,11 @@ func applySubscriptions(ctx context.Context, c client.Client, p predicate, items
 		items[i].SetUnstructuredContent(applied.Object)
 	}
 	return nil
+}
+
+func SubscriptionGVR(subscription workspace.SchemaVersion) schema.GroupVersionResource {
+	if subscription == workspace.SchemaVersionV0 {
+		return operator_types.GVRSubscriptionV1alpha1
+	}
+	return operator_types.GVRSubscriptionV1alpha2
 }

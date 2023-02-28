@@ -4,20 +4,19 @@ import (
 	"context"
 	errs "errors"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/watch"
-
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-project/hydroform/function/pkg/client"
 	mockclient "github.com/kyma-project/hydroform/function/pkg/client/automock"
+	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 var (
@@ -55,6 +54,22 @@ var (
 			},
 		},
 	}
+	testObjModifiedSpec = unstructured.Unstructured{Object: map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name":      "test-obj",
+			"namespace": "test-namespace",
+		},
+		"spec": map[string]interface{}{
+			"test": "me3",
+			"subscriber": map[string]interface{}{
+				"ref": map[string]interface{}{
+					"kind":      "Service",
+					"name":      "test-function-name",
+					"namespace": "test-namespace",
+				},
+			},
+		},
+	}}
 )
 
 func Test_applyObject(t *testing.T) {
@@ -134,21 +149,21 @@ func Test_applyObject(t *testing.T) {
 					result := mockclient.NewMockClient(ctrl)
 					result.EXPECT().
 						Get(gomock.Any(), gomock.Any(), gomock.Any()).
-						Return(testObj2.DeepCopy(), nil).
+						Return(testObj.DeepCopy(), nil).
 						Times(1)
 
 					result.EXPECT().
 						Update(gomock.Any(), gomock.Any(), gomock.Any()).
-						Return(testObj.DeepCopy(), fmt.Errorf("update failed")).
+						Return(nil, fmt.Errorf("update failed")).
 						AnyTimes()
 
 					return result
 				}(),
-				u:      testObj,
+				u:      testObjModifiedSpec,
 				stages: []string{},
 			},
-			want:    &testObj,
-			want1:   client.NewPostStatusEntryApplyFailed(testObj),
+			want:    &testObjModifiedSpec,
+			want1:   client.NewPostStatusEntryApplyFailed(testObjModifiedSpec),
 			wantErr: true,
 		},
 		{

@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/kyma-project/hydroform/function/pkg/client"
-	"github.com/kyma-project/hydroform/function/pkg/operator"
+	operator_types "github.com/kyma-project/hydroform/function/pkg/operator/types"
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apimachinery_types "k8s.io/apimachinery/pkg/types"
 	coretypes "k8s.io/apimachinery/pkg/types"
 )
 
@@ -27,7 +27,7 @@ func Synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 
 func synchronise(ctx context.Context, config Cfg, outputPath string, build client.Build, writerProvider WriterProvider) error {
 
-	u, err := build(config.Namespace, operator.GVRFunction).Get(ctx, config.Name, v1.GetOptions{})
+	u, err := build(config.Namespace, operator_types.GVRFunction).Get(ctx, config.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -49,20 +49,42 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	config.Labels = function.ObjectMeta.Labels
 	config.Env = toWorkspaceEnvVar(function.Spec.Env)
 
-	ul, err := build(config.Namespace, operator.GVRSubscription).List(ctx, v1.ListOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
+	switch config.SchemaVersion {
+	case SchemaVersionV0:
+		config, err = buildSubscriptionV1alpha1(ctx, config, function, build, u.GetUID())
+	case SchemaVersionV1:
+		config, err = buildSubscriptionV1alpha2(ctx, config, function, build, u.GetUID())
+	}
+
+	config, err = buildAPIRule(ctx, config, function, build, u.GetUID())
+	var ws workspace
+	if function.Spec.Source.Inline != nil {
+		ws, err = createInlineWorkspace(&config, outputPath, function)
+	}
+	if function.Spec.Source.GitRepository != nil {
+		createGitConfig(&config, function)
+	}
+	if err != nil {
 		return err
+	}
+	return ws.build(config, outputPath, writerProvider)
+}
+
+func buildSubscriptionV1alpha1(ctx context.Context, config Cfg, function types.Function, build client.Build, functionUID apimachinery_types.UID) (Cfg, error) {
+	ul, err := build(config.Namespace, operator_types.GVRSubscriptionV1alpha1).List(ctx, v1.ListOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return config, err
 	}
 
 	if ul != nil {
 		for _, item := range ul.Items {
-			var subscription types.Subscription
+			var subscription types.SubscriptionV1alpha1
 			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &subscription); err != nil {
-				return err
+				return config, err
 			}
 
 			isRef := subscription.IsReference(function.Name, function.Namespace)
-			isOwnerRef := (len(subscription.OwnerReferences) == 0 || isOwnerReference(subscription.OwnerReferences, u.GetUID()))
+			isOwnerRef := (len(subscription.OwnerReferences) == 0 || isOwnerReference(subscription.OwnerReferences, functionUID))
 			if !isRef || !isOwnerRef {
 				continue
 			}
@@ -79,30 +101,67 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			}
 
 			config.Subscriptions = append(config.Subscriptions, Subscription{
-				Name:     subscription.Name,
-				Protocol: subscription.Spec.Protocol,
-				Filter: Filter{
-					Dialect: subscription.Spec.Filter.Dialect,
-					Filters: filters,
+				Name: subscription.Name,
+				V0: &SubscriptionV0{
+					Protocol: subscription.Spec.Protocol,
+					Filter: Filter{
+						Dialect: subscription.Spec.Filter.Dialect,
+						Filters: filters,
+					},
 				},
 			})
 		}
 	}
+	return config, nil
+}
 
-	ul, err = build(config.Namespace, operator.GVRApiRule).List(ctx, v1.ListOptions{})
+func buildSubscriptionV1alpha2(ctx context.Context, config Cfg, function types.Function, build client.Build, functionUID apimachinery_types.UID) (Cfg, error) {
+	ul, err := build(config.Namespace, operator_types.GVRSubscriptionV1alpha2).List(ctx, v1.ListOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		return err
+		return config, err
+	}
+
+	if ul != nil {
+		for _, item := range ul.Items {
+			var subscription types.SubscriptionV1alpha2
+			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &subscription); err != nil {
+				return config, err
+			}
+
+			isRef := subscription.IsReference(function.Name, function.Namespace)
+			isOwnerRef := (len(subscription.OwnerReferences) == 0 || isOwnerReference(subscription.OwnerReferences, functionUID))
+			if !isRef || !isOwnerRef {
+				continue
+			}
+
+			config.Subscriptions = append(config.Subscriptions, Subscription{
+				Name: subscription.Name,
+				V1: &SubscriptionV1{
+					TypeMatching: subscription.Spec.TypeMatching,
+					Source:       subscription.Spec.EventSource,
+					Types:        subscription.Spec.Types,
+				},
+			})
+		}
+	}
+	return config, nil
+}
+
+func buildAPIRule(ctx context.Context, config Cfg, function types.Function, build client.Build, functionUID apimachinery_types.UID) (Cfg, error) {
+	ul, err := build(config.Namespace, operator_types.GVRApiRule).List(ctx, v1.ListOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return config, err
 	}
 
 	if ul != nil {
 		for _, item := range ul.Items {
 			var apiRule types.APIRule
 			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &apiRule); err != nil {
-				return err
+				return config, err
 			}
 
 			isRef := apiRule.IsReference(function.Name)
-			isOwnerRef := (len(apiRule.OwnerReferences) == 0 || isOwnerReference(apiRule.OwnerReferences, u.GetUID()))
+			isOwnerRef := (len(apiRule.OwnerReferences) == 0 || isOwnerReference(apiRule.OwnerReferences, functionUID))
 			if !isRef || !isOwnerRef {
 				continue
 			}
@@ -123,18 +182,7 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 			config.APIRules = append(config.APIRules, newAPIRule)
 		}
 	}
-
-	var ws workspace
-	if function.Spec.Source.Inline != nil {
-		ws, err = createInlineWorkspace(&config, outputPath, function)
-	}
-	if function.Spec.Source.GitRepository != nil {
-		createGitConfig(&config, function)
-	}
-	if err != nil {
-		return err
-	}
-	return ws.build(config, outputPath, writerProvider)
+	return config, nil
 }
 
 func createGitConfig(config *Cfg, function types.Function) {

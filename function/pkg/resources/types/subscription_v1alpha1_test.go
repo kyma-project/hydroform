@@ -8,8 +8,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func Test_subscription(t *testing.T) {
-	subscription := Subscription{
+func Test_subscriptionV1alpha1(t *testing.T) {
+	subscription := SubscriptionV1alpha1{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "Subscription",
 			APIVersion: "eventing.kyma-project.io/v1alpha1",
@@ -18,7 +18,7 @@ func Test_subscription(t *testing.T) {
 			Name:      "test-subscription",
 			Namespace: "default",
 		},
-		Spec: SubscriptionSpec{
+		Spec: SubscriptionSpecV1alpha1{
 			Filter: Filter{
 				Dialect: "silesian",
 				Filters: []EventFilter{

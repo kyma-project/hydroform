@@ -3,7 +3,7 @@ package azure
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"regexp"
 
 	"github.com/kyma-project/hydroform/provision/internal/errs"
@@ -158,7 +158,7 @@ func (a *AzureProvisioner) loadConfigurations(cluster *types.Cluster, provider *
 // azureCredentials extracts the values of a credentials file to authenticate on azure.
 // It expects a JSON file containing the subscription ID, tenant ID, client ID and client secret.
 func azureCredentials(path string) (subscriptionID, tenantID, clientID, clientSecret string, err error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return
 	}

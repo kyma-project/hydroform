@@ -6,15 +6,15 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
-
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-project/hydroform/function/pkg/client"
 	mockclient "github.com/kyma-project/hydroform/function/pkg/client/automock"
+	operator_types "github.com/kyma-project/hydroform/function/pkg/operator/types"
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 func Test_contains(t *testing.T) {
@@ -614,16 +614,16 @@ func Test_subscriptionsOperator_wipeRemoved(t *testing.T) {
 }
 
 func newTestSubscription(name, namespace string) (unstructured.Unstructured, error) {
-	subscription := types.Subscription{
+	subscription := types.SubscriptionV1alpha1{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "Subscription",
-			APIVersion: GVRSubscription.Version,
+			APIVersion: operator_types.GVRSubscriptionV1alpha1.Version,
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: types.SubscriptionSpec{
+		Spec: types.SubscriptionSpecV1alpha1{
 			Sink: fmt.Sprintf("http://%s.%s.svc.cluster.local", name, namespace),
 		},
 	}
