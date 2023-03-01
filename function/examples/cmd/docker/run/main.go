@@ -15,10 +15,10 @@ import (
 func main() {
 	runOpts := docker.RunOpts{
 		Ports:         map[string]string{"8080": "8080"},
-		Envs:          runtimes.ContainerEnvs(types.Nodejs16, false),
+		Envs:          runtimes.ContainerEnvs(types.Nodejs18, false),
 		ContainerName: "test123",
-		Image:         runtimes.ContainerImage(types.Nodejs16),
-		Commands:      runtimes.ContainerCommands(types.Nodejs16, false, false),
+		Image:         runtimes.ContainerImage(types.Nodejs18),
+		Commands:      runtimes.ContainerCommands(types.Nodejs18, false, false),
 		User:          runtimes.ContainerUser,
 	}
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())

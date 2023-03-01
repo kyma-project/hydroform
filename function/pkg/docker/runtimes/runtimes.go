@@ -28,7 +28,7 @@ const (
 
 func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	envs := []string{}
-	if runtime != types.Nodejs16 {
+	if runtime != types.Nodejs16 && runtime != types.Nodejs18 {
 		envs = append(envs, fmt.Sprintf("KUBELESS_INSTALL_VOLUME=%s", KubelessPath))
 	}
 	envs = append(envs, []string{
@@ -43,7 +43,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 
 func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	switch runtime {
-	case types.Nodejs14, types.Nodejs16:
+	case types.Nodejs14, types.Nodejs16, types.Nodejs18:
 		return []string{NodejsPath, "HOME=/home/node"}
 	case types.Python39:
 		envs := []string{Python39Path, Python39Unbuffered}
@@ -58,7 +58,7 @@ func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 
 func RuntimeDebugPort(runtime types.Runtime) string {
 	switch runtime {
-	case types.Nodejs14, types.Nodejs16:
+	case types.Nodejs14, types.Nodejs16, types.Nodejs18:
 		return NodejsDebugEndpoint
 	case types.Python39:
 		return Python39DebugEndpoint
@@ -81,7 +81,7 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 			runCommand = "node kubeless.js"
 		}
 		return []string{"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", runCommand}
-	case types.Nodejs16:
+	case types.Nodejs16, types.Nodejs18:
 		runCommand := ""
 		if hotDeploy && debug {
 			runCommand = "npx nodemon --watch /usr/src/app/function/*.js --inspect=0.0.0.0 --exitcrash server.js"
@@ -110,7 +110,7 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 
 func GetMounts(runtime types.Runtime, sourceType workspace.SourceType, workDir string) []mount.Mount {
 	sourceMountPoint := KubelessPath
-	if runtime == types.Nodejs16 {
+	if !isKubelessRuntime(runtime) {
 		sourceMountPoint = FunctionMountPath
 	}
 	if sourceType == workspace.SourceTypeInline {
@@ -137,7 +137,7 @@ func GetMounts(runtime types.Runtime, sourceType workspace.SourceType, workDir s
 
 func MoveInlineCommand(runtime types.Runtime, sourcePath, depsPath string) []string {
 	sourceMountPoint := KubelessPath
-	if runtime == types.Nodejs16 {
+	if !isKubelessRuntime(runtime) {
 		sourceMountPoint = FunctionMountPath
 	}
 	sourcePathFull := filepath.Join(KubelessTmpPath, sourcePath)
@@ -156,12 +156,21 @@ func MoveInlineCommand(runtime types.Runtime, sourcePath, depsPath string) []str
 func ContainerImage(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs14:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:e1491c46"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:v20230224-e59c5082"
 	case types.Nodejs16:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs16:e1491c46"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs16:v20230228-b2981e80"
+	case types.Nodejs18:
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs18:v20230228-b2981e80"
 	case types.Python39:
-		return "eu.gcr.io/kyma-project/function-runtime-python39:e1491c46"
+		return "eu.gcr.io/kyma-project/function-runtime-python39:v20230223-ec41ec1e"
 	default:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:e1491c46"
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs18:v20230228-b2981e80"
 	}
+}
+
+func isKubelessRuntime(runtime types.Runtime) bool {
+	if runtime == types.Nodejs16 || runtime == types.Nodejs18 {
+		return false
+	}
+	return true
 }
