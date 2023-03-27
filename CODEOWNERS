@@ -5,11 +5,8 @@
 # For more details, read the following article on GitHub: https://help.github.com/articles/about-codeowners/.
 
 # These are the default owners for the whole content of the `hydroform` repository. The default owners are automatically added as reviewers when you open a pull request, unless different owners are specified in the file.
-* @a-thaler @lilitgh @suleymanakbas91 @tobiscr @clebs @jeremyharisch
+* @kyma-project/Jellyfish @kyma-project/Otters
 
-/provision @tobiscr @clebs @jeremyharisch
+/provision @kyma-project/Jellyfish
 
-/function @m00g3n @pPrecel @dbadura @moelsayed @cortey @anoipm
-
-# All .md files
-*.md @klaudiagrz @mmitoraj @majakurcius @alexandra-simeonova @NHingerl
+/function @kyma-project/Otters
