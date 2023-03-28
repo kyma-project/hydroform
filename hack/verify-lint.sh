@@ -8,7 +8,7 @@ set -E         # needs to be set if we want the ERR trap
 readonly CURRENT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 readonly ROOT_PATH="${1:-$( cd "${CURRENT_DIR}/.." && pwd )}" # first argument or root of the project
 readonly TMP_DIR=$(mktemp -d)
-readonly GOLANGCI_LINT_VERSION="v1.38.0"
+readonly GOLANGCI_LINT_VERSION="v1.52.1"
 
 source "${CURRENT_DIR}/utilities.sh" || { echo 'Cannot load CI utilities.'; exit 1; }
 
@@ -23,6 +23,7 @@ trap cleanup EXIT SIGINT
 golangci::verify_installation() {
   # if binary found check version
   if [ ! -z "$(command -v golangci-lint)" ]; then
+    # shellcheck disable=SC2155
     local CURRENT_VERSION="$(golangci-lint version --format short 2>&1)"
 
     # remove the optional "v" prefix to only compare numbers
@@ -34,7 +35,7 @@ golangci::verify_installation() {
       echo -e "${RED}x Installed golangci-lint version (${CURRENT_VERSION}) incorrect${NC}"
       echo -e "Please update to a version equal or greater than ${GOLANGCI_LINT_VERSION}"
       echo -e "Run the following command to update:"
-      echo -e "${INVERTED}curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | bash -s -- -b <INSTALL_DIR> ${GOLANGCI_LINT_VERSION}${NC}"
+      echo -e "${INVERTED}curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${GOLANGCI_LINT_VERSION}${NC}"
       exit 1
     fi
     ## installed and version is correct

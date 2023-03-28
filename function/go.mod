@@ -2,8 +2,6 @@ module github.com/kyma-project/hydroform/function
 
 go 1.18
 
-replace golang.org/x/net v0.2.0 => golang.org/x/net v0.7.0
-
 require (
 	github.com/docker/cli v20.10.14+incompatible
 	github.com/docker/docker v20.10.21+incompatible
@@ -40,9 +38,9 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
-	golang.org/x/net v0.2.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/text v0.8.0 // indirect
 	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
