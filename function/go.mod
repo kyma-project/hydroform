@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/docker/cli v20.10.14+incompatible
-	github.com/docker/docker v20.10.21+incompatible
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/golang/mock v1.6.0
 	github.com/invopop/jsonschema v0.4.0
