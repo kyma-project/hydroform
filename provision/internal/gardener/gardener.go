@@ -2,7 +2,10 @@ package gardener
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 
@@ -89,11 +92,11 @@ func (g *GardenerProvisioner) Credentials(cluster *types.Cluster, provider *type
 	}
 
 	s, err := k8s.CoreV1().Secrets(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(context.Background(), fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
-	if err != nil {
-		return nil, err
+	if err == nil {
+		return s.Data["kubeconfig"], nil
 	}
 
-	return s.Data["kubeconfig"], nil
+	return fetchAdminKubeConfigSubResource(k8s, provider.ProjectName, cluster.Name)
 }
 
 func (g *GardenerProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
@@ -248,4 +251,41 @@ func (*GardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 		config["zoned"] = strconv.FormatBool(len(config["zones"].([]string)) > 0) // add zoned boolean
 	}
 	return config
+}
+
+func fetchAdminKubeConfigSubResource(k8s *kubernetes.Clientset, projectName string, clusterName string) ([]byte, error) {
+	uri := fmt.Sprintf("/apis/core.gardener.cloud/v1beta1/namespaces/garden-%s/shoots/%s/adminkubeconfig", projectName, clusterName)
+	kubeConfigRequestBody := []byte(`{
+		"apiVersion": "authentication.gardener.cloud/v1alpha1", 
+		"kind": "AdminKubeconfigRequest", 
+		"spec": {
+			"expirationSeconds": 86400
+		}
+	}`)
+
+	request := k8s.RESTClient().Post().RequestURI(uri).Body(kubeConfigRequestBody)
+	stream, err := request.Stream(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+	defer stream.Close()
+
+	streamBytes, err := io.ReadAll(stream)
+	if err != nil {
+		return nil, err
+	}
+
+	var kubeConfigRequest map[string]interface{}
+	err = json.Unmarshal(streamBytes, &kubeConfigRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeConfigValue := kubeConfigRequest["status"].(map[string]interface{})
+	decodedKubeConfig, err := base64.StdEncoding.DecodeString(kubeConfigValue["kubeconfig"].(string))
+	if err != nil {
+		return nil, err
+	}
+
+	return decodedKubeConfig, nil
 }
