@@ -91,12 +91,19 @@ func (g *GardenerProvisioner) Credentials(cluster *types.Cluster, provider *type
 		return nil, err
 	}
 
-	s, err := k8s.CoreV1().Secrets(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(context.Background(), fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
-	if err == nil {
-		return s.Data["kubeconfig"], nil
+	adminKubeConfig, err := fetchAdminKubeConfigSubResource(k8s, provider.ProjectName, cluster.Name)
+
+	// TODO: Remove the get kubeconfig secret when Gardener drops its support from Kubernetes v1.27
+	if err != nil || adminKubeConfig == nil {
+		s, err := k8s.CoreV1().Secrets(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(context.Background(), fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
+		if err == nil {
+			return s.Data["kubeconfig"], nil
+		} else {
+			return nil, err
+		}
 	}
 
-	return fetchAdminKubeConfigSubResource(k8s, provider.ProjectName, cluster.Name)
+	return adminKubeConfig, nil
 }
 
 func (g *GardenerProvisioner) Deprovision(cluster *types.Cluster, p *types.Provider) error {
