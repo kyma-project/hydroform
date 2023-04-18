@@ -45,7 +45,7 @@ func Provision(cluster *types.Cluster, provider *types.Provider, ops ...types.Op
 	case types.GCP:
 		cl, err = gcp.New(provisioningOperator, ops...).Provision(cluster, provider)
 	case types.Gardener:
-		cl, err = gcp.New(provisioningOperator, ops...).Provision(cluster, provider)
+		cl, err = gardener.New(provisioningOperator, ops...).Provision(cluster, provider)
 	case types.AWS:
 		err = errors.New("aws not supported yet")
 	case types.Azure:
