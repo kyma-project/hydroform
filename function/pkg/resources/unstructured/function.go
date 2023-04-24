@@ -142,6 +142,8 @@ func prepareBaseFunction(cfg *workspace.Cfg) (types.Function, error) {
 			RuntimeImageOverride: cfg.RuntimeImageOverride,
 			Resources:            resources,
 			Env:                  envs,
+			Labels:               cfg.RuntimeLabels,
+			Annotations:          cfg.RuntimeAnnotations,
 		},
 	}
 	return f, nil

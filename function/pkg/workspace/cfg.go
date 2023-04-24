@@ -137,6 +137,8 @@ type Cfg struct {
 	Source               Source            `yaml:"source"`
 	Resources            Resources         `yaml:"resource,omitempty"`
 	Subscriptions        []Subscription    `yaml:"subscriptions,omitempty"`
+	RuntimeLabels        map[string]string `yaml:"runtimeLabels,omitempty"`
+	RuntimeAnnotations   map[string]string `yaml:"runtimeAnnotations,omitempty"`
 	Env                  []EnvVar          `yaml:"env,omitempty"`
 	APIRules             []APIRule         `yaml:"apiRules,omitempty"`
 	SchemaVersion        SchemaVersion     `yaml:"schemaVersion"`
