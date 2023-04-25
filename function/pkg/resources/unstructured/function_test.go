@@ -84,6 +84,13 @@ func Test_newFunction(t *testing.T) {
 							},
 						},
 					},
+					RuntimeLabels: map[string]string{
+						"label-1": "val-1",
+						"label-2": "val-2",
+					},
+					RuntimeAnnotations: map[string]string{
+						"annotation-1": "val-1",
+					},
 				},
 			},
 			wantOut: unstructured.Unstructured{
@@ -140,6 +147,13 @@ func Test_newFunction(t *testing.T) {
 									},
 								},
 							},
+						},
+						"labels": map[string]interface{}{
+							"label-1": "val-1",
+							"label-2": "val-2",
+						},
+						"annotations": map[string]interface{}{
+							"annotation-1": "val-1",
 						},
 					},
 				},
