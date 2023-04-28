@@ -28,6 +28,11 @@ const (
 	fileTypeCfg  fileType = "cfg"
 )
 
+type fileData struct {
+	fileType fileType
+	data     interface{}
+}
+
 func Test_Synchronise(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -37,10 +42,6 @@ func Test_Synchronise(t *testing.T) {
 		cfg        Cfg
 		outputPath string
 		build      client.Build
-	}
-	type fileData struct {
-		fileType fileType
-		data     interface{}
 	}
 
 	name := "test"
@@ -408,52 +409,64 @@ func Test_Synchronise(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			//TODO: Please refactor this test because:
 			// - the mocks or tests are wrongly configured as a result: the unit test together pass, but e.g.: "gitrepo happy path" apart fails.
-			bp := BufferProvider{
-				buffers: map[string]*bytes.Buffer{},
-			}
-			wp := func(path string) (io.Writer, Cancel, error) {
-				b := bp.NewBuffer(path)
-				return b, func() error { return nil }, nil
-			}
+			bp, wp := prepareBufferAndWriterProvider()
+
 			err := synchronise(tt.args.ctx, tt.args.cfg, tt.args.outputPath, tt.args.build, wp)
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Synchronise() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-
 			if !tt.wantErr {
-				var gotFileNames []string
-				for k := range bp.buffers {
-					gotFileNames = append(gotFileNames, k)
-				}
-				var wantFileNames []string
-				for k := range tt.wantOut {
-					wantFileNames = append(wantFileNames, k)
-				}
-				require.ElementsMatch(t, gotFileNames, wantFileNames)
-
-				for _, fileName := range wantFileNames {
-					data := tt.wantOut[fileName]
-					switch data.fileType {
-					case fileTypeCfg:
-						{
-							var gotCfg Cfg
-							if err := yaml.NewDecoder(bytes.NewReader(bp.buffers[fileName].Bytes())).Decode(&gotCfg); err != nil {
-								t.Errorf("Synchronise() error while trying to decode output")
-							}
-							require.Equal(t, tt.wantOut[fileName].data.(Cfg), gotCfg)
-						}
-					case fileTypeJson:
-						require.JSONEq(t, tt.wantOut[fileName].data.(string), bp.buffers[fileName].String())
-					case fileTypeText:
-						require.Equal(t,
-							removeSpaces(tt.wantOut[fileName].data.(string)),
-							removeSpaces(bp.buffers[fileName].String()))
-					}
-				}
+				checkFilesContent(t, bp, tt.wantOut)
 			}
 		})
 	}
+}
+
+func checkFilesContent(t *testing.T, bp BufferProvider, wantOut map[string]fileData) {
+	gotFileNames := keys(bp.buffers)
+	wantFileNames := keys(wantOut)
+	require.ElementsMatch(t, gotFileNames, wantFileNames)
+
+	for _, fileName := range wantFileNames {
+		data := wantOut[fileName]
+		switch data.fileType {
+		case fileTypeCfg:
+			{
+				var gotCfg Cfg
+				if err := yaml.NewDecoder(bytes.NewReader(bp.buffers[fileName].Bytes())).Decode(&gotCfg); err != nil {
+					t.Errorf("Synchronise() error while trying to decode output")
+				}
+				require.Equal(t, wantOut[fileName].data.(Cfg), gotCfg)
+			}
+		case fileTypeJson:
+			require.JSONEq(t, wantOut[fileName].data.(string), bp.buffers[fileName].String())
+		case fileTypeText:
+			require.Equal(t,
+				removeSpaces(wantOut[fileName].data.(string)),
+				removeSpaces(bp.buffers[fileName].String()))
+		}
+	}
+}
+
+func prepareBufferAndWriterProvider() (BufferProvider, WriterProvider) {
+	bp := BufferProvider{
+		buffers: map[string]*bytes.Buffer{},
+	}
+	wp := func(path string) (io.Writer, Cancel, error) {
+		b := bp.NewBuffer(path)
+		return b, func() error { return nil }, nil
+	}
+	return bp, wp
+}
+
+func keys[M ~map[K]V, K comparable, V any](m M) []K {
+	r := make([]K, 0, len(m))
+	for k := range m {
+		r = append(r, k)
+	}
+	return r
 }
 
 func removeSpaces(s string) string {
