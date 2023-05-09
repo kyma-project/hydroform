@@ -404,6 +404,102 @@ func Test_Synchronise(t *testing.T) {
 				ctx: context.Background(),
 			},
 		},
+		{
+			name: "happy path with runtime labels and annotations",
+			args: args{
+				cfg: Cfg{
+					Name:      name,
+					Namespace: namespace,
+					RuntimeLabels: map[string]string{
+						"label-1": "label-value-1",
+						"label-2": "label-value-2",
+					},
+					RuntimeAnnotations: map[string]string{
+						"annotation-1": "label-annotation-1",
+						"annotation-2": "label-annotation-2",
+					},
+				},
+				build: func() client.Build {
+					result := mockclient.NewMockClient(ctrl)
+
+					result.EXPECT().
+						Get(gomock.Any(), name, v1.GetOptions{}).
+						Return(&unstructured.Unstructured{Object: map[string]interface{}{
+							"apiVersion": "serverless.kyma-project.io/v1alpha2",
+							"kind":       "Function",
+							"metadata": map[string]interface{}{
+								"name":      name,
+								"namespace": namespace,
+							},
+							"spec": map[string]interface{}{
+								"runtime": "nodejs16",
+								"source": map[string]interface{}{
+									"inline": map[string]interface{}{
+										"source":       handlerJs,
+										"dependencies": packageJSON,
+									},
+								},
+							},
+						}}, nil).Times(1)
+
+					result.EXPECT().
+						List(gomock.Any(), v1.ListOptions{}).
+						Return(&unstructured.UnstructuredList{}, nil).
+						Times(1)
+
+					result.EXPECT().
+						List(gomock.Any(), v1.ListOptions{}).
+						Return(&unstructured.UnstructuredList{}, nil).
+						Times(1)
+
+					return func(_ string, _ schema.GroupVersionResource) client.Client {
+						return result
+					}
+				}(),
+			},
+			wantErr: false,
+			wantOut: map[string]fileData{
+				"handler.js": {
+					fileType: fileTypeText,
+					data: `module.exports = {
+							main: function (event, context) {
+								return 'Hello Serverless'
+							}
+						}`,
+				},
+				"package.json": {
+					fileType: fileTypeJson,
+					data: `{
+						  "name": "test",
+						  "version": "0.0.1",
+						  "dependencies": {}
+						}`,
+				},
+				"config.yaml": {
+					fileType: fileTypeCfg,
+					data: Cfg{
+						Name:      name,
+						Namespace: namespace,
+						Runtime:   types.Nodejs16,
+						Source: Source{
+							Type: SourceTypeInline,
+						},
+						Resources: Resources{
+							Limits:   nil,
+							Requests: nil,
+						},
+						RuntimeLabels: map[string]string{
+							"label-1": "label-value-1",
+							"label-2": "label-value-2",
+						},
+						RuntimeAnnotations: map[string]string{
+							"annotation-1": "label-annotation-1",
+							"annotation-2": "label-annotation-2",
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
