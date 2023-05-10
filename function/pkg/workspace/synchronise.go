@@ -48,6 +48,8 @@ func synchronise(ctx context.Context, config Cfg, outputPath string, build clien
 	config.RuntimeImageOverride = function.Spec.RuntimeImageOverride
 	config.Labels = function.ObjectMeta.Labels
 	config.Env = toWorkspaceEnvVar(function.Spec.Env)
+	config.RuntimeLabels = function.Spec.Labels
+	config.RuntimeAnnotations = function.Spec.Annotations
 
 	switch config.SchemaVersion {
 	case SchemaVersionV0:

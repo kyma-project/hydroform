@@ -410,14 +410,6 @@ func Test_Synchronise(t *testing.T) {
 				cfg: Cfg{
 					Name:      name,
 					Namespace: namespace,
-					RuntimeLabels: map[string]string{
-						"label-1": "label-value-1",
-						"label-2": "label-value-2",
-					},
-					RuntimeAnnotations: map[string]string{
-						"annotation-1": "label-annotation-1",
-						"annotation-2": "label-annotation-2",
-					},
 				},
 				build: func() client.Build {
 					result := mockclient.NewMockClient(ctrl)
@@ -439,13 +431,16 @@ func Test_Synchronise(t *testing.T) {
 										"dependencies": packageJSON,
 									},
 								},
+								"labels": map[string]string{
+									"label-1": "label-value-1",
+									"label-2": "label-value-2",
+								},
+								"annotations": map[string]string{
+									"annotation-1": "label-annotation-1",
+									"annotation-2": "label-annotation-2",
+								},
 							},
 						}}, nil).Times(1)
-
-					result.EXPECT().
-						List(gomock.Any(), v1.ListOptions{}).
-						Return(&unstructured.UnstructuredList{}, nil).
-						Times(1)
 
 					result.EXPECT().
 						List(gomock.Any(), v1.ListOptions{}).
