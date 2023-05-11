@@ -11,6 +11,7 @@ type FunctionSpec struct {
 	RuntimeImageOverride string                       `json:"runtimeImageOverride,omitempty"`
 	Resources            *corev1.ResourceRequirements `json:"resources,omitempty"`
 	Labels               map[string]string            `json:"labels,omitempty"`
+	Annotations          map[string]string            `json:"annotations,omitempty"`
 	Env                  []corev1.EnvVar              `json:"env,omitempty"`
 }
 
