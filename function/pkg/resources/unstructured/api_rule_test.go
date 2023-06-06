@@ -11,8 +11,7 @@ import (
 func TestNewApiRule(t *testing.T) {
 	g := gomega.NewWithT(t)
 	type args struct {
-		cfg            workspace.Cfg
-		defaultAddress string
+		cfg workspace.Cfg
 	}
 	tests := []struct {
 		name    string
@@ -37,7 +36,6 @@ func TestNewApiRule(t *testing.T) {
 		{
 			name: "Should return defaulted ApiRule",
 			args: args{
-				defaultAddress: "kyma.local",
 				cfg: workspace.Cfg{
 					Name:      "test-name",
 					Namespace: "test-ns",
@@ -62,7 +60,7 @@ func TestNewApiRule(t *testing.T) {
 							"creationTimestamp": nil,
 						},
 						"spec": map[string]interface{}{
-							"host": "test-name.kyma.local",
+							"host": "test-name",
 							"service": map[string]interface{}{
 								"name":      "test-name",
 								"namespace": "test-ns",
@@ -169,7 +167,7 @@ func TestNewApiRule(t *testing.T) {
 	for _, tt := range tests {
 
 		t.Run(tt.name, func(t *testing.T) {
-			gotOut, err := NewAPIRule(tt.args.cfg, tt.args.defaultAddress)
+			gotOut, err := NewAPIRule(tt.args.cfg)
 			g.Expect(gotOut).To(gomega.Equal(tt.wantOut))
 			g.Expect(err).To(tt.wantErr)
 		})
