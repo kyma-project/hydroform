@@ -30,7 +30,6 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	objFound := response != nil
 	isNotFoundErr := errors.IsNotFound(err)
 	if err != nil && !isNotFoundErr {
-		fmt.Printf("To tu -- err: %v\n", err)
 		statusEntryFailed := client.NewPostStatusEntryApplyFailed(u)
 		return &u, statusEntryFailed, err
 	}
