@@ -1,7 +1,6 @@
 package unstructured
 
 import (
-	"fmt"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,10 +16,10 @@ const (
 	apiRuleKind       = "APIRule"
 )
 
-func NewAPIRule(cfg workspace.Cfg, clusterAddress string) ([]unstructured.Unstructured, error) {
+func NewAPIRule(cfg workspace.Cfg) ([]unstructured.Unstructured, error) {
 	var out []unstructured.Unstructured
 	for _, cfgAPIRule := range cfg.APIRules {
-		apiRule := prepareAPIRule(cfg.Name, cfg.Namespace, clusterAddress, cfg.Labels, cfgAPIRule)
+		apiRule := prepareAPIRule(cfg.Name, cfg.Namespace, cfg.Labels, cfgAPIRule)
 
 		unstructuredRepo, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&apiRule)
 		if err != nil {
@@ -33,7 +32,7 @@ func NewAPIRule(cfg workspace.Cfg, clusterAddress string) ([]unstructured.Unstru
 	return out, nil
 }
 
-func prepareAPIRule(name, namespace, host string, labels map[string]string, apiRule workspace.APIRule) types.APIRule {
+func prepareAPIRule(name, namespace string, labels map[string]string, apiRule workspace.APIRule) types.APIRule {
 	return types.APIRule{
 		APIVersion: apiRuleAPIVersion,
 		Kind:       apiRuleKind,
@@ -43,7 +42,7 @@ func prepareAPIRule(name, namespace, host string, labels map[string]string, apiR
 		},
 		Spec: types.APIRuleSpec{
 			Gateway: defaultString(apiRule.Gateway, workspace.APIRuleGateway),
-			Host:    defaultString(apiRule.Service.Host, fmt.Sprintf("%s.%s", name, host)),
+			Host:    defaultString(apiRule.Service.Host, name),
 			Service: types.Service{
 				Name:      name,
 				Namespace: namespace,
