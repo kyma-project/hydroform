@@ -85,40 +85,6 @@ func TestContainerEnvs(t *testing.T) {
 			},
 		},
 		{
-			name: "should return envs for nodejs14",
-			args: args{
-				runtime:   types.Nodejs14,
-				hotDeploy: false,
-			},
-			want: []string{
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=nodejs14",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				"SERVICE_NAMESPACE=default",
-				NodejsPath,
-				"HOME=/home/node",
-			},
-		},
-		{
-			name: "should return envs for nodejs14 with hotDeploy",
-			args: args{
-				runtime:   types.Nodejs14,
-				hotDeploy: true,
-			},
-			want: []string{
-				"KUBELESS_INSTALL_VOLUME=/kubeless",
-				"FUNC_RUNTIME=nodejs14",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				"SERVICE_NAMESPACE=default",
-				NodejsPath,
-				"HOME=/home/node",
-			},
-		},
-		{
 			name: "should return envs for python39",
 			args: args{
 				runtime:   types.Python39,
@@ -192,11 +158,6 @@ func TestRuntimeDebugPort(t *testing.T) {
 			want:    "9229",
 		},
 		{
-			name:    "should return nodejs14 debug port",
-			runtime: types.Nodejs14,
-			want:    NodejsDebugEndpoint,
-		},
-		{
 			name:    "should return nodejs16 debug port",
 			runtime: types.Nodejs16,
 			want:    NodejsDebugEndpoint,
@@ -255,25 +216,6 @@ func TestContainerCommands(t *testing.T) {
 			name: "should return commands for empty runtime with hotDeploy",
 			args: args{
 				runtime:   "",
-				hotDeploy: true,
-			},
-			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
-			},
-		},
-		{
-			name: "should return commands for Nodejs14",
-			args: args{
-				runtime: types.Nodejs14,
-			},
-			want: []string{
-				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "node kubeless.js",
-			},
-		},
-		{
-			name: "should return commands for Nodejs14 with hotDeploy",
-			args: args{
-				runtime:   types.Nodejs14,
 				hotDeploy: true,
 			},
 			want: []string{
@@ -397,13 +339,6 @@ func TestContainerImage(t *testing.T) {
 			want: "eu.gcr.io/kyma-project/function-runtime-nodejs18:v20230228-b2981e80",
 		},
 		{
-			name: "should return image for Nodejs14",
-			args: args{
-				runtime: types.Nodejs14,
-			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs14:v20230224-e59c5082",
-		},
-		{
 			name: "should return image for Nodejs16",
 			args: args{
 				runtime: types.Nodejs16,
@@ -445,39 +380,6 @@ func TestGetMounts(t *testing.T) {
 		args args
 		want []mount.Mount
 	}{
-		{
-			name: "should return mount for source type inline",
-			args: args{
-				runtime:    types.Nodejs14,
-				sourceType: workspace.SourceTypeInline,
-				workDir:    "/your/work/dir",
-			},
-			want: []mount.Mount{
-				{
-					Type:   mount.TypeBind,
-					Source: "/your/work/dir",
-					Target: KubelessTmpPath,
-				},
-				{
-					Type:   mount.TypeVolume,
-					Target: KubelessPath,
-				},
-			},
-		},
-		{
-			name: "should return mount for source type git",
-			args: args{
-				runtime:    types.Nodejs14,
-				sourceType: workspace.SourceTypeGit,
-			},
-			want: []mount.Mount{
-				{
-					Type:   mount.TypeBind,
-					Source: "",
-					Target: KubelessPath,
-				},
-			},
-		},
 		{
 			name: "should return mount for nodejs16",
 			args: args{

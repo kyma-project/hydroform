@@ -158,14 +158,6 @@ func Test_fromRuntime(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nodejs14",
-			args: args{
-				runtime: types.Nodejs14,
-			},
-			want:    workspaceNodeJs,
-			wantErr: false,
-		},
-		{
 			name: "python39",
 			args: args{
 				runtime: types.Python39,
@@ -218,16 +210,6 @@ func Test_fromSources(t *testing.T) {
 			},
 			want:    workspace{},
 			wantErr: true,
-		},
-		{
-			name: "nodejs14",
-			args: args{
-				runtime: types.Nodejs14,
-				source:  handlerJs,
-				deps:    packageJSON,
-			},
-			want:    workspaceNodeJs,
-			wantErr: false,
 		},
 		{
 			name: "python39",
