@@ -43,7 +43,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 
 func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	switch runtime {
-	case types.Nodejs14, types.Nodejs16, types.Nodejs18:
+	case types.Nodejs16, types.Nodejs18:
 		return []string{NodejsPath, "HOME=/home/node"}
 	case types.Python39:
 		envs := []string{Python39Path, Python39Unbuffered}
@@ -58,7 +58,7 @@ func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 
 func RuntimeDebugPort(runtime types.Runtime) string {
 	switch runtime {
-	case types.Nodejs14, types.Nodejs16, types.Nodejs18:
+	case types.Nodejs16, types.Nodejs18:
 		return NodejsDebugEndpoint
 	case types.Python39:
 		return Python39DebugEndpoint
@@ -69,18 +69,6 @@ func RuntimeDebugPort(runtime types.Runtime) string {
 
 func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 	switch runtime {
-	case types.Nodejs14:
-		runCommand := ""
-		if hotDeploy && debug {
-			runCommand = "npx nodemon --watch /kubeless/*.js --inspect=0.0.0.0 --exitcrash kubeless.js "
-		} else if hotDeploy {
-			runCommand = "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js"
-		} else if debug {
-			runCommand = "node --inspect=0.0.0.0 kubeless.js "
-		} else {
-			runCommand = "node kubeless.js"
-		}
-		return []string{"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", runCommand}
 	case types.Nodejs16, types.Nodejs18:
 		runCommand := ""
 		if hotDeploy && debug {
@@ -155,8 +143,6 @@ func MoveInlineCommand(runtime types.Runtime, sourcePath, depsPath string) []str
 
 func ContainerImage(runtime types.Runtime) string {
 	switch runtime {
-	case types.Nodejs14:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs14:v20230224-e59c5082"
 	case types.Nodejs16:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs16:v20230228-b2981e80"
 	case types.Nodejs18:
