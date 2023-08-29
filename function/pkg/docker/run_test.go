@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"strings"
 	"testing"
 
@@ -104,7 +104,7 @@ func TestRunContainer(t *testing.T) {
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
-						Return(container.ContainerCreateCreatedBody{ID: id}, nil).Times(1)
+						Return(container.CreateResponse{ID: id}, nil).Times(1)
 
 					mock.EXPECT().ContainerStart(ctx, id, types.ContainerStartOptions{}).
 						Return(nil).Times(1)
@@ -124,7 +124,7 @@ func TestRunContainer(t *testing.T) {
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
-						Return(container.ContainerCreateCreatedBody{}, errors.New("create: error")).Times(1)
+						Return(container.CreateResponse{}, errors.New("create: error")).Times(1)
 
 					return mock
 				}(),
@@ -140,7 +140,7 @@ func TestRunContainer(t *testing.T) {
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
-						Return(container.ContainerCreateCreatedBody{ID: id}, nil).Times(1)
+						Return(container.CreateResponse{ID: id}, nil).Times(1)
 
 					mock.EXPECT().ContainerStart(ctx, id, types.ContainerStartOptions{}).
 						Return(errors.New("start: error")).Times(1)
@@ -174,7 +174,7 @@ func TestRunContainer(t *testing.T) {
 							AutoRemove: true,
 						},
 						gomock.Nil(), gomock.Nil(), "test-cname").
-						Return(container.ContainerCreateCreatedBody{ID: id}, nil).Times(1)
+						Return(container.CreateResponse{ID: id}, nil).Times(1)
 
 					mock.EXPECT().ContainerStart(ctx, id, types.ContainerStartOptions{}).
 						Return(nil).Times(1)
@@ -219,14 +219,14 @@ func TestRunContainer(t *testing.T) {
 							AutoRemove: true,
 						},
 						gomock.Nil(), gomock.Nil(), "test-cname").
-						Return(container.ContainerCreateCreatedBody{}, &fakeNotFoundError{}).Times(1)
+						Return(container.CreateResponse{}, &fakeNotFoundError{}).Times(1)
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
-						Return(container.ContainerCreateCreatedBody{ID: id}, nil).Times(1)
+						Return(container.CreateResponse{ID: id}, nil).Times(1)
 
 					mock.EXPECT().ImagePull(ctx, "test-iname", gomock.Any()).
-						Return(ioutil.NopCloser(bytes.NewReader(nil)), nil).Times(1)
+						Return(io.NopCloser(bytes.NewReader(nil)), nil).Times(1)
 
 					mock.EXPECT().ContainerStart(ctx, id, types.ContainerStartOptions{}).
 						Return(nil).Times(1)
@@ -256,7 +256,7 @@ func TestRunContainer(t *testing.T) {
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
-						Return(container.ContainerCreateCreatedBody{ID: id}, &fakeNotFoundError{}).Times(1)
+						Return(container.CreateResponse{ID: id}, &fakeNotFoundError{}).Times(1)
 
 					mock.EXPECT().ImagePull(ctx, gomock.Any(), gomock.Any()).
 						Return(nil, errors.New("error: pull")).Times(1)
@@ -275,9 +275,9 @@ func TestRunContainer(t *testing.T) {
 
 					mock.EXPECT().ContainerCreate(ctx, gomock.Any(), gomock.Any(),
 						gomock.Nil(), gomock.Nil(), gomock.Any()).
-						Return(container.ContainerCreateCreatedBody{ID: id}, &fakeNotFoundError{}).Times(1)
+						Return(container.CreateResponse{ID: id}, &fakeNotFoundError{}).Times(1)
 
-					readCloser := ioutil.NopCloser(strings.NewReader("test undefind request"))
+					readCloser := io.NopCloser(strings.NewReader("test undefind request"))
 					mock.EXPECT().ImagePull(ctx, gomock.Any(), gomock.Any()).
 						Return(readCloser, nil).Times(1)
 
