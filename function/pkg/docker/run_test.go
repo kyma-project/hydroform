@@ -312,7 +312,7 @@ func TestStop(t *testing.T) {
 		ctx := context.Background()
 
 		mock := mock_docker.NewMockClient(ctrl)
-		mock.EXPECT().ContainerStop(ctx, id, nil).
+		mock.EXPECT().ContainerStop(ctx, id, container.StopOptions{}).
 			Return(nil).Times(1)
 
 		f := Stop(ctx, mock, id, func(i ...interface{}) {
