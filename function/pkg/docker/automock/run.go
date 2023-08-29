@@ -8,7 +8,6 @@ import (
 	context "context"
 	io "io"
 	reflect "reflect"
-	time "time"
 
 	types "github.com/docker/docker/api/types"
 	container "github.com/docker/docker/api/types/container"
@@ -56,10 +55,10 @@ func (mr *MockClientMockRecorder) ContainerAttach(ctx, container, options interf
 }
 
 // ContainerCreate mocks base method.
-func (m *MockClient) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *v1.Platform, containerName string) (container.ContainerCreateCreatedBody, error) {
+func (m *MockClient) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *v1.Platform, containerName string) (container.CreateResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerCreate", ctx, config, hostConfig, networkingConfig, platform, containerName)
-	ret0, _ := ret[0].(container.ContainerCreateCreatedBody)
+	ret0, _ := ret[0].(container.CreateResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -85,17 +84,17 @@ func (mr *MockClientMockRecorder) ContainerStart(ctx, containerID, options inter
 }
 
 // ContainerStop mocks base method.
-func (m *MockClient) ContainerStop(ctx context.Context, containerID string, timeout *time.Duration) error {
+func (m *MockClient) ContainerStop(ctx context.Context, containerID string, options container.StopOptions) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerStop", ctx, containerID, timeout)
+	ret := m.ctrl.Call(m, "ContainerStop", ctx, containerID, options)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ContainerStop indicates an expected call of ContainerStop.
-func (mr *MockClientMockRecorder) ContainerStop(ctx, containerID, timeout interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) ContainerStop(ctx, containerID, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStop", reflect.TypeOf((*MockClient)(nil).ContainerStop), ctx, containerID, timeout)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStop", reflect.TypeOf((*MockClient)(nil).ContainerStop), ctx, containerID, options)
 }
 
 // ImagePull mocks base method.

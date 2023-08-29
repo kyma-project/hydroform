@@ -152,7 +152,7 @@ func shootSpec(cfg map[string]interface{}) gardenerTypes.ShootSpec {
 		o.CloudProfileName = v
 	}
 	if v, ok := cfg["target_secret"].(string); ok && len(v) > 0 {
-		o.SecretBindingName = v
+		o.SecretBindingName = &v
 	}
 	if v, ok := cfg["seed_name"].(string); ok && len(v) > 0 {
 		o.SeedName = &v
@@ -182,12 +182,7 @@ func shootK8s(cfg map[string]interface{}) gardenerTypes.Kubernetes {
 	}
 
 	k.KubeAPIServer = &gardenerTypes.KubeAPIServerConfig{}
-	if v, ok := cfg["enable_basic_auth"].(bool); ok {
-		k.KubeAPIServer.EnableBasicAuthentication = &v
-		if v {
-			k.KubeAPIServer.OIDCConfig = oidcConfig(cfg)
-		}
-	}
+	k.KubeAPIServer.OIDCConfig = oidcConfig(cfg)
 	return k
 }
 
@@ -224,29 +219,33 @@ func oidcConfig(cfg map[string]interface{}) *gardenerTypes.OIDCConfig {
 	return o
 }
 
-func shootNetworking(cfg map[string]interface{}) gardenerTypes.Networking {
+func shootNetworking(cfg map[string]interface{}) *gardenerTypes.Networking {
 	n := gardenerTypes.Networking{}
 
 	if v, ok := cfg["networking_type"].(string); ok && len(v) > 0 {
-		n.Type = v
+		n.Type = &v
 	}
 	if v, ok := cfg["networking_nodes"].(string); ok && len(v) > 0 {
 		n.Nodes = &v
 	}
-	return n
+	return &n
 }
 
 func shootMaintenance() *gardenerTypes.Maintenance {
 	return &gardenerTypes.Maintenance{
 		AutoUpdate: &gardenerTypes.MaintenanceAutoUpdate{
 			KubernetesVersion:   true,
-			MachineImageVersion: true,
+			MachineImageVersion: boolPointer(true),
 		},
 		TimeWindow: &gardenerTypes.MaintenanceTimeWindow{
 			Begin: "030000+0000",
 			End:   "040000+0000",
 		},
 	}
+}
+
+func boolPointer(b bool) *bool {
+	return &b
 }
 
 func shootHibernation(cfg map[string]interface{}) *gardenerTypes.Hibernation {
