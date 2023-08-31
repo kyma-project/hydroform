@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/docker/cli/cli/streams"
 	"github.com/docker/docker/api/types/mount"
@@ -25,10 +24,10 @@ import (
 
 type Client interface {
 	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig,
-		networkingConfig *network.NetworkingConfig, platform *specs.Platform, containerName string) (container.ContainerCreateCreatedBody, error)
+		networkingConfig *network.NetworkingConfig, platform *specs.Platform, containerName string) (container.CreateResponse, error)
 	ContainerStart(ctx context.Context, containerID string, options types.ContainerStartOptions) error
 	ContainerAttach(ctx context.Context, container string, options types.ContainerAttachOptions) (types.HijackedResponse, error)
-	ContainerStop(ctx context.Context, containerID string, timeout *time.Duration) error
+	ContainerStop(ctx context.Context, containerID string, options container.StopOptions) error
 	ImagePull(ctx context.Context, refStr string, options types.ImagePullOptions) (io.ReadCloser, error)
 }
 
@@ -67,7 +66,7 @@ func RunContainer(ctx context.Context, c Client, opts RunOpts) (string, error) {
 }
 
 func pullAndRun(ctx context.Context, c Client, config *container.Config, hostConfig *container.HostConfig,
-	containerName string) (container.ContainerCreateCreatedBody, error) {
+	containerName string) (container.CreateResponse, error) {
 	body, err := c.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
 	if apiclient.IsErrNotFound(err) {
 		var r io.ReadCloser
@@ -106,7 +105,7 @@ func FollowRun(ctx context.Context, c Client, ID string) error {
 func Stop(ctx context.Context, c Client, ID string, log func(...interface{})) func() {
 	return func() {
 		log(fmt.Sprintf("\r- Removing container %s...\n", ID))
-		err := c.ContainerStop(ctx, ID, nil)
+		err := c.ContainerStop(ctx, ID, container.StopOptions{})
 		if err != nil {
 			log(err)
 		}
