@@ -8,7 +8,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/golang/mock v1.6.0
 	github.com/invopop/jsonschema v0.4.0
-	github.com/moby/moby v20.10.21+incompatible
+	github.com/moby/moby v24.0.9+incompatible
 	github.com/onsi/gomega v1.27.6
 	github.com/opencontainers/image-spec v1.0.3-0.20220303224323-02efb9a75ee1
 	github.com/pkg/errors v0.9.1
