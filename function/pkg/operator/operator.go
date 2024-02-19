@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kyma-project/hydroform/function/pkg/client"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
+
+	"github.com/kyma-project/hydroform/function/pkg/client"
 )
 
 type Callback = func(interface{}, error) error
@@ -24,7 +25,8 @@ type Operator interface {
 	Delete(context.Context, DeleteOptions) error
 }
 
-func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructured, stages []string) (*unstructured.Unstructured, client.PostStatusEntry, error) {
+func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructured,
+	stages []string) (*unstructured.Unstructured, client.PostStatusEntry, error) {
 	// Check if object exists
 	response, err := c.Get(ctx, u.GetName(), metav1.GetOptions{})
 	objFound := response != nil
@@ -37,7 +39,10 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	// If object is up to date return
 	var equal bool
 	if objFound {
-		equal = configurationObjectsAreEquivalent(u, *response)
+		equal, err = configurationObjectsAreEquivalent(u, *response)
+		if err != nil {
+			return response, client.NewPostStatusEntrySkipped(*response), nil
+		}
 	}
 
 	if objFound && equal {
@@ -47,7 +52,10 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 
 	// If object needs update
 	if objFound && !equal {
-		response = updateConfigurationObject(response, u)
+		response, err = updateConfigurationObject(response, u)
+		if err != nil {
+			return &u, client.NewPostStatusEntryApplyFailed(*response), err
+		}
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() (err error) {
 			res, err := c.Update(ctx, response, metav1.UpdateOptions{
 				DryRun: stages,
@@ -80,20 +88,28 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	return response, statusEntryCreated, nil
 }
 
-func updateConfigurationObject(destination *unstructured.Unstructured, source unstructured.Unstructured) *unstructured.Unstructured {
+func updateConfigurationObject(destination *unstructured.Unstructured,
+	source unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// Copies elements: `spec`, `metadata/labels`, `metadata/annotations` from source to destination. The rest is unchanged.
 	destination.Object["spec"] = source.Object["spec"]
 
-	destinationMetadata := getMetadataFromConfigurationObject(*destination)
-	sourceMetadata := getMetadataFromConfigurationObject(source)
+	destinationMetadata, err := getMetadataFromConfigurationObject(*destination)
+	if err != nil {
+		return nil, err
+	}
+	sourceMetadata, err := getMetadataFromConfigurationObject(source)
+	if err != nil {
+		return nil, err
+	}
 
 	updateConfigurationElement(&destinationMetadata, sourceMetadata, "labels")
 	updateConfigurationElement(&destinationMetadata, sourceMetadata, "annotations")
 
-	return destination
+	return destination, nil
 }
 
-func updateConfigurationElement(destination *map[string]interface{}, source map[string]interface{}, elementName string) {
+func updateConfigurationElement(destination *map[string]interface{}, source map[string]interface{},
+	elementName string) {
 	sourceElement, ok := source[elementName]
 	if ok {
 		(*destination)[elementName] = sourceElement
@@ -102,28 +118,35 @@ func updateConfigurationElement(destination *map[string]interface{}, source map[
 	}
 }
 
-func configurationObjectsAreEquivalent(first unstructured.Unstructured, second unstructured.Unstructured) bool {
+func configurationObjectsAreEquivalent(first unstructured.Unstructured, second unstructured.Unstructured) (bool,
+	error) {
 	// Checks that the elements: `spec`, `metadata/labels`, `metadata/annotations` are equal (semantically).
 	specAreEqual := equality.Semantic.DeepEqual(first.Object["spec"], second.Object["spec"])
 
-	firstMetadata := getMetadataFromConfigurationObject(first)
-	secondMetadata := getMetadataFromConfigurationObject(second)
-
+	firstMetadata, err := getMetadataFromConfigurationObject(first)
+	if err != nil {
+		return false, err
+	}
+	secondMetadata, err := getMetadataFromConfigurationObject(second)
+	if err != nil {
+		return false, err
+	}
 	labelsAreEqual := configurationElementsAreEqual(firstMetadata, secondMetadata, "labels")
 	annotationsAreEqual := configurationElementsAreEqual(firstMetadata, secondMetadata, "annotations")
 
-	return specAreEqual && labelsAreEqual && annotationsAreEqual
+	return specAreEqual && labelsAreEqual && annotationsAreEqual, nil
 }
 
-func getMetadataFromConfigurationObject(configurationObject unstructured.Unstructured) map[string]interface{} {
+func getMetadataFromConfigurationObject(configurationObject unstructured.Unstructured) (map[string]interface{}, error) {
 	metadata, ok := configurationObject.Object["metadata"].(map[string]interface{})
 	if !ok {
-		panic("can't cast object for equality checking")
+		return nil, fmt.Errorf("can't cast object for equality checking")
 	}
-	return metadata
+	return metadata, nil
 }
 
-func configurationElementsAreEqual(firstMap map[string]interface{}, secondMap map[string]interface{}, elementName string) bool {
+func configurationElementsAreEqual(firstMap map[string]interface{}, secondMap map[string]interface{},
+	elementName string) bool {
 	firstElement, ok := firstMap[elementName]
 	if !ok {
 		firstElement = map[string]interface{}{}
@@ -174,7 +197,8 @@ functionBlock:
 	return nil
 }
 
-func wipeRemoved(ctx context.Context, c client.Client, deletePredicate func(obj map[string]interface{}) (bool, error), opts Options) error {
+func wipeRemoved(ctx context.Context, c client.Client, deletePredicate func(obj map[string]interface{}) (bool, error),
+	opts Options) error {
 	list, err := c.List(ctx, v1.ListOptions{})
 	if err != nil {
 		return err
@@ -214,7 +238,8 @@ func wipeRemoved(ctx context.Context, c client.Client, deletePredicate func(obj 
 	return nil
 }
 
-func deleteObject(ctx context.Context, i client.Client, u unstructured.Unstructured, ops DeleteOptions) (client.PostStatusEntry, error) {
+func deleteObject(ctx context.Context, i client.Client, u unstructured.Unstructured,
+	ops DeleteOptions) (client.PostStatusEntry, error) {
 	if err := i.Delete(ctx, u.GetName(), metav1.DeleteOptions{
 		DryRun:            ops.DryRun,
 		PropagationPolicy: &ops.DeletionPropagation,

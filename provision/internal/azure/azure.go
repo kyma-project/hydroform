@@ -6,11 +6,12 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/pkg/errors"
+
 	"github.com/kyma-project/hydroform/provision/internal/errs"
 	"github.com/kyma-project/hydroform/provision/internal/operator"
 	"github.com/kyma-project/hydroform/provision/internal/operator/native"
 	"github.com/kyma-project/hydroform/provision/types"
-	"github.com/pkg/errors"
 )
 
 // AzureProvisioner implements Provisioner
@@ -103,9 +104,10 @@ func (a *AzureProvisioner) validateInputs(cluster *types.Cluster, provider *type
 		errMessage += fmt.Sprintf(errs.CannotBeLess, "Cluster.NodeCount", 1)
 	}
 	// Matches the regex for a Azure cluster name.
-	if match, _ := regexp.MatchString(`^(?:[a-z](?:[-a-z0-9]{0,37}[a-z0-9])?)$`, cluster.Name); !match {
-		errMessage += fmt.Sprintf(errs.Custom, "Cluster.Name must start with a lowercase letter followed by up to 39 lowercase letters, "+
-			"numbers, or hyphens, and cannot end with a hyphen")
+	if match, err := regexp.MatchString(`^(?:[a-z](?:[-a-z0-9]{0,37}[a-z0-9])?)$`, cluster.Name); !match || err != nil {
+		errMessage += fmt.Sprintf(errs.Custom,
+			"Cluster.Name must start with a lowercase letter followed by up to 39 lowercase letters, "+
+				"numbers, or hyphens, and cannot end with a hyphen")
 	}
 	if cluster.Location == "" {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Cluster.Location")
@@ -131,7 +133,8 @@ func (a *AzureProvisioner) validateInputs(cluster *types.Cluster, provider *type
 	return nil
 }
 
-func (a *AzureProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) (map[string]interface{}, error) {
+func (a *AzureProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) (map[string]interface{},
+	error) {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
 	config["agent_count"] = cluster.NodeCount

@@ -9,33 +9,36 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/kyma-project/hydroform/function/pkg/client"
-	mockclient "github.com/kyma-project/hydroform/function/pkg/client/automock"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
+
+	"github.com/kyma-project/hydroform/function/pkg/client"
+	mockclient "github.com/kyma-project/hydroform/function/pkg/client/automock"
 )
 
 var (
-	testObj = unstructured.Unstructured{Object: map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"name":      "test-obj",
-			"namespace": "test-namespace",
-		},
-		"spec": map[string]interface{}{
-			"test": "me",
-			"subscriber": map[string]interface{}{
-				"ref": map[string]interface{}{
-					"kind":      "Service",
-					"name":      "test-function-name",
-					"namespace": "test-namespace",
+	testObj = unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"name":      "test-obj",
+				"namespace": "test-namespace",
+			},
+			"spec": map[string]interface{}{
+				"test": "me",
+				"subscriber": map[string]interface{}{
+					"ref": map[string]interface{}{
+						"kind":      "Service",
+						"name":      "test-function-name",
+						"namespace": "test-namespace",
+					},
 				},
 			},
 		},
-	}}
+	}
 	testObj2 = unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -54,22 +57,24 @@ var (
 			},
 		},
 	}
-	testObjModifiedSpec = unstructured.Unstructured{Object: map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"name":      "test-obj",
-			"namespace": "test-namespace",
-		},
-		"spec": map[string]interface{}{
-			"test": "me3",
-			"subscriber": map[string]interface{}{
-				"ref": map[string]interface{}{
-					"kind":      "Service",
-					"name":      "test-function-name",
-					"namespace": "test-namespace",
+	testObjModifiedSpec = unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"name":      "test-obj",
+				"namespace": "test-namespace",
+			},
+			"spec": map[string]interface{}{
+				"test": "me3",
+				"subscriber": map[string]interface{}{
+					"ref": map[string]interface{}{
+						"kind":      "Service",
+						"name":      "test-function-name",
+						"namespace": "test-namespace",
+					},
 				},
 			},
 		},
-	}}
+	}
 )
 
 func Test_applyObject(t *testing.T) {
@@ -535,30 +540,32 @@ func Test_waitForObject(t *testing.T) {
 }
 
 func Test_configurationObjectsAreEquivalent(t *testing.T) {
-	defaultConfigurationObject := unstructured.Unstructured{Object: map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"labels": map[string]interface{}{
-				"aa": "bb",
-				"cc": "dd",
+	defaultConfigurationObject := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"labels": map[string]interface{}{
+					"aa": "bb",
+					"cc": "dd",
+				},
+				"annotations": map[string]interface{}{
+					"vv": "ww",
+					"xx": "yy",
+				},
+				"omitted": "xx",
 			},
-			"annotations": map[string]interface{}{
-				"vv": "ww",
-				"xx": "yy",
+			"spec": map[string]interface{}{
+				"test": "me",
+				"subscriber": map[string]interface{}{
+					"ref": map[string]interface{}{
+						"kind":      "Service",
+						"name":      "test-function-name",
+						"namespace": "test-namespace",
+					},
+				},
 			},
 			"omitted": "xx",
 		},
-		"spec": map[string]interface{}{
-			"test": "me",
-			"subscriber": map[string]interface{}{
-				"ref": map[string]interface{}{
-					"kind":      "Service",
-					"name":      "test-function-name",
-					"namespace": "test-namespace",
-				},
-			},
-		},
-		"omitted": "xx",
-	}}
+	}
 
 	type args struct {
 		first  unstructured.Unstructured
@@ -703,7 +710,8 @@ func Test_configurationObjectsAreEquivalent(t *testing.T) {
 				first: defaultConfigurationObject,
 				second: func() unstructured.Unstructured {
 					u := *(defaultConfigurationObject.DeepCopy())
-					delete(u.Object["spec"].(map[string]interface{})["subscriber"].(map[string]interface{})["ref"].(map[string]interface{}), "kind")
+					delete(u.Object["spec"].(map[string]interface{})["subscriber"].(map[string]interface{})["ref"].(map[string]interface{}),
+						"kind")
 					return u
 				}(),
 			},
@@ -736,87 +744,94 @@ func Test_configurationObjectsAreEquivalent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := configurationObjectsAreEquivalent(tt.args.first, tt.args.second)
+			got, err := configurationObjectsAreEquivalent(tt.args.first, tt.args.second)
 			require.Equal(t, tt.want, got)
+			require.Equal(t, nil, err)
 		})
 	}
 }
 
 func Test_updateConfigurationObject(t *testing.T) {
-	defaultDestinationConfigurationObject := unstructured.Unstructured{Object: map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"labels": map[string]interface{}{
-				"destLabel1": "destLabelValue1",
-				"destLabel2": "destLabelValue2",
+	defaultDestinationConfigurationObject := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"labels": map[string]interface{}{
+					"destLabel1": "destLabelValue1",
+					"destLabel2": "destLabelValue2",
+				},
+				"annotations": map[string]interface{}{
+					"destAnnotation1": "destAnnotationValue1",
+					"destAnnotation2": "destAnnotationValue2",
+				},
+				"destOtherMetadata": "destOtherMetadataValue",
 			},
-			"annotations": map[string]interface{}{
-				"destAnnotation1": "destAnnotationValue1",
-				"destAnnotation2": "destAnnotationValue2",
+			"spec": map[string]interface{}{
+				"destSpec1": "destSpecValue1",
+				"destSpec2": map[string]interface{}{
+					"destSomeSpec21": map[string]interface{}{
+						"destSpec211": "destSpecValue211",
+						"destSpec212": "destSpecValue212",
+						"destSpec213": "destSpecValue213",
+					},
+				},
+				"destSpec3": "destSpecValue3",
 			},
-			"destOtherMetadata": "destOtherMetadataValue",
+			"destOther": "destOtherValue",
 		},
-		"spec": map[string]interface{}{
-			"destSpec1": "destSpecValue1",
-			"destSpec2": map[string]interface{}{
-				"destSomeSpec21": map[string]interface{}{
-					"destSpec211": "destSpecValue211",
-					"destSpec212": "destSpecValue212",
-					"destSpec213": "destSpecValue213",
+	}
+	defaultSourceConfigurationObject := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"srcOther1": "srcOtherValue1",
+			"metadata": map[string]interface{}{
+				"labels": map[string]interface{}{
+					"srcLabel1": "srcLabelValue1",
+					"srcLabel2": "srcLabelValue2",
+				},
+				"annotations": map[string]interface{}{
+					"srcAnnotation1": "srcAnnotationValue1",
+					"srcAnnotation2": "srcAnnotationValue2",
+				},
+				"srcOtherMetadata1": "srcOtherMetadataValue1",
+				"srcOtherMetadata2": "srcOtherMetadataValue2",
+			},
+			"srcOther2": "srcOtherValue2",
+			"spec": map[string]interface{}{
+				"srcSpec1": "srcSpecValue1",
+				"srcSpec2": "srcSpecValue2",
+				"srcSpec3": map[string]interface{}{
+					"srcSpec31": map[string]interface{}{
+						"srcSpec311": "srcSpecValue311",
+					},
 				},
 			},
-			"destSpec3": "destSpecValue3",
+			"srcOther3": "srcOtherValue3",
 		},
-		"destOther": "destOtherValue",
-	}}
-	defaultSourceConfigurationObject := unstructured.Unstructured{Object: map[string]interface{}{
-		"srcOther1": "srcOtherValue1",
-		"metadata": map[string]interface{}{
-			"labels": map[string]interface{}{
-				"srcLabel1": "srcLabelValue1",
-				"srcLabel2": "srcLabelValue2",
+	}
+	defaultUpdatedConfigurationObject := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"labels": map[string]interface{}{
+					"srcLabel1": "srcLabelValue1",
+					"srcLabel2": "srcLabelValue2",
+				},
+				"annotations": map[string]interface{}{
+					"srcAnnotation1": "srcAnnotationValue1",
+					"srcAnnotation2": "srcAnnotationValue2",
+				},
+				"destOtherMetadata": "destOtherMetadataValue",
 			},
-			"annotations": map[string]interface{}{
-				"srcAnnotation1": "srcAnnotationValue1",
-				"srcAnnotation2": "srcAnnotationValue2",
-			},
-			"srcOtherMetadata1": "srcOtherMetadataValue1",
-			"srcOtherMetadata2": "srcOtherMetadataValue2",
-		},
-		"srcOther2": "srcOtherValue2",
-		"spec": map[string]interface{}{
-			"srcSpec1": "srcSpecValue1",
-			"srcSpec2": "srcSpecValue2",
-			"srcSpec3": map[string]interface{}{
-				"srcSpec31": map[string]interface{}{
-					"srcSpec311": "srcSpecValue311",
+			"spec": map[string]interface{}{
+				"srcSpec1": "srcSpecValue1",
+				"srcSpec2": "srcSpecValue2",
+				"srcSpec3": map[string]interface{}{
+					"srcSpec31": map[string]interface{}{
+						"srcSpec311": "srcSpecValue311",
+					},
 				},
 			},
+			"destOther": "destOtherValue",
 		},
-		"srcOther3": "srcOtherValue3",
-	}}
-	defaultUpdatedConfigurationObject := unstructured.Unstructured{Object: map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"labels": map[string]interface{}{
-				"srcLabel1": "srcLabelValue1",
-				"srcLabel2": "srcLabelValue2",
-			},
-			"annotations": map[string]interface{}{
-				"srcAnnotation1": "srcAnnotationValue1",
-				"srcAnnotation2": "srcAnnotationValue2",
-			},
-			"destOtherMetadata": "destOtherMetadataValue",
-		},
-		"spec": map[string]interface{}{
-			"srcSpec1": "srcSpecValue1",
-			"srcSpec2": "srcSpecValue2",
-			"srcSpec3": map[string]interface{}{
-				"srcSpec31": map[string]interface{}{
-					"srcSpec311": "srcSpecValue311",
-				},
-			},
-		},
-		"destOther": "destOtherValue",
-	}}
+	}
 
 	type args struct {
 		destination unstructured.Unstructured

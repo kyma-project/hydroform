@@ -3,13 +3,14 @@ package operator
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/kyma-project/hydroform/function/pkg/client"
 	operator_types "github.com/kyma-project/hydroform/function/pkg/operator/types"
 	"github.com/kyma-project/hydroform/function/pkg/resources/types"
 	"github.com/kyma-project/hydroform/function/pkg/workspace"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type subscriptionOperator struct {
@@ -45,7 +46,8 @@ type functionReference struct {
 
 type predicate func(map[string]interface{}) (bool, error)
 
-func deleteSubscriptions(ctx context.Context, c client.Client, items []unstructured.Unstructured, opts DeleteOptions) error {
+func deleteSubscriptions(ctx context.Context, c client.Client, items []unstructured.Unstructured,
+	opts DeleteOptions) error {
 	for i := range items {
 		// fire pre callbacks
 		if err := fireCallbacks(&items[i], nil, opts.Pre...); err != nil {
@@ -88,7 +90,8 @@ func buildMatchRemovedSubscriptionsPredicate(fnRef functionReference, items []un
 			return false, err
 		}
 		isRef := subscription.IsReference(fnRef.name, fnRef.namespace)
-		isOwnerRef := (len(subscription.OwnerReferences) == 0 || isOwnerReference(subscription.GetOwnerReferences(), fnRef.name))
+		isOwnerRef := (len(subscription.OwnerReferences) == 0 || isOwnerReference(subscription.GetOwnerReferences(),
+			fnRef.name))
 		if !isRef || !isOwnerRef {
 			return false, nil
 		}
@@ -98,7 +101,8 @@ func buildMatchRemovedSubscriptionsPredicate(fnRef functionReference, items []un
 	}
 }
 
-func applySubscriptions(ctx context.Context, c client.Client, p predicate, items []unstructured.Unstructured, opts ApplyOptions) error {
+func applySubscriptions(ctx context.Context, c client.Client, p predicate, items []unstructured.Unstructured,
+	opts ApplyOptions) error {
 	if err := wipeRemoved(ctx, c, p, opts.Options); err != nil {
 		return err
 	}
@@ -112,6 +116,9 @@ func applySubscriptions(ctx context.Context, c client.Client, p predicate, items
 		applied, statusEntry, err := applyObject(ctx, c, items[i], opts.DryRun)
 		if opts.WaitForApply && applied != nil {
 			err = waitForObject(ctx, c, *applied)
+			if err != nil {
+				return err
+			}
 		}
 		// fire post callbacks
 		if err := fireCallbacks(statusEntry, err, opts.Post...); err != nil {
