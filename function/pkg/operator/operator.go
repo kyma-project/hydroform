@@ -41,7 +41,7 @@ func applyObject(ctx context.Context, c client.Client, u unstructured.Unstructur
 	if objFound {
 		equal, err = configurationObjectsAreEquivalent(u, *response)
 		if err != nil {
-			return response, client.NewPostStatusEntrySkipped(*response), nil
+			return response, client.NewPostStatusEntryApplyFailed(*response), err
 		}
 	}
 
