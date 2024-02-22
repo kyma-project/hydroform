@@ -49,7 +49,7 @@ func (c *MapClient) Create(ctx context.Context, obj *unstructured.Unstructured, 
 
 func (c *MapClient) Update(ctx context.Context, obj *unstructured.Unstructured, options metav1.UpdateOptions,
 	subresources ...string) (*unstructured.Unstructured, error) {
-	panic("not implemented")
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (c *MapClient) UpdateStatus(ctx context.Context, obj *unstructured.Unstructured,
@@ -154,5 +154,5 @@ func (c *MapClient) List(ctx context.Context, opts metav1.ListOptions) (*unstruc
 }
 
 func (c *MapClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	panic("not implemented")
+	return nil, fmt.Errorf("not implemented")
 }
