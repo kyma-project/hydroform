@@ -11,13 +11,14 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/kyma-project/hydroform/provision/internal/errs"
 	"github.com/kyma-project/hydroform/provision/internal/operator"
 	"github.com/kyma-project/hydroform/provision/internal/operator/native"
 	"github.com/kyma-project/hydroform/provision/types"
-	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -95,7 +96,8 @@ func (g *GardenerProvisioner) Credentials(cluster *types.Cluster, provider *type
 
 	// TODO: Remove the get kubeconfig secret when Gardener drops its support from Kubernetes v1.27
 	if err != nil || adminKubeConfig == nil {
-		s, err := k8s.CoreV1().Secrets(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(context.Background(), fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
+		s, err := k8s.CoreV1().Secrets(fmt.Sprintf("garden-%s", provider.ProjectName)).Get(context.Background(),
+			fmt.Sprintf("%s.kubeconfig", cluster.Name), metav1.GetOptions{})
 		if err == nil {
 			return s.Data["kubeconfig"], nil
 		} else {
@@ -129,9 +131,10 @@ func (g *GardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 		errMessage += fmt.Sprintf(errs.CannotBeLess, "Cluster.NodeCount", 1)
 	}
 	// Matches the regex for a Gardener cluster name.
-	if match, _ := regexp.MatchString(`^(?:[a-z](?:[-a-z0-9]{0,19}[a-z0-9])?)$`, cluster.Name); !match {
-		errMessage += fmt.Sprintf(errs.Custom, "Cluster.Name must start with a lowercase letter followed by up to 19 lowercase letters, "+
-			"numbers, or hyphens, and cannot end with a hyphen")
+	if match, err := regexp.MatchString(`^(?:[a-z](?:[-a-z0-9]{0,19}[a-z0-9])?)$`, cluster.Name); !match || err != nil {
+		errMessage += fmt.Sprintf(errs.Custom,
+			"Cluster.Name must start with a lowercase letter followed by up to 19 lowercase letters, "+
+				"numbers, or hyphens, and cannot end with a hyphen")
 	}
 	if cluster.Location == "" {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Cluster.Location")
@@ -158,7 +161,8 @@ func (g *GardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	targetProvider, ok := provider.CustomConfigurations["target_provider"]
 	if ok {
 		if targetProvider != string(types.GCP) && targetProvider != string(types.AWS) && targetProvider != string(types.Azure) {
-			errMessage += fmt.Sprintf(errs.Custom, "Provider.CustomConfigurations['target_provider'] has to be one of: gcp, azure, aws")
+			errMessage += fmt.Sprintf(errs.Custom,
+				"Provider.CustomConfigurations['target_provider'] has to be one of: gcp, azure, aws")
 		}
 	} else {
 		errMessage += fmt.Sprintf(errs.CannotBeEmpty, "Provider.CustomConfigurations['target_provider']")
@@ -215,7 +219,8 @@ func (g *GardenerProvisioner) validate(cluster *types.Cluster, provider *types.P
 	return nil
 }
 
-func (*GardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider *types.Provider) map[string]interface{} {
+func (*GardenerProvisioner) loadConfigurations(cluster *types.Cluster,
+	provider *types.Provider) map[string]interface{} {
 	config := map[string]interface{}{}
 	config["cluster_name"] = cluster.Name
 	config["credentials_file_path"] = provider.CredentialsFilePath
@@ -260,8 +265,10 @@ func (*GardenerProvisioner) loadConfigurations(cluster *types.Cluster, provider 
 	return config
 }
 
-func fetchAdminKubeConfigSubResource(k8s *kubernetes.Clientset, projectName string, clusterName string) ([]byte, error) {
-	uri := fmt.Sprintf("/apis/core.gardener.cloud/v1beta1/namespaces/garden-%s/shoots/%s/adminkubeconfig", projectName, clusterName)
+func fetchAdminKubeConfigSubResource(k8s *kubernetes.Clientset, projectName string, clusterName string) ([]byte,
+	error) {
+	uri := fmt.Sprintf("/apis/core.gardener.cloud/v1beta1/namespaces/garden-%s/shoots/%s/adminkubeconfig", projectName,
+		clusterName)
 	kubeConfigRequestBody := []byte(`{
 		"apiVersion": "authentication.gardener.cloud/v1alpha1", 
 		"kind": "AdminKubeconfigRequest", 

@@ -3,8 +3,9 @@ package operator
 import (
 	"context"
 
-	"github.com/kyma-project/hydroform/function/pkg/client"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/kyma-project/hydroform/function/pkg/client"
 )
 
 type genericOperator struct {
@@ -38,13 +39,17 @@ func (p genericOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 	return nil
 }
 
-func (p genericOperator) apply(ctx context.Context, item unstructured.Unstructured, opts ApplyOptions) (*unstructured.Unstructured, client.PostStatusEntry, error) {
+func (p genericOperator) apply(ctx context.Context, item unstructured.Unstructured,
+	opts ApplyOptions) (*unstructured.Unstructured, client.PostStatusEntry, error) {
 	applied, statusEntry, err := applyObject(ctx, p.Client, item, opts.DryRun)
 	if err != nil {
 		return applied, statusEntry, err
 	}
 	if opts.WaitForApply {
 		err = waitForObject(ctx, p.Client, *applied)
+		if err != nil {
+			return applied, statusEntry, err
+		}
 	}
 	return applied, statusEntry, err
 }

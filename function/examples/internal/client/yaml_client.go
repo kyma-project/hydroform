@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +29,8 @@ func (c *MapClient) groupResource() schema.GroupResource {
 }
 
 // TODO add dry run support and done support
-func (c *MapClient) Create(ctx context.Context, obj *unstructured.Unstructured, options metav1.CreateOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (c *MapClient) Create(ctx context.Context, obj *unstructured.Unstructured, options metav1.CreateOptions,
+	subresources ...string) (*unstructured.Unstructured, error) {
 	u, err := c.Get(ctx, obj.GetName(), metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, err
@@ -45,11 +47,13 @@ func (c *MapClient) Create(ctx context.Context, obj *unstructured.Unstructured, 
 	return copy, nil
 }
 
-func (c *MapClient) Update(ctx context.Context, obj *unstructured.Unstructured, options metav1.UpdateOptions, subresources ...string) (*unstructured.Unstructured, error) {
-	panic("not implemented")
+func (c *MapClient) Update(ctx context.Context, obj *unstructured.Unstructured, options metav1.UpdateOptions,
+	subresources ...string) (*unstructured.Unstructured, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
-func (c *MapClient) UpdateStatus(ctx context.Context, obj *unstructured.Unstructured, options metav1.UpdateOptions) (*unstructured.Unstructured, error) {
+func (c *MapClient) UpdateStatus(ctx context.Context, obj *unstructured.Unstructured,
+	options metav1.UpdateOptions) (*unstructured.Unstructured, error) {
 	var err error = errors.NewNotFound(c.groupResource(), obj.GetName())
 	out := unstructured.Unstructured{}
 loop:
@@ -75,7 +79,8 @@ loop:
 	return &out, err
 }
 
-func (c *MapClient) Delete(ctx context.Context, name string, options metav1.DeleteOptions, subresources ...string) (err error) {
+func (c *MapClient) Delete(ctx context.Context, name string, options metav1.DeleteOptions,
+	subresources ...string) (err error) {
 	err = errors.NewNotFound(c.groupResource(), name)
 loop:
 	for i, u := range c.Data.Items {
@@ -97,8 +102,9 @@ loop:
 	return
 }
 
-func (c *MapClient) DeleteCollection(ctx context.Context, options metav1.DeleteOptions, listOptions metav1.ListOptions) error {
-	panic("not implemented") // TODO: Implement
+func (c *MapClient) DeleteCollection(ctx context.Context, options metav1.DeleteOptions,
+	listOptions metav1.ListOptions) error {
+	return fmt.Errorf("not implemented") // TODO: Implement
 }
 
 func (c *MapClient) get(name string, ul *unstructured.UnstructuredList) (*unstructured.Unstructured, error) {
@@ -110,7 +116,8 @@ func (c *MapClient) get(name string, ul *unstructured.UnstructuredList) (*unstru
 	return nil, errors.NewNotFound(c.groupResource(), name)
 }
 
-func (c *MapClient) Get(ctx context.Context, name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (c *MapClient) Get(ctx context.Context, name string, options metav1.GetOptions,
+	subresources ...string) (*unstructured.Unstructured, error) {
 	ul, err := c.List(ctx, metav1.ListOptions{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: c.ApiVersion,
@@ -147,5 +154,5 @@ func (c *MapClient) List(ctx context.Context, opts metav1.ListOptions) (*unstruc
 }
 
 func (c *MapClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	panic("not implemented")
+	return nil, fmt.Errorf("not implemented")
 }
