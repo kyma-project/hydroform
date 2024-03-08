@@ -54,7 +54,7 @@ func fromSources(runtime string, source, deps string) (workspace, error) {
 			NewTemplatedFile(source, FileNameHandlerJs),
 			NewTemplatedFile(deps, FileNamePackageJSON),
 		}, nil
-	case types.Python39:
+	case types.Python39, types.Python312:
 		return workspace{
 			NewTemplatedFile(source, FileNameHandlerPy),
 			NewTemplatedFile(deps, FileNameRequirementsTxt),
@@ -68,7 +68,7 @@ func fromRuntime(runtime types.Runtime) (workspace, error) {
 	switch runtime {
 	case types.Nodejs16, types.Nodejs18:
 		return workspaceNodeJs, nil
-	case types.Python39:
+	case types.Python39, types.Python312:
 		return workspacePython, nil
 	default:
 		return nil, errUnsupportedRuntime
@@ -83,7 +83,7 @@ func InlineFileNames(r types.Runtime) (SourceFileName, DepsFileName, bool) {
 	switch r {
 	case types.Nodejs16, types.Nodejs18:
 		return string(FileNameHandlerJs), string(FileNamePackageJSON), true
-	case types.Python39:
+	case types.Python39, types.Python312:
 		return string(FileNameHandlerPy), string(FileNameRequirementsTxt), true
 	default:
 		return "", "", false

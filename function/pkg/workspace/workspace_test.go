@@ -159,6 +159,14 @@ func Test_fromRuntime(t *testing.T) {
 			want:    workspacePython,
 			wantErr: false,
 		},
+		{
+			name: "python312",
+			args: args{
+				runtime: types.Python312,
+			},
+			want:    workspacePython,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
