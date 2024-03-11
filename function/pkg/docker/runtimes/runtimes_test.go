@@ -136,6 +136,58 @@ func TestContainerEnvs(t *testing.T) {
 				"CHERRYPY_RELOADED=true",
 			},
 		},
+		{
+			name: "should return envs for python312",
+			args: args{
+				runtime:   types.Python312,
+				hotDeploy: false,
+			},
+			want: []string{
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
+				"FUNC_RUNTIME=python312",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
+				Python312Path,
+				"PYTHONUNBUFFERED=TRUE",
+			},
+		},
+		{
+			name: "should return envs for python312 with debug",
+			args: args{
+				runtime:   types.Python312,
+				hotDeploy: false,
+			},
+			want: []string{
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
+				"FUNC_RUNTIME=python312",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
+				Python312Path,
+				"PYTHONUNBUFFERED=TRUE",
+			},
+		},
+		{
+			name: "should return envs for python312 with hotDeploy",
+			args: args{
+				runtime:   types.Python312,
+				hotDeploy: true,
+			},
+			want: []string{
+				"KUBELESS_INSTALL_VOLUME=/kubeless",
+				"FUNC_RUNTIME=python312",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
+				Python312Path,
+				"PYTHONUNBUFFERED=TRUE",
+				"CHERRYPY_RELOADED=true",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -170,7 +222,12 @@ func TestRuntimeDebugPort(t *testing.T) {
 		{
 			name:    "should return python39 debug port",
 			runtime: types.Python39,
-			want:    Python39DebugEndpoint,
+			want:    PythonDebugEndpoint,
+		},
+		{
+			name:    "should return python312 debug port",
+			runtime: types.Python312,
+			want:    PythonDebugEndpoint,
 		},
 	}
 	for _, tt := range tests {
@@ -282,16 +339,6 @@ func TestContainerCommands(t *testing.T) {
 			},
 		},
 		{
-			name: "should return commands for Python39 with hotDeploy",
-			args: args{
-				runtime:   types.Python39,
-				hotDeploy: true,
-			},
-			want: []string{
-				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
-			},
-		},
-		{
 			name: "should return commands for Python39 with debug",
 			args: args{
 				runtime: types.Python39,
@@ -305,6 +352,46 @@ func TestContainerCommands(t *testing.T) {
 			name: "should return commands for Python39 with hotDeploy and debug",
 			args: args{
 				runtime:   types.Python39,
+				hotDeploy: true,
+				debug:     true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python312",
+			args: args{
+				runtime: types.Python312,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python312 with hotDeploy",
+			args: args{
+				runtime:   types.Python312,
+				hotDeploy: true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "python kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python312 with debug",
+			args: args{
+				runtime: types.Python312,
+				debug:   true,
+			},
+			want: []string{
+				"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py",
+			},
+		},
+		{
+			name: "should return commands for Python312 with hotDeploy and debug",
+			args: args{
+				runtime:   types.Python312,
 				hotDeploy: true,
 				debug:     true,
 			},
@@ -358,6 +445,13 @@ func TestContainerImage(t *testing.T) {
 				runtime: types.Python39,
 			},
 			want: "eu.gcr.io/kyma-project/function-runtime-python39:v20230223-ec41ec1e",
+		},
+		{
+			name: "should return image for Python312",
+			args: args{
+				runtime: types.Python312,
+			},
+			want: "europe-docker.pkg.dev/kyma-project/prod/function-runtime-python312:v20240307-8e7d9941",
 		},
 	}
 	for _, tt := range tests {

@@ -20,10 +20,11 @@ const (
 	NodejsPath          = "NODE_PATH=$(KUBELESS_INSTALL_VOLUME)/node_modules"
 	NodejsDebugEndpoint = `9229`
 
-	Python39Path          = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.9/site-packages:$(KUBELESS_INSTALL_VOLUME)"
-	Python39HotDeploy     = "CHERRYPY_RELOADED=true"
-	Python39Unbuffered    = "PYTHONUNBUFFERED=TRUE"
-	Python39DebugEndpoint = `5678`
+	Python39Path        = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.9/site-packages:$(KUBELESS_INSTALL_VOLUME)"
+	Python312Path       = "PYTHONPATH=$(KUBELESS_INSTALL_VOLUME)/lib.python3.12/site-packages:$(KUBELESS_INSTALL_VOLUME)"
+	PythonHotDeploy     = "CHERRYPY_RELOADED=true"
+	PythonUnbuffered    = "PYTHONUNBUFFERED=TRUE"
+	PythonDebugEndpoint = `5678`
 )
 
 func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
@@ -46,9 +47,15 @@ func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	case types.Nodejs16, types.Nodejs18:
 		return []string{NodejsPath, "HOME=/home/node"}
 	case types.Python39:
-		envs := []string{Python39Path, Python39Unbuffered}
+		envs := []string{Python39Path, PythonUnbuffered}
 		if hotDeploy {
-			envs = append(envs, Python39HotDeploy)
+			envs = append(envs, PythonHotDeploy)
+		}
+		return envs
+	case types.Python312:
+		envs := []string{Python312Path, PythonUnbuffered}
+		if hotDeploy {
+			envs = append(envs, PythonHotDeploy)
 		}
 		return envs
 	default:
@@ -60,8 +67,8 @@ func RuntimeDebugPort(runtime types.Runtime) string {
 	switch runtime {
 	case types.Nodejs16, types.Nodejs18:
 		return NodejsDebugEndpoint
-	case types.Python39:
-		return Python39DebugEndpoint
+	case types.Python39, types.Python312:
+		return PythonDebugEndpoint
 	default:
 		return NodejsDebugEndpoint
 	}
@@ -82,7 +89,7 @@ func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []stri
 			runCommand = "node server.js"
 		}
 		return []string{"npm install --production", runCommand}
-	case types.Python39:
+	case types.Python39, types.Python312:
 		if debug {
 			return []string{"pip install -r $KUBELESS_INSTALL_VOLUME/requirements.txt", "pip install debugpy", "python -m debugpy --listen 0.0.0.0:5678 kubeless.py"}
 		}
@@ -149,6 +156,8 @@ func ContainerImage(runtime types.Runtime) string {
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs18:v20230228-b2981e80"
 	case types.Python39:
 		return "eu.gcr.io/kyma-project/function-runtime-python39:v20230223-ec41ec1e"
+	case types.Python312:
+		return "europe-docker.pkg.dev/kyma-project/prod/function-runtime-python312:v20240307-8e7d9941"
 	default:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs18:v20230228-b2981e80"
 	}
