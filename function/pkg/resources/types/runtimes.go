@@ -6,6 +6,7 @@ type Runtime = string
 const (
 	Nodejs16  Runtime = "nodejs16"
 	Nodejs18  Runtime = "nodejs18"
+	Nodejs20  Runtime = "nodejs20"
 	Python39  Runtime = "python39"
 	Python312 Runtime = "python312"
 )

@@ -53,6 +53,22 @@ func TestContainerEnvs(t *testing.T) {
 			},
 		},
 		{
+			name: "should return envs for nodejs20",
+			args: args{
+				runtime:   types.Nodejs20,
+				hotDeploy: false,
+			},
+			want: []string{
+				"FUNC_RUNTIME=nodejs20",
+				"FUNC_HANDLER=main",
+				"MOD_NAME=handler",
+				"FUNC_PORT=8080",
+				"SERVICE_NAMESPACE=default",
+				NodejsPath,
+				"HOME=/home/node",
+			},
+		},
+		{
 			name: "should return envs for nodejs18",
 			args: args{
 				runtime:   types.Nodejs18,
@@ -220,6 +236,11 @@ func TestRuntimeDebugPort(t *testing.T) {
 			want:    NodejsDebugEndpoint,
 		},
 		{
+			name:    "should return nodejs20 debug port",
+			runtime: types.Nodejs20,
+			want:    NodejsDebugEndpoint,
+		},
+		{
 			name:    "should return python39 debug port",
 			runtime: types.Python39,
 			want:    PythonDebugEndpoint,
@@ -313,6 +334,26 @@ func TestContainerCommands(t *testing.T) {
 			name: "should return commands for Nodejs18 with hotDeploy",
 			args: args{
 				runtime:   types.Nodejs18,
+				hotDeploy: true,
+			},
+			want: []string{
+				"npm install --production", "npx nodemon --watch /usr/src/app/function/*.js /usr/src/app/server.js",
+			},
+		},
+		{
+			name: "should return commands for Nodejs20",
+			args: args{
+				runtime:   types.Nodejs20,
+				hotDeploy: false,
+			},
+			want: []string{
+				"npm install --production", "node server.js",
+			},
+		},
+		{
+			name: "should return commands for Nodejs20 with hotDeploy",
+			args: args{
+				runtime:   types.Nodejs20,
 				hotDeploy: true,
 			},
 			want: []string{
@@ -438,6 +479,13 @@ func TestContainerImage(t *testing.T) {
 				runtime: types.Nodejs18,
 			},
 			want: "eu.gcr.io/kyma-project/function-runtime-nodejs18:v20230228-b2981e80",
+		},
+		{
+			name: "should return image for Nodejs20",
+			args: args{
+				runtime: types.Nodejs20,
+			},
+			want: "eu.gcr.io/kyma-project/function-runtime-nodejs20:v20240313-60b1a498",
 		},
 		{
 			name: "should return image for Python39",
