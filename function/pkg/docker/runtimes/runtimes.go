@@ -29,7 +29,7 @@ const (
 
 func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	envs := []string{}
-	if runtime != types.Nodejs16 && runtime != types.Nodejs18 {
+	if runtime != types.Nodejs16 && runtime != types.Nodejs18 && runtime != types.Nodejs20 {
 		envs = append(envs, fmt.Sprintf("KUBELESS_INSTALL_VOLUME=%s", KubelessPath))
 	}
 	envs = append(envs, []string{
@@ -44,7 +44,7 @@ func ContainerEnvs(runtime types.Runtime, hotDeploy bool) []string {
 
 func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 	switch runtime {
-	case types.Nodejs16, types.Nodejs18:
+	case types.Nodejs16, types.Nodejs18, types.Nodejs20:
 		return []string{NodejsPath, "HOME=/home/node"}
 	case types.Python39:
 		envs := []string{Python39Path, PythonUnbuffered}
@@ -65,7 +65,7 @@ func runtimeEnvs(runtime types.Runtime, hotDeploy bool) []string {
 
 func RuntimeDebugPort(runtime types.Runtime) string {
 	switch runtime {
-	case types.Nodejs16, types.Nodejs18:
+	case types.Nodejs16, types.Nodejs18, types.Nodejs20:
 		return NodejsDebugEndpoint
 	case types.Python39, types.Python312:
 		return PythonDebugEndpoint
@@ -76,7 +76,7 @@ func RuntimeDebugPort(runtime types.Runtime) string {
 
 func ContainerCommands(runtime types.Runtime, debug bool, hotDeploy bool) []string {
 	switch runtime {
-	case types.Nodejs16, types.Nodejs18:
+	case types.Nodejs16, types.Nodejs18, types.Nodejs20:
 		runCommand := ""
 		if hotDeploy && debug {
 			runCommand = "npx nodemon --watch /usr/src/app/function/*.js --inspect=0.0.0.0 --exitcrash server.js"
@@ -154,6 +154,8 @@ func ContainerImage(runtime types.Runtime) string {
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs16:v20230228-b2981e80"
 	case types.Nodejs18:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs18:v20230228-b2981e80"
+	case types.Nodejs20:
+		return "eu.gcr.io/kyma-project/function-runtime-nodejs20:v20240313-60b1a498"
 	case types.Python39:
 		return "eu.gcr.io/kyma-project/function-runtime-python39:v20230223-ec41ec1e"
 	case types.Python312:
