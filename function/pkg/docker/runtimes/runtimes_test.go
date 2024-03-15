@@ -485,7 +485,7 @@ func TestContainerImage(t *testing.T) {
 			args: args{
 				runtime: types.Nodejs20,
 			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs20:v20240313-60b1a498",
+			want: "europe-docker.pkg.dev/kyma-project/prod/function-runtime-nodejs20:v20240314-8476bf34",
 		},
 		{
 			name: "should return image for Python39",
