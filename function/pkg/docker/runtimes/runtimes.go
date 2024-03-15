@@ -155,7 +155,7 @@ func ContainerImage(runtime types.Runtime) string {
 	case types.Nodejs18:
 		return "eu.gcr.io/kyma-project/function-runtime-nodejs18:v20230228-b2981e80"
 	case types.Nodejs20:
-		return "eu.gcr.io/kyma-project/function-runtime-nodejs20:v20240313-60b1a498"
+		return "europe-docker.pkg.dev/kyma-project/prod/function-runtime-nodejs20:v20240314-8476bf34"
 	case types.Python39:
 		return "eu.gcr.io/kyma-project/function-runtime-python39:v20230223-ec41ec1e"
 	case types.Python312:
