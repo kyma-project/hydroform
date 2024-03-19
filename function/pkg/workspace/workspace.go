@@ -49,7 +49,7 @@ func initialize(cfg Cfg, dirPath string, writerProvider WriterProvider) (err err
 
 func fromSources(runtime string, source, deps string) (workspace, error) {
 	switch runtime {
-	case types.Nodejs16, types.Nodejs18, types.Nodejs20:
+	case types.Nodejs18, types.Nodejs20:
 		return workspace{
 			NewTemplatedFile(source, FileNameHandlerJs),
 			NewTemplatedFile(deps, FileNamePackageJSON),
@@ -66,7 +66,7 @@ func fromSources(runtime string, source, deps string) (workspace, error) {
 
 func fromRuntime(runtime types.Runtime) (workspace, error) {
 	switch runtime {
-	case types.Nodejs16, types.Nodejs18, types.Nodejs20:
+	case types.Nodejs18, types.Nodejs20:
 		return workspaceNodeJs, nil
 	case types.Python39, types.Python312:
 		return workspacePython, nil
@@ -81,7 +81,7 @@ type DepsFileName = string
 
 func InlineFileNames(r types.Runtime) (SourceFileName, DepsFileName, bool) {
 	switch r {
-	case types.Nodejs16, types.Nodejs18, types.Nodejs20:
+	case types.Nodejs18, types.Nodejs20:
 		return string(FileNameHandlerJs), string(FileNamePackageJSON), true
 	case types.Python39, types.Python312:
 		return string(FileNameHandlerPy), string(FileNameRequirementsTxt), true

@@ -152,14 +152,6 @@ func Test_fromRuntime(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nodejs16",
-			args: args{
-				runtime: types.Nodejs16,
-			},
-			want:    workspaceNodeJs,
-			wantErr: false,
-		},
-		{
 			name: "python39",
 			args: args{
 				runtime: types.Python39,

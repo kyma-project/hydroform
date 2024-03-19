@@ -85,22 +85,6 @@ func TestContainerEnvs(t *testing.T) {
 			},
 		},
 		{
-			name: "should return envs for nodejs16",
-			args: args{
-				runtime:   types.Nodejs16,
-				hotDeploy: false,
-			},
-			want: []string{
-				"FUNC_RUNTIME=nodejs16",
-				"FUNC_HANDLER=main",
-				"MOD_NAME=handler",
-				"FUNC_PORT=8080",
-				"SERVICE_NAMESPACE=default",
-				NodejsPath,
-				"HOME=/home/node",
-			},
-		},
-		{
 			name: "should return envs for python39",
 			args: args{
 				runtime:   types.Python39,
@@ -226,11 +210,6 @@ func TestRuntimeDebugPort(t *testing.T) {
 			want:    "9229",
 		},
 		{
-			name:    "should return nodejs16 debug port",
-			runtime: types.Nodejs16,
-			want:    NodejsDebugEndpoint,
-		},
-		{
 			name:    "should return nodejs18 debug port",
 			runtime: types.Nodejs18,
 			want:    NodejsDebugEndpoint,
@@ -298,26 +277,6 @@ func TestContainerCommands(t *testing.T) {
 			},
 			want: []string{
 				"npm install --production --prefix=$KUBELESS_INSTALL_VOLUME", "npx nodemon --watch /kubeless/*.js /kubeless_rt/kubeless.js",
-			},
-		},
-		{
-			name: "should return commands for Nodejs16",
-			args: args{
-				runtime:   types.Nodejs16,
-				hotDeploy: false,
-			},
-			want: []string{
-				"npm install --production", "node server.js",
-			},
-		},
-		{
-			name: "should return commands for Nodejs16 with hotDeploy",
-			args: args{
-				runtime:   types.Nodejs16,
-				hotDeploy: true,
-			},
-			want: []string{
-				"npm install --production", "npx nodemon --watch /usr/src/app/function/*.js /usr/src/app/server.js",
 			},
 		},
 		{
@@ -467,13 +426,6 @@ func TestContainerImage(t *testing.T) {
 			want: "eu.gcr.io/kyma-project/function-runtime-nodejs18:v20230228-b2981e80",
 		},
 		{
-			name: "should return image for Nodejs16",
-			args: args{
-				runtime: types.Nodejs16,
-			},
-			want: "eu.gcr.io/kyma-project/function-runtime-nodejs16:v20230228-b2981e80",
-		},
-		{
 			name: "should return image for Nodejs18",
 			args: args{
 				runtime: types.Nodejs18,
@@ -523,9 +475,9 @@ func TestGetMounts(t *testing.T) {
 		want []mount.Mount
 	}{
 		{
-			name: "should return mount for nodejs16",
+			name: "should return mount for nodejs20",
 			args: args{
-				runtime:    types.Nodejs16,
+				runtime:    types.Nodejs20,
 				sourceType: workspace.SourceTypeInline,
 				workDir:    "/your/work/dir",
 			},
