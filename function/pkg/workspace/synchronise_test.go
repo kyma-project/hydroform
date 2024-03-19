@@ -425,7 +425,7 @@ func Test_Synchronise(t *testing.T) {
 								"namespace": namespace,
 							},
 							"spec": map[string]interface{}{
-								"runtime": "Nodejs18",
+								"runtime": "nodejs18",
 								"source": map[string]interface{}{
 									"inline": map[string]interface{}{
 										"source":       handlerJs,
@@ -714,7 +714,7 @@ func inlineClientGetFunction(result *mockclient.MockClient, name string, namespa
 						"memory": "128Mi",
 					},
 				},
-				"runtime": "Nodejs18",
+				"runtime": "nodejs18",
 				"source": map[string]interface{}{
 					"inline": map[string]interface{}{
 						"source":       handlerJs,
