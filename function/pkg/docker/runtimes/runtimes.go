@@ -166,7 +166,7 @@ func ContainerImage(runtime types.Runtime) string {
 }
 
 func isKubelessRuntime(runtime types.Runtime) bool {
-	if runtime == types.Nodejs16 || runtime == types.Nodejs18 {
+	if runtime == types.Nodejs16 || runtime == types.Nodejs18 || runtime == types.Nodejs20 {
 		return false
 	}
 	return true
