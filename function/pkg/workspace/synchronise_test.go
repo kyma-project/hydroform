@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/golang/mock/gomock"
 	"github.com/kyma-project/hydroform/function/pkg/client"
@@ -137,7 +138,7 @@ func Test_Synchronise(t *testing.T) {
 					data: Cfg{
 						Name:      name,
 						Namespace: namespace,
-						Runtime:   types.Nodejs16,
+						Runtime:   types.Nodejs18,
 						Source: Source{
 							Type: SourceTypeInline,
 						},
@@ -263,7 +264,7 @@ func Test_Synchronise(t *testing.T) {
 					data: Cfg{
 						Name:      name,
 						Namespace: namespace,
-						Runtime:   types.Nodejs16,
+						Runtime:   types.Nodejs18,
 						Source: Source{
 							Type: SourceTypeInline,
 						},
@@ -424,7 +425,7 @@ func Test_Synchronise(t *testing.T) {
 								"namespace": namespace,
 							},
 							"spec": map[string]interface{}{
-								"runtime": "nodejs16",
+								"runtime": "nodejs18",
 								"source": map[string]interface{}{
 									"inline": map[string]interface{}{
 										"source":       handlerJs,
@@ -475,7 +476,7 @@ func Test_Synchronise(t *testing.T) {
 					data: Cfg{
 						Name:      name,
 						Namespace: namespace,
-						Runtime:   types.Nodejs16,
+						Runtime:   types.Nodejs18,
 						Source: Source{
 							Type: SourceTypeInline,
 						},
@@ -713,7 +714,7 @@ func inlineClientGetFunction(result *mockclient.MockClient, name string, namespa
 						"memory": "128Mi",
 					},
 				},
-				"runtime": "nodejs16",
+				"runtime": "nodejs18",
 				"source": map[string]interface{}{
 					"inline": map[string]interface{}{
 						"source":       handlerJs,
