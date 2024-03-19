@@ -475,9 +475,9 @@ func TestGetMounts(t *testing.T) {
 		want []mount.Mount
 	}{
 		{
-			name: "should return mount for nodejs20",
+			name: "should return mount for nodejs18",
 			args: args{
-				runtime:    types.Nodejs20,
+				runtime:    types.Nodejs18,
 				sourceType: workspace.SourceTypeInline,
 				workDir:    "/your/work/dir",
 			},

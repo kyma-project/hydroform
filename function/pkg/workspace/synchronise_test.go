@@ -138,7 +138,7 @@ func Test_Synchronise(t *testing.T) {
 					data: Cfg{
 						Name:      name,
 						Namespace: namespace,
-						Runtime:   types.Nodejs20,
+						Runtime:   types.Nodejs18,
 						Source: Source{
 							Type: SourceTypeInline,
 						},
@@ -264,7 +264,7 @@ func Test_Synchronise(t *testing.T) {
 					data: Cfg{
 						Name:      name,
 						Namespace: namespace,
-						Runtime:   types.Nodejs20,
+						Runtime:   types.Nodejs18,
 						Source: Source{
 							Type: SourceTypeInline,
 						},
@@ -425,7 +425,7 @@ func Test_Synchronise(t *testing.T) {
 								"namespace": namespace,
 							},
 							"spec": map[string]interface{}{
-								"runtime": "Nodejs20",
+								"runtime": "Nodejs18",
 								"source": map[string]interface{}{
 									"inline": map[string]interface{}{
 										"source":       handlerJs,
@@ -476,7 +476,7 @@ func Test_Synchronise(t *testing.T) {
 					data: Cfg{
 						Name:      name,
 						Namespace: namespace,
-						Runtime:   types.Nodejs20,
+						Runtime:   types.Nodejs18,
 						Source: Source{
 							Type: SourceTypeInline,
 						},
@@ -714,7 +714,7 @@ func inlineClientGetFunction(result *mockclient.MockClient, name string, namespa
 						"memory": "128Mi",
 					},
 				},
-				"runtime": "Nodejs20",
+				"runtime": "Nodejs18",
 				"source": map[string]interface{}{
 					"inline": map[string]interface{}{
 						"source":       handlerJs,
