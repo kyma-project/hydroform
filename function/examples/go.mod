@@ -3,7 +3,7 @@ module github.com/kyma-project/hydroform/function-examples
 go 1.21
 
 require (
-	github.com/docker/docker v24.0.5+incompatible
+	github.com/docker/docker v24.0.9+incompatible
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/kyma-project/hydroform/function v0.0.0-20240119081708-e81b65fad363
 	github.com/sirupsen/logrus v1.8.1
