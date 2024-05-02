@@ -54,6 +54,9 @@ func deleteSubscriptions(ctx context.Context, c client.Client, items []unstructu
 			return err
 		}
 		state, err := deleteObject(ctx, c, items[i], opts)
+		if err != nil {
+			return err
+		}
 		// fire post callbacks
 		if err := fireCallbacks(state, err, opts.Post...); err != nil {
 			return err

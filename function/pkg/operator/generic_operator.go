@@ -29,6 +29,9 @@ func (p genericOperator) Apply(ctx context.Context, opts ApplyOptions) error {
 		}
 
 		applied, statusEntry, err := p.apply(ctx, p.items[i], opts)
+		if err != nil {
+			return err
+		}
 
 		// fire post callbacks
 		if err := fireCallbacks(statusEntry, err, opts.Callbacks.Post...); err != nil {
@@ -61,6 +64,9 @@ func (p genericOperator) Delete(ctx context.Context, opts DeleteOptions) error {
 			return err
 		}
 		status, err := deleteObject(ctx, p.Client, p.items[i], opts)
+		if err != nil {
+			return err
+		}
 		// fire post callbacks
 		if err := fireCallbacks(status, err, opts.Post...); err != nil {
 			return err
