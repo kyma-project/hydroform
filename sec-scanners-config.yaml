@@ -1,7 +1,0 @@
-module-name: hydroform
-whitesource:
-  language: golang-mod
-  exclude:
-    - "**/*_test.go"
-    - "**/mocks/**"
-  subprojects: false
