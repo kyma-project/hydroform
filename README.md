@@ -9,3 +9,15 @@ Hydroform is the Kyma Go SDK. It bundles together different [Go modules](https:/
 Hydroform consists of the following modules:
 
 - [Provision](./provision) - provides an API to create, access, and delete Kubernetes clusters.
+
+## Contributing
+
+See the [Contributing Rules](CONTRIBUTING.md).
+
+## Code of Conduct
+
+See the [Code of Conduct](CODE_OF_CONDUCT.md) document.
+
+## Licensing
+
+See the [license](./LICENSE) file.
